@@ -1,2 +1,3 @@
 # rbmd-gpu
-rbmd on gpu only
+## 目的
+专门针对GPU开发的版本，目的是为了将其部署在超算上进行大规模计算，现阶段开发选择的GPU是DCU，后期会慢慢兼容Nvidia和AMD的显卡。
