@@ -1,8 +1,9 @@
-#include "./src/reader/conf_reader.h"
+#include "./src/reader/atomic_reader.h"
 
 int main()
 {
-	ConfReader reader("./ 1.json");
+	MmapReader* reader = new AtomicReader("./lj_6w.data");
+	reader->Execute();
 
 	return 0;
 }
