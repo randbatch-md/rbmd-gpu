@@ -4,7 +4,7 @@
 class AtomicReader : public StructureReder
 {
 public:
-	AtomicReader(const std::string& filePath);
+	AtomicReader(const std::string& filePath, MDData& data);
 	~AtomicReader() = default;
 
 protected:

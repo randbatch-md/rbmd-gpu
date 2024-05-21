@@ -2,8 +2,8 @@
 #include <sstream>
 #include <string>
 
-AtomicReader::AtomicReader(const std::string& filePath) : 
-	StructureReder(filePath)
+AtomicReader::AtomicReader(const std::string& filePath, MDData& data) :
+	StructureReder(filePath, data)
 {
 
 }

@@ -1,10 +1,9 @@
 #pragma once
 #include "Types.h"
 
-class StructureHeader
+struct StructureInfo
 {
-public:
-	StructureHeader() :
+	StructureInfo() :
 		_num_atoms(0),
 		_num_bonds(0),
 		_num_angles(0),

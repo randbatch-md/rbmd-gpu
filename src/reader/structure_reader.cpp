@@ -1,10 +1,10 @@
 #include "structure_reader.h"
 #include <sstream>
+#include "md_data.h"
 
-StructureReder::StructureReder(const std::string& filePath) : 
+StructureReder::StructureReder(const std::string& filePath, MDData& data) :
 	MmapReader(filePath),
-	_header(std::make_unique<StructureHeader>()),
-	_Data(std::make_unique<StructureData>())
+	_md_data(data)
 {
 
 }
@@ -23,6 +23,11 @@ int StructureReder::Execute()
 		return -1;
 	}
 
+	if (-1 == ReadPotential())
+	{
+		return -1;
+	}
+
 	if (-1 == ReadData())
 	{
 		//log
@@ -35,6 +40,8 @@ int StructureReder::Execute()
 
 int StructureReder::ReadHeader()
 {
+	auto& info = _md_data._structure_info;
+
 	for (; _locate < _file_size; ++_locate)
 	{
 		if (_mapped_memory[_locate] == '\n')
@@ -45,51 +52,51 @@ int StructureReder::ReadHeader()
 			{
 				if (line.find("atoms") != std::string::npos)
 				{
-					iss >> _header->_num_atoms;
+					iss >> info._num_atoms;
 				}
 				else if (line.find("bonds") != std::string::npos)
 				{
-					iss >> _header->_num_bonds;
+					iss >> info._num_bonds;
 				}
 				else if (line.find("angles") != std::string::npos)
 				{
-					iss >> _header->_num_angles;
+					iss >> info._num_angles;
 				}
 				else if (line.find("dihedrals") != std::string::npos)
 				{
-					iss >> _header->_num_dihedrals;
+					iss >> info._num_dihedrals;
 				}
 				else if (line.find("impropers") != std::string::npos)
 				{
-					iss >> _header->_num_impropers;
+					iss >> info._num_impropers;
 				}
 				else if (line.find("atom types") != std::string::npos)
 				{
-					iss >> _header->_num_atoms_type;
+					iss >> info._num_atoms_type;
 				}
 				else if (line.find("bond types") != std::string::npos)
 				{
-					iss >> _header->_num_bound_type;
+					iss >> info._num_bound_type;
 
 				}
 				else if (line.find("angle types") != std::string::npos)
 				{
-					iss >> _header->_num_angle_type;
+					iss >> info._num_angle_type;
 
 				}
 				else if (line.find("xlo xhi") != std::string::npos)
 				{
-					iss >> _header->_range[0][0] >> _header->_range[0][1];
+					iss >> info._range[0][0] >> info._range[0][1];
 
 				}
 				else if (line.find("ylo yhi") != std::string::npos)
 				{
-					iss >> _header->_range[1][0] >> _header->_range[1][1];
+					iss >> info._range[1][0] >> info._range[1][1];
 
 				}
 				else if (line.find("zlo zhi") != std::string::npos)
 				{
-					iss >> _header->_range[2][0] >> _header->_range[2][1];
+					iss >> info._range[2][0] >> info._range[2][1];
 					_line_start = &_mapped_memory[_locate];
 					break;
 				}
@@ -98,6 +105,12 @@ int StructureReder::ReadHeader()
 			_line_start = &_mapped_memory[_locate];
 		}
 	}
+
+	return 0;
+}
+
+int StructureReder::ReadPotential()
+{
 
 	return 0;
 }
