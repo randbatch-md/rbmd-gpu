@@ -1,7 +1,7 @@
 #pragma once
-#include "conf_data_reader.h"
+#include "structure_reader.h"
 
-class AtomicReader : public ConfDataReder
+class AtomicReader : public StructureReder
 {
 public:
 	AtomicReader(const std::string& filePath);

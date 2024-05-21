@@ -1,10 +1,10 @@
 #pragma once
 #include "Types.h"
 
-class DataHeader
+class StructureHeader
 {
 public:
-	DataHeader() :
+	StructureHeader() :
 		_num_atoms(0),
 		_num_bonds(0),
 		_num_angles(0),

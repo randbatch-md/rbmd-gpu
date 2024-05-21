@@ -3,7 +3,7 @@
 #include <string>
 
 AtomicReader::AtomicReader(const std::string& filePath) : 
-	ConfDataReder(filePath)
+	StructureReder(filePath)
 {
 
 }

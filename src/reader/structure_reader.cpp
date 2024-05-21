@@ -1,15 +1,15 @@
-#include "conf_data_reader.h"
+#include "structure_reader.h"
 #include <sstream>
 
-ConfDataReder::ConfDataReder(const std::string& filePath) : 
+StructureReder::StructureReder(const std::string& filePath) : 
 	MmapReader(filePath),
-	_header(std::make_unique<DataHeader>()),
-	_Data(std::make_unique<DataBody>())
+	_header(std::make_unique<StructureHeader>()),
+	_Data(std::make_unique<StructureData>())
 {
 
 }
 
-int ConfDataReder::Execute()
+int StructureReder::Execute()
 {
 	if (-1 == MmapReader::Execute())
 	{
@@ -33,7 +33,7 @@ int ConfDataReder::Execute()
 	return 0;
 }
 
-int ConfDataReder::ReadHeader()
+int StructureReder::ReadHeader()
 {
 	for (; _locate < _file_size; ++_locate)
 	{
