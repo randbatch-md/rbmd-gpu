@@ -12,11 +12,12 @@ public:
 
 protected:
 	virtual int ReadData() = 0;
+	virtual void AllocateDataSpace() = 0;
 
 private:
 	int ReadHeader();
 	int ReadPotential();
 
-private:
+protected:
 	MDData& _md_data;
 };

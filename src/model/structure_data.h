@@ -1,9 +1,9 @@
 #pragma once
 
-#include <map>
+#include <vector>
 
 struct StructureData
 {
-
-
+	
+	std::vector<rbmd::Real> _position;
 };

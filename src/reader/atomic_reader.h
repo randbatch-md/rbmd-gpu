@@ -9,4 +9,5 @@ public:
 
 protected:
 	int ReadData() override;
+	void AllocateDataSpace() override;
 };

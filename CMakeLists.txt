@@ -2,6 +2,8 @@ cmake_minimum_required(VERSION 3.16)
 
 project(rbmd-gpu)
 
+add_subdirectory(./src)
+
 set(src 
 ./main.cpp
 ./src/reader/mmap_reader.cpp

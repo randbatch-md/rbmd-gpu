@@ -25,9 +25,11 @@ int StructureReder::Execute()
 
 	if (-1 == ReadPotential())
 	{
+		//log
 		return -1;
 	}
 
+	AllocateDataSpace();
 	if (-1 == ReadData())
 	{
 		//log
@@ -41,6 +43,7 @@ int StructureReder::Execute()
 int StructureReder::ReadHeader()
 {
 	auto& info = _md_data._structure_info;
+	std::vector<int> a;
 
 	for (; _locate < _file_size; ++_locate)
 	{
@@ -111,6 +114,44 @@ int StructureReder::ReadHeader()
 
 int StructureReder::ReadPotential()
 {
+	for (; _locate < _file_size; ++_locate)
+	{
+		if (_mapped_memory[_locate] == '\n')
+		{
+			auto line = std::string(_line_start, &_mapped_memory[_locate]);
+			std::istringstream iss(line);
+
+			if (!line.empty() && line != "\r")
+			{
+				if (line.find("Masses") != std::string::npos)
+				{
+
+				}
+				else if (line.find("Pair Coeffs") != std::string::npos)
+				{
+
+				}
+				else if (line.find("Bond Coeffs") != std::string::npos)
+				{
+
+				}
+				else if (line.find("Angle Coeffs") != std::string::npos)
+				{
+
+				}
+				else if (line.find("group") != std::string::npos)
+				{
+
+				}
+				else if (line.find("Atoms") != std::string::npos)
+				{
+					break;
+				}
+			}
+
+			_line_start = &_mapped_memory[_locate];
+		}
+	}
 
 	return 0;
 }
