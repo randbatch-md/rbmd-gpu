@@ -17,6 +17,11 @@ protected:
 private:
 	int ReadHeader();
 	int ReadPotential();
+	int ReadMass(const rbmd::Id& numAtomTypes);
+	int ReadPairCoeffs(const rbmd::Id& numAtomTypes);
+	int ReadBondCoeffs(const rbmd::Id& numBondTypes);
+	int ReadAngleCoeffs(const rbmd::Id& numAngleTypes);
+	//int ReadGroup();
 
 protected:
 	MDData& _md_data;

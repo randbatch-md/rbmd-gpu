@@ -11,24 +11,33 @@ AtomicReader::AtomicReader(const std::string& filePath, MDData& data) :
 
 int AtomicReader::ReadData()
 {
-	for (; _locate < _file_size; ++_locate)
+	try
 	{
-		if (_mapped_memory[_locate] == '\n')
+		for (; _locate < _file_size; ++_locate)
 		{
-			auto line = std::string(_line_start, &_mapped_memory[_locate]);
-			std::istringstream iss(line);
-
-			if (!line.empty() && line != "\r")
+			if (_mapped_memory[_locate] == '\n')
 			{
-				if (line.find("Atoms") != std::string::npos)
-				{
-					
-					break;
-				}
-			}
+				auto line = std::string(_line_start, &_mapped_memory[_locate]);
+				std::istringstream iss(line);
 
-			_line_start = &_mapped_memory[_locate];
+				if (!line.empty() && line != "\n")
+				{
+					if (line.find("Atoms") != std::string::npos)
+					{
+
+						break;
+					}
+				}
+
+				_line_start = &_mapped_memory[_locate];
+			}
 		}
+
+	}
+	catch (const std::exception& e)
+	{
+		//log
+		return -1;
 	}
 
 	return 0;
