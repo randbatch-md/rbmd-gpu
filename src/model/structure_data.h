@@ -2,8 +2,15 @@
 
 #include <vector>
 
+struct Atoms
+{
+	std::vector<rbmd::Id> _ids;
+	std::vector<rbmd::Id> _types;
+	std::vector<rbmd::vec3> _positions;
+};
+
 struct StructureData
 {
-	
-	std::vector<rbmd::Real> _position;
+	Atoms _atoms;
+	std::vector<rbmd::vec3> _velocities;
 };
