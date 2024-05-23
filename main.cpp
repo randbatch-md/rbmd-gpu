@@ -5,7 +5,7 @@ int main()
 {
 	MDData data;
 
-	MmapReader* reader = new AtomicReader("./lj_6w.data", data);
+	BaseReader* reader = new AtomicReader("./rbmd_atomic.data", data);
 	reader->Execute();
 
 	//potential

@@ -1,6 +1,7 @@
 #include "structure_reader.h"
 #include <sstream>
 #include "md_data.h"
+#include "string_util.h"
 
 StructureReder::StructureReder(const std::string& filePath, MDData& data) :
 	MmapReader(filePath),
@@ -53,7 +54,7 @@ int StructureReder::ReadHeader()
 			{
 				auto line = std::string(_line_start, &_mapped_memory[_locate]);
 				std::istringstream iss(line);
-				if (!line.empty() && line != "\n")
+				if (rbmd::IsLegalLine(line))
 				{
 					if (line.find("atoms") != std::string::npos)
 					{
@@ -132,7 +133,7 @@ int StructureReder::ReadPotential()
 				auto line = std::string(_line_start, &_mapped_memory[_locate]);
 				std::istringstream iss(line);
 
-				if (!line.empty() && line != "\n")
+				if (rbmd::IsLegalLine(line))
 				{
 					if (line.find("Masses") != std::string::npos)
 					{
@@ -159,8 +160,6 @@ int StructureReder::ReadPotential()
 						break;
 					}
 				}
-
-				_line_start = &_mapped_memory[_locate];
 			}
 		}
 	}
@@ -188,13 +187,14 @@ int StructureReder::ReadMass(const rbmd::Id& numAtomTypes)
 			{
 				auto line = std::string(_line_start, &_mapped_memory[_locate]);
 				std::istringstream iss(line);
-				if (!line.empty() && line != "\n")
+				if (rbmd::IsLegalLine(line))
 				{
 					iss >> atom_type >> value;
 					mass.insert(std::make_pair(atom_type, value));
 					++num;
 				}
 
+				_line_start = &_mapped_memory[_locate];
 			}
 		}
 	}
@@ -224,13 +224,14 @@ int StructureReder::ReadPairCoeffs(const rbmd::Id& numAtomTypes)
 			{
 				auto line = std::string(_line_start, &_mapped_memory[_locate]);
 				std::istringstream iss(line);
-				if (!line.empty() && line != "\n")
+				if (rbmd::IsLegalLine(line))
 				{
 					iss >> atom_type >> eps_value >> sigma_value;
 					eps.insert(std::make_pair(atom_type, eps_value));
 					sigma.insert(std::make_pair(atom_type, sigma_value));
 					++num;
 				}
+				_line_start = &_mapped_memory[_locate];
 			}
 		}
 	}
