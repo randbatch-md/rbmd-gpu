@@ -7,8 +7,8 @@ MDApplication::MDApplication(int argc, char* argv[])
 {
 	_command_line = std::make_shared<CommandLine>(argc, argv);
 
-	if (_command_line->IsRunApplication())
-	{
+	//if (_command_line->IsRunApplication())
+	//{
 		//_parser = std::
 		//_reader = std::
 		_system = std::make_shared<MDSystem>();
@@ -16,7 +16,7 @@ MDApplication::MDApplication(int argc, char* argv[])
 
 		_reader = std::make_shared<AtomicReader>("./rbmd_atomic.data", md_data);
 		_reader->Execute();
-	}
+	//}
 
 
 }
