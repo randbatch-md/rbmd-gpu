@@ -1,5 +1,9 @@
+define_property(GLOBAL PROPERTY TOOLS_INCLUDE_PATH)
+
 macro(build_tool)
-	set(TOOL_INSTALL_PATH ${tooldir}/${CMAKE_SYSTEM_NAME}/${CMAKE_BUILD_TYPE}/${toolname_without_ext})	
+	set(TOOL_INSTALL_PATH ${tooldir}/${CMAKE_SYSTEM_NAME}/${CMAKE_BUILD_TYPE}/${toolname_without_ext})
+	set_property(GLOBAL APPEND PROPERTY TOOLS_INCLUDE_PATH ${TOOL_INSTALL_PATH}/include)
+	
 	#avoid repeated build
 	if(NOT EXISTS ${TOOL_INSTALL_PATH})
 		message("****** build ${toolname_without_ext} start ******")

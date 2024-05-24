@@ -1,5 +1,7 @@
 #pragma once
 
+#include "cxxopts.hpp"
+
 class CommandLine
 {
 public:
@@ -11,4 +13,5 @@ public:
 
 private:
 	bool _is_run_application;
+	cxxopts::ParseResult _co;
 };

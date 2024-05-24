@@ -8,6 +8,7 @@ include("./cmake/option.cmake")
 add_subdirectory(./src)
 add_subdirectory(./tools)
 
+
 set(src 
 ./src/main.cpp
 ./src/system/md_system.cpp
@@ -20,6 +21,7 @@ set(src
 ./src/application/md_application.cpp
 ./src/parser/command_line.cpp)
 
+#include
 include_directories("${CMAKE_CURRENT_LIST_DIR}/src")
 include_directories("${CMAKE_CURRENT_LIST_DIR}/src/reader")
 include_directories("${CMAKE_CURRENT_LIST_DIR}/src/model")
@@ -27,6 +29,11 @@ include_directories("${CMAKE_CURRENT_LIST_DIR}/src/Utilities")
 include_directories("${CMAKE_CURRENT_LIST_DIR}/src/parser")
 include_directories("${CMAKE_CURRENT_LIST_DIR}/src/application")
 include_directories("${CMAKE_CURRENT_LIST_DIR}/src/system")
+
+get_property(var GLOBAL PROPERTY TOOLS_INCLUDE_PATH)
+foreach(tool_include_path ${var})
+	include_directories(${tool_include_path})
+endforeach()
 
 add_executable(${PROJECT_NAME} ${src})
 
