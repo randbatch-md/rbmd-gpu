@@ -2,6 +2,9 @@ cmake_minimum_required(VERSION 3.16)
 
 project(rbmd-gpu)
 
+#option
+include("./cmake/option.cmake")
+
 add_subdirectory(./src)
 
 set(src 
@@ -25,3 +28,16 @@ include_directories("${CMAKE_CURRENT_LIST_DIR}/src/application")
 include_directories("${CMAKE_CURRENT_LIST_DIR}/src/system")
 
 add_executable(${PROJECT_NAME} ${src})
+
+#target property
+set_property(TARGET ${PROJECT_NAME} PROPERTY TVAR "tval")
+get_property(val TARGET ${PROJECT_NAME} PROPERTY TVAR)
+message("val = ${val}")
+
+if(${ENABLE_DOUBLE})
+	set_property(TARGET ${PROJECT_NAME} PROPERTY COMPILE_DEFINITIONS "USE_DOUBLE=${ENABLE_DOUBLE}")
+endif()
+
+if(${ENABLE_64BIT_IDS})
+	set_property(TARGET ${PROJECT_NAME} PROPERTY COMPILE_DEFINITIONS "USE_LONGLONG=${ENABLE_64BIT_IDS}")
+endif()

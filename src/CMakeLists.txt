@@ -1,10 +1,9 @@
-message ("src")
 
-set(VAR1 "CACH1 VAR1" CACHE STRING "CACHE DOC")
-set(VAR1 "CACH1 VAR2" CACHE STRING "CACHE DOC" FORCE)
-message("var1 = ${VAR1}")
 
-option(opt1 "opt1 doc" OFF)
-message("opt1 = ${opt1}")
-option(opt1 "opt1 doc" ON)
-message("opt1 = ${opt1}")
+
+set_property(DIRECTORY . PROPERTY DIR1 "DIR001")
+get_property(dir DIRECTORY . PROPERTY DIR1)
+message("dir = ${dir}")
+
+message("use double = $CACHE{ENABLE_DOUBLE}")
+message("use 64 BIT = $CACHE{ENABLE_64BIT_IDS}")
