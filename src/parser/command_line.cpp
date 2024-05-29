@@ -23,6 +23,13 @@ bool CommandLine::RunApplication()
 {
 	if (_co.count("j"))
 	{
+		auto file = _co["j"].as<std::string>();
+		if (file != "rbmd.json")
+		{
+			_console->error("the json name must be rbmd.json!");
+			return false;
+		}
+
 		return true;
 	}
 
@@ -34,11 +41,6 @@ void CommandLine::Initialize()
 	_opts.add_options()("v", "version");
 	_opts.add_options()("h", "help");
 	_opts.add_options()("j", "json file", cxxopts::value<std::string>());
-}
-
-std::string CommandLine::GetFile()
-{
-	return _co["j"].as<std::string>();
 }
 
 void CommandLine::ParseCommand()

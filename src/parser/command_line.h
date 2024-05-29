@@ -1,8 +1,9 @@
 #pragma once
 
 #include "cxxopts.hpp"
+#include "object.h"
 
-class CommandLine
+class CommandLine : public Object
 {
 public:
 	CommandLine(int argc, char* argv[]);
@@ -11,7 +12,6 @@ public:
 public:
 	bool RunApplication();
 	static void Initialize();
-	std::string GetFile();
 
 private:
 	void ParseCommand();

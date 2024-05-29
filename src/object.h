@@ -6,9 +6,13 @@
 class Object
 {
 public:
-	Object() : _console(spdlog::stdout_color_mt("console"))
+	Object()
 	{
-
+		_console = spdlog::get("console");
+		if (!_console)
+		{
+			_console = spdlog::stdout_color_mt("console");
+		}
 	}
 
 	virtual ~Object() = default;

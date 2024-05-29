@@ -44,7 +44,7 @@ foreach(tool_link_path ${var})
 	target_link_directories(${PROJECT_NAME} PUBLIC ${tool_link_path})
 endforeach()
 
-#target_link_libraries(${PROJECT_NAME} PRIVATE jsoncpp spdlog)
+target_link_libraries(${PROJECT_NAME} PRIVATE jsoncpp spdlog)
 
 #set target property
 include("./cmake/set_target_property.cmake")
