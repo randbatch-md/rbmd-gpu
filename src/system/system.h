@@ -1,6 +1,7 @@
 #pragma once
+#include "object.h"
 
-class System
+class System : public Object
 {
 public:
 	virtual int Evolve() = 0;

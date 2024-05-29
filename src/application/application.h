@@ -1,12 +1,13 @@
 #pragma once
 
 #include <memory>
+#include "object.h"
 
 class CommandLine;
 class BaseReader;
 class System;
 
-class Application
+class Application : public Object
 {
 public:
 	Application(int argc, char* argv[]);
@@ -20,7 +21,6 @@ protected:
 
 protected:
 	std::shared_ptr<CommandLine> _command_line;
-	std::shared_ptr<BaseReader> _reader;
 	std::shared_ptr<System> _system;
 
 };

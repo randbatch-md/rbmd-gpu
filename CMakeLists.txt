@@ -30,12 +30,21 @@ include_directories("${CMAKE_CURRENT_LIST_DIR}/src/parser")
 include_directories("${CMAKE_CURRENT_LIST_DIR}/src/application")
 include_directories("${CMAKE_CURRENT_LIST_DIR}/src/system")
 
+#tool include
 get_property(var GLOBAL PROPERTY TOOLS_INCLUDE_PATH)
 foreach(tool_include_path ${var})
 	include_directories(${tool_include_path})
 endforeach()
 
 add_executable(${PROJECT_NAME} ${src})
+
+#tool link
+get_property(var GLOBAL PROPERTY TOOLS_LINK_PATH)
+foreach(tool_link_path ${var})
+	target_link_directories(${PROJECT_NAME} PUBLIC ${tool_link_path})
+endforeach()
+
+#target_link_libraries(${PROJECT_NAME} PRIVATE jsoncpp spdlog)
 
 #set target property
 include("./cmake/set_target_property.cmake")
