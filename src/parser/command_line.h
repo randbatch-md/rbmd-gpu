@@ -9,9 +9,15 @@ public:
 	virtual ~CommandLine() = default;
 
 public:
-	bool IsRunApplication() { return _is_run_application; }
+	bool RunApplication();
+	static void Initialize();
+	std::string GetFile();
 
 private:
-	bool _is_run_application;
+	void ParseCommand();
+
+private:
 	cxxopts::ParseResult _co;
+	static cxxopts::Options _opts;
+
 };
