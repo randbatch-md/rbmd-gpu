@@ -9,7 +9,14 @@ class System;
 class Application
 {
 public:
-	virtual void Run() = 0;
+	Application(int argc, char* argv[]);
+	virtual ~Application() = default;
+
+public:
+	int Run();
+
+protected:
+	virtual int Execute() = 0;
 
 protected:
 	std::shared_ptr<CommandLine> _command_line;

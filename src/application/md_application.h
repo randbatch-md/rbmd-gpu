@@ -8,6 +8,6 @@ public:
 	~MDApplication() = default;
 
 public:
-	void Run() override;
+	int Execute () override;
 
 };
