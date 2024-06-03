@@ -10,4 +10,7 @@ public:
 public:
 	int Execute () override;
 
+private:
+	int ReadMDData();
+
 };
