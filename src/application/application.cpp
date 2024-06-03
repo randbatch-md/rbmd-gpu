@@ -27,14 +27,7 @@ int Application::Run()
 
 bool Application::Check()
 {
-	if (!_parser->HasNode("init_configuration"))
-	{
-		return false;
-	}
-
-	auto& init_node = _parser->GetJsonNode("init_configuration");
-	auto& read_data_node = init_node["read_data"];
-	auto file = read_data_node["file"].asString();
+	auto file = _parser->Get<std::string>("file", "init_configuration", "read_data");
 
 	if (file != "rbmd.data")
 	{

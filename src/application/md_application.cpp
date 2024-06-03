@@ -16,6 +16,9 @@ int MDApplication::Execute()
 		auto& md_data = std::dynamic_pointer_cast<MDSystem>(_system)->GetMDData();
 		auto reader = std::make_shared<AtomicReader>("rbmd.data", md_data);
 		reader->Execute();
+
+
+
 	}
 	catch (const std::exception&)
 	{
