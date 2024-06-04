@@ -8,10 +8,14 @@ public:
 	MDSystem() = default;
 	virtual ~MDSystem() = default;
 
-	int Evolve() override;
-
 public:
+	int Evolve() override;
 	auto& GetMDData() { return _md_data; }
+
+private:
+	int PreSolve();
+	int Solve();
+	int PostSolve();
 private:
 	MDData _md_data;
 };
