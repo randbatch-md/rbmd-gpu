@@ -14,6 +14,7 @@ add_subdirectory(./tools)
 set(src 
 ./src/main.cpp
 ./src/system/md_system.cpp
+./src/executioner/executioner.cpp
 ./src/reader/mmap_reader.cpp
 ./src/reader/atomic_reader.cpp
 ./src/reader/potential_reader.cpp
@@ -31,6 +32,7 @@ include_directories("${CMAKE_CURRENT_LIST_DIR}/src/Utilities")
 include_directories("${CMAKE_CURRENT_LIST_DIR}/src/parser")
 include_directories("${CMAKE_CURRENT_LIST_DIR}/src/application")
 include_directories("${CMAKE_CURRENT_LIST_DIR}/src/system")
+include_directories("${CMAKE_CURRENT_LIST_DIR}/src/executioner")
 
 #tool include
 get_property(var GLOBAL PROPERTY TOOLS_INCLUDE_PATH)

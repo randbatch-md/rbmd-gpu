@@ -7,6 +7,7 @@ class CommandLine;
 class BaseReader;
 class System;
 class JsonParser;
+class Executioner;
 
 class Application : public Object
 {
@@ -27,4 +28,5 @@ protected:
 	std::shared_ptr<CommandLine> _command_line;
 	std::shared_ptr<System> _system;
 	std::shared_ptr<JsonParser> _parser;
+	std::shared_ptr<Executioner> _executioner;
 };

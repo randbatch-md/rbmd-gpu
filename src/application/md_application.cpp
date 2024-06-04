@@ -3,6 +3,7 @@
 #include "md_system.h"
 #include "atomic_reader.h"
 #include "JsonParser.h"
+#include "executioner.h"
 #include <memory>
 
 MDApplication::MDApplication(int argc, char* argv[]) : 
@@ -21,7 +22,13 @@ int MDApplication::Execute()
 			return -1;
 		}
 
+		if (!_parser->HasNode("execution"))
+		{
+			return -1;
+		}
+		_executioner = std::make_shared<Executioner>(_parser->GetJsonNode("execution"), _system);
 
+		
 
 
 	}
