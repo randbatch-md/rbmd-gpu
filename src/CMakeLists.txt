@@ -1,6 +1,6 @@
 find_package(HIP REQUIRED)
 if(HIP_FOUND)
-	message(STATUS "HIP found.")
+	message(STATUS "HIP found and the version: ${HIP_VERSION}")
 	message(STATUS "HIP include directories: ${HIP_INCLUDE_DIRS}")
 	message(STATUS "HIP libraries: ${HIP_LIBRARIES}")
 else()
