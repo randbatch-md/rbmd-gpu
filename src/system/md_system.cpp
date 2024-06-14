@@ -1,7 +1,10 @@
 #include "md_system.h"
+#include "base/device_types.h"
+#include "near_force/direct_truncation/direct_truncation_op.h"
 
 int MDSystem::Evolve()
 {
+	op::direct_truncation_op<rbmd::Real, DEVICE_GPU>()();
 
 	return 0;
 }

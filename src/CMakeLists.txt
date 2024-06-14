@@ -1,9 +1,18 @@
+find_package(HIP REQUIRED)
+if(HIP_FOUND)
+	message(STATUS "HIP found.")
+	message(STATUS "HIP include directories: ${HIP_INCLUDE_DIRS}")
+	message(STATUS "HIP libraries: ${HIP_LIBRARIES}")
+else()
+    message(FATAL_ERROR "Hip not found.")
+endif()
 
+file(GLOB_RECURSE device_srcs "./op/*.cpp*")
+add_library(device OBJECT ${device_srcs})
 
-
-set_property(DIRECTORY . PROPERTY DIR1 "DIR001")
-get_property(dir DIRECTORY . PROPERTY DIR1)
-message("dir = ${dir}")
-
-message("use double = $CACHE{ENABLE_DOUBLE}")
-message("use 64 BIT = $CACHE{ENABLE_64BIT_IDS}")
+if(USE_ROCM)
+file(GLOB_RECURSE device_rocm_srcs "./op/*.hip.cu*")
+hip_add_library(device_rocm STATIC device_rocm_srcs)
+target_link_libraries(device device_rocm)
+message(STATUS "USE_ROCM: device link device_rocm")
+endif()

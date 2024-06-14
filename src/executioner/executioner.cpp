@@ -16,5 +16,7 @@ void Executioner::Init()
 
 int Executioner::Execute()
 {
+	_system->Evolve();
+
 	return 0;
 }
