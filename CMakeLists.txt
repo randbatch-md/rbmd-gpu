@@ -4,6 +4,9 @@ set(CMAKE_CXX_STANDARD 17)
 
 project(rbmd-gpu)
 
+#option
+include("./cmake/option.cmake")
+
 if(NOT CMAKE_BUILD_TYPE)
 	set(CMAKE_BUILD_TYPE "Release" CACHE STRING "cmake build type." FORCE)
 	message(STATUS "not defined CMAKE_BUILD_TYPE.")
@@ -45,9 +48,7 @@ if(USE_ROCM)
 	add_compile_definitions(__HIP_PLATFORM_HCC__)
 endif()
 
-#option
-include("./cmake/option.cmake")
-
+#sub directory
 add_subdirectory(./src)
 add_subdirectory(./tools)
 
