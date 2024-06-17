@@ -5,14 +5,18 @@
 namespace op
 {
 
-template<typename FPTYPE>
-struct direct_truncation_op<FPTYPE, DEVICE_GPU>
+template <typename FPTYPE>
+__device__ __inline__
+void test()
 {
-	void operator()()
-	{
-		std::cout << "GPU" << std::endl;
-	}
-};
+	std::cout << "device::test()" << std::endl;
+}
+
+template<typename FPTYPE>
+void direct_truncation_op<FPTYPE, DEVICE_GPU>::operator()()
+{
+	test();
+}
 
 template struct direct_truncation_op<float, DEVICE_GPU>;
 template struct direct_truncation_op<double, DEVICE_GPU>;
