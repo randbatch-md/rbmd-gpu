@@ -33,6 +33,6 @@ if(USE_ROCM)
 
 	#device
 	target_compile_options(device PRIVATE ${HIP_HIPCC_FLAGS})
-	target_link_libraries(device device_rocm)
+	target_link_libraries(device PRIVATE device_rocm)
 	message(STATUS "USE_ROCM: device link device_rocm")
 endif()
