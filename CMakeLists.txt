@@ -13,51 +13,32 @@ if(NOT CMAKE_BUILD_TYPE)
 endif()
 
 if(USE_ROCM)
-  if(NOT DEFINED ROCM_PATH )
-    set (ROCM_PATH "/opt/rocm"  CACHE STRING "Default ROCM installation directory." FORCE )
-  endif ()
-  message(STATUS "ROCM_PATH: ${ROCM_PATH}")
 
-  if(NOT DEFINED HIP_PATH)
-    if(NOT DEFINED ENV{HIP_PATH})
-        set(HIP_PATH "${ROCM_PATH}/hip" CACHE PATH "Path to which HIP has been installed" FORCE)
-    else()
-        set(HIP_PATH $ENV{HIP_PATH} CACHE PATH "Path to which HIP has been installed" FORCE)
+  if(NOT ${ROCM_PATH})
+    if(NOT $ENV{ROCM_PATH})
+        message(FATAL_ERROR "Could not find ROCM PATH.")
     endif()
   endif()
-  message(STATUS "HIP_PATH: ${HIP_PATH}")
+  set(ROCM_PATH $ENV{ROCM_PATH} CACHE PATH "ENV ROCM_PATH.")
+  message(STATUS "ROCM_PATH: ${ROCM_PATH}")
 
-  set(CMAKE_MODULE_PATH "${HIP_PATH}/cmake" ${CMAKE_MODULE_PATH})
-  set (HIP_HIPCC_FLAGS -fno-gpu-rdc; --std=c++14) # --amdgpu-target=gfx906
+  set(CMAKE_MODULE_PATH "${ROCM_PATH}/hip/cmake" ${CMAKE_MODULE_PATH})
+  set(HIP_HIPCC_FLAGS -fno-gpu-rdc; --std=c++11) # --amdgpu-target=gfx906
 
-  # find_package(ROCM REQUIRED)
   find_package(HIP REQUIRED)
-
   if(HIP_FOUND)
     message(STATUS "Found HIP: " ${HIP_VERSION})
     message(STATUS "HIP include directories: ${HIP_INCLUDE_DIRS}")
-	message(STATUS "HIP libraries: ${HIP_LIBRARIES}")
+    message(STATUS "HIP libraries: ${HIP_LIBRARIES}")
   else()
-    message(FATAL_ERROR "Could not find HIP. Ensure that HIP is either installed in ${ROCM_PATH}/hip or the variable HIP_PATH is set to point to the right location.")
+    message(FATAL_ERROR "Could not find HIP.")
   endif()
 
   include_directories(
     ${ROCM_PATH}/include
   )
-
-  target_link_libraries(${PROJECT_NAME}
-    hip::host
-    hip::device
-  )
-
-  add_compile_definitions(__ROCM)
-  add_compile_definitions(__UT_USE_ROCM)
-  add_compile_definitions(__HIP_PLATFORM_HCC__)
 endif()
 
-#sub directory
-add_subdirectory(./src)
-add_subdirectory(./tools)
 
 
 set(src 
@@ -85,6 +66,10 @@ include_directories("${CMAKE_CURRENT_LIST_DIR}/src/system")
 include_directories("${CMAKE_CURRENT_LIST_DIR}/src/executioner")
 include_directories("${CMAKE_CURRENT_LIST_DIR}/src/op")
 
+#sub directory
+add_subdirectory(./src)
+add_subdirectory(./tools)
+
 #tool include
 get_property(var GLOBAL PROPERTY TOOLS_INCLUDE_PATH)
 foreach(tool_include_path ${var})
@@ -99,7 +84,10 @@ foreach(tool_link_path ${var})
 	target_link_directories(${PROJECT_NAME} PUBLIC ${tool_link_path})
 endforeach()
 
-target_link_libraries(${PROJECT_NAME} PRIVATE jsoncpp spdlog device) 
+target_link_libraries(${PROJECT_NAME} PRIVATE 
+jsoncpp 
+spdlog
+device ) 
 
 #set target property
 include("./cmake/set_target_property.cmake")
