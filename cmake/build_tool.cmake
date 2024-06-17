@@ -20,7 +20,7 @@ macro(build_tool)
 		execute_process(COMMAND ${CMAKE_COMMAND} -S ${tool_source} -B ${tool_source}/build
 		-DCMAKE_INSTALL_PREFIX=${TOOL_INSTALL_PATH} -DBUILD_SHARED_LIBS=false)
 
-		message("--- cmake --build build ${toolname_without_ext} ---")
+		message("--- cmake --build build ${toolname_without_ext} build type: ${CMAKE_BUILD_TYPE}---")
 		execute_process(COMMAND ${CMAKE_COMMAND} --build ${tool_source}/build
 		--config ${CMAKE_BUILD_TYPE})
 
