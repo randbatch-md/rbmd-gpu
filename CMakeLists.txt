@@ -9,6 +9,42 @@ if(NOT CMAKE_BUILD_TYPE)
 	message(STATUS "not defined CMAKE_BUILD_TYPE.")
 endif()
 
+if(USE_ROCM)
+	find_package(HIP REQUIRED)
+	if(HIP_FOUND)
+		message(STATUS "HIP found and the version: ${HIP_VERSION}")
+		message(STATUS "HIP include directories: ${HIP_INCLUDE_DIRS}")
+		message(STATUS "HIP libraries: ${HIP_LIBRARIES}")
+	else()
+		message(FATAL_ERROR "Hip not found.")
+	endif()
+
+	if(NOT DEFINED ROCM_PATH)
+		set(ROCM_PATH "/opt/rocm" CACHE STRING "Default ROCM installation directory.")
+	endif()
+	message(STATUS "ROCM_PATH: ${ROCM_PATH}")
+
+	if(NOT DEFINED HIP_PATH)
+		if(NOT DEFINED ENV{HIP_PATH})
+			set(HIP_PATH "${ROCM_PATH}/hip" CACHE PATH "hip path")
+		else()
+			set(HIP_PATH $ENV{HIP_PATH} CACHE PATH "env hip path")
+		endif()
+	endif()
+	message(STATUS "HIP_PATH: ${HIP_PATH}")
+
+	set(CMAKE_MODULE_PATH "${HIP_PATH}/cmake" ${CMAKE_MODULE_PATH})
+	set(HIP_HIPCC_FLAGS -fno-gpu-rdc; --std=c++17)
+
+	target_link_libraries(${PROJECT_NAME}
+	    hip::host
+	    hip::device
+	)
+	add_compile_definitions(__ROCM)
+	add_compile_definitions(__UT_USE_ROCM)
+	add_compile_definitions(__HIP_PLATFORM_HCC__)
+endif()
+
 #option
 include("./cmake/option.cmake")
 
