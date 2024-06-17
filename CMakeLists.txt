@@ -5,7 +5,7 @@ set(CMAKE_CXX_STANDARD 17)
 project(rbmd-gpu)
 
 if(NOT CMAKE_BUILD_TYPE)
-	set(CMAKE_BUILD_TYPE "Release" CACHE STRING "cmake build type.")
+	set(CMAKE_BUILD_TYPE "Release" CACHE STRING "cmake build type." FORCE)
 	message(STATUS "not defined CMAKE_BUILD_TYPE.")
 endif()
 
