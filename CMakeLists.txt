@@ -4,50 +4,58 @@ set(CMAKE_CXX_STANDARD 17)
 
 project(rbmd-gpu)
 
+#option
+include("./cmake/option.cmake")
+
 if(NOT CMAKE_BUILD_TYPE)
 	set(CMAKE_BUILD_TYPE "Release" CACHE STRING "cmake build type." FORCE)
 	message(STATUS "not defined CMAKE_BUILD_TYPE.")
 endif()
 
 if(USE_ROCM)
-	find_package(HIP REQUIRED)
-	if(HIP_FOUND)
-		message(STATUS "HIP found and the version: ${HIP_VERSION}")
-		message(STATUS "HIP include directories: ${HIP_INCLUDE_DIRS}")
-		message(STATUS "HIP libraries: ${HIP_LIBRARIES}")
-	else()
-		message(FATAL_ERROR "Hip not found.")
-	endif()
+  if(NOT DEFINED ROCM_PATH )
+    set (ROCM_PATH "/opt/rocm"  CACHE STRING "Default ROCM installation directory." FORCE )
+  endif ()
+  message(STATUS "ROCM_PATH: ${ROCM_PATH}")
 
-	if(NOT DEFINED ROCM_PATH)
-		set(ROCM_PATH "/opt/rocm" CACHE STRING "Default ROCM installation directory.")
-	endif()
-	message(STATUS "ROCM_PATH: ${ROCM_PATH}")
+  if(NOT DEFINED HIP_PATH)
+    if(NOT DEFINED ENV{HIP_PATH})
+        set(HIP_PATH "${ROCM_PATH}/hip" CACHE PATH "Path to which HIP has been installed" FORCE)
+    else()
+        set(HIP_PATH $ENV{HIP_PATH} CACHE PATH "Path to which HIP has been installed" FORCE)
+    endif()
+  endif()
+  message(STATUS "HIP_PATH: ${HIP_PATH}")
 
-	if(NOT DEFINED HIP_PATH)
-		if(NOT DEFINED ENV{HIP_PATH})
-			set(HIP_PATH "${ROCM_PATH}/hip" CACHE PATH "hip path")
-		else()
-			set(HIP_PATH $ENV{HIP_PATH} CACHE PATH "env hip path")
-		endif()
-	endif()
-	message(STATUS "HIP_PATH: ${HIP_PATH}")
+  set(CMAKE_MODULE_PATH "${HIP_PATH}/cmake" ${CMAKE_MODULE_PATH})
+  set (HIP_HIPCC_FLAGS -fno-gpu-rdc; --std=c++14) # --amdgpu-target=gfx906
 
-	set(CMAKE_MODULE_PATH "${HIP_PATH}/cmake" ${CMAKE_MODULE_PATH})
-	set(HIP_HIPCC_FLAGS -fno-gpu-rdc; --std=c++17)
+  # find_package(ROCM REQUIRED)
+  find_package(HIP REQUIRED)
 
-	target_link_libraries(${PROJECT_NAME}
-	    hip::host
-	    hip::device
-	)
-	add_compile_definitions(__ROCM)
-	add_compile_definitions(__UT_USE_ROCM)
-	add_compile_definitions(__HIP_PLATFORM_HCC__)
+  if(HIP_FOUND)
+    message(STATUS "Found HIP: " ${HIP_VERSION})
+    message(STATUS "HIP include directories: ${HIP_INCLUDE_DIRS}")
+	message(STATUS "HIP libraries: ${HIP_LIBRARIES}")
+  else()
+    message(FATAL_ERROR "Could not find HIP. Ensure that HIP is either installed in ${ROCM_PATH}/hip or the variable HIP_PATH is set to point to the right location.")
+  endif()
+
+  include_directories(
+    ${ROCM_PATH}/include
+  )
+
+  target_link_libraries(${PROJECT_NAME}
+    hip::host
+    hip::device
+  )
+
+  add_compile_definitions(__ROCM)
+  add_compile_definitions(__UT_USE_ROCM)
+  add_compile_definitions(__HIP_PLATFORM_HCC__)
 endif()
 
-#option
-include("./cmake/option.cmake")
-
+#sub directory
 add_subdirectory(./src)
 add_subdirectory(./tools)
 
