@@ -4,42 +4,21 @@ set(CMAKE_CXX_STANDARD 17)
 
 project(rbmd-gpu)
 
-#option
-include("./cmake/option.cmake")
-
+#cmake build type
 if(NOT CMAKE_BUILD_TYPE)
 	set(CMAKE_BUILD_TYPE "Release" CACHE STRING "cmake build type." FORCE)
-	message(STATUS "not defined CMAKE_BUILD_TYPE.")
+	message(STATUS "Set CMAKE_BUILD_TYPE \"Release\".")
 endif()
 
-if(USE_ROCM)
+#option
+include("${CMAKE_CURRENT_LIST_DIR}/cmake/option.cmake")
 
-  if(NOT ${ROCM_PATH})
-    if(NOT $ENV{ROCM_PATH})
-        message(FATAL_ERROR "Could not find ROCM PATH.")
-    endif()
-  endif()
-  set(ROCM_PATH $ENV{ROCM_PATH} CACHE PATH "ENV ROCM_PATH.")
-  message(STATUS "ROCM_PATH: ${ROCM_PATH}")
+#hip setting
+include("${CMAKE_CURRENT_LIST_DIR}/cmake/hip_setting.cmake")
 
-  set(CMAKE_MODULE_PATH "${ROCM_PATH}/hip/cmake" ${CMAKE_MODULE_PATH})
-  set(HIP_HIPCC_FLAGS -fno-gpu-rdc; --std=c++11) # --amdgpu-target=gfx906
-
-  find_package(HIP REQUIRED)
-  if(HIP_FOUND)
-    message(STATUS "Found HIP: " ${HIP_VERSION})
-    message(STATUS "HIP include directories: ${HIP_INCLUDE_DIRS}")
-    message(STATUS "HIP libraries: ${HIP_LIBRARIES}")
-  else()
-    message(FATAL_ERROR "Could not find HIP.")
-  endif()
-
-  include_directories(
-    ${ROCM_PATH}/include
-  )
-endif()
-
-
+#sub directory
+add_subdirectory(./src)
+add_subdirectory(./tools)
 
 set(src 
 ./src/main.cpp
@@ -66,9 +45,6 @@ include_directories("${CMAKE_CURRENT_LIST_DIR}/src/system")
 include_directories("${CMAKE_CURRENT_LIST_DIR}/src/executioner")
 include_directories("${CMAKE_CURRENT_LIST_DIR}/src/op")
 
-#sub directory
-add_subdirectory(./src)
-add_subdirectory(./tools)
 
 #tool include
 get_property(var GLOBAL PROPERTY TOOLS_INCLUDE_PATH)
