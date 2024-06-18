@@ -1,6 +1,5 @@
 #include "direct_truncation_op.h"
-#include "base/device_types.h"
-
+#include "device_types.h"
 #include<iostream>
 
 namespace op
