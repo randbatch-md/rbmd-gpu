@@ -31,7 +31,8 @@ set(src
 ./src/Utilities/string_util.cpp
 ./src/application/application.cpp
 ./src/application/md_application.cpp
-./src/op/near_force/direct_truncation/direct_truncation_op.cpp
+#./src/op/near_force/direct_truncation/direct_truncation_op.cpp
+./src/op/near_force/direct_truncation/rocm/direct_truncation_op.hip.cu
 ./src/parser/command_line.cpp)
 
 #include
@@ -62,7 +63,7 @@ endforeach()
 target_link_libraries(${PROJECT_NAME} PRIVATE 
 jsoncpp 
 spdlog
-device ) 
+device_rocm ) 
 
 #set target property
 include("./cmake/set_target_property.cmake")
