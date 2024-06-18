@@ -4,7 +4,7 @@ define_property(GLOBAL PROPERTY TOOLS_LINK_PATH)
 macro(build_tool)
 	set(TOOL_INSTALL_PATH ${tooldir}/${CMAKE_SYSTEM_NAME}/${CMAKE_BUILD_TYPE}/${toolname_without_ext})
 	set_property(GLOBAL APPEND PROPERTY TOOLS_INCLUDE_PATH ${TOOL_INSTALL_PATH}/include)
-	set_property(GLOBAL APPEND PROPERTY TOOLS_LINK_PATH ${TOOL_INSTALL_PATH}/lib)
+	set_property(GLOBAL APPEND PROPERTY TOOLS_LINK_PATH ${TOOL_INSTALL_PATH}/lib64)
 	
 	#avoid repeated build
 	if(NOT EXISTS ${TOOL_INSTALL_PATH})
