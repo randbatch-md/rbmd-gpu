@@ -2,8 +2,10 @@ if(USE_ROCM)
 	#device rocm
 	set(DEVICE_ROCM_NAME "device_rocm")
 	file(GLOB_RECURSE device_rocm_srcs "./op/*.hip.cu*")
+	#add_library(${DEVICE_ROCM_NAME} STATIC ${device_rocm_srcs})
 	add_library(${DEVICE_ROCM_NAME} STATIC ${device_rocm_srcs})
-	target_link_libraries(${DEVICE_ROCM_NAME} PRIVATE --emit-static-lib)
+	#target_link_libraries(${DEVICE_ROCM_NAME} PRIVATE --emit-static-lib)
+	message("HIP_C_OR_CXX: ${HIP_C_OR_CXX}")
 	set_target_properties(${DEVICE_ROCM_NAME} PROPERTIES LINKER_LANGUAGE CXX)
 
 	#device

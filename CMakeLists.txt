@@ -32,7 +32,7 @@ set(src
 ./src/application/application.cpp
 ./src/application/md_application.cpp
 #./src/op/near_force/direct_truncation/direct_truncation_op.cpp
-./src/op/near_force/direct_truncation/rocm/direct_truncation_op.hip.cu
+#./src/op/near_force/direct_truncation/rocm/direct_truncation_op.hip.cu
 ./src/parser/command_line.cpp)
 
 #include
@@ -60,10 +60,13 @@ foreach(tool_link_path ${var})
 	target_link_directories(${PROJECT_NAME} PUBLIC ${tool_link_path})
 endforeach()
 
+target_link_directories(${PROJECT_NAME} PUBLIC ${CMAKE_BINARY_DIR}/src)
+
 target_link_libraries(${PROJECT_NAME} PRIVATE 
 jsoncpp 
 spdlog
-device_rocm ) 
+device_rocm
+HIP::hiprtc) 
 
 #set target property
 include("./cmake/set_target_property.cmake")
