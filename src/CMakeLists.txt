@@ -7,7 +7,7 @@ if(USE_ROCM)
 	#target_link_libraries(${DEVICE_ROCM_NAME} PRIVATE --emit-static-lib)
 	set_target_properties(${DEVICE_ROCM_NAME} PROPERTIES LINKER_LANGUAGE CXX
 	PUBLIC_HEADER ${CMAKE_CURRENT_SOURCE_DIR}/op/near_force/direct_truncation/direct_truncation_op.h)
-	target_include_directories(${DEVICE_ROCM_NAME} PUBLIC "${CMAKE_CURRENT_LIST_DIR}/op/base")
+	target_include_directories(${DEVICE_ROCM_NAME} PUBLIC "${CMAKE_CURRENT_LIST_DIR}/op")
 
 	#device
 	#set(DEVICE_NAME "device")
