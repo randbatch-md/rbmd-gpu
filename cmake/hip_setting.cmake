@@ -11,6 +11,8 @@ else()
 	message("ROCM_PATH: ${ROCM_PATH}")
 endif()
 
+message("HIP_PATH: ${HIP_PATH}")
+
 #search for rocm in common locations
 list(APPEND CMAKE_PREFIX_PATH ${ROCM_PATH}/hip ${ROCM_PATH})
 set(CMAKE_MODULE_PATH "${ROCM_PATH}/hip/cmake" ${CMAKE_MODULE_PATH})
