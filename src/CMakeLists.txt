@@ -5,6 +5,7 @@ if(USE_ROCM)
 	#add_library(${DEVICE_ROCM_NAME} STATIC ${device_rocm_srcs})
 	HIP_ADD_LIBRARY(${DEVICE_ROCM_NAME} STATIC ${device_rocm_srcs})
 	#target_link_libraries(${DEVICE_ROCM_NAME} PRIVATE --emit-static-lib)
+	set_source_files_properties(${device_rocm_srcs} PROPERTIES HIP_SOURCE_PROPERTY_FORMAT 1)
 	set_target_properties(${DEVICE_ROCM_NAME} PROPERTIES LINKER_LANGUAGE CXX
 	PUBLIC_HEADER ${CMAKE_CURRENT_SOURCE_DIR}/op/near_force/direct_truncation/direct_truncation_op.h)
 	target_include_directories(${DEVICE_ROCM_NAME} PUBLIC "${CMAKE_CURRENT_LIST_DIR}/op")
