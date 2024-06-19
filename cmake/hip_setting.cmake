@@ -11,7 +11,7 @@ else()
 	message("ROCM_PATH: ${ROCM_PATH}")
 endif()
 
-message("HIP_PATH: ${HIP_PATH}")
+message("HIP_PATH: $ENV{HIP_PATH}")
 
 #search for rocm in common locations
 list(APPEND CMAKE_PREFIX_PATH ${ROCM_PATH}/hip ${ROCM_PATH})
