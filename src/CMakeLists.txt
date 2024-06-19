@@ -3,10 +3,10 @@ if(USE_ROCM)
 	set(DEVICE_ROCM_NAME "device_rocm")
 	file(GLOB_RECURSE device_rocm_srcs "./op/*.hip.cu*")
 	#add_library(${DEVICE_ROCM_NAME} STATIC ${device_rocm_srcs})
-	add_library(${DEVICE_ROCM_NAME} STATIC ${device_rocm_srcs})
+	HIP_ADD_LIBRARY(${DEVICE_ROCM_NAME} STATIC ${device_rocm_srcs})
 	#target_link_libraries(${DEVICE_ROCM_NAME} PRIVATE --emit-static-lib)
-	message("HIP_C_OR_CXX: ${HIP_C_OR_CXX}")
-	set_target_properties(${DEVICE_ROCM_NAME} PROPERTIES LINKER_LANGUAGE CXX)
+	set_target_properties(${DEVICE_ROCM_NAME} PROPERTIES LINKER_LANGUAGE CXX
+	PUBLIC_HEADER ${CMAKE_CURRENT_SOURCE_DIR}/op/near_force/direct_truncation/direct_truncation_op.h)
 
 	#device
 	#set(DEVICE_NAME "device")
