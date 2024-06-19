@@ -13,6 +13,7 @@ endif()
 
 #search for rocm in common locations
 list(APPEND CMAKE_PREFIX_PATH ${ROCM_PATH}/hip ${ROCM_PATH})
+set(CMAKE_MODULE_PATH "${ROCM_PATH}/hip/cmake" ${CMAKE_MODULE_PATH})
 
 find_package(HIP REQUIRED)
 if(HIP_FOUND)
