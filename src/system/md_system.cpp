@@ -5,7 +5,7 @@
 int MDSystem::Evolve()
 {
 	//op::direct_truncation_op<rbmd::Real, DEVICE_GPU>()();
-	op::test();
+	op::test<rbmd::Real>();
 	return 0;
 }
 
