@@ -11,22 +11,22 @@ __global__ void test_LJ()
 	printf("device::test_device()");
 }
 
-void LJ()
-{
-	int ng = 1;
-	int block = (ng + THREADS_PER_BLOCK - 1) / THREADS_PER_BLOCK;
-	hipLaunchKernelGGL(test_LJ, dim3(block), dim3(THREADS_PER_BLOCK),0,0);
-}
-
-//template<typename FPTYPE>
-//void direct_truncation_op<FPTYPE, device::DEVICE_GPU>::operator()()
+//void LJ()
 //{
 //	int ng = 1;
 //	int block = (ng + THREADS_PER_BLOCK - 1) / THREADS_PER_BLOCK;
-//	hipLaunchKernelGGL(test<FPTYPE>, dim3(block), dim3(THREADS_PER_BLOCK),0,0);
+//	hipLaunchKernelGGL(test_LJ, dim3(block), dim3(THREADS_PER_BLOCK),0,0);
 //}
-//
-//template struct direct_truncation_op<float, device::DEVICE_GPU>;
-//template struct direct_truncation_op<double, device::DEVICE_GPU>;
+
+template<typename FPTYPE>
+void direct_truncation_op<FPTYPE, device::DEVICE_GPU>::operator()()
+{
+	int ng = 1;
+	int block = (ng + THREADS_PER_BLOCK - 1) / THREADS_PER_BLOCK;
+	hipLaunchKernelGGL(test<FPTYPE>, dim3(block), dim3(THREADS_PER_BLOCK),0,0);
+}
+
+template struct direct_truncation_op<float, device::DEVICE_GPU>;
+template struct direct_truncation_op<double, device::DEVICE_GPU>;
 }
 
