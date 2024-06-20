@@ -9,21 +9,20 @@ namespace op
 #define THREADS_PER_BLOCK 256
 
 template <typename FPTYPE>
-__global__
-void test()
+__global__ void test()
 {
 	std::cout << "device::test()" << std::endl;
 }
 
 template<typename FPTYPE>
-void direct_truncation_op<FPTYPE, DEVICE_GPU>::operator()()
+void direct_truncation_op<FPTYPE, device::DEVICE_GPU>::operator()()
 {
 	int ng = 1;
 	int block = (ng + THREADS_PER_BLOCK - 1) / THREADS_PER_BLOCK;
 	hipLaunchKernelGGL(test<FPTYPE>, dim3(block), dim3(THREADS_PER_BLOCK),0,0);
 }
 
-template struct direct_truncation_op<float, DEVICE_GPU>;
-template struct direct_truncation_op<double, DEVICE_GPU>;
+template struct direct_truncation_op<float, device::DEVICE_GPU>;
+template struct direct_truncation_op<double, device::DEVICE_GPU>;
 }
 

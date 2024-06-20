@@ -6,7 +6,7 @@ namespace op
 {
 
 	template <typename FPTYPE>
-	struct direct_truncation_op<FPTYPE, DEVICE_CPU>
+	struct direct_truncation_op<FPTYPE, device::DEVICE_CPU>
 	{
 		void operator()()
 		{
@@ -15,6 +15,6 @@ namespace op
 	};
 
 
-	template struct direct_truncation_op<float, DEVICE_CPU>;
-	template struct direct_truncation_op<double, DEVICE_CPU>;
+	template struct direct_truncation_op<float, device::DEVICE_CPU>;
+	template struct direct_truncation_op<double, device::DEVICE_CPU>;
 }
