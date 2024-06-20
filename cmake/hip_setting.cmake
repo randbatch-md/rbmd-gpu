@@ -27,6 +27,7 @@ endif()
 #search for rocm in common locations
 #list(APPEND CMAKE_PREFIX_PATH ${ROCM_PATH}/hip ${ROCM_PATH})
 set(CMAKE_MODULE_PATH "${HIP_PATH}/cmake" ${CMAKE_MODULE_PATH})
+set (HIP_HIPCC_FLAGS -fno-gpu-rdc; --std=c++17)
 
 find_package(HIP REQUIRED)
 if(HIP_FOUND)
@@ -37,4 +38,3 @@ endif()
 
 set(CMAKE_CXX_COMPILER ${HIP_HIPCC_EXECUTABLE})
 set(CMAKE_CXX_LINKER ${HIP_HIPCC_EXECUTABLE})
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3 -fno-gpu-rdc -fPIC")
