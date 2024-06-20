@@ -1,8 +1,6 @@
 #include "near_force/direct_truncation/direct_truncation_op.h"
 #include <hip/hip_runtime.h>
 
-#include <iostream>
-
 namespace op
 {
 
@@ -11,7 +9,7 @@ namespace op
 template <typename FPTYPE>
 __global__ void test()
 {
-	std::cout << "device::test()" << std::endl;
+	printf("device::test()");
 }
 
 template<typename FPTYPE>
