@@ -1,6 +1,5 @@
 #include "near_force/direct_truncation/direct_truncation_op.h"
 #include <iostream>
-#include <hip/hip_runtime.h>
 
 namespace op
 {
