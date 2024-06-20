@@ -3,9 +3,6 @@
 struct DEVICE_CPU;
 struct DEVICE_GPU;
 
-struct DEVICE_CPU {};
-struct DEVICE_GPU {};
-
 enum class DeviceType
 {
 	UnKnown = 0,
