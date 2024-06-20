@@ -14,6 +14,7 @@ __global__ void test()
 	std::cout << "device::test()" << std::endl;
 }
 
+template<typename FPTYPE>
 void test()
 {
 	int ng = 1;
