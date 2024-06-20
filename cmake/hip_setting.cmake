@@ -24,7 +24,7 @@ else()
 endif()
 
 #search for rocm in common locations
-#list(APPEND CMAKE_PREFIX_PATH ${ROCM_PATH}/hip ${ROCM_PATH})
+list(APPEND CMAKE_PREFIX_PATH ${HIP_PATH})
 set(CMAKE_MODULE_PATH "${HIP_PATH}/cmake" ${CMAKE_MODULE_PATH})
 set(HIP_CLANG_FLAGS -fno-gpu-rdc; --std=c++17)
 #set(HIP_HIPCC_FLAGS "${HIP_HIPCC_FLAGS}" "-std=c++11 -fgpu-rdc" )
