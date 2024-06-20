@@ -66,7 +66,7 @@ target_link_directories(${PROJECT_NAME} PUBLIC ${CMAKE_BINARY_DIR}/src)
 target_link_libraries(${PROJECT_NAME} PRIVATE 
 jsoncpp 
 spdlog
-hip::device
+Hip::hiprtc
 device_rocm) 
 
 #set target property
