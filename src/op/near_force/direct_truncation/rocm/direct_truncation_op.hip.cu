@@ -6,16 +6,16 @@ namespace op
 
 #define THREADS_PER_BLOCK 256
 
-__global__ void test_device()
+__global__ void test_LJ()
 {
 	printf("device::test_device()");
 }
 
-void test()
+void LJ()
 {
 	int ng = 1;
 	int block = (ng + THREADS_PER_BLOCK - 1) / THREADS_PER_BLOCK;
-	hipLaunchKernelGGL(test_device, dim3(block), dim3(THREADS_PER_BLOCK),0,0);
+	hipLaunchKernelGGL(test_LJ, dim3(block), dim3(THREADS_PER_BLOCK),0,0);
 }
 
 //template<typename FPTYPE>

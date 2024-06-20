@@ -18,7 +18,7 @@ namespace op
 	//template struct direct_truncation_op<float, device::DEVICE_CPU>;
 	//template struct direct_truncation_op<double, device::DEVICE_CPU>;
 
-	void test()
+	void LJ()
 	{
 		std::cout << "CPU" << std::endl;
 	}

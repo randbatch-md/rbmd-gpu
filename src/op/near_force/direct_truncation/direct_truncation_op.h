@@ -10,6 +10,7 @@ namespace op
 //	void operator()();
 //};
 
-void test();
+//template<typename FPTYPE>
+void LJ();
 
 }
