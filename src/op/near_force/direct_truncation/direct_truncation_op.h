@@ -8,6 +8,6 @@ template <typename FPTYPE, typename DEVICE>
 struct direct_truncation_op
 {
 	void operator()();
-}
+};
 
 }
