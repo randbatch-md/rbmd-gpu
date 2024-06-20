@@ -12,9 +12,8 @@
 #endif()
 
 if(NOT DEFINED HIP_PATH AND "${HIP_PATH}" STREQUAL "")
-	message("HIP_PATH is not set or is empty.")
 	if(NOT DEFINED ENV${HIP_PATH} AND "$ENV{HIP_PATH}" STREQUAL "")
-		message("ENV HIP_PATH is not set or is empty AND set the HIP_PATH /opt/rocm/hip.")
+		message("HIP_PATH is not set or is empty AND set the HIP_PATH /opt/rocm/hip.")
 		set(HIP_PATH "/opt/rocm/hip" CACHE STRING "default hip installation directory.")
 	else()
 		set(HIP_PATH "$ENV{HIP_PATH}" CACHE STRING "ENV hip installation directory.")
