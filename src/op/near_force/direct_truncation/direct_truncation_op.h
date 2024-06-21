@@ -6,10 +6,10 @@ namespace op
 	template<typename FPTYPE>
 	void LJ();
 
-//template <typename FPTYPE, typename DEVICE>
-//struct direct_truncation_op
-//{
-//	void operator()();
-//};
+template <typename FPTYPE, typename DEVICE>
+struct direct_truncation_op
+{
+	void operator()();
+};
 
 }
