@@ -14,19 +14,6 @@ __global__ void test_LJ()
 }
 
 template<typename FPTYPE>
-void LJ()
-{
-	int ng = 1;
-	int block = (ng + THREADS_PER_BLOCK - 1) / THREADS_PER_BLOCK;
-	hipLaunchKernelGGL(test_LJ<FPTYPE>, dim3(block), dim3(THREADS_PER_BLOCK),0,0);
-
-	hipErrorCheck(hipGetLastError());
-	hipErrorCheck(hipDeviceSynchronize());
-}
-template void LJ<float>();
-template void LJ<double>();
-
-template<typename FPTYPE>
 struct direct_truncation_op<FPTYPE, device::DEVICE_GPU>
 {
 	void operator()(int test)

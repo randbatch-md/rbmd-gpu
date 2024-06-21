@@ -3,8 +3,6 @@
 
 namespace op
 {
-	template<typename FPTYPE>
-	void LJ();
 
 template <typename FPTYPE, typename DEVICE>
 struct direct_truncation_op
