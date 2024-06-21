@@ -12,6 +12,7 @@ __global__ void test_LJ()
 	printf("device::test_device()");
 }
 
+template<typename FPTYPE>
 void LJ()
 {
 	int ng = 1;
