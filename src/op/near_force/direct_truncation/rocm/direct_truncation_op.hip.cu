@@ -10,7 +10,7 @@ namespace op
 template<typename FPTYPE>
 __global__ void test_LJ()
 {
-	printf("device::test_device()");
+	printf("device::test_device()\n");
 }
 
 template<typename FPTYPE>
@@ -27,8 +27,9 @@ template void LJ<float>();
 template void LJ<double>();
 
 template<typename FPTYPE>
-void direct_truncation_op<FPTYPE, device::DEVICE_GPU>::operator()()
+void direct_truncation_op<FPTYPE, device::DEVICE_GPU>::operator()(int test)
 {
+	printf("direct_truncation_op(): %d\n", test);
 	int ng = 1;
 	int block = (ng + THREADS_PER_BLOCK - 1) / THREADS_PER_BLOCK;
 	hipLaunchKernelGGL(test_LJ<FPTYPE>, dim3(block), dim3(THREADS_PER_BLOCK),0,0);
@@ -37,7 +38,7 @@ void direct_truncation_op<FPTYPE, device::DEVICE_GPU>::operator()()
 	hipErrorCheck(hipDeviceSynchronize());
 }
 
-template void direct_truncation_op<float, device::DEVICE_GPU>::operator()();
-template void direct_truncation_op<double, device::DEVICE_GPU>::operator()();
+template struct direct_truncation_op<float, device::DEVICE_GPU>;
+template struct direct_truncation_op<double, device::DEVICE_GPU>;
 }
 
