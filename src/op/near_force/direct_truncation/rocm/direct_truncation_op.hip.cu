@@ -27,7 +27,7 @@ template void LJ<float>();
 template void LJ<double>();
 
 template<typename FPTYPE>
-void direct_truncation_op<FPTYPE, device::DEVICE_GPU>
+struct direct_truncation_op<FPTYPE, device::DEVICE_GPU>
 {
 	void operator()(int test)
 	{
@@ -39,7 +39,7 @@ void direct_truncation_op<FPTYPE, device::DEVICE_GPU>
 		hipErrorCheck(hipGetLastError());
 		hipErrorCheck(hipDeviceSynchronize());
 	}
-}
+};
 
 template struct direct_truncation_op<float, device::DEVICE_GPU>;
 template struct direct_truncation_op<double, device::DEVICE_GPU>;
