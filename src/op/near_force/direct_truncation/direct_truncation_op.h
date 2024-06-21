@@ -3,7 +3,7 @@
 
 namespace op
 {
-	template<typename FPTYPE>
+	//template<typename FPTYPE>
 	void LJ();
 
 //template <typename FPTYPE, typename DEVICE>
