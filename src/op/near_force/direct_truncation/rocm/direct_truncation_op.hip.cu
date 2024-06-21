@@ -6,7 +6,7 @@ namespace op
 
 #define THREADS_PER_BLOCK 256
 
-template<typename FPTYPE>
+//template<typename FPTYPE>
 __global__ void test_LJ()
 {
 	printf("device::test_device()");
