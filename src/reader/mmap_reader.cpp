@@ -16,7 +16,10 @@ MmapReader::MmapReader(const std::string& filePath) :
 
 MmapReader::~MmapReader()
 {
-	delete[] _mapped_memory;
+	if (-1 == munmap(_mapped_memory, _file_size))
+	{
+		//log
+	}
 }
 
 int MmapReader::Execute()

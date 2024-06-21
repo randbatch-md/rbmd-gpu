@@ -9,4 +9,9 @@ public:
 
 protected:
 	int ReadData() override;
+	void AllocateDataSpace() override;
+
+private:
+	int ReadAtoms(const rbmd::Id& atoms_num);
+	int ReadVelocity(const rbmd::Id& atoms_num);
 };
