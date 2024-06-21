@@ -9,8 +9,8 @@ namespace op
 	{
 		std::cout << "CPU LJ" << std::endl;
 	}
-	template LJ<float>();
-	template LJ<double>();
+	template void LJ<float>();
+	template void LJ<double>();
 
 	//template <typename FPTYPE>
 	//struct direct_truncation_op<FPTYPE, device::DEVICE_CPU>
