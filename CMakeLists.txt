@@ -61,7 +61,7 @@ foreach(tool_link_path ${var})
 	target_link_directories(${PROJECT_NAME} PUBLIC ${tool_link_path})
 endforeach()
 
-target_link_directories(${PROJECT_NAME} PUBLIC ${CMAKE_BINARY_DIR}/src)
+#target_link_directories(${PROJECT_NAME} PUBLIC ${CMAKE_BINARY_DIR}/src)
 
 target_link_libraries(${PROJECT_NAME} PRIVATE 
 jsoncpp 
