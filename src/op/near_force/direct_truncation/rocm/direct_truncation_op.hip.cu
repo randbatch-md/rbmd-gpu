@@ -1,7 +1,6 @@
 #include "near_force/direct_truncation/direct_truncation_op.h"
 #include "base/rocm.h"
 #include <hip/hip_runtime.h>
-#include "hip/hip_runtime.h"
 
 namespace op
 {
@@ -21,8 +20,8 @@ void LJ()
 	int block = (ng + THREADS_PER_BLOCK - 1) / THREADS_PER_BLOCK;
 	hipLaunchKernelGGL(test_LJ<FPTYPE>, dim3(block), dim3(THREADS_PER_BLOCK),0,0);
 
-	hipErrcheck(hipGetLastError());
-	hipErrcheck(hipDeviceSynchronize());
+	hipErrorCheck(hipGetLastError());
+	hipErrorCheck(hipDeviceSynchronize());
 }
 //template void LJ<float>();
 //template void LJ<double>();
