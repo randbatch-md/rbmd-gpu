@@ -10,6 +10,6 @@ namespace op
 //struct direct_truncation_op
 //{
 //	void operator()();
-};
+//};
 
 }
