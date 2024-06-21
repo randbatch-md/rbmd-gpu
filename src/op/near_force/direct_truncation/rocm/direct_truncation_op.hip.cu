@@ -23,8 +23,8 @@ void LJ()
 	hipErrorCheck(hipGetLastError());
 	hipErrorCheck(hipDeviceSynchronize());
 }
-//template void LJ<float>();
-//template void LJ<double>();
+template void LJ<float>();
+template void LJ<double>();
 
 //template<typename FPTYPE>
 //void direct_truncation_op<FPTYPE, device::DEVICE_GPU>::operator()()
