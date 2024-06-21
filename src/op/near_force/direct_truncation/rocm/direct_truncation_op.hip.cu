@@ -37,7 +37,7 @@ void direct_truncation_op<FPTYPE, device::DEVICE_GPU>::operator()()
 	hipErrorCheck(hipDeviceSynchronize());
 }
 
-template struct direct_truncation_op<float, device::DEVICE_GPU>;
-template struct direct_truncation_op<double, device::DEVICE_GPU>;
+template void direct_truncation_op<float, device::DEVICE_GPU>::operator()();
+template void direct_truncation_op<double, device::DEVICE_GPU>::operator()();
 }
 

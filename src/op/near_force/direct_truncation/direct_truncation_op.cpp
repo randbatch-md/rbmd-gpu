@@ -22,6 +22,6 @@ namespace op
 	};
 
 
-	template struct direct_truncation_op<float, device::DEVICE_CPU>;
-	template struct direct_truncation_op<double, device::DEVICE_CPU>;
+	template void direct_truncation_op<float, device::DEVICE_CPU>::operator()();
+	template void direct_truncation_op<double, device::DEVICE_CPU>::operator()();
 }
