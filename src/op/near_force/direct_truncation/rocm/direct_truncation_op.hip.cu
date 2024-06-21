@@ -27,15 +27,18 @@ template void LJ<float>();
 template void LJ<double>();
 
 template<typename FPTYPE>
-void direct_truncation_op<FPTYPE, device::DEVICE_GPU>::operator()(int test)
+void direct_truncation_op<FPTYPE, device::DEVICE_GPU>
 {
-	printf("direct_truncation_op(): %d\n", test);
-	int ng = 1;
-	int block = (ng + THREADS_PER_BLOCK - 1) / THREADS_PER_BLOCK;
-	hipLaunchKernelGGL(test_LJ<FPTYPE>, dim3(block), dim3(THREADS_PER_BLOCK),0,0);
+	void operator()(int test)
+	{
+		printf("direct_truncation_op(): %d\n", test);
+		int ng = 1;
+		int block = (ng + THREADS_PER_BLOCK - 1) / THREADS_PER_BLOCK;
+		hipLaunchKernelGGL(test_LJ<FPTYPE>, dim3(block), dim3(THREADS_PER_BLOCK), 0, 0);
 
-	hipErrorCheck(hipGetLastError());
-	hipErrorCheck(hipDeviceSynchronize());
+		hipErrorCheck(hipGetLastError());
+		hipErrorCheck(hipDeviceSynchronize());
+	}
 }
 
 template struct direct_truncation_op<float, device::DEVICE_GPU>;
