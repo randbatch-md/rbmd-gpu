@@ -1,7 +1,7 @@
 #include "near_force/direct_truncation/direct_truncation_op.h"
 #include "base/rocm.h"
 #include "base/device_types.h"
-#include "model/types.h"
+#include "types.h"
 
 namespace op
 {
