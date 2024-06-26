@@ -8,8 +8,9 @@ if(USE_ROCM)
 	set_source_files_properties(${device_rocm_srcs} PROPERTIES HIP_SOURCE_PROPERTY_FORMAT 1)
 	set_source_files_properties(${device_rocm_srcs} PROPERTIES LANGUAGE CXX)
 	#set_target_properties(${DEVICE_ROCM_NAME} PROPERTIES LINKER_LANGUAGE HIP)
-	target_include_directories(${DEVICE_ROCM_NAME} PUBLIC "${CMAKE_CURRENT_LIST_DIR}/op")
-	target_include_directories(${DEVICE_ROCM_NAME} PUBLIC "${CMAKE_CURRENT_LIST_DIR}/model")
+	target_include_directories(${DEVICE_ROCM_NAME} 
+	PUBLIC "${CMAKE_CURRENT_LIST_DIR}/op"
+	PUBLIC "${CMAKE_CURRENT_LIST_DIR}/model")
     #target_link_libraries(${DEVICE_ROCM_NAME} PRIVATE hip::device)
     #target_compile_features(${DEVICE_ROCM_NAME} PRIVATE cxx_std_17)
 
