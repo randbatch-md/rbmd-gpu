@@ -10,7 +10,7 @@ if(USE_ROCM)
 	#set_target_properties(${DEVICE_ROCM_NAME} PROPERTIES LINKER_LANGUAGE HIP)
 	target_include_directories(${DEVICE_ROCM_NAME} 
 	PUBLIC "${CMAKE_CURRENT_LIST_DIR}/op"
-	PUBLIC "${CMAKE_CURRENT_LIST_DIR}/model")
+	PRIVATE "${CMAKE_CURRENT_LIST_DIR}/model")
     #target_link_libraries(${DEVICE_ROCM_NAME} PRIVATE hip::device)
     #target_compile_features(${DEVICE_ROCM_NAME} PRIVATE cxx_std_17)
 
