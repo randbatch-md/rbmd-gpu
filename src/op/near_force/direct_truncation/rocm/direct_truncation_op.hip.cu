@@ -1,27 +1,49 @@
 #include "near_force/direct_truncation/direct_truncation_op.h"
 #include "base/rocm.h"
-#include <hip/hip_runtime.h>
 
 namespace op
 {
 
 #define THREADS_PER_BLOCK 256
 
-template<typename FPTYPE>
-__global__ void test_LJ()
+template <typename FPTYPE>
+__device__ __inline__
+void UpdateVelocity()
 {
-	printf("device::test_device()\n");
+
+}
+
+template<typename FPTYPE>
+__global__ void ComputeForce(
+	FPTYPE* dt,
+	FPTYPE* fmt2v,
+	FPTYPE* mass,
+	FPTYPE* v,
+	FPTYPE* force)
+{
+	printf("dt: %f\n", dt);
+	printf("fmt2v: %f\n", fmt2v);
 }
 
 template<typename FPTYPE>
 struct direct_truncation_op<FPTYPE, device::DEVICE_GPU>
 {
-	void operator()(int test)
+	void operator()(
+		const int& nSteps,
+		const int& nAtoms,
+		const FPTYPE* dt,
+		const FPTYPE* fmt2v,
+		const FPTYPE* mass,
+		FPTYPE* v,
+		FPTYPE* force)
 	{
-		printf("direct_truncation_op(): %d\n", test);
-		int ng = 1;
-		int block = (ng + THREADS_PER_BLOCK - 1) / THREADS_PER_BLOCK;
-		hipLaunchKernelGGL(test_LJ<FPTYPE>, dim3(block), dim3(THREADS_PER_BLOCK), 0, 0);
+		int block = (nAtoms + THREADS_PER_BLOCK - 1) / THREADS_PER_BLOCK;
+
+		printf("nSteps: %d\n", nSteps);
+		printf("nAtoms: %d\n", nAtoms);
+
+		hipLaunchKernelGGL(HIP_KERNEL_NAME(ComputeForce<FPTYPE>), dim3(block), dim3(THREADS_PER_BLOCK), 0, 0,
+			dt, fmt2v, mass, v, force);
 
 		hipErrorCheck(hipGetLastError());
 		hipErrorCheck(hipDeviceSynchronize());

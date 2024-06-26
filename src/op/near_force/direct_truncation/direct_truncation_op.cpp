@@ -7,9 +7,17 @@ namespace op
 	template <typename FPTYPE>
 	struct direct_truncation_op<FPTYPE, device::DEVICE_CPU>
 	{
-		void operator()(int test)
+		//to do openmp
+		void operator()(
+			const int& nSteps,
+			const int& nAtoms,
+			const FPTYPE* dt,
+			const FPTYPE* fmt2v,
+			const FPTYPE* mass,
+			FPTYPE* v,
+			FPTYPE* force)
 		{
-			std::cout << "CPU: " << test << std::endl;
+			std::cout << "cpu: to do openmp!" << std::endl;
 		}
 	};
 
