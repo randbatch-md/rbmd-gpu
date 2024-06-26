@@ -1,5 +1,10 @@
 #pragma once
 
+namespace rbmd
+{
+	struct Real3;
+}
+
 namespace op {
 
 	template <typename FPTYPE, typename DEVICE>
