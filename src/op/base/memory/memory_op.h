@@ -1,4 +1,6 @@
 #pragma once
+#include "base/device_types.h"
+#include "types.h"
 
 namespace op {
 
