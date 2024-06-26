@@ -1,9 +1,6 @@
 #pragma once
-
-namespace rbmd
-{
-	struct Real3;
-}
+#include "base/device_types.h"
+#include "types.h"
 
 namespace op {
 
