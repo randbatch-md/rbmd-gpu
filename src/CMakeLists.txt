@@ -12,7 +12,7 @@ if(USE_ROCM)
 	PUBLIC "${CMAKE_CURRENT_LIST_DIR}/op"
 	PUBLIC "${CMAKE_CURRENT_LIST_DIR}/model")
 
-	file(GLOBAL header "${CMAKE_CURRENT_LIST_DIR}/model/*.*")
+	file(GLOB header "${CMAKE_CURRENT_LIST_DIR}/model/*.*")
 	message("header: ${header}")
     #target_link_libraries(${DEVICE_ROCM_NAME} PRIVATE hip::device)
     #target_compile_features(${DEVICE_ROCM_NAME} PRIVATE cxx_std_17)
