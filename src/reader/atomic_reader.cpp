@@ -76,7 +76,7 @@ int AtomicReader::ReadAtoms(const rbmd::Id& atoms_num)
 					auto index = atom_id - 1;
 					ids[index] = atom_id;
 					iss >> types[index];
-					iss >> positions[index][0] >> positions[index][1] >> positions[index][2];
+					iss >> positions[index].data[0] >> positions[index].data[1] >> positions[index].data[2];
 					++num;
 				}
 				_line_start = &_mapped_memory[_locate];
@@ -110,7 +110,7 @@ int AtomicReader::ReadVelocity(const rbmd::Id& atoms_num)
 				{
 					iss >> atom_id;
 					auto index = atom_id - 1;
-					iss >> velocities[index][0] >> velocities[index][1] >> velocities[index][2];
+					iss >> velocities[index].data[0] >> velocities[index].data[1] >> velocities[index].data[2];
 					++num;
 				}
 				_line_start = &_mapped_memory[_locate];

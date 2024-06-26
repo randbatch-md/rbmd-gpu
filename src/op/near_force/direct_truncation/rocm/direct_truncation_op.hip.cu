@@ -18,11 +18,14 @@ __global__ void ComputeForce(
 	FPTYPE* dt,
 	FPTYPE* fmt2v,
 	FPTYPE* mass,
-	FPTYPE* v,
-	FPTYPE* force)
+	rbmd::Real3* v,
+	rbmd::Real3* force)
 {
 	printf("dt: %f\n", dt);
 	printf("fmt2v: %f\n", fmt2v);
+	printf("mass: %f\n", mass[0]);
+	printf("v: %f\n", v[0].data[0]);
+	printf("force: %f\n", force[0].data[0]);
 }
 
 template<typename FPTYPE>
@@ -34,8 +37,8 @@ struct direct_truncation_op<FPTYPE, device::DEVICE_GPU>
 		const FPTYPE* dt,
 		const FPTYPE* fmt2v,
 		const FPTYPE* mass,
-		FPTYPE* v,
-		FPTYPE* force)
+		rbmd::Real3* v,
+		rbmd::Real3* force)
 	{
 		int block = (nAtoms + THREADS_PER_BLOCK - 1) / THREADS_PER_BLOCK;
 

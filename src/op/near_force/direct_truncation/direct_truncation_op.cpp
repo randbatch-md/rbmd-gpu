@@ -14,8 +14,8 @@ namespace op
 			const FPTYPE* dt,
 			const FPTYPE* fmt2v,
 			const FPTYPE* mass,
-			FPTYPE* v,
-			FPTYPE* force)
+			rbmd::Real3* v,
+			rbmd::Real3* force)
 		{
 			std::cout << "cpu: to do openmp!" << std::endl;
 		}

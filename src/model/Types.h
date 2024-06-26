@@ -1,4 +1,4 @@
-#include <array>
+#pragma once
 
 namespace rbmd
 {
@@ -16,5 +16,8 @@ namespace rbmd
 
 	using Range = Real[3][2];
 
-	using vec3 = std::array<Real,3>;
+	struct Real3
+	{
+		Real data[3];
+	};
 }
