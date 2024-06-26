@@ -1,6 +1,7 @@
 #include "base/memory/memory_op.h"
 #include "base/rocm.h"
 #include "base/device_types.h"
+#include "model/types.h"
 
 namespace op {
 
