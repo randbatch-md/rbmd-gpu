@@ -18,4 +18,20 @@ struct direct_truncation_op
 		rbmd::Real3* force);
 };
 
+//#if __ROCM
+
+template <typename FPTYPE, device::DEVICE_GPU>
+struct direct_truncation_op
+{
+	void operator()(
+		const int& nSteps,
+		const int& nAtoms,
+		const FPTYPE* dt,
+		const FPTYPE* fmt2v,
+		const FPTYPE* mass,
+		rbmd::Real3* v,
+		rbmd::Real3* force);
+};
+
+//#endif
 }
