@@ -49,7 +49,7 @@ namespace op {
 	template struct resize_memory_op <float, device::DEVICE_GPU>;
 	template struct resize_memory_op <double, device::DEVICE_GPU>;
 
-	template struct sync_memory_h2d_op <float,  device::DEVICE_GPU>;
+	template struct sync_memory_h2d_op <float, device::DEVICE_GPU>;
 	template struct sync_memory_h2d_op <double, device::DEVICE_GPU>;
 
 	template struct sync_memory_d2h_op <float, device::DEVICE_GPU>;
