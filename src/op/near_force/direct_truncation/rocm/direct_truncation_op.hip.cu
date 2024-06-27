@@ -54,8 +54,7 @@ struct direct_truncation_op<FPTYPE, device::DEVICE_GPU>
 		//hipLaunchKernelGGL(HIP_KERNEL_NAME(ComputeForce<FPTYPE>), dim3(block), dim3(THREADS_PER_BLOCK), 0, 0,
 		//	dt, fmt2v, mass, v, force);
 
-		hipLaunchKernelGGL(HIP_KERNEL_NAME(ComputeForce1<FPTYPE>), dim3(block), dim3(THREADS_PER_BLOCK), 0, 0,
-			dt, fmt2v, mass, v, force);
+		hipLaunchKernelGGL(HIP_KERNEL_NAME(ComputeForce1<FPTYPE>), dim3(block), dim3(THREADS_PER_BLOCK), 0, 0);
 
 		hipErrorCheck(hipGetLastError());
 		hipErrorCheck(hipDeviceSynchronize());
