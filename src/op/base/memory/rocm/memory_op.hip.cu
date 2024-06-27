@@ -25,8 +25,8 @@ namespace op {
 		}
 	};
 
-	template <typename FPTYPE, device::DEVICE_CPU, device::DEVICE_GPU>
-	struct sync_memory_op
+	template <typename FPTYPE, device::DEVICE_GPU>
+	struct sync_memory_h2d_op
 	{
 		void operator()(const FPTYPE* arr_s, FPTYPE arr_d, const size_t size)
 		{
@@ -34,8 +34,8 @@ namespace op {
 		}
 	};
 
-	template <typename FPTYPE, device::DEVICE_GPU, device::DEVICE_CPU>
-	struct sync_memory_op
+	template <typename FPTYPE, device::DEVICE_GPU>
+	struct sync_memory_d2h_op
 	{
 		void operator()(const FPTYPE* arr_s, FPTYPE arr_d, const size_t size)
 		{
@@ -49,10 +49,10 @@ namespace op {
 	template struct resize_memory_op <float, device::DEVICE_GPU>;
 	template struct resize_memory_op <double, device::DEVICE_GPU>;
 
-	template struct sync_memory_op <float, device::DEVICE_CPU, device::DEVICE_GPU>;
-	template struct sync_memory_op <double, device::DEVICE_CPU, device::DEVICE_GPU>;
+	template struct sync_memory_h2d_op <float,  device::DEVICE_GPU>;
+	template struct sync_memory_h2d_op <double, device::DEVICE_GPU>;
 
-	template struct sync_memory_op <float, device::DEVICE_GPU, device::DEVICE_CPU>;
-	template struct sync_memory_op <double, device::DEVICE_GPU, device::DEVICE_CPU>;
+	template struct sync_memory_d2h_op <float, device::DEVICE_GPU>;
+	template struct sync_memory_d2h_op <double, device::DEVICE_GPU>;
 }
 
