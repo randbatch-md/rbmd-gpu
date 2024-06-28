@@ -21,11 +21,15 @@ __global__ void ComputeForce(
 	rbmd::Real3* v,
 	rbmd::Real3* force)
 {
-	printf("dt: %f\n", dt);
-	printf("fmt2v: %f\n", fmt2v);
-	printf("mass: %f\n", mass[0]);
-	printf("v: %f\n", v[0].data[0]);
-	printf("force: %f\n", force[0].data[0]);
+	int tid = threadIdx.x + blockIdx.x * blockDim.x;
+	if (100 == tid)
+	{
+		printf("dt: %f\n", dt);
+		printf("fmt2v: %f\n", fmt2v);
+		printf("mass: %f\n", mass[0]);
+		printf("v: %f\n", v[0].data[0]);
+		printf("force: %f\n", force[0].data[0]);
+	}
 }
 
 
