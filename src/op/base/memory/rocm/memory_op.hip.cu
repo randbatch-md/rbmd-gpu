@@ -4,10 +4,10 @@
 
 namespace op {
 
-	template <>
-	struct delete_memory_op<float, device::DEVICE_GPU>
+	template <typename FPTYPE>
+	struct delete_memory_op<device::DEVICE_GPU>
 	{
-		void operator()(FPTYPE* arr) 
+		void operator()(FPTYPE* arr)
 		{
 			hipErrorCheck(hipFree(arr));
 		}
