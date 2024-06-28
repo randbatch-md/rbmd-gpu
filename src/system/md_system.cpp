@@ -9,7 +9,8 @@ int MDSystem::Evolve()
 	auto& potential_data = _md_data._potential_data;
 	auto& structure_data = _md_data._structure_data;
 	auto nAtoms = structure_info._num_atoms;
-    rbmd::Real *d_dt = nullptr, *d_fmt2v = nullptr, *d_mass = nullptr, *d_v = nullptr, *d_force = nullptr;
+	rbmd::Real* d_dt = nullptr, * d_fmt2v = nullptr, * d_mass = nullptr;
+	rbmd::Real3* d_v = nullptr, * d_force = nullptr;
 	
 	//rbmd::Real dt = 0.5, fmt2v = 1.0;
 	//rbmd::Real3* force = new rbmd::Real3(nAtoms);
