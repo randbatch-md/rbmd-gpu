@@ -15,9 +15,9 @@ void UpdateVelocity()
 
 template<typename FPTYPE>
 __global__ void ComputeForce(
-	FPTYPE* dt,
-	FPTYPE* fmt2v,
-	FPTYPE* mass,
+	const FPTYPE* dt,
+	const FPTYPE* fmt2v,
+	const FPTYPE* mass,
 	rbmd::Real3* v,
 	rbmd::Real3* force)
 {
