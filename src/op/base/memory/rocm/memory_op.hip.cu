@@ -28,7 +28,7 @@ namespace op {
 	template <typename FPTYPE>
 	struct sync_memory_h2d_op<FPTYPE, device::DEVICE_GPU>
 	{
-		void operator()(const FPTYPE* arr_d, FPTYPE* arr_s, const size_t size)
+		void operator()(FPTYPE* arr_d, const FPTYPE* arr_s, const size_t size)
 		{
 			hipErrorCheck(hipMemcpy(arr_d, arr_s, sizeof(FPTYPE) * size, hipMemcpyHostToDevice));
 		}
@@ -37,7 +37,7 @@ namespace op {
 	template <typename FPTYPE>
 	struct sync_memory_d2h_op<FPTYPE, device::DEVICE_GPU>
 	{
-		void operator()(const FPTYPE* arr_d, FPTYPE* arr_s, const size_t size)
+		void operator()(FPTYPE* arr_d, const FPTYPE* arr_s, const size_t size)
 		{
 			hipErrorCheck(hipMemcpy(arr_d, arr_s, sizeof(FPTYPE) * size, hipMemcpyDeviceToHost));
 		}
