@@ -17,9 +17,9 @@ int MDSystem::Evolve()
 	op::resize_memory_op<rbmd::Real,device::DEVICE_GPU>()(d_dt, 1);
 	op::resize_memory_op<rbmd::Real,device::DEVICE_GPU>()(d_fmt2v, 1);
 	op::resize_memory_op<rbmd::Real,device::DEVICE_GPU>()(d_mass, potential_data._mass.size());
-	//op::resize_memory_op<rbmd::Real3,device::DEVICE_GPU>()(d_v, nAtoms);
+	op::resize_memory_op<rbmd::Real3,device::DEVICE_GPU>()(d_v, nAtoms);
 	//op::resize_memory_op<rbmd::Real3,device::DEVICE_GPU>()(d_force, nAtoms);
-	printf("sizeof Real3 = %d\n", sizeof(rbmd::Real3));
+
 	op::sync_memory_h2d_op<rbmd::Real, device::DEVICE_GPU>()(d_dt, &dt, 1);
 	op::sync_memory_h2d_op<rbmd::Real, device::DEVICE_GPU>()(d_fmt2v, &fmt2v, 1);
 	op::sync_memory_h2d_op<rbmd::Real, device::DEVICE_GPU>()(d_mass, potential_data._mass.data(), 1);
