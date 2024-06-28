@@ -13,7 +13,7 @@ int MDSystem::Evolve()
 	rbmd::Real3* d_v = nullptr, * d_force = nullptr;
 	
 	rbmd::Real dt = 0.5, fmt2v = 1.0;
-	rbmd::Real3* force = new rbmd::Real3(nAtoms);
+	rbmd::Real3* force = new rbmd::Real3[nAtoms];
 	op::resize_memory_op(d_dt, 1);
 	op::resize_memory_op(d_fmt2v, 1);
 	op::resize_memory_op(d_mass, potential_data._mass.size());
