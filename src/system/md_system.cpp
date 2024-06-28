@@ -1,7 +1,7 @@
 #include "md_system.h"
 #include "base/device_types.h"
 #include "near_force/direct_truncation/direct_truncation_op.h"
-#include "base/memory/memory_op.h"
+//#include "base/memory/memory_op.h"
 
 int MDSystem::Evolve()
 {
