@@ -4,8 +4,8 @@
 
 namespace op {
 
-	template <typename FPTYPE, device::DEVICE_GPU>
-	struct delete_memory_op
+	template <>
+	struct delete_memory_op<float, device::DEVICE_GPU>
 	{
 		void operator()(FPTYPE* arr) 
 		{
