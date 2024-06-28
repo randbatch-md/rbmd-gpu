@@ -16,5 +16,8 @@ namespace rbmd
 
 	using Range = Real[3][2];
 
-	using Real3 = Real[3];
+	struct Real3
+	{
+		Real data[3];
+	};
 }
