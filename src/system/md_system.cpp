@@ -1,7 +1,7 @@
 #include "md_system.h"
 #include "base/device_types.h"
 #include "near_force/direct_truncation/direct_truncation_op.h"
-//#include "base/memory/memory_op.h"
+#include "base/memory/memory_op.h"
 
 int MDSystem::Evolve()
 {
@@ -12,19 +12,19 @@ int MDSystem::Evolve()
 	rbmd::Real* d_dt = nullptr, * d_fmt2v = nullptr, * d_mass = nullptr;
 	rbmd::Real3* d_v = nullptr, * d_force = nullptr;
 	
-	//rbmd::Real dt = 0.5, fmt2v = 1.0;
-	//rbmd::Real3* force = new rbmd::Real3(nAtoms);
-	//op::resize_memory_op(d_dt, 1);
-	//op::resize_memory_op(d_fmt2v, 1);
-	//op::resize_memory_op(d_mass, potential_data._mass.size());
-	//op::resize_memory_op(d_v, nAtoms);
-	//op::resize_memory_op(d_force, nAtoms);
+	rbmd::Real dt = 0.5, fmt2v = 1.0;
+	rbmd::Real3* force = new rbmd::Real3(nAtoms);
+	op::resize_memory_op(d_dt, 1);
+	op::resize_memory_op(d_fmt2v, 1);
+	op::resize_memory_op(d_mass, potential_data._mass.size());
+	op::resize_memory_op(d_v, nAtoms);
+	op::resize_memory_op(d_force, nAtoms);
 
-	//op::sync_memory_h2d_op<rbmd::Real, device::DEVICE_GPU>(&dt, &d_dt, 1);
-	//op::sync_memory_h2d_op<rbmd::Real, device::DEVICE_GPU>(&fmt2v, &d_fmt2v, 1);
-	//op::sync_memory_h2d_op<rbmd::Real, device::DEVICE_GPU>(potential_data._mass.data(), &d_mass, 1);
-	//op::sync_memory_h2d_op<rbmd::Real3, device::DEVICE_GPU>(structure_data._velocities.data(), &d_v, nAtoms);
-	//op::sync_memory_h2d_op<rbmd::Real3, device::DEVICE_GPU>(force, &d_force, nAtoms);
+	op::sync_memory_h2d_op<rbmd::Real, device::DEVICE_GPU>(&dt, &d_dt, 1);
+	op::sync_memory_h2d_op<rbmd::Real, device::DEVICE_GPU>(&fmt2v, &d_fmt2v, 1);
+	op::sync_memory_h2d_op<rbmd::Real, device::DEVICE_GPU>(potential_data._mass.data(), &d_mass, 1);
+	op::sync_memory_h2d_op<rbmd::Real3, device::DEVICE_GPU>(structure_data._velocities.data(), &d_v, nAtoms);
+	op::sync_memory_h2d_op<rbmd::Real3, device::DEVICE_GPU>(force, &d_force, nAtoms);
 
 	op::direct_truncation_op<rbmd::Real, device::DEVICE_GPU>()(
 		1,
