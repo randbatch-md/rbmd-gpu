@@ -18,24 +18,28 @@ int MDSystem::Evolve()
 	op::resize_memory_op<rbmd::Real,device::DEVICE_GPU>()(d_fmt2v, 1);
 	op::resize_memory_op<rbmd::Real,device::DEVICE_GPU>()(d_mass, potential_data._mass.size());
 	op::resize_memory_op<rbmd::Real3,device::DEVICE_GPU>()(d_v, nAtoms);
-	//op::resize_memory_op<rbmd::Real3,device::DEVICE_GPU>()(d_force, nAtoms);
+	op::resize_memory_op<rbmd::Real3,device::DEVICE_GPU>()(d_force, nAtoms);
 
 	op::sync_memory_h2d_op<rbmd::Real, device::DEVICE_GPU>()(d_dt, &dt, 1);
 	op::sync_memory_h2d_op<rbmd::Real, device::DEVICE_GPU>()(d_fmt2v, &fmt2v, 1);
 	op::sync_memory_h2d_op<rbmd::Real, device::DEVICE_GPU>()(d_mass, potential_data._mass.data(), 1);
-	//op::sync_memory_h2d_op<rbmd::Real3, device::DEVICE_GPU>()(d_v, structure_data._velocities.data(), nAtoms);
-	//op::sync_memory_h2d_op<rbmd::Real3, device::DEVICE_GPU>()(d_force, force, nAtoms);
+	op::sync_memory_h2d_op<rbmd::Real3, device::DEVICE_GPU>()(d_v, structure_data._velocities.data(), nAtoms);
+	op::sync_memory_h2d_op<rbmd::Real3, device::DEVICE_GPU>()(d_force, force, nAtoms);
 
-	//op::direct_truncation_op<rbmd::Real, device::DEVICE_GPU>()(
-	//	1,
-	//	structure_info._num_atoms,
-	//	d_dt,
-	//	d_fmt2v,
-	//	d_mass,
-	//	d_v,
-	//	d_force);
+	op::direct_truncation_op<rbmd::Real, device::DEVICE_GPU>()(
+		1,
+		structure_info._num_atoms,
+		d_dt,
+		d_fmt2v,
+		d_mass,
+		d_v,
+		d_force);
 
-	//op::delete_memory_op<>
+	op::delete_memory_op<rbmd::Real, device::DEVICE_GPU>(d_dt);
+	op::delete_memory_op<rbmd::Real, device::DEVICE_GPU>(d_fmt2v);
+	op::delete_memory_op<rbmd::Real, device::DEVICE_GPU>(d_mass);
+	op::delete_memory_op<rbmd::Real3, device::DEVICE_GPU>(d_v);
+	op::delete_memory_op<rbmd::Real3, device::DEVICE_GPU>(d_force);
 
 	return 0;
 }
