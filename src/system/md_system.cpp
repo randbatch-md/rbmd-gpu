@@ -35,11 +35,11 @@ int MDSystem::Evolve()
 		d_v,
 		d_force);
 
-	op::delete_memory_op<rbmd::Real, device::DEVICE_GPU>(d_dt);
-	op::delete_memory_op<rbmd::Real, device::DEVICE_GPU>(d_fmt2v);
-	op::delete_memory_op<rbmd::Real, device::DEVICE_GPU>(d_mass);
-	op::delete_memory_op<rbmd::Real3, device::DEVICE_GPU>(d_v);
-	op::delete_memory_op<rbmd::Real3, device::DEVICE_GPU>(d_force);
+	//op::delete_memory_op<rbmd::Real, device::DEVICE_GPU>(d_dt);
+	//op::delete_memory_op<rbmd::Real, device::DEVICE_GPU>(d_fmt2v);
+	//op::delete_memory_op<rbmd::Real, device::DEVICE_GPU>(d_mass);
+	//op::delete_memory_op<rbmd::Real3, device::DEVICE_GPU>(d_v);
+	//op::delete_memory_op<rbmd::Real3, device::DEVICE_GPU>(d_force);
 
 	return 0;
 }
