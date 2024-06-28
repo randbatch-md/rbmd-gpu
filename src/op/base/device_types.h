@@ -2,8 +2,8 @@
 
 namespace device
 {
-	struct DEVICE_CPU;
-	struct DEVICE_GPU;
+	struct DEVICE_CPU{};
+	struct DEVICE_GPU{};
 }
 
 
