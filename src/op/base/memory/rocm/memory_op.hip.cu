@@ -1,12 +1,12 @@
 #include "base/memory/memory_op.h"
 #include "base/rocm.h"
-#include "base/device_types.h"
 
 namespace op {
 
-	struct delete_memory_op<rbmd::Real, device::DEVICE_GPU>
+	template <typename FPTYPE>
+	struct delete_memory_op<FPTYPE, device::DEVICE_GPU>
 	{
-		void operator()(rbmd::Real* arr)
+		void operator()(FPTYPE* arr)
 		{
 			hipErrorCheck(hipFree(arr));
 		}
