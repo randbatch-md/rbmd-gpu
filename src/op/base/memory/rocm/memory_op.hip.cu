@@ -30,7 +30,7 @@ namespace op {
 	{
 		void operator()(const FPTYPE* arr_s, FPTYPE arr_d, const size_t size)
 		{
-			hipErrorCheck(hipMemcpy(arr_s, arr_d, sizeof(FPTYPE) * size, hipMemcpyHostToDevice));
+			hipErrorCheck(hipMemcpy(arr_d, arr_s, sizeof(FPTYPE) * size, hipMemcpyHostToDevice));
 		}
 	};
 
@@ -39,7 +39,7 @@ namespace op {
 	{
 		void operator()(const FPTYPE* arr_s, FPTYPE arr_d, const size_t size)
 		{
-			hipErrorCheck(hipMemcpy(arr_s, arr_d, sizeof(FPTYPE) * size, hipMemcpyDeviceToHose));
+			hipErrorCheck(hipMemcpy(arr_d, arr_s, sizeof(FPTYPE) * size, hipMemcpyDeviceToHose));
 		}
 	};
 
