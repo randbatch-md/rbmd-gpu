@@ -177,6 +177,7 @@ int StructureReder::ReadMass(const rbmd::Id& numAtomTypes)
 	try
 	{
 		auto& mass = _md_data._potential_data._mass;
+		mass.resize(_md_data._structure_info._num_atoms_type);
 		rbmd::Id atom_type;
 		rbmd::Real value;
 
@@ -190,7 +191,7 @@ int StructureReder::ReadMass(const rbmd::Id& numAtomTypes)
 				if (rbmd::IsLegalLine(line))
 				{
 					iss >> atom_type >> value;
-					mass.insert(std::make_pair(atom_type, value));
+					mass[atom_type] = value;
 					++num;
 				}
 
