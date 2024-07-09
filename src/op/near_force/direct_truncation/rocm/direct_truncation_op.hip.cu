@@ -6,6 +6,40 @@ namespace op
 
 #define THREADS_PER_BLOCK 256
 
+template<typename FPTYPE>
+__device__
+void ComputeNeighbors(
+	const rbmd::Real3* pos,
+	const int& num_particles,
+	const float& cut_off
+	int* neighborList)
+{
+	int idx = blockId.x * blockDim.x + threadIdx.x;
+	if (idx >= num_particles)
+	{
+		return;
+	}
+
+	auto p = pos[idx];
+	int neighborCount = 0;
+
+	for (int i = 0; i < num_particles; ++i)
+	{
+		if (i == idx)
+		{
+			continue;
+		}
+
+		auto q = pos[i];
+
+
+	}
+
+
+
+}
+
+
 template <typename FPTYPE>
 __device__ __inline__
 void UpdateVelocity()
@@ -18,6 +52,7 @@ __global__ void ComputeForce(
 	const FPTYPE* dt,
 	const FPTYPE* fmt2v,
 	const FPTYPE* mass,
+	rbmd::Real3* d_position,
 	rbmd::Real3* v,
 	rbmd::Real3* force)
 {
@@ -42,6 +77,7 @@ struct direct_truncation_op<FPTYPE, device::DEVICE_GPU>
 		const FPTYPE* dt,
 		const FPTYPE* fmt2v,
 		const FPTYPE* mass,
+		rbmd::Real3* d_position,
 		rbmd::Real3* v,
 		rbmd::Real3* force)
 	{
