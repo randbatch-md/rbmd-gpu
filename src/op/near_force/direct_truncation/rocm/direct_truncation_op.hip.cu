@@ -11,7 +11,7 @@ __device__
 void ComputeNeighbors(
 	const rbmd::Real3* pos,
 	const int& num_particles,
-	const float& cut_off
+	const float& cut_off,
 	int* neighborList)
 {
 	int idx = blockId.x * blockDim.x + threadIdx.x;
@@ -92,7 +92,7 @@ struct direct_truncation_op<FPTYPE, device::DEVICE_GPU>
 		printf("nAtoms: %d\n", nAtoms);
 
 		hipLaunchKernelGGL(HIP_KERNEL_NAME(ComputeForce<FPTYPE>), dim3(block), dim3(THREADS_PER_BLOCK), 0, 0,
-			dt, fmt2v, locator, mass, v, force);
+			dt, fmt2v, mass, locator, position, v, force);
 
 
 		hipErrorCheck(hipGetLastError());
