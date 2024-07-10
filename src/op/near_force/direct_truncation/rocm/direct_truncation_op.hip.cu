@@ -14,7 +14,7 @@ void ComputeNeighbors(
 	const float& cut_off,
 	int* neighborList)
 {
-	int idx = blockId.x * blockDim.x + threadIdx.x;
+	int idx = threadIdx.x + blockIdx.x * blockDim.x ;
 	if (idx >= num_particles)
 	{
 		return;
