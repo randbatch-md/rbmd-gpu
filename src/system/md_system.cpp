@@ -39,6 +39,7 @@ int MDSystem::Evolve()
 		d_dt,
 		d_fmt2v,
 		d_mass,
+		d_locator,
 		d_position,
 		d_v,
 		d_force);
