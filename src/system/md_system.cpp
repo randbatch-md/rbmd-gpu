@@ -22,7 +22,7 @@ int MDSystem::Evolve()
 	op::resize_memory_op<rbmd::Real,device::DEVICE_GPU>()(d_mass, potential_data._mass.size());
 	op::resize_memory_op<rbmd::Real3,device::DEVICE_GPU>()(d_v, nAtoms);
 	op::resize_memory_op<rbmd::Real3, device::DEVICE_GPU>()(d_force, nAtoms);
-	op::resize_memory_op<rbmd::Real3, device::DEVICE_GPU>()(d_particles, nAtoms);
+	op::resize_memory_op<rbmd::Real3, device::DEVICE_GPU>()(d_position, nAtoms);
 	op::resize_memory_op<Locator,device::DEVICE_GPU>()(d_locator, 1);
 
 	op::sync_memory_h2d_op<rbmd::Real, device::DEVICE_GPU>()(d_dt, &dt, 1);
