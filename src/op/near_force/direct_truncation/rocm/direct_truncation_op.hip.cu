@@ -61,7 +61,8 @@ void ComputeForce(
 	int tid = threadIdx.x + blockIdx.x * blockDim.x;
 	if (100 == tid)
 	{
-		locator->GetCellId(position[tid]);
+		auto cell_id = locator->GetCellId(position[tid]);
+		printf("cell id: %d %d %d\n", cell_id.x, cell_id.y, cell_id.z);
 		printf("dt: %f\n", *dt);
 		printf("fmt2v: %f\n", *fmt2v);
 		printf("mass: %f\n", mass[0]);
@@ -91,7 +92,7 @@ struct direct_truncation_op<FPTYPE, device::DEVICE_GPU>
 		printf("nAtoms: %d\n", nAtoms);
 
 		hipLaunchKernelGGL(HIP_KERNEL_NAME(ComputeForce<FPTYPE>), dim3(block), dim3(THREADS_PER_BLOCK), 0, 0,
-			dt, fmt2v, mass, v, force);
+			dt, fmt2v, locator, mass, v, force);
 
 
 		hipErrorCheck(hipGetLastError());
