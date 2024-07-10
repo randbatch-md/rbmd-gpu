@@ -48,17 +48,20 @@ void UpdateVelocity()
 }
 
 template<typename FPTYPE>
-__global__ void ComputeForce(
+__global__ 
+void ComputeForce(
 	const FPTYPE* dt,
 	const FPTYPE* fmt2v,
 	const FPTYPE* mass,
-	rbmd::Real3* d_position,
+	const Locator* locator,
+	rbmd::Real3* position,
 	rbmd::Real3* v,
 	rbmd::Real3* force)
 {
 	int tid = threadIdx.x + blockIdx.x * blockDim.x;
 	if (100 == tid)
 	{
+		locator->GetCellId(position[tid]);
 		printf("dt: %f\n", *dt);
 		printf("fmt2v: %f\n", *fmt2v);
 		printf("mass: %f\n", mass[0]);
@@ -77,7 +80,8 @@ struct direct_truncation_op<FPTYPE, device::DEVICE_GPU>
 		const FPTYPE* dt,
 		const FPTYPE* fmt2v,
 		const FPTYPE* mass,
-		rbmd::Real3* d_position,
+		const Locator* locator,
+		rbmd::Real3* position,
 		rbmd::Real3* v,
 		rbmd::Real3* force)
 	{

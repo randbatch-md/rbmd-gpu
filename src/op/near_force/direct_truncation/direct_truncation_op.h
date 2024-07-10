@@ -1,6 +1,7 @@
 #pragma once
 #include "base/device_types.h"
 #include "types.h"
+#include "base/locator.h"
 
 namespace op
 {
@@ -14,6 +15,7 @@ struct direct_truncation_op
 		const FPTYPE* dt,
 		const FPTYPE* fmt2v,
 		const FPTYPE* mass,
+		const Locator* locator,
 		rbmd::Real3* position,
 		rbmd::Real3* v,
 		rbmd::Real3* force);

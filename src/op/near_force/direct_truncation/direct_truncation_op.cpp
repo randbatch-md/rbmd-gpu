@@ -14,7 +14,8 @@ namespace op
 			const FPTYPE* dt,
 			const FPTYPE* fmt2v,
 			const FPTYPE* mass,
-			rbmd::Real3* d_position,
+			const Locator* locator,
+			rbmd::Real3* position,
 			rbmd::Real3* v,
 			rbmd::Real3* force)
 		{
