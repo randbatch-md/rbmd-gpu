@@ -12,6 +12,7 @@ int MDSystem::Evolve()
 	auto& nAtoms = structure_info._num_atoms;
 	rbmd::Real* d_dt = nullptr, * d_fmt2v = nullptr, * d_mass = nullptr;
 	rbmd::Real3* d_v = nullptr, * d_force = nullptr, *d_position;
+	rbmd::Id3* d_cellid;
 	Locator* locator = new Locator();
 	Locator* d_locator;
 	
@@ -23,6 +24,7 @@ int MDSystem::Evolve()
 	op::resize_memory_op<rbmd::Real3,device::DEVICE_GPU>()(d_v, nAtoms);
 	op::resize_memory_op<rbmd::Real3, device::DEVICE_GPU>()(d_force, nAtoms);
 	op::resize_memory_op<rbmd::Real3, device::DEVICE_GPU>()(d_position, nAtoms);
+	op::resize_memory_op<rbmd::Id3, device::DEVICE_GPU>()(d_cellid, nAtoms);
 	op::resize_memory_op<Locator,device::DEVICE_GPU>()(d_locator, 1);
 
 	op::sync_memory_h2d_op<rbmd::Real, device::DEVICE_GPU>()(d_dt, &dt, 1);
@@ -39,6 +41,7 @@ int MDSystem::Evolve()
 		rbmd::Real3(0, 0, 0),
 		rbmd::Real3(10, 10, 10),
 		rbmd::Id3(10,10,10),
+		d_cellid,
 		d_dt,
 		d_fmt2v,
 		d_mass,
