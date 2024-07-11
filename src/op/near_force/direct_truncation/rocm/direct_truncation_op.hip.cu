@@ -14,7 +14,7 @@ void ComputeCellId(
 	const rbmd::Real3& right,
 	const rbmd::Id3& dim)
 {
-	__shared__ auto dxdydz = (right - left) / dim;
+	auto dxdydz = (right - left) / dim; //should be shared memory
 	cellids.data[0] = (position.data[0] - left) / dxdydz;
 	cellids.data[1] = (position.data[1] - left) / dxdydz;
 	cellids.data[2] = (position.data[2] - left) / dxdydz;
