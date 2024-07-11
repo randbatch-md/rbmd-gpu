@@ -14,7 +14,10 @@ void ComputeCellId(
 	const rbmd::Real3& right,
 	const rbmd::Id3& dim)
 {
-
+	__shared__ auto dxdydz = (right - left) / dim;
+	cellids.data[0] = (position.data[0] - left) / dxdydz;
+	cellids.data[1] = (position.data[1] - left) / dxdydz;
+	cellids.data[2] = (position.data[2] - left) / dxdydz;
 }
 
 template <typename FPTYPE>
@@ -45,9 +48,7 @@ void ComputeForce(
 	{
 		return;
 	}
-
 	//cell id list
-	int3 cell_ids[nAtoms];
 	ComputeCellId(position[tid], cellid[tid], left, right, dim);
 
 	if (100 == tid)
@@ -84,6 +85,8 @@ struct direct_truncation_op<FPTYPE, device::DEVICE_GPU>
 
 		printf("nSteps: %d\n", nSteps);
 		printf("nAtoms: %d\n", nAtoms);
+
+
 
 		hipLaunchKernelGGL(HIP_KERNEL_NAME(ComputeForce<FPTYPE>), dim3(block), dim3(THREADS_PER_BLOCK), 0, 0,
 			nAtoms, dt, fmt2v, mass, cellid, locator, position, v, force);

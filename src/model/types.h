@@ -49,14 +49,16 @@ namespace rbmd
 			return real3;
 		}
 
-		Id3 operator/(const Real3& id3)
+		Real3 operator/(const Real3& id3)
 		{
-			Id3 id3;
+			Real3 id3;
 			id3.data[0] = this->data[0] / id3[0];
 			id3.data[1] = this->data[1] / id3[1];
 			id3.data[2] = this->data[2] / id3[2];
 			return id3;
 		}
+
+
 
 		Real data[3];
 	};
