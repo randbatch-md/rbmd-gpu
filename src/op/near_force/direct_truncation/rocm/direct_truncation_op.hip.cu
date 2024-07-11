@@ -14,7 +14,7 @@ void ComputeCellId(
 	const rbmd::Real3& right,
 	const rbmd::Id3& dim)
 {
-	auto dxdydz = (right - left) / dim; //should be shared memory
+	__shared__ auto dxdydz = (right - left) / dim; //should be shared memory
 	cellids.data[0] = (position.data[0] - left) / dxdydz;
 	cellids.data[1] = (position.data[1] - left) / dxdydz;
 	cellids.data[2] = (position.data[2] - left) / dxdydz;
@@ -89,7 +89,7 @@ struct direct_truncation_op<FPTYPE, device::DEVICE_GPU>
 
 
 		hipLaunchKernelGGL(HIP_KERNEL_NAME(ComputeForce<FPTYPE>), dim3(block), dim3(THREADS_PER_BLOCK), 0, 0,
-			nAtoms, dt, fmt2v, mass, cellid, locator, position, v, force);
+			nAtoms, dt, fmt2v, mass, left, right, dim, cellid, locator, position, v, force);
 
 
 		hipErrorCheck(hipGetLastError());
