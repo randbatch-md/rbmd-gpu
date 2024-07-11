@@ -9,7 +9,7 @@ namespace op
 __device__
 void ComputeCellId(
 	const rbmd::Real3& position,
-	rbmd::Id3& cellids
+	rbmd::Id3& cellids,
 	const rbmd::Real3& left,
 	const rbmd::Real3& right,
 	const rbmd::Id3& dim)
@@ -37,7 +37,7 @@ void ComputeForce(
 	const rbmd::Real3& left,
 	const rbmd::Real3& right,
 	const rbmd::Id3& dim,
-	rbmd::Id3* cellid
+	rbmd::Id3* cellid,
 	const Locator* locator,
 	rbmd::Real3* position,
 	rbmd::Real3* v,
