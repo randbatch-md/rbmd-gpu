@@ -15,9 +15,9 @@ void ComputeCellId(
 	const rbmd::Id3& dim)
 {
 	__shared__ auto dxdydz = (right - left) / dim; //should be shared memory
-	cellids.data[0] = (position.data[0] - left) / dxdydz;
-	cellids.data[1] = (position.data[1] - left) / dxdydz;
-	cellids.data[2] = (position.data[2] - left) / dxdydz;
+	cellids.data[0] = (position.data[0] - left.data[0]) / dxdydz.data[0];
+	cellids.data[1] = (position.data[1] - left.data[1]) / dxdydz.data[1];
+	cellids.data[2] = (position.data[2] - left.data[2]) / dxdydz.data[2];
 }
 
 template <typename FPTYPE>
