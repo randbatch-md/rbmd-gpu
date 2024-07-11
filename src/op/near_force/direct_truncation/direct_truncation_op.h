@@ -15,7 +15,7 @@ struct direct_truncation_op
 		const rbmd::Real3& left,
 		const rbmd::Real3& right,
 		const rbmd::Id3& dim,
-		rbmd::Id3& cellid
+		rbmd::Id3& cellid,
 		const FPTYPE* dt,
 		const FPTYPE* fmt2v,
 		const FPTYPE* mass,

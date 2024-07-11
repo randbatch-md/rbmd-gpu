@@ -72,7 +72,7 @@ struct direct_truncation_op<FPTYPE, device::DEVICE_GPU>
 		const rbmd::Real3& left, //shared memory
 		const rbmd::Real3& right,
 		const rbmd::Id3& dim,
-		rbmd::Id3& cellid
+		rbmd::Id3& cellid,
 		const FPTYPE* dt,
 		const FPTYPE* fmt2v,
 		const FPTYPE* mass,
