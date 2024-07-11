@@ -40,22 +40,22 @@ namespace rbmd
 			data[2] = z;
 		}
 
-		Real3 operator-(const Real3& real) const
+		Real3 operator-(const Real3& real1, const Real3& real2) const
 		{
 			Real3 real3;
-			real3[0] = this->data[0] - real[0];
-			real3[1] = this->data[1] - real[1];
-			real3[2] = this->data[2] - real[2];
+			real3.data[0] = real1.data[0] - rea2.data[0];
+			real3.data[1] = real1.data[1] - rea2.data[1];
+			real3.data[2] = real1.data[2] - rea2.data[2];
 			return real3;
 		}
 
-		Real3 operator/(const Real3& real) const
+		Real3 operator/(const Real3& real1, const Real3& real2) const
 		{
-			Real3 id3;
-			id3.data[0] = this->data[0] / real[0];
-			id3.data[1] = this->data[1] / real[1];
-			id3.data[2] = this->data[2] / real[2];
-			return id3;
+			Real3 real3;
+			real3.data[0] = real1.data[0] / rea2.data[0];
+			real3.data[1] = real1.data[1] / rea2.data[1];
+			real3.data[2] = real1.data[2] / rea2.data[2];
+			return real3;
 		}
 
 
