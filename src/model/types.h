@@ -61,6 +61,15 @@ namespace rbmd
 			return real3;
 		}
 
+		__host__ __device__
+		Real3 operator/(const Id3& real) const
+		{
+			Real3 real3;
+			real3.data[0] = this->data[0] / real.data[0];
+			real3.data[1] = this->data[1] / real.data[1];
+			real3.data[2] = this->data[2] / real.data[2];
+			return real3;
+		}
 
 
 		Real data[3];
