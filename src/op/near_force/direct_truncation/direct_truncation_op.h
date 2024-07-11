@@ -12,6 +12,9 @@ struct direct_truncation_op
 	void operator()(
 		const int& nSteps,
 		const int& nAtoms,
+		const rbmd::Real3& left,
+		const rbmd::Real3& right,
+		const rbmd::Id3& dim,
 		const FPTYPE* dt,
 		const FPTYPE* fmt2v,
 		const FPTYPE* mass,

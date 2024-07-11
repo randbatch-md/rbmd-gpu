@@ -78,6 +78,9 @@ struct direct_truncation_op<FPTYPE, device::DEVICE_GPU>
 	void operator()(
 		const int& nSteps,
 		const int& nAtoms,
+		const rbmd::Real3& left,
+		const rbmd::Real3& right,
+		const rbmd::Id3& dim,
 		const FPTYPE* dt,
 		const FPTYPE* fmt2v,
 		const FPTYPE* mass,
@@ -90,6 +93,10 @@ struct direct_truncation_op<FPTYPE, device::DEVICE_GPU>
 
 		printf("nSteps: %d\n", nSteps);
 		printf("nAtoms: %d\n", nAtoms);
+
+		//cell id list
+		int cell_ids[nAtoms];
+
 
 		hipLaunchKernelGGL(HIP_KERNEL_NAME(ComputeForce<FPTYPE>), dim3(block), dim3(THREADS_PER_BLOCK), 0, 0,
 			dt, fmt2v, mass, locator, position, v, force);

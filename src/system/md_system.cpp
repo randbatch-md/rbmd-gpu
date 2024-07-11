@@ -36,6 +36,9 @@ int MDSystem::Evolve()
 	op::direct_truncation_op<rbmd::Real, device::DEVICE_GPU>()(
 		1,
 		structure_info._num_atoms,
+		rbmd::Real3(0, 0, 0),
+		rbmd::Real3(10, 10, 10),
+		rbmd::Id3(10,10,10),
 		d_dt,
 		d_fmt2v,
 		d_mass,
