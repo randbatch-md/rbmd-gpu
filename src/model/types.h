@@ -18,12 +18,11 @@ namespace rbmd
 
 	struct Id3
 	{
-		Id3(const Id& x, const Id& y, const Id& z) : 
-			data[0](x),
-			data[1](y),
-			data[2](z)
+		Id3(const Id& x, const Id& y, const Id& z)
 		{
-
+			data[0] = x;
+			data[1] = y;
+			data[2] = z;
 		}
 
 		Id data[3];
@@ -31,12 +30,11 @@ namespace rbmd
 
 	struct Real3
 	{
-		Real3(const Real& x, const Real& y, const Real& z) :
-			data[0](x),
-			data[1](y),
-			data[2](z)
+		Real3(const Real& x, const Real& y, const Real& z)
 		{
-
+			data[0] = x;
+			data[1] = y;
+			data[2] = z;
 		}
 
 		Real data[3];
