@@ -16,7 +16,7 @@ int MDSystem::Evolve()
 	Locator* d_locator;
 	
 	rbmd::Real dt = 0.5, fmt2v = 1.0;
-	rbmd::Real3 force[nAtoms];
+	rbmd::Real3* force = new rbmd::Real3[nAtoms];
 	op::resize_memory_op<rbmd::Real,device::DEVICE_GPU>()(d_dt, 1);
 	op::resize_memory_op<rbmd::Real,device::DEVICE_GPU>()(d_fmt2v, 1);
 	op::resize_memory_op<rbmd::Real,device::DEVICE_GPU>()(d_mass, potential_data._mass.size());

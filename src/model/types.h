@@ -18,6 +18,7 @@ namespace rbmd
 
 	struct Id3
 	{
+		Id3() = default;
 		Id3(const Id& x, const Id& y, const Id& z)
 		{
 			data[0] = x;
@@ -30,6 +31,7 @@ namespace rbmd
 
 	struct Real3
 	{
+		Real3() = default;
 		Real3(const Real& x, const Real& y, const Real& z)
 		{
 			data[0] = x;
