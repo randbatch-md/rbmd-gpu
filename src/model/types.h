@@ -1,4 +1,5 @@
 #pragma once
+#include <hip/hip_runtime.h>
 
 namespace rbmd
 {
@@ -40,6 +41,7 @@ namespace rbmd
 			data[2] = z;
 		}
 
+		__host__ __device__
 		Real3 operator-(const Real3& real) const
 		{
 			Real3 real3;
@@ -49,6 +51,7 @@ namespace rbmd
 			return real3;
 		}
 
+		__host__ __device__
 		Real3 operator/(const Real3& real) const
 		{
 			Real3 real3;
