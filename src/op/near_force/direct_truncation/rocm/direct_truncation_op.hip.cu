@@ -52,17 +52,16 @@ void ComputeForce(
 	rbmd::Real3* force)
 {
 	int tid = threadIdx.x + blockIdx.x * blockDim.x;
-	printf("tid: %d\n", tid);
-
 	if (tid > nAtoms)
 	{
 		return;
 	}
 	//cell id list
-	//ComputeCellId(position[tid], cellid[tid], left, right, dim);
 
 	if (100 == tid)
 	{
+		ComputeCellId(position[tid], cellid[tid], left, right, dim);
+
 		printf("cell id: %d,%d,%d", cellid[tid].data[0], cellid[tid].data[1], cellid[tid].data[2]);
 		printf("dt: %f\n", *dt);
 		printf("fmt2v: %f\n", *fmt2v);
