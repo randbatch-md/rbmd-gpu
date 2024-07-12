@@ -58,6 +58,7 @@ void ComputeForce(
 		return;
 	}
 	//cell id list
+	printf("----\n", tid);
 
 	if (100 == tid)
 	{
