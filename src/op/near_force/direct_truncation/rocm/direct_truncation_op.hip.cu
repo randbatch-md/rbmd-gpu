@@ -97,7 +97,7 @@ struct direct_truncation_op<FPTYPE, device::DEVICE_GPU>
 		printf("left: %f\n", left.data[0]);
 		printf("right: %f\n", right.data[0]);
 		printf("dim: %d\n", dim.data[0]);
-		printf("cellid: %d\n", cellid.data[0]);
+		printf("cellid: %d\n", cellid->data[0]);
 
 
 
