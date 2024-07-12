@@ -53,7 +53,7 @@ void ComputeForce(
 {
 	int tid = threadIdx.x + blockIdx.x * blockDim.x;
 	printf("tid = %d\n", tid);
-	printf("nAtoms = %d\n", tid);
+	printf("nAtoms = %d\n", nAtoms);
 	if (tid > nAtoms)
 	{
 		return;
