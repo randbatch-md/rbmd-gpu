@@ -53,16 +53,15 @@ void ComputeForce(
 {
 	int tid = threadIdx.x + blockIdx.x * blockDim.x;
 	printf("tid = %d\n", tid);
+	printf("nAtoms = %d\n", tid);
 	if (tid > nAtoms)
 	{
 		return;
 	}
 	//cell id list
-	printf("----\n", tid);
-
 	if (100 == tid)
 	{
-		//ComputeCellId(position[tid], cellid[tid], left, right, dim);
+		ComputeCellId(position[tid], cellid[tid], left, right, dim);
 
 		printf("cell id: %d,%d,%d", cellid[tid].data[0], cellid[tid].data[1], cellid[tid].data[2]);
 		printf("dt: %f\n", *dt);
