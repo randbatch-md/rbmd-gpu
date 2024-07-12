@@ -51,24 +51,25 @@ void ComputeForce(
 	rbmd::Real3* v,
 	rbmd::Real3* force)
 {
-	//int tid = threadIdx.x + blockIdx.x * blockDim.x;
-	//if (tid > nAtoms)
-	//{
-	//	return;
-	//}
-	//printf("tid: %d\n", tid);
-	////cell id list
-	////ComputeCellId(position[tid], cellid[tid], left, right, dim);
+	int tid = threadIdx.x + blockIdx.x * blockDim.x;
+	printf("tid: %d\n", tid);
 
-	//if (100 == tid)
-	//{
-	//	printf("cell id: %d,%d,%d", cellid[tid].data[0], cellid[tid].data[1], cellid[tid].data[2]);
-	//	printf("dt: %f\n", *dt);
-	//	printf("fmt2v: %f\n", *fmt2v);
-	//	printf("mass: %f\n", mass[0]);
-	//	printf("v: %f\n", v[0].data[0]);
-	//	printf("force: %f\n", force[0].data[0]);
-	//}
+	if (tid > nAtoms)
+	{
+		return;
+	}
+	//cell id list
+	ComputeCellId(position[tid], cellid[tid], left, right, dim);
+
+	if (100 == tid)
+	{
+		printf("cell id: %d,%d,%d", cellid[tid].data[0], cellid[tid].data[1], cellid[tid].data[2]);
+		printf("dt: %f\n", *dt);
+		printf("fmt2v: %f\n", *fmt2v);
+		printf("mass: %f\n", mass[0]);
+		printf("v: %f\n", v[0].data[0]);
+		printf("force: %f\n", force[0].data[0]);
+	}
 }
 
 
