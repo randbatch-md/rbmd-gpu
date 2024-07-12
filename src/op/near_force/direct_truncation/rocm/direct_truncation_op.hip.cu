@@ -14,12 +14,12 @@ void ComputeCellId(
 	const rbmd::Real3& right,
 	const rbmd::Id3& dim)
 {
-	printf("right: %f,%f,%f", right.data[0], right.data[1], right.data[2]);
-	printf("left:%f,%f,%f", left.data[0], left.data[1], left.data[2]);
-	printf("dim: %d,%d,%d", dim.data[0], dim.data[1], dim.data[2]);
+	printf("right: %f,%f,%f\n", right.data[0], right.data[1], right.data[2]);
+	printf("left:%f,%f,%f\n", left.data[0], left.data[1], left.data[2]);
+	printf("dim: %d,%d,%d\n", dim.data[0], dim.data[1], dim.data[2]);
 
 	rbmd::Real3 dxdydz = (right - left) / dim; //should be shared memory
-	printf("dxdydz: %f,%f,%f", dxdydz.data[0], dxdydz.data[1], dxdydz.data[2]);
+	printf("dxdydz: %f,%f,%f\n", dxdydz.data[0], dxdydz.data[1], dxdydz.data[2]);
 
 	cellids.data[0] = (position.data[0] - left.data[0]) / dxdydz.data[0];
 	cellids.data[1] = (position.data[1] - left.data[1]) / dxdydz.data[1];
@@ -56,6 +56,7 @@ void ComputeForce(
 	{
 		return;
 	}
+	printf("tid: %d\n", tid);
 	//cell id list
 	ComputeCellId(position[tid], cellid[tid], left, right, dim);
 
