@@ -46,7 +46,7 @@ void ComputeForce(
 	const rbmd::Real3& right,
 	const rbmd::Id3& dim,
 	rbmd::Id3* cellid,
-	const Locator* locator,
+	//const Locator* locator,
 	rbmd::Real3* position,
 	rbmd::Real3* v,
 	rbmd::Real3* force)
@@ -85,7 +85,7 @@ struct direct_truncation_op<FPTYPE, device::DEVICE_GPU>
 		const FPTYPE* dt,
 		const FPTYPE* fmt2v,
 		const FPTYPE* mass,
-		const Locator* locator,
+		//const Locator* locator,
 		rbmd::Real3* position,
 		rbmd::Real3* v,
 		rbmd::Real3* force)
@@ -102,7 +102,7 @@ struct direct_truncation_op<FPTYPE, device::DEVICE_GPU>
 
 
 		hipLaunchKernelGGL(HIP_KERNEL_NAME(ComputeForce<FPTYPE>), dim3(block), dim3(THREADS_PER_BLOCK), 0, 0,
-			nAtoms, dt, fmt2v, mass, left, right, dim, cellid, locator, position, v, force);
+			nAtoms, dt, fmt2v, mass, left, right, dim, cellid, /*locator, */position, v, force);
 
 
 		hipErrorCheck(hipGetLastError());
