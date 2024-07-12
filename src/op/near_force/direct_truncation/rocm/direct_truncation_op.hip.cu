@@ -59,7 +59,7 @@ void ComputeForce(
 		return;
 	}
 	//cell id list
-	ComputeCellId(position[tid], cellid[tid], left, right, dim);
+	//ComputeCellId(position[tid], cellid[tid], left, right, dim);
 
 	if (100 == tid)
 	{
@@ -86,7 +86,7 @@ struct direct_truncation_op<FPTYPE, device::DEVICE_GPU>
 		const FPTYPE* dt,
 		const FPTYPE* fmt2v,
 		const FPTYPE* mass,
-		//const Locator* locator,
+		const Locator* locator,
 		rbmd::Real3* position,
 		rbmd::Real3* v,
 		rbmd::Real3* force)
