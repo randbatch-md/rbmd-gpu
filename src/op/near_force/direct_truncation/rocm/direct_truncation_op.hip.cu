@@ -58,7 +58,7 @@ void ComputeForce(
 	}
 	printf("tid: %d\n", tid);
 	//cell id list
-	ComputeCellId(position[tid], cellid[tid], left, right, dim);
+	//ComputeCellId(position[tid], cellid[tid], left, right, dim);
 
 	if (100 == tid)
 	{
@@ -99,8 +99,6 @@ struct direct_truncation_op<FPTYPE, device::DEVICE_GPU>
 		printf("dim: %d\n", dim.data[0]);
 		printf("cellid: %d\n", cellid->data[0]);
 		printf("position: %f\n", position[0].data[0]);
-
-
 
 
 		hipLaunchKernelGGL(HIP_KERNEL_NAME(ComputeForce<FPTYPE>), dim3(block), dim3(THREADS_PER_BLOCK), 0, 0,
