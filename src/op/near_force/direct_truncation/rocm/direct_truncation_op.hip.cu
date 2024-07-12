@@ -52,12 +52,13 @@ void ComputeForce(
 	rbmd::Real3* force)
 {
 	int tid = threadIdx.x + blockIdx.x * blockDim.x;
-	printf("tid = %d\n", tid);
+
 	printf("nAtoms = %d\n", nAtoms);
 	if (tid > nAtoms)
 	{
 		return;
 	}
+
 	//cell id list
 	if (100 == tid)
 	{
