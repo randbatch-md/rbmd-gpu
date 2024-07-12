@@ -8,11 +8,11 @@ namespace op
 
 __device__
 void ComputeCellId(
-	const rbmd::Real3& position,
-	rbmd::Id3& cellids,
-	const rbmd::Real3& left,
-	const rbmd::Real3& right,
-	const rbmd::Id3& dim)
+	rbmd::Real3 position,
+	rbmd::Id3 cellids,
+	rbmd::Real3 left,
+	rbmd::Real3 right,
+	rbmd::Id3 dim)
 {
 	printf("right: %f,%f,%f\n", right.data[0], right.data[1], right.data[2]);
 	printf("left:%f,%f,%f\n", left.data[0], left.data[1], left.data[2]);
@@ -39,12 +39,12 @@ template<typename FPTYPE>
 __global__ 
 void ComputeForce(
 	int nAtoms,
-	FPTYPE* dt,
-	FPTYPE* fmt2v,
-	FPTYPE* mass,
-	rbmd::Real3 left,
-	rbmd::Real3 right,
-	rbmd::Id3& dim,
+	const FPTYPE* dt,
+	const FPTYPE* fmt2v,
+	const FPTYPE* mass,
+	const rbmd::Real3& left,
+	const rbmd::Real3& right,
+	const rbmd::Id3& dim,
 	rbmd::Id3* cellid,
 	//const Locator* locator,
 	rbmd::Real3* position,
@@ -52,6 +52,8 @@ void ComputeForce(
 	rbmd::Real3* force)
 {
 	int tid = threadIdx.x + blockIdx.x * blockDim.x;
+
+	printf("nAtoms = %d\n", nAtoms);
 	if (tid > nAtoms)
 	{
 		return;
