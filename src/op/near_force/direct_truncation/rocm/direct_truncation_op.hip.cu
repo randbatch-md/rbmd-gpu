@@ -38,7 +38,7 @@ void UpdateVelocity()
 template<typename FPTYPE>
 __global__ 
 void ComputeForce(
-	const int& nAtoms,
+	int nAtoms,
 	const FPTYPE* dt,
 	const FPTYPE* fmt2v,
 	const FPTYPE* mass,
