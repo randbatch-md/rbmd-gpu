@@ -60,7 +60,7 @@ void ComputeForce(
 
 	if (100 == tid)
 	{
-		ComputeCellId(position[tid], cellid[tid], left, right, dim);
+		//ComputeCellId(position[tid], cellid[tid], left, right, dim);
 
 		printf("cell id: %d,%d,%d", cellid[tid].data[0], cellid[tid].data[1], cellid[tid].data[2]);
 		printf("dt: %f\n", *dt);
