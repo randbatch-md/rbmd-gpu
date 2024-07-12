@@ -52,6 +52,7 @@ void ComputeForce(
 	rbmd::Real3* force)
 {
 	int tid = threadIdx.x + blockIdx.x * blockDim.x;
+	printf("tid = %d\n", tid);
 	if (tid > nAtoms)
 	{
 		return;
