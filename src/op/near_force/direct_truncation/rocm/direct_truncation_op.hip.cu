@@ -10,9 +10,9 @@ __device__
 void ComputeCellId(
 	rbmd::Real3 position,
 	rbmd::Id3 cellids,
-	rbmd::Real3 left,
-	rbmd::Real3 right,
-	rbmd::Id3 dim)
+	const rbmd::Real3 left,
+	const rbmd::Real3 right,
+	const rbmd::Id3 dim)
 {
 	printf("-----ComputeCellId-----\n");
 	printf("right: %f,%f,%f\n", right.data[0], right.data[1], right.data[2]);
