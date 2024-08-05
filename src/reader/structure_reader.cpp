@@ -177,6 +177,7 @@ int StructureReder::ReadMass(const rbmd::Id& numAtomTypes)
 	try
 	{
 		auto& mass = _md_data._potential_data._mass;
+		mass.resize(_md_data._structure_info._num_atoms_type);
 		rbmd::Id atom_type;
 		rbmd::Real value;
 
@@ -190,7 +191,7 @@ int StructureReder::ReadMass(const rbmd::Id& numAtomTypes)
 				if (rbmd::IsLegalLine(line))
 				{
 					iss >> atom_type >> value;
-					mass.insert(std::make_pair(atom_type, value));
+					mass[atom_type - 1] = value;
 					++num;
 				}
 
@@ -211,8 +212,11 @@ int StructureReder::ReadPairCoeffs(const rbmd::Id& numAtomTypes)
 {
 	try
 	{
+		auto& nTypes = _md_data._structure_info._num_atoms_type;
 		auto& eps = _md_data._potential_data._eps;
 		auto& sigma = _md_data._potential_data._sigma;
+		eps.resize(nTypes);
+		sigma.resize(nTypes);
 		rbmd::Id atom_type;
 		rbmd::Real eps_value;
 		rbmd::Real sigma_value;
@@ -227,8 +231,8 @@ int StructureReder::ReadPairCoeffs(const rbmd::Id& numAtomTypes)
 				if (rbmd::IsLegalLine(line))
 				{
 					iss >> atom_type >> eps_value >> sigma_value;
-					eps.insert(std::make_pair(atom_type, eps_value));
-					sigma.insert(std::make_pair(atom_type, sigma_value));
+					eps[atom_type - 1] = eps_value;
+					sigma[atom_type - 1] = sigma_value;
 					++num;
 				}
 				_line_start = &_mapped_memory[_locate];

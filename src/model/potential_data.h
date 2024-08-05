@@ -1,6 +1,6 @@
 #pragma once
-#include <map>
-#include "Types.h"
+#include <vector>
+#include "types.h"
 
 struct PotentialData
 {
@@ -10,7 +10,7 @@ struct PotentialData
 	}
 
 
-	std::map<rbmd::Id, rbmd::Real> _mass;
-	std::map<rbmd::Id, rbmd::Real> _eps;
-	std::map<rbmd::Id, rbmd::Real> _sigma;
+	std::vector<rbmd::Real> _mass;
+	std::vector<rbmd::Real> _eps;
+	std::vector<rbmd::Real> _sigma;
 };

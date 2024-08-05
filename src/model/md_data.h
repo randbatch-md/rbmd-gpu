@@ -6,9 +6,6 @@
 
 struct MDData
 {
-
-
-
 	StructureInfo _structure_info;
 	StructureData _structure_data;
 	PotentialData _potential_data;

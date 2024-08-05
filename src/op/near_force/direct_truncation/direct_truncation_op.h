@@ -1,5 +1,7 @@
 #pragma once
 #include "base/device_types.h"
+#include "types.h"
+#include "base/locator.h"
 
 namespace op
 {
@@ -7,7 +9,20 @@ namespace op
 template <typename FPTYPE, typename DEVICE>
 struct direct_truncation_op
 {
-	void operator()(int test);
+	void operator()(
+		const int& nSteps,
+		const int& nAtoms,
+		const rbmd::Real3& left,
+		const rbmd::Real3& right,
+		const rbmd::Id3& dim,
+		rbmd::Id3* cellid,
+		const FPTYPE* dt,
+		const FPTYPE* fmt2v,
+		const FPTYPE* mass,
+		const Locator* locator,
+		rbmd::Real3* position,
+		rbmd::Real3* v,
+		rbmd::Real3* force);
 };
 
 }
