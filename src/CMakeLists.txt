@@ -1,3 +1,6 @@
+add_subdirectory(data_manager)
+
+
 if(USE_ROCM)
 	#device rocm
 	set(DEVICE_ROCM_NAME "device_rocm")
