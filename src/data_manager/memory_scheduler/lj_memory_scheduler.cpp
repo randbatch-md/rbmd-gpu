@@ -1,4 +1,4 @@
-#include "lj_memory_scheduler.h"
+#include "./include/lj_memory_scheduler.h"
 
 int LJMemoryScheduler::AsyncMemoryH2D()
 {
