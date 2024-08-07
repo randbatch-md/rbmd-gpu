@@ -1,5 +1,5 @@
-define_property(GLOBAL PROPERTY TOOLS_INCLUDE_PATH)
-define_property(GLOBAL PROPERTY TOOLS_LINK_PATH)
+define_property(GLOBAL PROPERTY TOOLS_INCLUDE_PATH BRIEF_DOCS "tools install path" FULL_DOCS "tools install path")
+define_property(GLOBAL PROPERTY TOOLS_LINK_PATH BRIEF_DOCS "tools link path" FULL_DOCS "tools link path")
 
 macro(build_tool)
 	set(TOOL_INSTALL_PATH ${tooldir}/${CMAKE_SYSTEM_NAME}/${CMAKE_BUILD_TYPE}/${toolname_without_ext})
