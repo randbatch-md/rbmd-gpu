@@ -3,5 +3,5 @@
 
 struct FullStructureData : StructureData
 {
-
+	std::vector<rbmd::Real> _h_charge;
 };
