@@ -4,10 +4,10 @@
 #include "json/value.h"
 #include "json/reader.h"
 
-class JsonParser : public Object
+class ConfigData : public Object
 {
 public:
-    JsonParser(const std::string& file)
+    ConfigData(const std::string& file)
     {
         if (!IsJsonFile(file))
         {
@@ -18,7 +18,7 @@ public:
         ParseJsonFile(file);
     }
 
-    ~JsonParser() = default;
+    ~ConfigData() = default;
 
 public:
     template<typename T, typename... Args>
