@@ -24,6 +24,8 @@ else()
   message(FATAL_ERROR "Could not find HIP.")
 endif()
 
+message("-----------THRUST_INCLUDE_DIRS: ${THRUST_INCLUDE_DIRS}")
+
 include_directories(${HIP_INCLUDE_DIRS})
 link_directories(${HIP_LIBRARIES})
 
