@@ -9,7 +9,7 @@ public:
 
 protected:
 	void Init() override;
-	int Evolve() override;
+	int Run() override;
 private:
 
 };

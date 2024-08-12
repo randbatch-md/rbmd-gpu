@@ -10,7 +10,7 @@ void NVEensemble::Init()
 
 }
 
-int NVEensemble::Evolve()
+int NVEensemble::Run()
 {
 
 }

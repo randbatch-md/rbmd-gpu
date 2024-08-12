@@ -10,7 +10,7 @@ void NVTensemble::Init()
 
 }
 
-int NVTensemble::Evolve()
+int NVTensemble::Run()
 {
 
 }
