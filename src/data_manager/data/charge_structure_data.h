@@ -3,7 +3,7 @@
 
 class ChargeStructureData : public BasicStructureData
 {
-	bool checkData() const override
+	bool checkStructure() const override
 	{
 		if (false == BasicStructureData::checkData())
 		{

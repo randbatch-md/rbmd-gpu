@@ -4,7 +4,7 @@
 class FullStructureData : public BasicStructureData
 {
 public:
-	bool checkData() const override
+	bool checkStructure() const override
 	{
 		if (false == BasicStructureData::checkData())
 		{

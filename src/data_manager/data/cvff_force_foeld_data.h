@@ -6,6 +6,6 @@ class CVFFForceFieldData : public ForceFieldData
 {
 	bool checkForceField() const override
 	{
-
+		return true;
 	}
 };

@@ -4,9 +4,9 @@
 class BasicStructureData : public StructureData
 {
 public:
-	bool checkData() const override
+	bool checkStructure() const override
 	{
-
+		return true;
 	}
 
 	std::vector<rbmd::Real> _h_charge;

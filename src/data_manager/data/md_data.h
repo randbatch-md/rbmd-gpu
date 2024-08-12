@@ -17,7 +17,7 @@ public:
 
 	bool checkMDData()
 	{
-		if (0 == _structure_data->checkData())
+		if (0 == _structure_data->checkStructure())
 		{
 			//log
 			_console->error("check structure data failed!");

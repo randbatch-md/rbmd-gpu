@@ -6,6 +6,6 @@ class EAMForceFieldData : public ForceFieldData
 {
 	bool checkForceField() const override
 	{
-
+		return true;
 	}
 };

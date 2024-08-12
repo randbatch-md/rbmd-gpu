@@ -3,8 +3,8 @@
 
 class AtomsStructureData : public StructureData 
 {
-	bool checkData() override
+	bool checkStructure() const override
 	{
-
+		return true;
 	}
 };
