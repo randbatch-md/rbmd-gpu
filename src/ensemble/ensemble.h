@@ -4,8 +4,8 @@
 class Ensemble : public Object
 {
 public:
-	Ensemble();
-	~Ensemble();
+	Ensemble() {};
+	virtual ~Ensemble()=default;
 
 	virtual void Init() = 0;
 	virtual int Evolve() = 0;
