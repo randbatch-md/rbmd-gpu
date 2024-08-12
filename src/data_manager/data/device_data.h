@@ -1,5 +1,5 @@
 #pragma once
-#include "../model/SOA3DArrayD.h"
+#include "../model/soa_3d_array_d.h"
 #include "../model/types.h"
 
 struct DeviceData

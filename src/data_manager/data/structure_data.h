@@ -1,6 +1,6 @@
 #pragma once
 #include "../model/types.h"
-#include "../model/SOA3DArrayH.h"
+#include "../model/soa_3d_array_h.h"
 
 struct StructureData
 {
