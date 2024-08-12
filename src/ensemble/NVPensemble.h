@@ -7,6 +7,10 @@ public:
 	NVPensemble();
 	~NVPensemble();
 
+protected:
+	void Init();
+	int Execute();
+
 private:
 
 };

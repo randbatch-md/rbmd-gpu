@@ -7,6 +7,7 @@ public:
 	Ensemble();
 	~Ensemble();
 
+	virtual void Init() = 0;
 	virtual int Evolve() = 0;
 
 protected:
