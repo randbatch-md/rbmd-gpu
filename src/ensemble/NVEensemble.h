@@ -5,12 +5,11 @@ class NVEensemble : public Ensemble
 {
 public:
 	NVEensemble();
-	virtual ~NVEensemble()=default;
-
+	virtual ~NVEensemble() = default;
 
 protected:
-	void Init();
-	int Execute(); 
+	void Init() override;
+	int Execute() override;
 private:
 
 };
