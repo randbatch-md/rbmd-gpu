@@ -12,6 +12,11 @@ class Executioner;
 class Application : public Object
 {
 public:
+	/**
+	 * @brief 
+	 * @param argc 
+	 * @param argv 
+	*/
 	Application(int argc, char* argv[]);
 	virtual ~Application() = default;
 

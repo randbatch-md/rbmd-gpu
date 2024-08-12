@@ -34,7 +34,10 @@ set(src
 ./src/application/md_application.cpp
 #./src/op/near_force/direct_truncation/direct_truncation_op.cpp
 #./src/op/near_force/direct_truncation/rocm/direct_truncation_op.hip.cu
-./src/parser/command_line.cpp)
+./src/parser/command_line.cpp
+./src/ensemble/NVEensemble.cpp
+./src/ensemble/NVPensemble.cpp
+./src/ensemble/NVTensemble.cpp)
 
 #include
 include_directories("${CMAKE_CURRENT_LIST_DIR}/src")
@@ -46,6 +49,7 @@ include_directories("${CMAKE_CURRENT_LIST_DIR}/src/application")
 include_directories("${CMAKE_CURRENT_LIST_DIR}/src/system")
 include_directories("${CMAKE_CURRENT_LIST_DIR}/src/executioner")
 include_directories("${CMAKE_CURRENT_LIST_DIR}/src/op")
+include_directories("${CMAKE_CURRENT_LIST_DIR}/src/ensemble")
 
 #tool include
 get_property(var GLOBAL PROPERTY TOOLS_INCLUDE_PATH)
