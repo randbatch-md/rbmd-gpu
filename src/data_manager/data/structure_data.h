@@ -6,7 +6,7 @@
 class StructureData : public Object
 {
 public:
-	virtual bool checkData() = 0;
+	virtual bool checkData()const = 0;
 
 	SOA3DArrayH<rbmd::Real> _h_position;
 	std::vector<rbmd::Id> _h_atoms_id;

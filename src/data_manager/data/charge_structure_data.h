@@ -1,7 +1,16 @@
 #pragma once
-#include "structure_data.h"
+#include "basic_structure_data.h"
 
-class ChargeStructureData : public StructureData
+class ChargeStructureData : public BasicStructureData
 {
-	std::vector<rbmd::Real> _h_charge;
+	bool checkData() const override
+	{
+		if (false == BasicStructureData::checkData())
+		{
+			return false
+		}
+
+		//
+		return true;
+	}
 };
