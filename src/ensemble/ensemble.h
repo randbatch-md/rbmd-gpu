@@ -11,7 +11,7 @@ public:
 	virtual int Evolve() = 0;
 
 protected:
-	std::unique_ptr<InitGlobal> _init_global;
+	//std::unique_ptr<InitGlobal> _init_global;
   
 private:
 
