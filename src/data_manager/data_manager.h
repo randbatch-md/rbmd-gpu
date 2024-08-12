@@ -1,10 +1,10 @@
 #pragma once
 #include <memory>
 
-struct MDData;
-struct PostProcessData;
+class MDData;
+class PostProcessData;
 class ConfigData;
-struct DeviceData;
+class DeviceData;
 class MemoryScheduler;
 
 class DataManager

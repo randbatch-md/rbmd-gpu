@@ -2,7 +2,7 @@
 
 #include "../model/types.h"
 
-struct StructureInfoData
+class StructureInfoData
 {
 	StructureInfoData() :
 		_num_atoms(0),

@@ -1,6 +1,8 @@
 #pragma once
 
-struct PostProcessData
+#include "object.h"
+
+class PostProcessData : public Object
 {
 
 };

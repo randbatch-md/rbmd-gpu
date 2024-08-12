@@ -1,7 +1,7 @@
 #pragma once
 #include "structure_data.h"
 
-struct FullStructureData : StructureData
+class FullStructureData : public StructureData
 {
 	std::vector<rbmd::Real> _h_charge;
 };

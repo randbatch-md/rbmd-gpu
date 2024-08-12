@@ -1,7 +1,10 @@
 #pragma once
 #include "structure_data.h"
 
-struct LJStructureData : StructureData 
+class LJStructureData : public StructureData 
 {
-	SOA3DArrayH<rbmd::Real> _h_velocity;
+	bool checkData() override
+	{
+
+	}
 };
