@@ -39,7 +39,6 @@ set(src
 #include
 include_directories("${CMAKE_CURRENT_LIST_DIR}/src")
 include_directories("${CMAKE_CURRENT_LIST_DIR}/src/reader")
-include_directories("${CMAKE_CURRENT_LIST_DIR}/src/model")
 include_directories("${CMAKE_CURRENT_LIST_DIR}/src/Utilities")
 include_directories("${CMAKE_CURRENT_LIST_DIR}/src/parser")
 include_directories("${CMAKE_CURRENT_LIST_DIR}/src/application")

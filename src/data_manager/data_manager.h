@@ -40,21 +40,25 @@ public:
 	 * @return _md_data
 	*/
 	auto& getMDData() const { return _md_data; }
+
 	/**
 	 * @brief get _postProcess_data
 	 * @return _postProcess_data
 	*/
 	auto& getPostProcessData() const { return _postProcess_data; }
+
 	/**
 	 * @brief get _config_data
 	 * @return _config_data
 	*/
 	auto& getConfigData() const { return _config_data; }
+
 	/**
 	 * @brief get _device_data
 	 * @return _device_data
 	*/
 	auto& getDeviceData() const { return _device_data; }
+
 	/**
 	 * @brief get _memory_scheduler
 	 * @return _memory_scheduler

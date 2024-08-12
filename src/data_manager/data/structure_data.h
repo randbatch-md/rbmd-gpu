@@ -8,7 +8,5 @@ struct StructureData
 	std::vector<rbmd::Id> _h_atoms_id;
 	std::vector<rbmd::Id> _h_atoms_type;
 
-	SOA3DArrayH<rbmd::Real> _h_velocity;
-
 	SOA3DArrayH<rbmd::Real> _h_force;
 };

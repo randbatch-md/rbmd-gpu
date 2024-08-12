@@ -3,5 +3,5 @@
 
 struct LJStructureData : StructureData 
 {
-
+	SOA3DArrayH<rbmd::Real> _h_velocity;
 };
