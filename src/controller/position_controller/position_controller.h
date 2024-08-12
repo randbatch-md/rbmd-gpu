@@ -7,6 +7,6 @@ public:
 	virtual ~PositionController()=default;
 
 protected:
-	virtual int Update();
+	virtual int Update() {};
 
 };

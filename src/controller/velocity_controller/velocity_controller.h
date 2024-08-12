@@ -7,6 +7,6 @@ public:
 	virtual ~VelocityController()=default;
 
 protected:
-	virtual int Update();
+	virtual int Update() {};
 
 };
