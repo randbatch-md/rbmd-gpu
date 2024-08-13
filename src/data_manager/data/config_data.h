@@ -7,6 +7,10 @@
 class ConfigData : public Object
 {
 public:
+    /**
+     * @brief constructor
+     * @param file json config file 
+    */
     ConfigData(const std::string& file)
     {
         if (!IsJsonFile(file))
@@ -21,6 +25,14 @@ public:
     ~ConfigData() = default;
 
 public:
+    /**
+     * @brief get value
+     * @tparam T 
+     * @tparam ...Args 
+     * @param key 
+     * @param ...args 
+     * @return value
+    */
     template<typename T, typename... Args>
     T Get(std::string key, Args&&... args)
     {
@@ -60,6 +72,11 @@ public:
         }
     }
 
+    /**
+     * @brief get json node
+     * @param key 
+     * @return json node
+    */
     auto& GetJsonNode(const std::string& key)
     {
         if (!_json_node[key].isObject())
@@ -70,6 +87,11 @@ public:
         return _json_node[key];
     }
 
+    /**
+     * @brief Check whether there is key Node
+     * @param key node name
+     * @return true or false
+    */
     bool HasNode(const std::string& key)
     {
         return _json_node.isMember(key);
@@ -77,12 +99,21 @@ public:
 
 private:
 
+    /**
+     * @brief Check whether the file is json file
+     * @param file file path
+     * @return true or false
+    */
     bool IsJsonFile(const std::string& file)
     {
         auto length = file.length();
         return (length >= 5 && file.substr(length - 5) == ".json");
     }
 
+    /**
+     * @brief parse json file
+     * @param file 
+    */
     void ParseJsonFile(const std::string& file)
     {
         try
@@ -97,10 +128,8 @@ private:
             Json::CharReaderBuilder readerBuilder;
             Json::parseFromStream(readerBuilder, filestream, &_json_node, nullptr);
 
-            //关闭文件
+            ///close file
             filestream.close();
-
-            //此处可以删除注释，用于以后做支持注释的扩展
         }
         catch (const std::exception&)
         {
