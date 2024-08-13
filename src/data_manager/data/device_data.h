@@ -4,11 +4,12 @@
 
 class DeviceData
 {
-	SOA3DArrayD<rbmd::Real> _h_position;
-	thrust::device_vector<rbmd::Id> _h_atoms_id;
-	thrust::device_vector<rbmd::Id> _h_atoms_type;
+	SOA3DArrayD<rbmd::Real> _d_position;
+	thrust::device_vector<rbmd::Id> _d_atoms_id;
+	thrust::device_vector<rbmd::Id> _d_atoms_type;
+	thrust::device_vector<rbmd::Id> _d_molecular_id;
 
-	SOA3DArrayD<rbmd::Real> _h_velocity;
+	SOA3DArrayD<rbmd::Real> _d_velocity;
 
-	SOA3DArrayD<rbmd::Real> _h_force;
+	SOA3DArrayD<rbmd::Real> _d_force;
 };
