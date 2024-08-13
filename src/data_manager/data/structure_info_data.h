@@ -1,9 +1,10 @@
 #pragma once
-#include "types.h"
 
-struct StructureInfo
+#include "../model/types.h"
+
+class StructureInfoData
 {
-	StructureInfo() :
+	StructureInfoData() :
 		_num_atoms(0),
 		_num_bonds(0),
 		_num_angles(0),

@@ -2,7 +2,7 @@
 #include <vector>
 
 template<typename T>
-struct SOA3DArray
+struct SOA3DArrayH
 {
 	std::vector<T> _x;
 	std::vector<T> _y;

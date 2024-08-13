@@ -1,11 +1,11 @@
 #include "eam_memory_scheduler.h"
 
-int EAMMemoryScheduler::AsyncMemoryH2D()
+int EAMMemoryScheduler::asyncMemoryH2D()
 {
 
 }
 
-int EAMMemoryScheduler::AsyncMemoryD2H()
+int EAMMemoryScheduler::asyncMemoryD2H()
 {
 
 }

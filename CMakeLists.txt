@@ -44,13 +44,13 @@ set(src
 #include
 include_directories("${CMAKE_CURRENT_LIST_DIR}/src")
 include_directories("${CMAKE_CURRENT_LIST_DIR}/src/reader")
-include_directories("${CMAKE_CURRENT_LIST_DIR}/src/model")
 include_directories("${CMAKE_CURRENT_LIST_DIR}/src/Utilities")
 include_directories("${CMAKE_CURRENT_LIST_DIR}/src/parser")
 include_directories("${CMAKE_CURRENT_LIST_DIR}/src/application")
 include_directories("${CMAKE_CURRENT_LIST_DIR}/src/system")
 include_directories("${CMAKE_CURRENT_LIST_DIR}/src/executioner")
 include_directories("${CMAKE_CURRENT_LIST_DIR}/src/op")
+include_directories("${CMAKE_CURRENT_LIST_DIR}/src/data_manager")
 include_directories("${CMAKE_CURRENT_LIST_DIR}/src/ensemble")
 include_directories("${CMAKE_CURRENT_LIST_DIR}/src/controller/position_controller")
 include_directories("${CMAKE_CURRENT_LIST_DIR}/src/controller/velocity_controller")
@@ -79,7 +79,7 @@ hip::device
 device_rocm) 
 
 #set target property
-include("./cmake/set_target_property.cmake")
+include("./cmake/compile_definitions.cmake")
 
 #print property
 #include(CMakePrintHelpers)

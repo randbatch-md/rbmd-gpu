@@ -4,6 +4,6 @@
 class LJMemoryScheduler : public MemoryScheduler
 {
 public:
-	int AsyncMemoryH2D() override;
-	int AsyncMemoryD2H() override;
+	int asyncMemoryH2D() override;
+	int asyncMemoryD2H() override;
 };

@@ -3,6 +3,7 @@
 #include <string>
 #include "md_data.h"
 #include "string_util.h"
+#include "data_manager.h"
 
 AtomicReader::AtomicReader(const std::string& filePath, MDData& data) :
 	StructureReder(filePath, data)
@@ -46,6 +47,7 @@ int AtomicReader::ReadData()
 
 void AtomicReader::AllocateDataSpace()
 {
+	auto& md_data = DataManager::getInstance().getMDData();
 	auto& info = _md_data._structure_info;
 	auto& data = _md_data._structure_data;
 	data._atom_ids.resize(info._num_atoms);
