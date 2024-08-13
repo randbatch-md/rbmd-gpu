@@ -5,16 +5,27 @@
 #include "force_field_data.h"
 #include "object.h"
 
+class AtomsStructureData;
+class ChargeStructureData;
+class FullStructureData;
+
 class MDData : public Object
 {
 public:
+	/**
+	 * @brief constructor
+	*/
 	MDData()
 	{
-		//_structure_data = std::make_shared<LJStructureData>();
+		_structure_data = std::make_shared<AtomsStructureData>();
 		_structure_info_data = std::make_shared<StructureInfoData>();
 		_force_field_data = std::make_shared<ForceFieldData>();
 	}
 
+	/**
+	 * @brief check data
+	 * @return true or false
+	*/
 	bool checkMDData()
 	{
 		if (false == _structure_data->checkStructure())
