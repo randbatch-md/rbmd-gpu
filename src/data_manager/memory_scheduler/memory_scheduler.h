@@ -4,6 +4,6 @@
 class MemoryScheduler : public Object
 {
 public:
-	virtual int AsyncMemoryH2D() = 0;
-	virtual int AsyncMemoryD2H() = 0;
+	virtual int asyncMemoryH2D() = 0;
+	virtual int asyncMemoryD2H() = 0;
 };

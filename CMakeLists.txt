@@ -70,7 +70,7 @@ hip::device
 device_rocm) 
 
 #set target property
-include("./cmake/set_target_property.cmake")
+include("./cmake/compile_definitions.cmake")
 
 #print property
 #include(CMakePrintHelpers)

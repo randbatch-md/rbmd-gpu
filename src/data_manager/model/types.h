@@ -2,13 +2,13 @@
 
 namespace rbmd
 {
-#ifdef USE_DOUBLE
+#if USE_DOUBLE
 	using Real = double;
 #else
 	using Real = float;
 #endif
 
-#ifdef USE_LONGLONG
+#if USE_64BIT_IDS
 	using Id = long long;
 #else
 	using Id = int;

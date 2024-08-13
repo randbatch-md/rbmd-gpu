@@ -3,7 +3,7 @@
 
 const int lj_num_streams = 7
 
-int LJMemoryScheduler::AsyncMemoryH2D()
+int LJMemoryScheduler::asyncMemoryH2D()
 {
 	hipStream_t streams[lj_num_streams];
 
@@ -17,7 +17,7 @@ int LJMemoryScheduler::AsyncMemoryH2D()
 
 }
 
-int LJMemoryScheduler::AsyncMemoryD2H()
+int LJMemoryScheduler::asyncMemoryD2H()
 {
 
 }
