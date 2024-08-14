@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../model/types.h"
+#include "types.h"
 
 class StructureInfoData
 {
