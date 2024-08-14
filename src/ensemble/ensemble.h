@@ -1,5 +1,8 @@
 #pragma once
 #include "object.h"
+#include "velocity_controller.h"
+#include "position_controller.h"
+#include "force_controller.h"
 
 class Ensemble : public Object
 {
@@ -11,7 +14,10 @@ public:
 	virtual int Run() = 0;
 
 protected:
-  
-private:
+
+	std::shared_ptr<PositionController> _position_controller;
+	std::shared_ptr<VelocityController> _velocity_controller;
+	std::shared_ptr<ForceController> _force_controller;
+
 
 };

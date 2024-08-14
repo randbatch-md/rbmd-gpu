@@ -35,6 +35,7 @@ set(src
 #./src/op/near_force/direct_truncation/direct_truncation_op.cpp
 #./src/op/near_force/direct_truncation/rocm/direct_truncation_op.hip.cu
 ./src/parser/command_line.cpp
+#./src/ensemble/MDensemble.cpp
 ./src/ensemble/NVEensemble.cpp
 ./src/ensemble/NVPensemble.cpp
 ./src/ensemble/NVTensemble.cpp
