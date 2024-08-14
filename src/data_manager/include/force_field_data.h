@@ -1,6 +1,6 @@
 #pragma once
 #include <map>
-#include "../model/types.h"
+#include "types.h"
 #include "object.h"
 
 class ForceFieldData : public Object

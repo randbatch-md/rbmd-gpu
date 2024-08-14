@@ -1,7 +1,7 @@
 #include <hip/hip_runtime.h>
-#include "lj_memory_scheduler.h"
+#include "../include/lj_memory_scheduler.h"
 
-const int lj_num_streams = 7
+//const int lj_num_streams = 7
 
 int LJMemoryScheduler::asyncMemoryH2D()
 {

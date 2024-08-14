@@ -9,4 +9,8 @@ public:
 protected:
 	virtual int Update() {};
 
+
+protected:
+
+
 };
