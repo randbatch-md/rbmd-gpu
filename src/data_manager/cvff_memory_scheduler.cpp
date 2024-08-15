@@ -1,4 +1,4 @@
-#include "../include/cvff_memory_scheduler.h"
+#include "./include/cvff_memory_scheduler.h"
 
 int CVFFMemoryScheduler::asyncMemoryH2D()
 {
