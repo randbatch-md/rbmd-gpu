@@ -1,28 +1,27 @@
 add_subdirectory(data_manager)
 
 
-if(USE_ROCM)
-	#device rocm
-	set(DEVICE_ROCM_NAME "device_rocm")
-	file(GLOB_RECURSE device_rocm_srcs "./op/*.hip.cu*")
-	add_library(${DEVICE_ROCM_NAME} STATIC ${device_rocm_srcs})
-	#HIP_ADD_LIBRARY(${DEVICE_ROCM_NAME} STATIC ${device_rocm_srcs})
-	#target_link_libraries(${DEVICE_ROCM_NAME} PRIVATE --emit-static-lib)
-	set_source_files_properties(${device_rocm_srcs} PROPERTIES HIP_SOURCE_PROPERTY_FORMAT 1)
-	set_source_files_properties(${device_rocm_srcs} PROPERTIES LANGUAGE CXX)
-	#set_target_properties(${DEVICE_ROCM_NAME} PROPERTIES LINKER_LANGUAGE HIP)
-	target_include_directories(${DEVICE_ROCM_NAME} 
-	PUBLIC "${CMAKE_CURRENT_LIST_DIR}/op"
-	PUBLIC "${CMAKE_CURRENT_LIST_DIR}/data_manager/data")
-	add_compile_definitions(__ROCM)
-    #target_link_libraries(${DEVICE_ROCM_NAME} PRIVATE hip::device)
-    #target_compile_features(${DEVICE_ROCM_NAME} PRIVATE cxx_std_17)
-
-	#device
-	#set(DEVICE_NAME "device")
-	#file(GLOB_RECURSE device_srcs "./op/*.cpp*")
-	#add_library(${DEVICE_NAME} OBJECT ${device_srcs})
-	#add_dependencies(${DEVICE_NAME} ${DEVICE_ROCM_NAME})
-	#target_link_libraries(${DEVICE_NAME} PRIVATE -l${DEVICE_ROCM_NAME})
-	#target_include_directories(${DEVICE_NAME} PUBLIC "${CMAKE_CURRENT_LIST_DIR}/op/base")
-endif()
+#if(USE_ROCM)
+#	#device rocm
+#	set(DEVICE_ROCM_NAME "device_rocm")
+#	file(GLOB_RECURSE device_rocm_srcs "./op/*.hip.cu*")
+#	add_library(${DEVICE_ROCM_NAME} STATIC ${device_rocm_srcs})
+#	#HIP_ADD_LIBRARY(${DEVICE_ROCM_NAME} STATIC ${device_rocm_srcs})
+#	#target_link_libraries(${DEVICE_ROCM_NAME} PRIVATE --emit-static-lib)
+#	set_source_files_properties(${device_rocm_srcs} PROPERTIES HIP_SOURCE_PROPERTY_FORMAT 1)
+#	set_source_files_properties(${device_rocm_srcs} PROPERTIES LANGUAGE CXX)
+#	#set_target_properties(${DEVICE_ROCM_NAME} PROPERTIES LINKER_LANGUAGE HIP)
+#	target_include_directories(${DEVICE_ROCM_NAME} 
+#	PUBLIC "${CMAKE_CURRENT_LIST_DIR}/op"
+#	PUBLIC "${CMAKE_CURRENT_LIST_DIR}/data_manager/include")
+#    #target_link_libraries(${DEVICE_ROCM_NAME} PRIVATE hip::device)
+#    #target_compile_features(${DEVICE_ROCM_NAME} PRIVATE cxx_std_17)
+#
+#	#device
+#	#set(DEVICE_NAME "device")
+#	#file(GLOB_RECURSE device_srcs "./op/*.cpp*")
+#	#add_library(${DEVICE_NAME} OBJECT ${device_srcs})
+#	#add_dependencies(${DEVICE_NAME} ${DEVICE_ROCM_NAME})
+#	#target_link_libraries(${DEVICE_NAME} PRIVATE -l${DEVICE_ROCM_NAME})
+#	#target_include_directories(${DEVICE_NAME} PUBLIC "${CMAKE_CURRENT_LIST_DIR}/op/base")
+#endif()
