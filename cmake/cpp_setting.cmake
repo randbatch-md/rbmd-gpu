@@ -27,6 +27,7 @@ macro(config_cpp name)
 		LIBRARY_OUTPUT_DIRECTORY${conf} ${LIBRARY_DIR})
 	endforeach()
 
+	target_link_directories(${name} PRIVATE ${LIBRARY_DIR})
 endmacro()
 
 #get src file and header file
@@ -55,6 +56,7 @@ function(cpp_library name)
 
 	config_cpp(${name})
 
+	#install
 
 	message(STATUS "====================${name} library end======================")
 endfunction()

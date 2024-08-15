@@ -1,4 +1,4 @@
-#add_subdirectory(data_manager)
+add_subdirectory(data_manager)
 
 
 if(USE_ROCM)
