@@ -38,8 +38,8 @@ add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/src)
 ##./src/op/near_force/direct_truncation/direct_truncation_op.cpp
 ##./src/op/near_force/direct_truncation/rocm/direct_truncation_op.hip.cu
 #./src/parser/command_line.cpp)
-#
-##include
+
+#include
 #include_directories("${CMAKE_CURRENT_LIST_DIR}/src")
 #include_directories("${CMAKE_CURRENT_LIST_DIR}/src/reader")
 #include_directories("${CMAKE_CURRENT_LIST_DIR}/src/Utilities")
@@ -49,8 +49,8 @@ add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/src)
 #include_directories("${CMAKE_CURRENT_LIST_DIR}/src/executioner")
 #include_directories("${CMAKE_CURRENT_LIST_DIR}/src/op")
 #include_directories("${CMAKE_CURRENT_LIST_DIR}/src/data_manager/include")
-#
-##tool include
+
+#tool include
 #get_property(var GLOBAL PROPERTY TOOLS_INCLUDE_PATH)
 #foreach(tool_include_path ${var})
 #	include_directories(${tool_include_path})
@@ -69,8 +69,7 @@ add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/src)
 #target_link_libraries(${PROJECT_NAME} PRIVATE 
 #jsoncpp 
 #spdlog
-#hip::device
-#device_rocm) 
+#hip::device) 
 #
 ##set target property
 #include("${cmake_dir}/compile_definitions.cmake")

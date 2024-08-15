@@ -20,14 +20,12 @@ macro(config_cpp name)
 		set(conf "")
 		if(type)
 			string(TOUPPER _${type} conf)
-			message("conf: ${conf}")
+			#message("conf: ${conf}")
 		endif()
 		set_target_properties(${name} PROPERTIES
 		RUNTIME_OUTPUT_DIRECTORY${conf} ${RUNTIME_DIR}
 		LIBRARY_OUTPUT_DIRECTORY${conf} ${LIBRARY_DIR})
 	endforeach()
-
-	target_link_directories(${name} PRIVATE ${LIBRARY_DIR})
 endmacro()
 
 #get src file and header file
@@ -46,17 +44,31 @@ macro(get_src_include)
 endmacro()
 
 #default static library
-function(cpp_library name)
+function(cpp_library)
 	message(STATUS "====================${name} library begin====================")
+	cmake_parse_arguments(
+		"lib" 
+		""
+		"name"
+		"depends_include;depends_link_dir;depends_name"
+		${ARGN}
+	)
+
 	#get src file and header file
 	get_src_include()
 
 	#add static library
-	add_library(${name} STATIC ${SRC} ${H_FILE} ${H_FILE_I})
+	add_library(${lib_name} STATIC ${SRC} ${H_FILE} ${H_FILE_I})
 
-	config_cpp(${name})
+	config_cpp(${lib_name})
+
+	#depends
+	target_include_directories(${lib_name} PRIVATE ${lib_depends_include})
+	target_link_directories(${lib_name} PRIVATE ${lib_depends_link_dir})
+	target_link_libraries(${lib_name} ${lib_depends_name})
 
 	#install
+	#to do
 
 	message(STATUS "====================${name} library end======================")
 endfunction()
