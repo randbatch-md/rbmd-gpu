@@ -46,7 +46,6 @@ endmacro()
 
 #default static library
 function(cpp_library)
-	message(STATUS "====================${name} library begin====================")
 	cmake_parse_arguments(
 		"lib" 
 		""
@@ -55,6 +54,7 @@ function(cpp_library)
 		${ARGN}
 	)
 
+	message(STATUS "====================${lib_name} library begin====================")
 	#get src file and header file
 	get_src_include()
 
@@ -71,5 +71,5 @@ function(cpp_library)
 	#install
 	#to do
 
-	message(STATUS "====================${name} library end======================")
+	message(STATUS "====================${lib_name} library end======================")
 endfunction()
