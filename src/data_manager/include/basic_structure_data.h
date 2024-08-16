@@ -9,6 +9,6 @@ public:
 		return true;
 	}
 
-	std::vector<rbmd::Real> _h_charge;
+	rbmd::Real* _h_charge;
 
 };
