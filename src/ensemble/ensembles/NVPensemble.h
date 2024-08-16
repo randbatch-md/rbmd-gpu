@@ -9,7 +9,9 @@ public:
 
 protected:
 	void Init() override;
-	int Run() override;
+	void Presolve() override;
+	void Solve() override;
+	void Postsolve() override;
 
 private:
 

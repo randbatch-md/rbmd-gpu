@@ -7,8 +7,9 @@ public:
 	DefaultPositionController();
 	virtual ~DefaultPositionController()=default;
 
-protected:
-	int Update() override;
+	void Update() override;
+	void Init() override;
+
 private:
 
 };

@@ -7,8 +7,9 @@ public:
 	DefaultVelocityController();
 	virtual ~DefaultVelocityController()=default;
 
-protected:
-	int Update() override;
+	void Update() override;
+	void Init() override;
 private:
-
+	rbmd::Real _dt;
+	rbmd::Real _fmt2v;//这个参数流的一个接口 原本参数是一个结构体 _unit_factor._fmt2v
 };

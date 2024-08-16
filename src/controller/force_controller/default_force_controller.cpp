@@ -1,12 +1,13 @@
 #include "default_force_controller.h"
 
 DefaultForceController::DefaultForceController() {};
-int DefaultForceController::Update()
+
+void DefaultForceController::Update()
 {
 
 }
 
-int DefaultForceController::Init()
+void DefaultForceController::Init()
 {
 
 }

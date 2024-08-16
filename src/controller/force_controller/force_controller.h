@@ -6,11 +6,12 @@ public:
 	ForceController() {};
 	virtual ~ForceController()=default;
 
-protected:
-	virtual int Init() {};
+	virtual void Update()=0;
+	virtual void Init() {};
+	virtual int Execute() = 0;
 
-	virtual int Update() {};
-	virtual int Update()=0;
-
-
+public:
+	std::vector<rbmd::Real> _fx;
+	std::vector<rbmd::Real> _fy;
+	std::vector<rbmd::Real> _fz;
 };

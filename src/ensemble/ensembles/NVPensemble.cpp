@@ -10,7 +10,17 @@ void NVPensemble::Init()
 
 }
 
-int NVPensemble::Run()
+void NVPensemble::Presolve()
+{
+
+}
+
+void NVPensemble::Solve()
+{
+
+}
+
+void NVPensemble::Postsolve()
 {
 
 }

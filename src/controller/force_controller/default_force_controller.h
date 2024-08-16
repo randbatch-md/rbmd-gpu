@@ -8,8 +8,8 @@ public:
 	virtual ~DefaultForceController()=default;
 
 protected:
-	int Update() override;
-	int Init() override;
+	void Update() override;
+	void Init() override;
 	int Execute() override;
 
 
