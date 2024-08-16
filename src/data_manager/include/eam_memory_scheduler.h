@@ -4,6 +4,6 @@
 class EAMMemoryScheduler : public MemoryScheduler
 {
 public:
-	int asyncMemoryH2D() override;
-	int asyncMemoryD2H() override;
+	bool asyncMemoryH2D() override;
+	bool asyncMemoryD2H() override;
 };

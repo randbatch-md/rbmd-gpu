@@ -19,4 +19,8 @@ class DeviceData
 	thrust::device_vector<rbmd::Real> _d_fx;
 	thrust::device_vector<rbmd::Real> _d_fy;
 	thrust::device_vector<rbmd::Real> _d_fz;
+
+	thrust::device_vector<rbmd::Real> _d_mass;
+	thrust::device_vector<rbmd::Real> _d_eps;
+	thrust::device_vector<rbmd::Real> _d_sigma;
 };

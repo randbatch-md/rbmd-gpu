@@ -1,11 +1,14 @@
 project(data_manager)
 
-file(GLOB_RECURSE data_manager_headers "${CMAKE_CURRENT_LIST_DIR}/*.h*" )
-file(GLOB_RECURSE data_manager_sources "${CMAKE_CURRENT_LIST_DIR}/*.cpp*")
+get_property(cmake_dir GLOBAL PROPERTY CUSTOME_CMAKE_DIR)
+include(${cmake_dir}/cpp_setting.cmake)
 
-add_library(${PROJECT_NAME} STATIC ${data_manager_sources} ${data_manager_headers})
-target_include_directories( ${PROJECT_NAME} PUBLIC
-	"${CMAKE_CURRENT_LIST_DIR}/include"
+get_property(sppdlog_include GLOBAL PROPERTY SPDLOG_INCLUDE_PATH)
+get_property(sppdlog_link GLOBAL PROPERTY SPDLOG_LINK_PATH)
+cpp_library(
+name ${PROJECT_NAME}
+depends_include ${sppdlog_include}
+depends_link_dir ${sppdlog_link}
+depends_name "spdlog"
 )
-
 
