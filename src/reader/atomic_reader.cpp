@@ -3,7 +3,7 @@
 #include <string>
 #include "md_data.h"
 #include "string_util.h"
-#include "data_manager.h"
+#include "../data_manager/include/data_manager.h"
 
 AtomicReader::AtomicReader(const std::string& filePath, MDData& data) :
 	StructureReder(filePath, data)
@@ -27,6 +27,7 @@ int AtomicReader::ReadData()
 				if (line.find("Atoms") != std::string::npos)
 				{
 					ReadAtoms(num_atoms);
+					std::cout << "Atoms" << std::endl;
 				}
 				else if (line.find("Velocities") != std::string::npos)
 				{
@@ -80,6 +81,7 @@ int AtomicReader::ReadAtoms(const rbmd::Id& atoms_num)
 					iss >> types[index];
 					iss >> positions[index].data[0] >> positions[index].data[1] >> positions[index].data[2];
 					++num;
+					std::cout << atom_id << " " << types[index] << " " << positions[index].data[0] << " " << positions[index].data[1] << " " << positions[index].data[2] << std::endl;
 				}
 				_line_start = &_mapped_memory[_locate];
 			}
@@ -114,6 +116,7 @@ int AtomicReader::ReadVelocity(const rbmd::Id& atoms_num)
 					auto index = atom_id - 1;
 					iss >> velocities[index].data[0] >> velocities[index].data[1] >> velocities[index].data[2];
 					++num;
+					std::cout << atom_id << " " << velocities[index].data[0] << " " << velocities[index].data[1] << " " << velocities[index].data[2] << std::endl;
 				}
 				_line_start = &_mapped_memory[_locate];
 			}
