@@ -24,7 +24,8 @@ macro(config_cpp name)
 		endif()
 		set_target_properties(${name} PROPERTIES
 		RUNTIME_OUTPUT_DIRECTORY${conf} ${RUNTIME_DIR}
-		LIBRARY_OUTPUT_DIRECTORY${conf} ${LIBRARY_DIR})
+		LIBRARY_OUTPUT_DIRECTORY${conf} ${LIBRARY_DIR}
+		ARCHIVE_OUTPUT_DIRECTORY${conf} ${LIBRARY_DIR})
 	endforeach()
 endmacro()
 
