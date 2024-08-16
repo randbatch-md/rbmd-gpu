@@ -1,11 +1,11 @@
 #include "./include/cvff_memory_scheduler.h"
 
-int CVFFMemoryScheduler::asyncMemoryH2D()
+bool CVFFMemoryScheduler::asyncMemoryH2D()
 {
-
+	return true;
 }
 
-int CVFFMemoryScheduler::asyncMemoryD2H()
+bool CVFFMemoryScheduler::asyncMemoryD2H()
 {
-
+	return true;
 }
