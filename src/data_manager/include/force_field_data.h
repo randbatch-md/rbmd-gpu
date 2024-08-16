@@ -1,5 +1,5 @@
 #pragma once
-#include <map>
+#include <vector>
 #include "types.h"
 #include "object.h"
 
@@ -15,7 +15,7 @@ private:
 	}
 
 public:
-	std::map<rbmd::Id, rbmd::Real> _h_mass;
-	std::map<rbmd::Id, rbmd::Real> _h_eps;
-	std::map<rbmd::Id, rbmd::Real> _h_sigma;
+	rbmd::Real* _h_mass;
+	rbmd::Real* _h_eps;
+	rbmd::Real* _h_sigma;
 };
