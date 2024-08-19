@@ -4,10 +4,12 @@
 #include "structure_info_data.h"
 #include "force_field_data.h"
 #include "object.h"
-
-class AtomsStructureData;
-class ChargeStructureData;
-class FullStructureData;
+#include "atoms_structure_data.h"
+#include "charge_structure_data.h"
+#include "full_structure_data.h"
+#include "lj_force_foeld_data.h"
+#include "cvff_force_foeld_data.h"
+#include "eam_force_foeld_data.h"
 
 class MDData : public Object
 {
@@ -19,7 +21,7 @@ public:
 	{
 		_structure_data = std::make_shared<AtomsStructureData>();
 		_structure_info_data = std::make_shared<StructureInfoData>();
-		_force_field_data = std::make_shared<ForceFieldData>();
+		_force_field_data = std::make_shared<LJForceFieldData>();
 	}
 
 	/**
@@ -32,13 +34,17 @@ public:
 		{
 			//log
 			_console->error("check structure data failed!");
+			return false;
 		}
 
 		if (false == _force_field_data->checkForceField())
 		{
 			//log
 			_console->error("check force field data failed!");
+			return false;
 		}
+
+		return true;
 	}
 
 	std::shared_ptr<StructureData> _structure_data;

@@ -4,6 +4,7 @@
 
 class StructureInfoData
 {
+public:
 	StructureInfoData() :
 		_num_atoms(0),
 		_num_bonds(0),

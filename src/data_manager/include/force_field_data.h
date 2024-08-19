@@ -11,7 +11,8 @@ public:
 private:
 	bool hasMass()
 	{
-		return !_h_mass.empty();
+		//return !_h_mass.empty();
+		return true;
 	}
 
 public:

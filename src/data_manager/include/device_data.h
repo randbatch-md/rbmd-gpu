@@ -14,14 +14,17 @@ public:
 	thrust::device_vector<rbmd::Id> _d_atoms_type;
 	thrust::device_vector<rbmd::Id> _d_molecular_id;
 
+	///velocity on device
 	thrust::device_vector<rbmd::Real> _d_vx;
 	thrust::device_vector<rbmd::Real> _d_vy;
 	thrust::device_vector<rbmd::Real> _d_vz;
 
+	///force on device
 	thrust::device_vector<rbmd::Real> _d_fx;
 	thrust::device_vector<rbmd::Real> _d_fy;
 	thrust::device_vector<rbmd::Real> _d_fz;
 
+	//force filed on device
 	thrust::device_vector<rbmd::Real> _d_mass;
 	thrust::device_vector<rbmd::Real> _d_eps;
 	thrust::device_vector<rbmd::Real> _d_sigma;
