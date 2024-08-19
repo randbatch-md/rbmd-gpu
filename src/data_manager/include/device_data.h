@@ -4,6 +4,8 @@
 
 class DeviceData
 {
+public:
+	rbmd::Real test;
 	thrust::device_vector<rbmd::Real> _d_px;
 	thrust::device_vector<rbmd::Real> _d_py;
 	thrust::device_vector<rbmd::Real> _d_pz;

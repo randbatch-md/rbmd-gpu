@@ -17,6 +17,7 @@ class StructureInfoData
 
 	}
 
+public:
 	rbmd::Id _num_atoms;
 	rbmd::Id _num_bonds;
 	rbmd::Id _num_angles;
