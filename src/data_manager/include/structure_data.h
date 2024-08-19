@@ -16,6 +16,11 @@ public:
 	rbmd::Id* _h_atoms_type;
 	rbmd::Id* _h_molecular_id;
 
+	//atoms flag on host
+	rbmd::Id* _h_flagX;
+	rbmd::Id* _h_flagY;
+	rbmd::Id* _h_flagZ;
+
 	///velocity on host
 	rbmd::Real* _h_vx;
 	rbmd::Real* _h_vy;

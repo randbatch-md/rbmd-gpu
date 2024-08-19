@@ -20,6 +20,10 @@ bool LJMemoryScheduler::asyncMemoryH2D()
 	auto& h_py = structure_data->_h_py;
 	auto& h_pz = structure_data->_h_pz;
 
+	auto& h_flagX = structure_data->_h_flagX;
+	auto& h_flagY = structure_data->_h_flagY;
+	auto& h_flagZ = structure_data->_h_flagZ;
+
 	auto& h_vx = structure_data->_h_vx;
 	auto& h_vy = structure_data->_h_vy;
 	auto& h_vz = structure_data->_h_vz;
@@ -40,6 +44,14 @@ bool LJMemoryScheduler::asyncMemoryH2D()
 	device_data->_d_px.resize(num_atoms);
 	device_data->_d_py.resize(num_atoms);
 	device_data->_d_pz.resize(num_atoms);
+	thrust::copy(h_flagX, h_flagX + num_atoms, device_data->_d_flagX.begin());
+	thrust::copy(h_flagY, h_flagY + num_atoms, device_data->_d_flagY.begin());
+	thrust::copy(h_flagZ, h_flagZ + num_atoms, device_data->_d_flagZ.begin());
+
+	///cpoy flag
+	device_data->_d_flagX.resize(num_atoms);
+	device_data->_d_flagY.resize(num_atoms);
+	device_data->_d_flagZ.resize(num_atoms);
 	thrust::copy(h_px, h_px + num_atoms, device_data->_d_px.begin());
 	thrust::copy(h_py, h_py + num_atoms, device_data->_d_py.begin());
 	thrust::copy(h_pz, h_pz + num_atoms, device_data->_d_pz.begin());
