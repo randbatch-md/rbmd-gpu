@@ -14,6 +14,11 @@ public:
 	thrust::device_vector<rbmd::Id> _d_atoms_type;
 	thrust::device_vector<rbmd::Id> _d_molecular_id;
 
+	///atoms flag on device
+	thrust::device_vector<rbmd::Id> _d_flagX;
+	thrust::device_vector<rbmd::Id> _d_flagY;
+	thrust::device_vector<rbmd::Id> _d_flagZ;
+
 	///velocity on device
 	thrust::device_vector<rbmd::Real> _d_vx;
 	thrust::device_vector<rbmd::Real> _d_vy;
