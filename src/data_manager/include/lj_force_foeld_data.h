@@ -4,6 +4,8 @@
 
 class LJForceFieldData : public ForceFieldData
 {
+public:
+
 	bool checkForceField() const override
 	{
 
