@@ -57,7 +57,7 @@ public:
 	 * @brief get _device_data
 	 * @return _device_data
 	*/
-	auto& getDeviceData() const { return _device_data; }
+	auto& getDeviceData() { return _device_data; }
 
 	/**
 	 * @brief get _memory_scheduler
