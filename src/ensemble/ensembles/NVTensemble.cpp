@@ -22,7 +22,7 @@ void NVTensemble::Init()
 
 void NVTensemble::Presolve()
 {
-
+	// 计算远程力时 要添加相应参数
 }
 
 void NVTensemble::Solve()

@@ -7,9 +7,13 @@ public:
 	DefaultPositionController();
 	virtual ~DefaultPositionController()=default;
 
-	void Update() override;
 	void Init() override;
+	void Update() override;
+
+	void SetCenterTargetPositions();
 
 private:
-
+	rbmd::Id _num_atoms;
+	rbmd::Real _dt;
+	std::string _init_type;
 };

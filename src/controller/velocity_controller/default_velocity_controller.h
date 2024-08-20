@@ -7,8 +7,9 @@ public:
 	DefaultVelocityController();
 	virtual ~DefaultVelocityController()=default;
 
-	void Update() override;
 	void Init() override;
+	void Update() override;
+
 private:
 	rbmd::Id _num_atoms;
 	rbmd::Real _dt;

@@ -32,12 +32,12 @@ namespace op
 	{
 		void operator()(const rbmd::Id& num_atoms,
 			            const rbmd::Real& dt,
-			            const rbmd::Real* min_x, // 没有在设备上分配内存的使用的是引用还是指针
-			            const rbmd::Real* min_y,
-			            const rbmd::Real* min_z,
-			            const rbmd::Real* max_x,
-			            const rbmd::Real* max_y,
-			            const rbmd::Real* max_z,
+			            const rbmd::Real& min_x, // 没有在设备上分配内存的使用的是引用还是指针
+			            const rbmd::Real& min_y,
+			            const rbmd::Real& min_z,
+			            const rbmd::Real& max_x,
+			            const rbmd::Real& max_y,
+			            const rbmd::Real& max_z,
 			            const rbmd::Real* vx,
 			            const rbmd::Real* vy,
 			            const rbmd::Real* vz,

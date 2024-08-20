@@ -3,41 +3,13 @@
 #include "unit_factor.h"
 DefaultVelocityController::DefaultVelocityController() {};
 
-void DefaultVelocityController::Update()
-{
-
-    // 这里什么时候用device的position 和 velocity 什么时候用 host的
-    bool shake = false;// 配置文件中读取
-    if (shake)
-    {
-        // 这些都是初始化的参数 看是否需要放到上一层的；
-        auto& h_vx = _structure_data->_h_vx;
-        auto& h_vy = _structure_data->_h_vy;
-        auto& h_vz = _structure_data->_h_vz;
-
-        // 可以直接传入 _force_controller ？    
-        _shake_controller->_shake_vx = h_vx;
-        _shake_controller->_shake_vy = h_vy;
-        _shake_controller->_shake_vz = h_vz;
-    }
-
-    op::UpdateVelocityOp<device::DEVICE_GPU> UpdateVelocityOp;
-    UpdateVelocityOp<device::DEVICE_GPU>(_structure_info_data->_num_atoms,
-                                         _dt, 
-                                         _fmt2v, 
-                                         _device_data->_d_mass,
-                                         _device_data->_d_fx,
-                                         _device_data->_d_fy,
-                                         _device_data->_d_fz,
-                                         _device_data->_d_vx,
-                                         _device_data->_d_vy,
-                                         _device_data->_d_vz);   
-}
-
 void DefaultVelocityController::Init()
 {
-    _dt=0.001           // 配置文件中读取
-    auto unit = "LJ";   // 配置文件中读取
+    _num_atoms = _structure_info_data->_num_atoms;
+
+    // 配置文件中读取
+    _dt = 0.001;           
+    auto unit = "LJ";   
     UNIT unit_factor = unit_factor_map[unit]; // 这里可能有重定义隐患
 
     switch (unit_factor_map["lj"])
@@ -49,5 +21,31 @@ void DefaultVelocityController::Init()
     default:
         break;
     }
-    _num_atoms = _structure_info_data->_num_atoms;
 }
+
+void DefaultVelocityController::Update()
+{
+
+    // 这里什么时候用device的position 和 velocity 什么时候用 host的
+    bool shake = false;// 配置文件中读取
+    if (shake)
+    {  
+       // 当前LJ不需要添加shake的相关内容
+       // __device_data->_shake_vx = _device_data->_d_vx;
+       // __device_data->_shake_vy = _device_data->_d_vy;
+       // __device_data->_shake_vz = _device_data->_d_vz;
+    }
+
+    op::UpdateVelocityOp<device::DEVICE_GPU> UpdateVelocityOp;
+    UpdateVelocityOp<device::DEVICE_GPU>(_num_atoms,
+                                         _dt, 
+                                         _fmt2v, 
+                                         _device_data->_d_mass,
+                                         _device_data->_d_fx,
+                                         _device_data->_d_fy,
+                                         _device_data->_d_fz,
+                                         _device_data->_d_vx,
+                                         _device_data->_d_vy,
+                                         _device_data->_d_vz);   
+}
+

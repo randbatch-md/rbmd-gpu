@@ -17,5 +17,5 @@ protected:
 	std::shared_ptr<StructureData> _structure_data;
 	std::shared_ptr<StructureInfoData> _structure_info_data;
 	std::shared_ptr<ShakeController> _shake_controller;
-	std::shared_ptr<DeviceData> _shake_controller;
+	std::shared_ptr<DeviceData> _device_data;
 };

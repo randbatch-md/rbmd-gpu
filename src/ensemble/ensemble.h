@@ -11,12 +11,11 @@ public:
 	virtual ~Ensemble()=default;
 
 	virtual void Init() = 0;
+	virtual void Presolve()=0;
+	virtual void Solve() = 0;
+	virtual void Postsolve() = 0;
 
-	virtual void Presolve() {};
-	virtual void Solve() {};
-	virtual void Postsolve() {};
-
-	virtual int Run() 
+	int Run() 
 	{
 		Presolve();
 		Solve();
