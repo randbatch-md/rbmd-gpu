@@ -1,4 +1,5 @@
 add_subdirectory(data_manager)
+add_subdirectory(reader)
 
 
 #if(USE_ROCM)

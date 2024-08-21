@@ -2,6 +2,8 @@
 #include "command_line.h"
 #include "md_system.h"
 #include "atomic_reader.h"
+//#include "full_reader .h"
+//#include "charge_reader.h"
 #include "JsonParser.h"
 #include "executioner.h"
 #include <memory>
@@ -57,11 +59,11 @@ int MDApplication::ReadMDData()
 	}
 	else if ("charge" == atom_style)
 	{
-		//todo
+		//reader = std::make_shared<Charge_Reader>("rbmd.data", md_data);
 	}
 	else if ("full" == atom_style)
 	{
-		//todo
+		//reader = std::make_shared<FullReader>("rbmd.data", md_data);
 	}
 	else
 	{
