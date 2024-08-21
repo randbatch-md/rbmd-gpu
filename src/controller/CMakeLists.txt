@@ -1,35 +1,23 @@
-cmake_minimum_required(VERSION 3.16)
-
-set(CMAKE_CXX_STANDARD 17)
-set(CMAKE_CXX_STANDARD_REQUIRED ON)
-
 project(controller)
 
-file(GLOB_RECURSE force_controller_headers "${CMAKE_CURRENT_LIST_DIR}/force_controller/*.h" )
-file(GLOB_RECURSE force_controller_sources "${CMAKE_CURRENT_LIST_DIR}/force_controller/*.cpp")
-file(GLOB_RECURSE position_controller_headers "${CMAKE_CURRENT_LIST_DIR}/position_controller/*.h" )
-file(GLOB_RECURSE position_controller_sources "${CMAKE_CURRENT_LIST_DIR}/position_controller/*.cpp")
-file(GLOB_RECURSE temperature_controller_headers "${CMAKE_CURRENT_LIST_DIR}/temperature_controller/*.h" )
-file(GLOB_RECURSE temperature_controller_sources "${CMAKE_CURRENT_LIST_DIR}/temperature_controller/*.cpp")
-file(GLOB_RECURSE velocity_controller_headers "${CMAKE_CURRENT_LIST_DIR}/velocity_controller/*.h" )
-file(GLOB_RECURSE velocity_controller_sources "${CMAKE_CURRENT_LIST_DIR}/velocity_controller/*.cpp")
-file(GLOB_RECURSE shake_controller_headers "${CMAKE_CURRENT_LIST_DIR}/shake_controller/*.h" )
-file(GLOB_RECURSE shake_controller_sources "${CMAKE_CURRENT_LIST_DIR}/shake_controller/*.cpp")
+get_property(cmake_dir GLOBAL PROPERTY CUSTOME_CMAKE_DIR)
+include(${cmake_dir}/cpp_setting.cmake)
 
-add_library(${PROJECT_NAME} SHARED ${force_controller_headers} ${force_controller_sources})
-add_library(${PROJECT_NAME} SHARED ${position_controller_headers} ${position_controller_sources})
-add_library(${PROJECT_NAME} SHARED ${temperature_controller_headers} ${temperature_controller_sources})
-add_library(${PROJECT_NAME} SHARED ${velocity_controller_headers} ${velocity_controller_sources})
-add_library(${PROJECT_NAME} SHARED ${shake_controller_headers} ${shake_controller_sources})
+get_property(data_manager_include_dirs GLOBAL PROPERTY data_manager_lib_INCLUDE_DIRS)
+get_property(data_manager_lib_path GLOBAL PROPERTY data_manager_lib_LIB_PATH)
 
+get_property(spdlog_include GLOBAL PROPERTY SPDLOG_INCLUDE_PATH)
+get_property(spdlog_link GLOBAL PROPERTY SPDLOG_LINK_PATH)
 
-target_include_directories( ${PROJECT_NAME} PUBLIC
-	"${CMAKE_CURRENT_LIST_DIR}/force_controller"
-	"${CMAKE_CURRENT_LIST_DIR}/position_controller"
-	"${CMAKE_CURRENT_LIST_DIR}/temperature_controller"
-	"${CMAKE_CURRENT_LIST_DIR}/velocity_controller"
-	"${CMAKE_CURRENT_LIST_DIR}/shake_controller"
-
+#cpp_library(
+#name ${PROJECT_NAME}
+#depends_include ${spdlog_include}
+#depends_link_dir ${spdlog_link}
+#depends_name "spdlog"
+#)
+cpp_library(
+name ${PROJECT_NAME}
+depends_include "${spdlog_include};${data_manager_include_dirs}"
+depends_link_dir "${spdlog_link};${data_manager_lib_path}"
+depends_name "spdlog;data_manager"
 )
-
-

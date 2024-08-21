@@ -36,6 +36,8 @@ void DefaultVelocityController::Update()
        // __device_data->_shake_vz = _device_data->_d_vz;
     }
 
+    thrust::raw_point_cat(_device_data->_d_fx.data());
+
     op::UpdateVelocityOp<device::DEVICE_GPU> UpdateVelocityOp;
     UpdateVelocityOp<device::DEVICE_GPU>(_num_atoms,
                                          _dt, 

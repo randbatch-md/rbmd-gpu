@@ -1,11 +1,23 @@
 project(ensemble)
 
-file(GLOB_RECURSE ensemble_headers "${CMAKE_CURRENT_LIST_DIR}/*.h*" )
-file(GLOB_RECURSE ensemble_sources "${CMAKE_CURRENT_LIST_DIR}/*.cpp*")
+get_property(cmake_dir GLOBAL PROPERTY CUSTOME_CMAKE_DIR)
+include(${cmake_dir}/cpp_setting.cmake)
 
-add_library(${PROJECT_NAME} SHARED ${ensemble_headers} ${ensemble_sources})
-target_include_directories( ${PROJECT_NAME} PUBLIC
-	"${CMAKE_CURRENT_LIST_DIR}/ensembles"
+get_property(data_manager_include_dirs GLOBAL PROPERTY data_manager_lib_INCLUDE_DIRS)
+get_property(data_manager_lib_path GLOBAL PROPERTY data_manager_lib_LIB_PATH)
+
+get_property(spdlog_include GLOBAL PROPERTY SPDLOG_INCLUDE_PATH)
+get_property(spdlog_link GLOBAL PROPERTY SPDLOG_LINK_PATH)
+
+#cpp_library(
+#name ${PROJECT_NAME}
+#depends_include ${spdlog_include}
+#depends_link_dir ${spdlog_link}
+#depends_name "spdlog"
+#)
+cpp_library(
+name ${PROJECT_NAME}
+depends_include "${spdlog_include};${data_manager_include_dirs}"
+depends_link_dir "${spdlog_link};${data_manager_lib_path}"
+depends_name "spdlog;data_manager"
 )
-
-

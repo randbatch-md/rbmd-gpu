@@ -1,5 +1,7 @@
 add_subdirectory(data_manager)
-#add_subdirectory(controller)
+add_subdirectory(controller)
+add_subdirectory(ensemble)
+
 
 
 #if(USE_ROCM)

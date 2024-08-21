@@ -68,6 +68,11 @@ function(cpp_library)
 	target_link_directories(${lib_name} PRIVATE ${lib_depends_link_dir})
 	target_link_libraries(${lib_name} ${lib_depends_name})
 
+	# Set global properties for the library's include path and link path
+    get_property(lib_include_dirs TARGET ${lib_name} PROPERTY INCLUDE_DIRECTORIES)
+    set_property(GLOBAL PROPERTY "${lib_name}_INCLUDE_DIRS" ${lib_include_dirs})
+    set_property(GLOBAL PROPERTY "${lib_name}_LIB_PATH" $<TARGET_FILE:${lib_name}>)
+
 	#install
 	#to do
 

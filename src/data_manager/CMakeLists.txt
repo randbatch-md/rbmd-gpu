@@ -12,3 +12,7 @@ depends_link_dir ${sppdlog_link}
 depends_name "spdlog"
 )
 
+## Set global properties for the library's include path and link path
+#get_property(data_manager_include_dirs TARGET data_manager_lib PROPERTY INCLUDE_DIRECTORIES)
+#set_property(GLOBAL PROPERTY DATA_MANAGER_INCLUDE_DIRS ${data_manager_include_dirs})
+#set_property(GLOBAL PROPERTY DATA_MANAGER_LIB_PATH $<TARGET_FILE:data_manager_lib>)

@@ -6,9 +6,9 @@
 
 NVTensemble::NVTensemble()
 {
-	_position_controller = std::make_shared<DefaultPositionController>(); 
-	_velocity_controller = std::make_shared<DefaultVelocityController>(); 
-	_force_controller = std::make_shared<DefaultForceController>(); 
+	//_position_controller = std::make_shared<DefaultPositionController>(); 
+	//_velocity_controller = std::make_shared<DefaultVelocityController>(); 
+	//_force_controller = std::make_shared<DefaultForceController>(); 
 }
 
 void NVTensemble::Init()
@@ -28,19 +28,19 @@ void NVTensemble::Presolve()
 void NVTensemble::Solve()
 {
 	_velocity_controller->Update();
-
+	
 	_position_controller->Update();
-
+	
 	bool use_shake;
 	if (true == use_shake)
 	{
 		_shake_controller->ShakeA();
 	}
-
+	
 	_force_controller->Execute();
-
+	
 	_velocity_controller->Update();
-
+	
 	if (true == use_shake)
 	{
 		_shake_controller->ShakeB();
