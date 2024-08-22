@@ -1,6 +1,8 @@
 #include "default_velocity_controller.h"
 #include "velocity_controller_op/update_velocity_op.h"
 #include "unit_factor.h"
+#include <thrust/pointer.h>
+
 DefaultVelocityController::DefaultVelocityController() {};
 
 void DefaultVelocityController::Init()
@@ -36,18 +38,16 @@ void DefaultVelocityController::Update()
        // __device_data->_shake_vz = _device_data->_d_vz;
     }
 
-    thrust::raw_point_cat(_device_data->_d_fx.data());
-
-    op::UpdateVelocityOp<device::DEVICE_GPU> UpdateVelocityOp;
-    UpdateVelocityOp<device::DEVICE_GPU>(_num_atoms,
-                                         _dt, 
-                                         _fmt2v, 
-                                         _device_data->_d_mass,
-                                         _device_data->_d_fx,
-                                         _device_data->_d_fy,
-                                         _device_data->_d_fz,
-                                         _device_data->_d_vx,
-                                         _device_data->_d_vy,
-                                         _device_data->_d_vz);   
+    op::UpdateVelocityOp<device::DEVICE_GPU> update_velocity_op;
+    update_velocity_op(_num_atoms,
+                       _dt, 
+                       _fmt2v, 
+                       thrust::raw_pointer_cast(_device_data->_d_mass.data()),
+                       thrust::raw_pointer_cast(_device_data->_d_fx.data()),
+                       thrust::raw_pointer_cast(_device_data->_d_fy.data()),
+                       thrust::raw_pointer_cast(_device_data->_d_fz.data()),
+                       thrust::raw_pointer_cast(_device_data->_d_vx.data()),
+                       thrust::raw_pointer_cast(_device_data->_d_vy.data()),
+                       thrust::raw_pointer_cast(_device_data->_d_vz.data()));   
 }
 

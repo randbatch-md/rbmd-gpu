@@ -1,5 +1,6 @@
 #pragma once
-
+#include "vector"
+#include "types.h"
 class ForceController
 {
 public:

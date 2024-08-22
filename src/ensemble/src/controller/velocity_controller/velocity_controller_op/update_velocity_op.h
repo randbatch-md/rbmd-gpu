@@ -1,7 +1,6 @@
 #pragma once
-#include "base/device_types.h"
+#include "device_types.h"
 #include "types.h"
-#include "base/locator.h"
 
 namespace op
 {

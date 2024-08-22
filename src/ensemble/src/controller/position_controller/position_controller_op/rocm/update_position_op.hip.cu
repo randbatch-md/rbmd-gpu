@@ -223,19 +223,19 @@ namespace op
 	struct UpdatePositionOp<device::DEVICE_GPU>
 	{
 		void operator()(const rbmd::Id& num_atoms,
-			const rbmd::Real& dt,
-			const rbmd::Real& min_x,
-			const rbmd::Real& min_y,
-			const rbmd::Real& min_z,
-			const rbmd::Real& max_x,
-			const rbmd::Real& max_y,
-			const rbmd::Real& max_z,
-			const rbmd::Real* vx,
-			const rbmd::Real* vy,
-			const rbmd::Real* vz,
-			rbmd::Real* px,
-			rbmd::Real* py,
-			rbmd::Real* pz)
+			            const rbmd::Real& dt,
+			            const rbmd::Real& min_x,
+			            const rbmd::Real& min_y,
+			            const rbmd::Real& min_z,
+			            const rbmd::Real& max_x,
+			            const rbmd::Real& max_y,
+			            const rbmd::Real& max_z,
+			            const rbmd::Real* vx,
+			            const rbmd::Real* vy,
+			            const rbmd::Real* vz,
+			            rbmd::Real* px,
+			            rbmd::Real* py,
+			            rbmd::Real* pz)
 		{
 			int block_per_grid = (nAtoms + THREADS_PER_BLOCK - 1) / THREADS_PER_BLOCK;
 
