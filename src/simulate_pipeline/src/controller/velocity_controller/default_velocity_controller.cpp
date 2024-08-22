@@ -1,7 +1,7 @@
 #include "default_velocity_controller.h"
 #include "velocity_controller_op/update_velocity_op.h"
 #include "unit_factor.h"
-#include <thrust/pointer.h>
+#include <thrust/device_ptr.h>
 
 DefaultVelocityController::DefaultVelocityController() {};
 
