@@ -1,5 +1,5 @@
 add_subdirectory(data_manager)
-add_subdirectory(ensemble)
+add_subdirectory(simulate_pipeline)
 
 
 

@@ -1,4 +1,4 @@
-project(ensemble)
+project(simulate_pipeline)
 
 get_property(cmake_dir GLOBAL PROPERTY CUSTOME_CMAKE_DIR)
 include(${cmake_dir}/cpp_setting.cmake)
