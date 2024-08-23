@@ -1,7 +1,7 @@
-//#include "include/lj_force_field_reader.h"
+//#include "../include/lj_force_field_reader.h"
 //#include <sstream>
 //#include <string>
-//#include "md_data.h"
+//#include "model/md_data.h"
 //#include "../Utilities/string_util.h"
 //#include "data_manager.h"
 //#include <hip/hip_runtime.h>

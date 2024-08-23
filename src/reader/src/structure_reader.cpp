@@ -1,6 +1,6 @@
-#include "structure_reader.h"
+#include "../include/structure_reader.h"
 #include <sstream>
-#include "md_data.h"
+#include "model/md_data.h"
 #include "../Utilities/string_util.h"
 #include <hip/hip_runtime.h>
 
