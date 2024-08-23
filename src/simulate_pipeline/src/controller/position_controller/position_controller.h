@@ -1,8 +1,8 @@
 #pragma once
-#include "structure_data.h"
+#include "structure_data/structure_data.h"
 #include "shake_controller.h"
-#include "device_data.h"
-#include "structure_info_data.h"
+#include "model/device_data.h"
+#include "model/structure_info_data.h"
 
 class PositionController
 {
