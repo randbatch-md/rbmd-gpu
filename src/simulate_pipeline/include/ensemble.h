@@ -20,6 +20,8 @@ public:
 		Presolve();
 		Solve();
 		Postsolve();
+
+		return 0;
 	};
 
 protected:

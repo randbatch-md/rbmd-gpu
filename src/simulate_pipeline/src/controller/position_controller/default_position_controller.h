@@ -10,6 +10,9 @@ public:
 	void Init() override;
 	void Update() override;
 
+	/**
+	 * Fill in the center particle coordinates and target particle coordinates of RDF
+	*/
 	void SetCenterTargetPositions();
 
 private:
