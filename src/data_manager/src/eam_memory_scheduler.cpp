@@ -1,4 +1,4 @@
-#include "./include/eam_memory_scheduler.h"
+#include "./include/scheduler/eam_memory_scheduler.h"
 
 bool EAMMemoryScheduler::asyncMemoryH2D()
 {

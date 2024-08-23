@@ -1,8 +1,8 @@
 #include <thrust/copy.h>
-#include "include/lj_memory_scheduler.h"
+#include "include/scheduler/lj_memory_scheduler.h"
 #include "include/data_manager.h"
-#include "include/device_data.h"
-#include "include/md_data.h"
+#include "include/model/device_data.h"
+#include "include/model/md_data.h"
 
 bool LJMemoryScheduler::asyncMemoryH2D()
 {

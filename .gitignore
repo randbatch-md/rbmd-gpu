@@ -3,3 +3,4 @@ out
 CMakeSettings.json
 tools/Windows
 tools/Linux
+lib
