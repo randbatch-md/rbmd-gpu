@@ -1,5 +1,7 @@
 add_subdirectory(data_manager)
+add_subdirectory(simulate_pipeline)
 add_subdirectory(reader)
+
 
 
 #if(USE_ROCM)

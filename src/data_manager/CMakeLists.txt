@@ -11,4 +11,3 @@ depends_include ${sppdlog_include}
 depends_link_dir ${sppdlog_link}
 depends_name "spdlog"
 )
-

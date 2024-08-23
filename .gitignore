@@ -1,5 +1,5 @@
 .vs
 out
 CMakeSettings.json
-framework/tools/Linux
-framework/tools/Windows
+tools/Windows
+tools/Linux
