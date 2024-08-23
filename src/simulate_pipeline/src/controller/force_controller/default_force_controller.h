@@ -1,7 +1,7 @@
 #pragma once
 #include "force_controller.h"
 
-class DefaultForceController : ForceController
+class DefaultForceController : public ForceController
 {
 public:
 	DefaultForceController();

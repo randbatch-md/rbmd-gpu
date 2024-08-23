@@ -1,7 +1,7 @@
 #pragma once
 #include "velocity_controller.h"
 
-class DefaultVelocityController : VelocityController
+class DefaultVelocityController : public VelocityController
 {
 public:
 	DefaultVelocityController();

@@ -1,7 +1,7 @@
 #pragma once
 #include "temperature_controller.h"
 
-class TemperatureRescaleController : TemperatureController
+class TemperatureRescaleController : public TemperatureController
 {
 public:
 	TemperatureRescaleController();

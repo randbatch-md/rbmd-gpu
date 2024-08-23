@@ -1,7 +1,7 @@
 #pragma once
 #include "position_controller.h"
 
-class DefaultPositionController : PositionController
+class DefaultPositionController : public PositionController
 {
 public:
 	DefaultPositionController();
