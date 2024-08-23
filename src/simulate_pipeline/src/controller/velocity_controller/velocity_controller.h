@@ -1,10 +1,10 @@
 #pragma once
-#include "structure_data.h"
+#include "structure_data/structure_data.h"
 #include "shake_controller.h"
 #include "force_controller.h"
-#include "force_field_data.h"
-#include "device_data.h"
-#include "structure_info_data.h"
+#include "force_field/force_field_data.h"
+#include "model/device_data.h"
+#include "model/structure_info_data.h"
 
 class VelocityController
 {

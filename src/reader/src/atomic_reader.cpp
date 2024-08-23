@@ -1,10 +1,18 @@
-#include "atomic_reader.h"
+#include "../include/atomic_reader.h"
 #include <sstream>
 #include <string>
-#include "md_data.h"
-#include "string_util.h"
+#include "model/md_data.h"
+#include "../Utilities/string_util.h"
 #include "data_manager.h"
+#include <hip/hip_runtime.h>
 
+#define HIP_CHECK(call) { \
+    hipError_t err = call; \
+    if (err != hipSuccess) { \
+        std::cerr << "HIP error: " << hipGetErrorString(err) << " at " << __FILE__ << ":" << __LINE__ << std::endl; \
+        exit(err); \
+    } \
+}
 AtomicReader::AtomicReader(const std::string& filePath, MDData& data) :
 	StructureReder(filePath, data)
 {
@@ -15,7 +23,7 @@ int AtomicReader::ReadData()
 {
 	try
 	{
-		auto& num_atoms = _md_data._structure_info._num_atoms;
+		auto& num_atoms = _md_data._structure_info_data->_num_atoms;
 		//read position
 		for (; _locate < _file_size; ++_locate)
 		{
@@ -27,6 +35,7 @@ int AtomicReader::ReadData()
 				if (line.find("Atoms") != std::string::npos)
 				{
 					ReadAtoms(num_atoms);
+					//std::cout << "Atoms" << std::endl;
 				}
 				else if (line.find("Velocities") != std::string::npos)
 				{
@@ -48,21 +57,24 @@ int AtomicReader::ReadData()
 void AtomicReader::AllocateDataSpace()
 {
 	auto& md_data = DataManager::getInstance().getMDData();
-	auto& info = _md_data._structure_info;
+	auto& info = _md_data._structure_info_data;
 	auto& data = _md_data._structure_data;
-	data._atom_ids.resize(info._num_atoms);
-	data._atom_types.resize(info._num_atoms);
-	data._positions.resize(info._num_atoms);
-	data._velocities.resize(info._num_atoms);
+	HIP_CHECK(hipHostMalloc(&(data->_h_atoms_id), info->_num_atoms*sizeof(rbmd::Id)));
+	HIP_CHECK(hipHostMalloc(&(data->_h_atoms_type), info->_num_atoms * sizeof(rbmd::Id)));
+	HIP_CHECK(hipHostMalloc(&(data->_h_px), info->_num_atoms*sizeof(rbmd::Id)));
+	HIP_CHECK(hipHostMalloc(&(data->_h_py), info->_num_atoms*sizeof(rbmd::Id)));
+	HIP_CHECK(hipHostMalloc(&(data->_h_pz), info->_num_atoms*sizeof(rbmd::Id)));
+	HIP_CHECK(hipHostMalloc(&(data->_h_vx), info->_num_atoms*sizeof(rbmd::Id)));
+	HIP_CHECK(hipHostMalloc(&(data->_h_vy), info->_num_atoms*sizeof(rbmd::Id)));
+	HIP_CHECK(hipHostMalloc(&(data->_h_vz), info->_num_atoms*sizeof(rbmd::Id)));
 }
 
 int AtomicReader::ReadAtoms(const rbmd::Id& atoms_num)
 {
 	try
 	{
-		auto& ids = _md_data._structure_data._atom_ids;
-		auto& types = _md_data._structure_data._atom_types;
-		auto& positions = _md_data._structure_data._positions;
+		auto& ids = _md_data._structure_data->_h_atoms_id;
+		auto& types = _md_data._structure_data->_h_atoms_type;
 		rbmd::Id atom_id;
 
 		_line_start = &_mapped_memory[_locate];
@@ -78,8 +90,9 @@ int AtomicReader::ReadAtoms(const rbmd::Id& atoms_num)
 					auto index = atom_id - 1;
 					ids[index] = atom_id;
 					iss >> types[index];
-					iss >> positions[index].data[0] >> positions[index].data[1] >> positions[index].data[2];
+					iss >> _md_data._structure_data->_h_px[index] >> _md_data._structure_data->_h_py[index] >>_md_data._structure_data->_h_pz[index];
 					++num;
+					//std::cout << atom_id << " " << types[index] << " " << _md_data._structure_data->_h_px[index] << " " << _md_data._structure_data->_h_py[index] << " " << _md_data._structure_data->_h_pz[index] << std::endl;
 				}
 				_line_start = &_mapped_memory[_locate];
 			}
@@ -98,7 +111,6 @@ int AtomicReader::ReadVelocity(const rbmd::Id& atoms_num)
 {
 	try
 	{
-		auto& velocities = _md_data._structure_data._velocities;
 		rbmd::Id atom_id;
 
 		_line_start = &_mapped_memory[_locate];
@@ -112,8 +124,9 @@ int AtomicReader::ReadVelocity(const rbmd::Id& atoms_num)
 				{
 					iss >> atom_id;
 					auto index = atom_id - 1;
-					iss >> velocities[index].data[0] >> velocities[index].data[1] >> velocities[index].data[2];
+					iss >> _md_data._structure_data->_h_vx[index] >> _md_data._structure_data->_h_vy[index] >> _md_data._structure_data->_h_vz[index];
 					++num;
+					//std::cout << atom_id << " " << _md_data._structure_data->_h_vx[index] << " " << _md_data._structure_data->_h_vy[index] << " " << _md_data._structure_data->_h_vz[index] << std::endl;
 				}
 				_line_start = &_mapped_memory[_locate];
 			}

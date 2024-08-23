@@ -10,5 +10,4 @@ public:
 	}
 
 	rbmd::Real* _h_charge;
-
 };
