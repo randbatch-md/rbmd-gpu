@@ -3,9 +3,9 @@
 #include "unit_factor.h"
 #include <thrust/device_ptr.h>
 
-DefaultTemperatureController::DefaultTemperatureController() {};
+TemperatureRescaleController::TemperatureRescaleController() {};
 
-void DefaultTemperatureController::Init()
+void TemperatureRescaleController::Init()
 {
     _num_atoms = _structure_info_data->_num_atoms;
     _temp_sum = 0;
@@ -27,14 +27,14 @@ void DefaultTemperatureController::Init()
     }
 }
 
-void DefaultTemperatureController::Update()
+void TemperatureRescaleController::Update()
 {
     ComputeTemp();
 
     UpdataVelocity();
 }
 
-void DefaultTemperatureController::ComputeTemp()
+void TemperatureRescaleController::ComputeTemp()
 {
     op::ComputeTemperatureOp<device::DEVICE_GPU> compute_temperature_op;
     compute_temperature_op(_num_atoms,
@@ -73,7 +73,7 @@ void DefaultTemperatureController::ComputeTemp()
     }
 }
 
-void DefaultTemperatureController::UpdataVelocity()
+void TemperatureRescaleController::UpdataVelocity()
 {
     rbmd::Real kbT = 1;//配置文件获取
     rbmd::Real coeff_rescale = std::sqrt(kbT / _temp);

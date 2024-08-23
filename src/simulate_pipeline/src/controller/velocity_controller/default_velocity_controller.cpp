@@ -12,7 +12,7 @@ void DefaultVelocityController::Init()
     // 配置文件中读取
     _dt = 0.001;           
     auto unit = "LJ";   
-    UNIT unit_factor = unit_factor_map[unit]; // 这里可能有重定义隐患
+    UNIT unit_factor = unit_factor_map[unit]; 
 
     switch (unit_factor_map["lj"])
     {
@@ -27,8 +27,6 @@ void DefaultVelocityController::Init()
 
 void DefaultVelocityController::Update()
 {
-
-    // 这里什么时候用device的position 和 velocity 什么时候用 host的
     bool shake = false;// 配置文件中读取
     if (shake)
     {  

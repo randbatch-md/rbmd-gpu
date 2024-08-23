@@ -12,7 +12,6 @@ void DefaultPositionController::Init()
 
 void DefaultPositionController::Update() 
 {
-	// 这里什么时候用device的position 和 velocity 什么时候用 host的
 	bool available_shake = false; //配置文件中读取
 	if (available_shake)
 	{

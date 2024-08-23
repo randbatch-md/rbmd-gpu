@@ -4,6 +4,8 @@
 #include "position_controller.h"
 #include "force_controller.h"
 #include "shake_controller.h"
+#include "temperature_controller.h"
+
 class Ensemble : public Object
 {
 public:
@@ -30,4 +32,6 @@ protected:
 	std::shared_ptr<VelocityController> _velocity_controller;
 	std::shared_ptr<ForceController> _force_controller;
 	std::shared_ptr<ShakeController> _shake_controller;
+	std::shared_ptr<ShakeController> _shake_controller;
+	std::shared_ptr<TemperatureController> _temperature_controller;
 };

@@ -1,10 +1,10 @@
 #pragma once
 #include "temperature_controller.h"
 
-class DefaultTemperatureController : TemperatureController
+class TemperatureRescaleController : TemperatureRescaleController
 {
 public:
-	DefaultTemperatureController();
+	TemperatureRescaleController();
 	virtual ~DefaultTemperatureController()=default;
 
 	void Init() override;

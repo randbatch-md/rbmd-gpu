@@ -11,7 +11,6 @@ public:
 	void ShakeB();
 
 public:
-	//bool _use_shake = false;
 	std::vector<rbmd::Real> _shake_px;
 	std::vector<rbmd::Real> _shake_py;
 	std::vector<rbmd::Real> _shake_pz;
