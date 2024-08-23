@@ -1,5 +1,5 @@
 #pragma once
-#include "structure_reader.h"
+#include "../src/structure_reader.h"
 
 class AtomicReader : public StructureReder
 {
