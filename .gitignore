@@ -3,3 +3,6 @@ out
 CMakeSettings.json
 framework/tools/Linux
 framework/tools/Windows
+lib
+tools/Linux
+tools/Windows
