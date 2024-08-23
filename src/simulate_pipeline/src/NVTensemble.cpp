@@ -7,10 +7,10 @@
 
 NVTensemble::NVTensemble()
 {
-	_position_controller = std::make_shared<DefaultPositionController>(); 
-	_velocity_controller = std::make_shared<DefaultVelocityController>(); 
-	_force_controller = std::make_shared<DefaultForceController>(); 
-	_temperature_controller = std::make_shared<TemperatureRescaleController>();
+	//_position_controller = std::make_shared<DefaultPositionController>(); 
+	//_velocity_controller = std::make_shared<DefaultVelocityController>(); 
+	//_force_controller = std::make_shared<DefaultForceController>(); 
+	//_temperature_controller = std::make_shared<TemperatureRescaleController>();
 
 }
 
