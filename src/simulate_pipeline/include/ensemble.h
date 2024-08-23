@@ -32,6 +32,5 @@ protected:
 	std::shared_ptr<VelocityController> _velocity_controller;
 	std::shared_ptr<ForceController> _force_controller;
 	std::shared_ptr<ShakeController> _shake_controller;
-	std::shared_ptr<ShakeController> _shake_controller;
 	std::shared_ptr<TemperatureController> _temperature_controller;
 };
