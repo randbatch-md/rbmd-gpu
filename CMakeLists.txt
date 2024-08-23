@@ -39,6 +39,17 @@ add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/src)
 ##./src/op/near_force/direct_truncation/rocm/direct_truncation_op.hip.cu
 #./src/parser/command_line.cpp)
 
+
+#./src/ensemble/MDensemble.cpp
+#./src/ensemble/NVEensemble.cpp
+#./src/ensemble/NVPensemble.cpp
+#./src/ensemble/NVTensemble.cpp
+#./src/controller/position_controller/default_position_controller.cpp
+#./src/controller/velocity_controller/default_velocity_controller.cpp
+#./src/controller/shake_controller/shake_controller.cpp
+
+#)
+
 #include
 #include_directories("${CMAKE_CURRENT_LIST_DIR}/src")
 #include_directories("${CMAKE_CURRENT_LIST_DIR}/src/reader")
@@ -49,6 +60,11 @@ add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/src)
 #include_directories("${CMAKE_CURRENT_LIST_DIR}/src/executioner")
 #include_directories("${CMAKE_CURRENT_LIST_DIR}/src/op")
 #include_directories("${CMAKE_CURRENT_LIST_DIR}/src/data_manager/include")
+#include_directories("${CMAKE_CURRENT_LIST_DIR}/src/ensemble")
+#include_directories("${CMAKE_CURRENT_LIST_DIR}/src/controller/position_controller")
+#include_directories("${CMAKE_CURRENT_LIST_DIR}/src/controller/velocity_controller")
+#include_directories("${CMAKE_CURRENT_LIST_DIR}/src/controller/shake_controller")
+
 
 #tool include
 #get_property(var GLOBAL PROPERTY TOOLS_INCLUDE_PATH)

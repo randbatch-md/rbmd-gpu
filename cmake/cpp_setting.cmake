@@ -31,17 +31,22 @@ endmacro()
 
 #get src file and header file
 macro(get_src_include)
-	#find .cpp/.cxx
-	aux_source_directory(${CMAKE_CURRENT_LIST_DIR} SRC)
-	message("${name} SRC: " ${SRC})
+	#Recursive search method
+    # Recursively find all .cpp and .cxx files
+    file(GLOB_RECURSE SRC ${CMAKE_CURRENT_LIST_DIR}/*.cpp ${CMAKE_CURRENT_LIST_DIR}/*.cxx)
+    message("${name} SRC: " ${SRC})
+	
+    # Find interface headers in the include directories
+    file(GLOB_RECURSE H_FILE_I ${CMAKE_CURRENT_LIST_DIR}/include/*.h)
+    message("${name} H_FILE_I: " ${H_FILE_I})
 
-	#find .h
-	file(GLOB H_FILE ${CMAKE_CURRENT_LIST_DIR}/*.h)
-	message("${name} H_FILE: " ${H_FILE})
-
-	#find interface
-	file(GLOB H_FILE_I ${CMAKE_CURRENT_LIST_DIR}/include/*.h)
-	message("${name} H_FILE_I: " ${H_FILE_I})
+	# Recursively find all src .h files
+    file(GLOB_RECURSE H_FILE ${CMAKE_CURRENT_LIST_DIR}/src/*.h)
+    message("${name} H_FILE: " ${H_FILE})
+	
+	# Recursively find all .cu files
+    file(GLOB_RECURSE CU_FILE ${CMAKE_CURRENT_LIST_DIR}/src/*.cu)
+    message("${name} CU_FILE: " ${CU_FILE})
 endmacro()
 
 #default static library
@@ -59,7 +64,7 @@ function(cpp_library)
 	get_src_include()
 
 	#add static library
-	add_library(${lib_name} STATIC ${SRC} ${H_FILE} ${H_FILE_I})
+	add_library(${lib_name} STATIC ${SRC} ${H_FILE} ${H_FILE_I} ${CU_FILE})
 
 	config_cpp(${lib_name})
 

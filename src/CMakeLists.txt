@@ -1,4 +1,6 @@
 add_subdirectory(data_manager)
+add_subdirectory(simulate_pipeline)
+
 
 
 #if(USE_ROCM)
