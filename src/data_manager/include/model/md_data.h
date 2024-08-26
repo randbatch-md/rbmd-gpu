@@ -1,15 +1,15 @@
 #pragma once
 #include <memory>
-#include "structure_data.h"
+#include "structure_data/structure_data.h"
 #include "structure_info_data.h"
-#include "force_field_data.h"
+#include "force_field/force_field_data.h"
 #include "object.h"
-#include "atoms_structure_data.h"
-#include "charge_structure_data.h"
-#include "full_structure_data.h"
-#include "lj_force_foeld_data.h"
-#include "cvff_force_foeld_data.h"
-#include "eam_force_foeld_data.h"
+#include "structure_data/atoms_structure_data.h"
+#include "structure_data/charge_structure_data.h"
+#include "structure_data/full_structure_data.h"
+#include "force_field/lj_force_field_data.h"
+#include "force_field/cvff_force_field_data.h"
+#include "force_field/eam_force_field_data.h"
 
 class MDData : public Object
 {

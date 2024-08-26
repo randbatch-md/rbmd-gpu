@@ -9,4 +9,12 @@ public:
 	{
 		return true;
 	}
+
+	///bond
+	rbmd::Real* _bond_coeffs_;
+	rbmd::Real* _bond_coeffs_equilibrium;
+
+	///angle
+	rbmd::Real* _angle_coeffs_k;
+	rbmd::Real* _angle_coeffs_equilibrium;
 };
