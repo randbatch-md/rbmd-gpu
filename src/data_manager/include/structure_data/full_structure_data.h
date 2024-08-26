@@ -16,13 +16,20 @@ public:
 	}
 
 	///bond
-	rbmd::Id* _bond_types;
-	rbmd::Id* _bond_first_id;
-	rbmd::Id* _bond_second_id;
+	rbmd::Id* _h_bond_type;
+	rbmd::Id* _h_bond_id0;
+	rbmd::Id* _h_bond_id1;
 
 	///angle
-	rbmd::Id* _angle_types;
-	rbmd::Id* _angle_first_id;
-	rbmd::Id* _angle_second_id;
-	rbmd::Id* _angle_third_id;
+	rbmd::Id* _h_angle_type;
+	rbmd::Id* _h_angle_id0;
+	rbmd::Id* _h_angle_id1;
+	rbmd::Id* _h_angle_id2;
+
+	///dihedral
+	rbmd::Id* _h_dihedral_type;
+	rbmd::Id* _h_dihedral_id0;
+	rbmd::Id* _h_dihedral_id1;
+	rbmd::Id* _h_dihedral_id2;
+	rbmd::Id* _h_dihedral_id3;
 };

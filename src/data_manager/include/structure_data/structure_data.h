@@ -12,8 +12,13 @@ public:
 	rbmd::Real* _h_py;
 	rbmd::Real* _h_pz;
 
+	///atoms is on host
 	rbmd::Id* _h_atoms_id;
+
+	///atoms type on host
 	rbmd::Id* _h_atoms_type;
+
+	///molecular id on host
 	rbmd::Id* _h_molecular_id;
 
 	//atoms flag on host
