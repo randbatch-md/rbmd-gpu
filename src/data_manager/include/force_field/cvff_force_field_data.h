@@ -11,10 +11,15 @@ public:
 	}
 
 	///bond
-	rbmd::Real* _bond_coeffs_;
-	rbmd::Real* _bond_coeffs_equilibrium;
+	rbmd::Real* _h_bond_coeffs_k;
+	rbmd::Real* _h_bond_coeffs_equilibrium;
 
 	///angle
-	rbmd::Real* _angle_coeffs_k;
-	rbmd::Real* _angle_coeffs_equilibrium;
+	rbmd::Real* _h_angle_coeffs_k;
+	rbmd::Real* _h_angle_coeffs_equilibrium;
+
+	///dihedral
+	rbmd::Real* _h_dihedral_coeffs_k;
+	rbmd::Id* _h_dihedral_coeffs_sign;
+	rbmd::Id* _h_dihedral_coeffs_multiplicity;
 };
