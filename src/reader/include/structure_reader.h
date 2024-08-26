@@ -16,7 +16,7 @@ protected:
 
 private:
 	int ReadHeader();
-	int ReadPotential();
+	int ReadForceField();
 	int ReadMass(const rbmd::Id& numAtomTypes);
 	int ReadPairCoeffs(const rbmd::Id& numAtomTypes);
 	int ReadBondCoeffs(const rbmd::Id& numBondTypes);
@@ -25,4 +25,5 @@ private:
 
 protected:
 	MDData& _md_data;
+	//std::shared_ptr<ForceFieldReader> _force_field_reader;
 };
