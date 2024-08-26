@@ -17,7 +17,7 @@ namespace op
 	};
 
 	template <typename DEVICE>
-	struct UpdataVelocityOp
+	struct UpdataVelocityRescaleOp
 	{
 		void operator()(const rbmd::Id& num_atoms,
 			            const rbmd::Real& coeff_rescale,
@@ -25,4 +25,31 @@ namespace op
 			            rbmd::Real* vy,
 			            rbmd::Real* vz);
 	};
+
+	template <typename DEVICE>
+	struct UpdataVelocityNoseHooverOp
+	{
+		void operator()(const rbmd::Id& num_atoms,
+			            const rbmd::Real& dt,
+			            const rbmd::Real& fmt2v,
+			            const rbmd::Real& nosehooverxi,
+			            const rbmd::Real* mass,
+						const rbmd::Real* fx,
+						const rbmd::Real* fy,
+						const rbmd::Real* fz,
+			            rbmd::Real* vx,
+			            rbmd::Real* vy,
+			            rbmd::Real* vz);
+	};
+
+	template <typename DEVICE>
+	struct UpdataVelocityBerendsenOp
+	{
+		void operator()(const rbmd::Id& num_atoms,
+			            const rbmd::Real& coeff_Berendsen,
+			            rbmd::Real* vx,
+			            rbmd::Real* vy,
+			            rbmd::Real* vz);
+	};
+
 }

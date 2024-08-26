@@ -3,14 +3,14 @@
 #include "controller/velocity_controller/default_velocity_controller.h"
 #include "controller/shake_controller/shake_controller.h"
 #include "controller/force_controller/default_force_controller.h"
-#include "controller/temperature_controller/temperature_rescale_controller.h"
+#include "controller/temperature_controller/rescale_controller.h"
 
 NVTensemble::NVTensemble()
 {
 	_position_controller = std::make_shared<DefaultPositionController>(); 
 	_velocity_controller = std::make_shared<DefaultVelocityController>(); 
 	_force_controller = std::make_shared<DefaultForceController>(); 
-	_temperature_controller = std::make_shared<TemperatureRescaleController>();
+	_temperature_controller = std::make_shared<RescaleController>();
 
 }
 

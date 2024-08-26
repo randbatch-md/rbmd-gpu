@@ -1,20 +1,19 @@
-#include "temperature_rescale_controller.h"
+#include "rescale_controller.h"
 #include "temperature_controller_op/update_temperature_op.h"
 #include "unit_factor.h"
 #include <thrust/device_ptr.h>
 
-TemperatureRescaleController::TemperatureRescaleController() {};
+RescaleController::RescaleController() {};
 
-void TemperatureRescaleController::Init()
+void RescaleController::Init()
 {
     _num_atoms = _structure_info_data->_num_atoms;
     _temp_sum = 0;
-    
-    _dt = 0.001;     // 配置文件中读取      
-    auto unit = "LJ";   
+      
+    auto unit = "LJ";   //配置文件读取
     UNIT unit_factor = unit_factor_map[unit]; // 这里可能有重定义隐患
 
-    switch (unit_factor_map["lj"])
+    switch (unit_factor)
     {
     case UNIT::LJ:
         _mvv2e = UnitFactor<UNIT::LJ>::_mvv2e;
@@ -27,33 +26,33 @@ void TemperatureRescaleController::Init()
     }
 }
 
-void TemperatureRescaleController::Update()
+void RescaleController::Update()
 {
     ComputeTemp();
 
     UpdataVelocity();
 }
 
-void TemperatureRescaleController::ComputeTemp()
+void RescaleController::ComputeTemp()
 {
     op::ComputeTemperatureOp<device::DEVICE_GPU> compute_temperature_op;
     compute_temperature_op(_num_atoms,
-        _mvv2e,
-        thrust::raw_pointer_cast(_device_data->_d_mass.data()),
-        thrust::raw_pointer_cast(_device_data->_d_vx.data()),
-        thrust::raw_pointer_cast(_device_data->_d_vy.data()),
-        thrust::raw_pointer_cast(_device_data->_d_vz.data()),
-        _temp_sum);
+                           _mvv2e,
+                           thrust::raw_pointer_cast(_device_data->_d_mass.data()),
+                           thrust::raw_pointer_cast(_device_data->_d_vx.data()),
+                           thrust::raw_pointer_cast(_device_data->_d_vy.data()),
+                           thrust::raw_pointer_cast(_device_data->_d_vz.data()),
+                           _temp_sum);
 
     bool available_shake = false;
     std::string init_type = "inbuild";
-    if (init_type== "inbuild")
+    if (init_type== "inbuild") // LJ / LJ_salt
     {
         _temp = 0.5 * _temp_sum / (3 * _num_atoms / 2.0);
     }
     else
     {
-        if (available_shake)
+        if (available_shake) // H2O / NACl / EAM ...
         {
             bool shake = false;
             if (shake)
@@ -65,7 +64,7 @@ void TemperatureRescaleController::ComputeTemp()
                 _temp = 0.5 * _temp_sum / ((3 * _num_atoms) * _kB / 2.0);
             }
         }
-        else
+        else // PEO
         {
             _temp = 0.5 * _temp_sum / ((3 * _num_atoms - 3) * _kB / 2.0);
 
@@ -73,17 +72,16 @@ void TemperatureRescaleController::ComputeTemp()
     }
 }
 
-void TemperatureRescaleController::UpdataVelocity()
+void RescaleController::UpdataVelocity()
 {
     rbmd::Real kbT = 1;//配置文件获取
     rbmd::Real coeff_rescale = std::sqrt(kbT / _temp);
 
     
-    op::UpdataVelocityOp<device::DEVICE_GPU> updata_velocity_op;
+    op::UpdataVelocityRescaleOp<device::DEVICE_GPU> updata_velocity_op;
     updata_velocity_op(_num_atoms,
                        coeff_rescale,
                        thrust::raw_pointer_cast(_device_data->_d_vx.data()),
                        thrust::raw_pointer_cast(_device_data->_d_vy.data()),
                        thrust::raw_pointer_cast(_device_data->_d_vz.data()));
-
 }

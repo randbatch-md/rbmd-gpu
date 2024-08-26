@@ -1,11 +1,11 @@
 #pragma once
 #include "temperature_controller.h"
 
-class TemperatureRescaleController : public TemperatureController
+class NoseHooverController : public TemperatureController
 {
 public:
-	TemperatureRescaleController();
-	virtual ~TemperatureRescaleController()=default;
+	NoseHooverController();
+	virtual ~NoseHooverController()=default;
 
 	void Init() override;
 	void Update() override;
@@ -18,4 +18,8 @@ private:
 	rbmd::Real _kB;
 	rbmd::Real _temp_sum;
 	rbmd::Real _temp;
+
+	rbmd::Real _nosehooverxi;
+	rbmd::Real _fmt2v;
+
 };
