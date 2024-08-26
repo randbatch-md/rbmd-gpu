@@ -96,12 +96,12 @@ int StructureReder::ReadHeader()
 					}
 					else if (line.find("bond types") != std::string::npos)
 					{
-						iss >> info->_num_bound_type;
+						iss >> info->_num_bounds_type;
 						//std::cout << info->_num_atoms_type << " bond types" << std::endl;
 					}
 					else if (line.find("angle types") != std::string::npos)
 					{
-						iss >> info->_num_angle_type;
+						iss >> info->_num_angles_type;
 						//std::cout << info->_num_atoms_type << " angle types" << std::endl;
 					}
 					else if (line.find("xlo xhi") != std::string::npos)
@@ -162,7 +162,7 @@ int StructureReder::ReadForceField()
 					}
 					else if (line.find("Bond Coeffs") != std::string::npos)
 					{
-						ReadBondCoeffs(info->_num_bound_type);
+						ReadBondCoeffs(info->_num_bounds_type);
 						//std::cout << "Bond Coeffs" << std::endl;
 					}
 					else if (line.find("Angle Coeffs") != std::string::npos)

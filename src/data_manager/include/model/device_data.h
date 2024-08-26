@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 #include <thrust/device_vector.h>
 #include "types.h"
 
@@ -71,7 +71,16 @@ public:
 	thrust::device_vector<rbmd::Real> _d_dihedral_coeffs_k;
 	thrust::device_vector<rbmd::Id> _d_dihedral_coeffs_sign;
 	thrust::device_vector<rbmd::Id> _d_dihedral_coeffs_multiplicity;
-	
+
+	///F(ρ) on host
+	thrust::device_vector<rbmd::Real> _d_frho;
+
+	///ρ(r) on host
+	thrust::device_vector<rbmd::Real> _d_rhor;
+
+	///ϕ(r) on host
+	thrust::device_vector<rbmd::Real> _d_z2r;
+
 	///<force on device>
 	thrust::device_vector<rbmd::Real> _d_fx;
 	thrust::device_vector<rbmd::Real> _d_fy;

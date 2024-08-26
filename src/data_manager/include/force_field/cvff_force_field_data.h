@@ -10,6 +10,15 @@ public:
 		return true;
 	}
 
+	///mass
+	rbmd::Real* _h_mass;
+
+	///eps
+	rbmd::Real* _h_eps;
+
+	///sigma
+	rbmd::Real* _h_sigma;
+
 	///bond
 	rbmd::Real* _h_bond_coeffs_k;
 	rbmd::Real* _h_bond_coeffs_equilibrium;
