@@ -15,5 +15,14 @@ public:
 		return true;
 	}
 
+	///bond
+	rbmd::Id* _bond_types;
+	rbmd::Id* _bond_first_id;
+	rbmd::Id* _bond_second_id;
 
+	///angle
+	rbmd::Id* _angle_types;
+	rbmd::Id* _angle_first_id;
+	rbmd::Id* _angle_second_id;
+	rbmd::Id* _angle_third_id;
 };
