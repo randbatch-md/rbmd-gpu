@@ -12,8 +12,14 @@ public:
 	TemperatureController() {};
 	virtual ~TemperatureController()=default;
 
+	/**
+	 * @brief Update Temperature
+	*/
 	virtual void Update()=0;
 
+	/**
+	 * @brief Parameters and objects required for initializing the temperature controller
+	*/
 	virtual void Init()=0;
 
 protected:

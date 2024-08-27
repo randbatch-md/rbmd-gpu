@@ -12,8 +12,14 @@ public:
 	VelocityController() {};
 	virtual ~VelocityController()=default;
 
+	/**
+	 * @brief Update Speed
+	*/
 	virtual void Update()=0;
 
+	/**
+	 * @brief Parameters and objects required for initializing the speed controller
+	*/
 	virtual void Init()=0;
 
 protected:

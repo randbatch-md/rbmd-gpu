@@ -10,7 +10,14 @@ public:
 	PositionController() {};
 	virtual ~PositionController()=default;
 
+	/**
+	 * @brief Update Position
+	*/
 	virtual void Update() = 0;
+
+	/**
+	 * @brief Parameters and objects required for initializing the Position controller
+	*/
 	virtual void Init() = 0;
 
 protected:

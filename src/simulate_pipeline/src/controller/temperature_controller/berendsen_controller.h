@@ -9,7 +9,15 @@ public:
 
 	void Init() override;
 	void Update() override;
+
+	/**
+	 * @brief Calculate the current stage temperature
+	*/
 	void ComputeTemp();
+
+	/**
+	 * @brief Update current speed through temperature
+	*/
 	void UpdataVelocity();
 private:
 	rbmd::Id _num_atoms;
