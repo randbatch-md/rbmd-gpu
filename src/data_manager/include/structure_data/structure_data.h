@@ -35,4 +35,9 @@ public:
 	rbmd::Real* _h_fx;
 	rbmd::Real* _h_fy;
 	rbmd::Real* _h_fz;
+
+	//list
+	 rbmd::Id* _h_start_id;
+	 rbmd::Id* _h_end_id;
+	 rbmd::Id* _h_id_verletlist;
 };

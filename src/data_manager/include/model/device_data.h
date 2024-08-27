@@ -85,4 +85,9 @@ public:
 	thrust::device_vector<rbmd::Real> _d_fx;
 	thrust::device_vector<rbmd::Real> _d_fy;
 	thrust::device_vector<rbmd::Real> _d_fz;
+
+	//list
+	thrust::device_vector<rbmd::Id> _d_start_id;
+	thrust::device_vector<rbmd::Id> _d_end_id;
+	thrust::device_vector<rbmd::Id> _d_id_verletlist;
 };

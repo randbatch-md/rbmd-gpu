@@ -36,6 +36,9 @@ bool MemoryScheduler::asyncMemoryH2D()
 	auto& h_atoms_id = _structure_data->_h_atoms_id;
 	auto& h_atoms_type = _structure_data->_h_atoms_type;
 	auto& h_molecular_id = _structure_data->_h_molecular_id;
+	auto& h_start_id = _structure_data->_h_start_id;;
+	auto& h_end_id = _structure_data->_h_end_id;
+	auto& h_id_verletlist = _structure_data->_h_id_verletlist;
 
 	///cpoy position
 	_device_data->_d_px.resize(num_atoms);
@@ -77,6 +80,14 @@ bool MemoryScheduler::asyncMemoryH2D()
 	thrust::copy(h_atoms_type, h_atoms_type + num_atoms, _device_data->_d_atoms_type.begin());
 	thrust::copy(h_molecular_id, h_molecular_id + num_atoms, _device_data->_d_molecular_id.begin());
 	
+	//
+	_device_data->_d_start_id.resize(num_atoms);
+	_device_data->_d_end_id.resize(num_atoms);
+	_device_data->_d_id_verletlist.resize(num_atoms);
+	thrust::copy(h_start_id, h_start_id + num_atoms, _device_data->_d_start_id.begin());
+	thrust::copy(h_end_id, h_end_id + num_atoms, _device_data->_d_end_id.begin());
+	thrust::copy(h_id_verletlist, h_id_verletlist + num_atoms, _device_data->_d_id_verletlist.begin());
+
 	return true;
 }
 
