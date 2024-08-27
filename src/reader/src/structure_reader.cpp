@@ -167,7 +167,7 @@ int StructureReder::ReadForceField()
 					}
 					else if (line.find("Angle Coeffs") != std::string::npos)
 					{
-						ReadAngleCoeffs(info->_num_angle_type);
+						ReadAngleCoeffs(info->_num_angles_type);
 						//std::cout << "Angle Coeffs" << std::endl;
 					}
 					else if (line.find("group") != std::string::npos)
@@ -195,7 +195,8 @@ int StructureReder::ReadMass(const rbmd::Id& numAtomTypes)
 {
 	try
 	{
-		auto& mass = _md_data._force_field_data->_h_mass;
+		auto force_filed = std::dynamic_pointer_cast<LJForceFieldData>(_md_data._force_field_data);
+		auto& mass = force_filed->_h_mass;
 		HIP_CHECK(hipHostMalloc(&mass, numAtomTypes*sizeof(rbmd::Id)));
 		rbmd::Id atom_type;
 		rbmd::Real value;
@@ -232,8 +233,9 @@ int StructureReder::ReadPairCoeffs(const rbmd::Id& numAtomTypes)
 {
 	try
 	{
-		auto& eps = _md_data._force_field_data->_h_eps;
-		auto& sigma = _md_data._force_field_data->_h_sigma;
+		auto force_filed = std::dynamic_pointer_cast<LJForceFieldData>(_md_data._force_field_data);
+		auto& eps = force_filed->_h_eps;
+		auto& sigma = force_filed->_h_sigma;
 		HIP_CHECK(hipHostMalloc(&eps, numAtomTypes*sizeof(rbmd::Id)));
 		HIP_CHECK(hipHostMalloc(&sigma, numAtomTypes*sizeof(rbmd::Id)));
 		rbmd::Id atom_type;
