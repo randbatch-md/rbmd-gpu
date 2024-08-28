@@ -1,5 +1,5 @@
 #pragma once
-#include "object.h"
+#include "../object.h"
 #include "velocity_controller.h"
 #include "position_controller.h"
 #include "force_controller.h"

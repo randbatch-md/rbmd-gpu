@@ -5,6 +5,7 @@
 #include "force_field/force_field_data.h"
 #include "model/device_data.h"
 #include "model/structure_info_data.h"
+#include <memory>
 
 class VelocityController
 {
