@@ -1,5 +1,7 @@
 #include "ljforce_op/ljforce_op.h"
 #include "base/rocm.h"
+#include <cmath>
+#include "box.h"
 
 namespace op
 {
@@ -63,7 +65,7 @@ namespace op
 				if (molecular_id_i == molecular_id_j)
 					return;
 
-				//MinMirror(box, px12, py12, pz12);
+				MinMirror(box, px12, py12, pz12);
 				rbmd::Real f;
 				f = LJForce(cut_off, px12, py12, pz12, eps_i, eps_j, sigma_i, sigma_j);
 				sum_fx += f * px12;
@@ -107,7 +109,10 @@ namespace op
 			rbmd::Real sigmaij_6 = sigma_ij * sigma_ij * sigma_ij * sigma_ij * sigma_ij * sigma_ij;
 			rbmd::Real dis_6 = dis_2 * dis_2 * dis_2;
 			rbmd::Real sigmaij_dis_6 = sigmaij_6 / dis_6;
-			 f = -24 * Sqrt(eps_i * eps_j) * ((2 * sigmaij_dis_6 - 1) * sigmaij_dis_6) / dis_2 ;
+
+			rbmd::Real eps_ij = sqrt(eps_i * eps_j);
+
+			 f = -24 * eps_ij * ((2 * sigmaij_dis_6 - 1) * sigmaij_dis_6) / dis_2 ;
 		}
 		return f;
 	}
@@ -175,7 +180,7 @@ namespace op
 				if (molecular_id_i == molecular_id_j)
 					return;
 
-				//MinMirror(box, px12, py12, pz12);
+				MinMirror(box, px12, py12, pz12);
 				rbmd::Real Virial_f;
 				Virial_f = LJVirial(cut_off, px12, py12, pz12, eps_i, eps_j, sigma_i, sigma_j);
 
@@ -201,6 +206,7 @@ namespace op
 
 		}
 	}
+
 	__device__
 		rbmd::Real LJVirial(
 			const rbmd::Real cut_off,
@@ -225,7 +231,8 @@ namespace op
 			rbmd::Real sigmaij_6 = sigma_ij * sigma_ij * sigma_ij * sigma_ij * sigma_ij * sigma_ij;
 			rbmd::Real dis_6 = dis_2 * dis_2 * dis_2;
 			rbmd::Real sigmaij_dis_6 = sigmaij_6 / dis_6;
-			rbmd::Real eps_ij = Sqrt(eps_i * eps_j);
+
+			rbmd::Real eps_ij = sqrt(eps_i * eps_j);
 
 			 virial_f = 0.5 * 24 * eps_ij * ((2 * sigmaij_dis_6 - 1) * sigmaij_dis_6) / dis_2;
 
