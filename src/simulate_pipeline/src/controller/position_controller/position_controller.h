@@ -7,7 +7,7 @@
 class PositionController
 {
 public:
-	PositionController() {};
+	PositionController() :_device_data(std::make_shared<DeviceData>()) {};
 	virtual ~PositionController()=default;
 
 	/**

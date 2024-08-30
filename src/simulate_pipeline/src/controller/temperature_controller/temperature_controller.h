@@ -9,7 +9,7 @@
 class TemperatureController
 {
 public:
-	TemperatureController() {};
+	TemperatureController() :_device_data(std::make_shared<DeviceData>()) {};
 	virtual ~TemperatureController()=default;
 
 	/**

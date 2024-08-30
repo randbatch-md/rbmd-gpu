@@ -10,7 +10,7 @@
 class VelocityController
 {
 public:
-	VelocityController() {};
+	VelocityController():_device_data(std::make_shared<DeviceData>()){};
 	virtual ~VelocityController()=default;
 
 	/**
