@@ -129,7 +129,7 @@ namespace op
 		rbmd::Real MY_pi = 3.14159265358979323846; //pi
 		rbmd::Real MY_pis = 1.77245385090551602729; // sqrt(pi)
 
-		rbmd::Real coulforce = 0;
+		rbmd::Real CoulForce = 0;
 		const rbmd::Real  small_value = 0.0001;
 		const rbmd::Real dis_2 = px12 * px12 + py12 * py12 + pz12 * pz12;
 		const rbmd::Real dis = sqrt(dis_2);
@@ -142,11 +142,11 @@ namespace op
 			rbmd::Real Gnearvalue = (1.0 - erf(erfcx)) / (dis * dis) +
 				2 * sqrt(_alpha) * exp(expx) / (MY_pis * dis);
 
-			coulforce = -charge_pi * charge_pj * Gnearvalue / dis;
+			CoulForce = -charge_pi * charge_pj * Gnearvalue / dis;
 
 
 		}
-		return coulforce;
+		return CoulForce;
 	}
 
 
