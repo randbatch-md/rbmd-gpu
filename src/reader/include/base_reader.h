@@ -1,6 +1,6 @@
 #pragma once
 #include <string>
-#include "object.h"
+#include "common/object.h"
 
 class BaseReader : public Object
 {

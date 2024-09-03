@@ -1,7 +1,7 @@
 #pragma once
 
 #include <memory>
-#include "object.h"
+#include "common/object.h"
 
 class CommandLine;
 class BaseReader;

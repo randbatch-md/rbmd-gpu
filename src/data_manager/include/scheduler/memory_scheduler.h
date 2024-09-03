@@ -1,6 +1,6 @@
 #pragma once
 #include <hip/hip_runtime.h>
-#include "../object.h"
+#include "common/object.h"
 
 #include "include/data_manager.h"
 #include "include/model/device_data.h"

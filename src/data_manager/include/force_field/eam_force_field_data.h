@@ -1,6 +1,7 @@
 ﻿#pragma once
 
 #include "force_field_data.h"
+#include "common/types.h"
 
 class EAMForceFieldData : public ForceFieldData
 {

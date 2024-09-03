@@ -23,8 +23,8 @@ include("${cmake_dir}/hip_setting.cmake")
 #sub directory
 add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/tools)
 add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/src)
-
-#set(src 
+include_directories(${CMAKE_CURRENT_LIST_DIR}/src/common)
+#set(src
 #./src/main.cpp
 #./src/system/md_system.cpp
 #./src/executioner/executioner.cpp

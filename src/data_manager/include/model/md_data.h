@@ -3,7 +3,7 @@
 #include "structure_data/structure_data.h"
 #include "structure_info_data.h"
 #include "force_field/force_field_data.h"
-#include "../object.h"
+#include "common/object.h"
 #include "structure_data/atoms_structure_data.h"
 #include "structure_data/charge_structure_data.h"
 #include "structure_data/full_structure_data.h"

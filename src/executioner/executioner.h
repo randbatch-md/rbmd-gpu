@@ -1,10 +1,9 @@
 #pragma once
-#include "object.h"
+#include "common/object.h"
 #include "system.h"
 #include "json/value.h"
 #include "json/reader.h"
-#include "types.h"
-
+#include "common/types.h"
 class Executioner : public Object
 {
 public:
