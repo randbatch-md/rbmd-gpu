@@ -2,7 +2,7 @@
 #include <map>
 #include <string>
 #include <cmath>
-#include "common/types.h"
+#include "../common/types.h"
 
 enum class UNIT {
   LJ = 0,

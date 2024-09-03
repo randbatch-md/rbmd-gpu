@@ -1,6 +1,6 @@
 #include "rescale_controller.h"
 #include "temperature_controller_op/update_temperature_op.h"
-#include "unit_factor.h"
+#include "../common/unit_factor.h"
 #include <thrust/device_ptr.h>
 
 RescaleController::RescaleController() {};
