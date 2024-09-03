@@ -2,7 +2,6 @@
 
 #include <string>
 
-namespace rbmd
-{
-	bool IsLegalLine(const std::string& line);
+namespace rbmd {
+	bool IsLegalLine(const std::string &line);
 }

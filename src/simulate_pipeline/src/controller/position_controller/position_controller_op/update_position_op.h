@@ -1,6 +1,6 @@
 #pragma once
-#include "device_types.h"
-#include "types.h"
+#include "common/device_types.h"
+#include "common/types.h"
 
 namespace op
 {
@@ -31,7 +31,7 @@ namespace op
 	{
 		void operator()(const rbmd::Id& num_atoms,
 			            const rbmd::Real& dt,
-			            const rbmd::Real& min_x, // Ã»ÓÐÔÚÉè±¸ÉÏ·ÖÅäÄÚ´æµÄÊ¹ÓÃµÄÊÇÒýÓÃ»¹ÊÇÖ¸Õë
+			            const rbmd::Real& min_x, // Ã»ï¿½ï¿½ï¿½ï¿½ï¿½è±¸ï¿½Ï·ï¿½ï¿½ï¿½ï¿½Ú´ï¿½ï¿½Ê¹ï¿½Ãµï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ã»ï¿½ï¿½ï¿½Ö¸ï¿½ï¿½
 			            const rbmd::Real& min_y,
 			            const rbmd::Real& min_z,
 			            const rbmd::Real& max_x,

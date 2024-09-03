@@ -1,6 +1,6 @@
 #pragma once
-#include "types.h"
-#include "object.h"
+#include "common/types.h"
+#include "common/object.h"
 
 class StructureData : public Object
 {

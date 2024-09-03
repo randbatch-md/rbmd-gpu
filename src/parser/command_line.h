@@ -1,7 +1,7 @@
 #pragma once
 
 #include "cxxopts.hpp"
-#include "object.h"
+#include "common/object.h"
 
 class CommandLine : public Object
 {

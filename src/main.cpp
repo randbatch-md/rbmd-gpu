@@ -1,11 +1,12 @@
 #include "md_application.h"
 
-int main(int argc, char*argv[])
-{
-	std::shared_ptr<Application> app = std::make_shared<MDApplication>(argc, argv);
-	app->Run();
+int main(int argc, char* argv[]) {
+  std::shared_ptr<Application> app =
+      std::make_shared<MDApplication>(argc, argv);
+  app->Run();
 
-	return 0;
+  return 0;
 }
-// ×¢ÊÍ£º¡°¹¤¾ß¡±->Ñ¡Ïî->¡°doxygen¡± ÐÞ¸ÄÎªdoxygen ¡¢*£»
-// Ê¹ÓÃ£ºCtrl+/ ÏêÏ¸×¢ÊÍ£»¡°///" µ¥¸ö×¢ÊÍ
+
+// ×¢ï¿½Í£ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ß¡ï¿½->Ñ¡ï¿½ï¿½->ï¿½ï¿½doxygenï¿½ï¿½ ï¿½Þ¸ï¿½Îªdoxygen
+// ï¿½ï¿½*ï¿½ï¿½ Ê¹ï¿½Ã£ï¿½Ctrl+/ ï¿½ï¿½Ï¸×¢ï¿½Í£ï¿½ï¿½ï¿½///" ï¿½ï¿½ï¿½ï¿½×¢ï¿½ï¿½
