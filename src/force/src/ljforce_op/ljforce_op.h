@@ -9,7 +9,7 @@ namespace op
 	template <typename DEVICE>
 	struct LJforceOp
 	{
-		void operator()(Box& box,
+		void operator()(BOX& box,
 			            const rbmd::Id& N,
 			            const rbmd::Id* atoms_type,
 			            const rbmd::Id* molecular_type,
@@ -23,7 +23,8 @@ namespace op
 			            const rbmd::Real* pz,
 			            rbmd::Real* force_x,
 			            rbmd::Real* force_y,
-			            rbmd::Real* force_z);
+			            rbmd::Real* force_z,
+			            rbmd::Real* evdwl);
 	};
 
 }

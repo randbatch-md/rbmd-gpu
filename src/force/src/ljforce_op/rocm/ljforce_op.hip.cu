@@ -2,6 +2,7 @@
 #include <cmath>
 #include "box.h"
 
+
 namespace op
 {
 
@@ -12,7 +13,7 @@ namespace op
     //LJForce
 	__global__
     void ComputeLJForce(
-			const Box& box,
+		    const BOX& box,
 		    const rbmd::Id& num_atoms,
 		    const rbmd::Id* atoms_type,
 		    const rbmd::Id* molecular_type,
@@ -26,11 +27,13 @@ namespace op
 			const rbmd::Real* pz,
 			rbmd::Real* force_x,
 			rbmd::Real* force_y,
-			rbmd::Real* force_z)
+			rbmd::Real* force_z,
+		    rbmd::Real* evdwl)
 	{
 		rbmd::Real sum_fx = 0;
 		rbmd::Real sum_fy = 0;
 	    rbmd::Real sum_fz = 0;
+		rbmd::Real sum_eij = 0;
 
 		int tid1 = threadIdx.x + blockIdx.x * blockDim.x;
 		if (tid1 < num_atoms)
@@ -54,66 +57,71 @@ namespace op
 				rbmd::Real eps_j = eps[typej];
 				rbmd::Real sigma_j = sigma[typej];
 
+				//mix
+				rbmd::Real eps_ij = sqrt(eps_i * eps_j);
+				rbmd::Real sigma_ij = (sigma_i + sigma_j) / 2;
+
 				rbmd::Real x2 = px[tid2];
 				rbmd::Real y2 = py[tid2];
-				rbmd::Real x2 = pz[tid2];
+				rbmd::Real z2 = pz[tid2];
 				rbmd::Real px12 = x2 - x1;
 				rbmd::Real py12 = y2 - y1;
 				rbmd::Real pz12 = z2 - z1;
 
 				if (molecular_id_i == molecular_id_j)
-					return;
+					continue; 
 
-				MinMirror(box, px12, py12, pz12);
-				rbmd::Real f;
-				f = LJForce(cut_off, px12, py12, pz12, eps_i, eps_j, sigma_i, sigma_j);
-				sum_fx += f * px12;
-				sum_fy += f * py12;
-				sum_fz += f * pz12;
+				//MinMirror(box, px12, py12, pz12);
+				rbmd::Real f,evdwl;
 
+				LJForce(cut_off, px12, py12, pz12, eps_ij, sigma_ij,f_ij,e_ij);
+				sum_fx += f_ij * px12;
+				sum_fy += f_ij * py12;
+				sum_fz += f_ij * pz12;
+
+				sum_eij += e_ij;
 			}
 
-			// save force
+			// 使用 atomicAdd 保存力和势能，避免数据竞争
 			//atomicAdd(&force_x[tid1],sum_fx);
 			//atomicAdd(&force_y[tid1],sum_fy);
 			//atomicAdd(&force_z[tid1],sum_fz);
+			//atomicAdd(&evdwl[tid1], sum_eij);
+
 			force_x[tid1] += sum_fx;
 			force_y[tid1] += sum_fy;
 			force_z[tid1] += sum_fz;
 
+		    evdwl[tid1] += sum_eij;
 		}
 	}
 
 
 	__device__
-		rbmd::Real LJForce(
+		LJForce(
 			const rbmd::Real cut_off,
 			const rbmd::Real px12,
 			const rbmd::Real py12,
 			const rbmd::Real pz12,
-			const rbmd::Real eps_i,
-			const rbmd::Real eps_j,
-			const rbmd::Real sigma_i,
-			const rbmd::Real sigma_j)
+			const rbmd::Real eps_ij,
+			const rbmd::Real sigma_ij,
+			rbmd::Real& f_ij,
+			rbmd::Real& e_ij)
 	{
-		rbmd::Real f = 0;
 		const rbmd::Real  small_value = 0.0001;
 		const rbmd::Real dis_2 = px12 * px12 + py12 * py12 + pz12 * pz12;
 		const rbmd::Real cut_off_2 = cut_off * cut_off;
 
 		if (dis_2 < cut_off_2 && dis_2 > small_value)
 		{
-			rbmd::Real sigma_ij = (sigma_i + sigma_j) / 2;
-
 			rbmd::Real sigmaij_6 = sigma_ij * sigma_ij * sigma_ij * sigma_ij * sigma_ij * sigma_ij;
 			rbmd::Real dis_6 = dis_2 * dis_2 * dis_2;
 			rbmd::Real sigmaij_dis_6 = sigmaij_6 / dis_6;
 
-			rbmd::Real eps_ij = sqrt(eps_i * eps_j);
 
-			 f = -24 * eps_ij * ((2 * sigmaij_dis_6 - 1) * sigmaij_dis_6) / dis_2 ;
+			 f_ij = -24 * eps_ij * ((2 * sigmaij_dis_6 - 1) * sigmaij_dis_6) / dis_2 ;
+			 e_ij = 0.5 * (4 * eps_ij * (sigmaij_6 / dis_6 - 1) * (sigmaij_6 / dis_6));
 		}
-		return f;
 	}
 
 	__device__
@@ -201,6 +209,10 @@ namespace op
 				rbmd::Real eps_j = eps[typej];
 				rbmd::Real sigma_j = sigma[typej];
 
+				//mix
+				rbmd::Real eps_ij = sqrt(eps_i * eps_j);
+				rbmd::Real sigma_ij = (sigma_i + sigma_j) / 2;
+
 				rbmd::Real x2 = px[tid2];
 				rbmd::Real y2 = py[tid2];
 				rbmd::Real x2 = pz[tid2];
@@ -209,11 +221,11 @@ namespace op
 				rbmd::Real pz12 = z2 - z1;
 
 				if (molecular_id_i == molecular_id_j)
-					return;
+					continue;
 
 				MinMirror(box, px12, py12, pz12);
 				rbmd::Real Virial_f;
-				Virial_f = LJVirial(cut_off, px12, py12, pz12, eps_i, eps_j, sigma_i, sigma_j);
+				Virial_f = LJVirial(cut_off, px12, py12, pz12, eps_ij, sigma_ij);
 
 				rbmd::Real Virial_fx = Virial_f * px12;
 				rbmd::Real Virial_fy = Virial_f * py12;
@@ -244,10 +256,8 @@ namespace op
 			const rbmd::Real px12,
 			const rbmd::Real py12,
 			const rbmd::Real pz12,
-			const rbmd::Real eps_i,
-			const rbmd::Real eps_j,
-			const rbmd::Real sigma_i,
-			const rbmd::Real sigma_j)
+			const rbmd::Real eps_ij,
+			const rbmd::Real sigma_ij)
 	{
 		rbmd::Real virial_f = 0;;
 
@@ -257,13 +267,9 @@ namespace op
 
 		if (dis_2 < cut_off_2 && dis_2 > small_value)
 		{
-			rbmd::Real sigma_ij = (sigma_i + sigma_j) / 2;
-
 			rbmd::Real sigmaij_6 = sigma_ij * sigma_ij * sigma_ij * sigma_ij * sigma_ij * sigma_ij;
 			rbmd::Real dis_6 = dis_2 * dis_2 * dis_2;
 			rbmd::Real sigmaij_dis_6 = sigmaij_6 / dis_6;
-
-			rbmd::Real eps_ij = sqrt(eps_i * eps_j);
 
 			 virial_f = 0.5 * 24 * eps_ij * ((2 * sigmaij_dis_6 - 1) * sigmaij_dis_6) / dis_2;
 
@@ -276,7 +282,7 @@ namespace op
 	struct LJforceOp<device::DEVICE_GPU>;
 	{
 		void operator()(
-			Box& box,
+			BOX& box,
 			rbmd::Id& num_atoms,
 			const rbmd::Id* atoms_type,
 			const rbmd::Id* molecular_type,
@@ -290,13 +296,14 @@ namespace op
 			const rbmd::Real* pz,
 			rbmd::Real* force_x,
 			rbmd::Real* force_y,
-			rbmd::Real* force_z)
+			rbmd::Real* force_z
+			rbmd::Real* evdwl)
 		{
 
 
 			int block = (N + THREADS_PER_BLOCK - 1) / THREADS_PER_BLOCK;
 			hipLaunchKernelGGL(HIP_KERNEL_NAME(ComputeLJForce<FPTYPE>), dim3(block), dim3(THREADS_PER_BLOCK),
-				box,num_atoms, atoms_type, molecular_type ,sigma, eps, start_id, end_id, id_verletlist,px, py, pz, force_x, force_y, force_z);
+				box,num_atoms, atoms_type, molecular_type ,sigma, eps, start_id, end_id, id_verletlist,px, py, pz, force_x, force_y, force_z,evdwl);
 
 
 			hipErrorCheck(hipGetLastError());
