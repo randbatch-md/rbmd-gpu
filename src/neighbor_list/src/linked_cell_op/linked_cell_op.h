@@ -4,7 +4,7 @@
 
 namespace op {
 template <typename DEVICE>
-struct InitlizeCellOp {
+struct InitializeCellOp {
   void operator()(LinkedCellDeviceDataPtr* linked_cell, Box* box, Cell* cells,
                   rbmd::Id total_cells);
 };

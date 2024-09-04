@@ -5,33 +5,31 @@
 #include "data_manager.h"
 #include "src/linked_cell_op/full_neighbor_list_op.h"
 
-FullNeighborListBuilder::FullNeighborListBuilder(
-    const std::shared_ptr<LinkedCell>& linked_cell)
-  : NeighborListBuilder(linked_cell) {
+FullNeighborListBuilder::FullNeighborListBuilder() {
   this->_neighbor_cell_num =
-      (2 * linked_cell->_cell_count_within_cutoff + 1) *
-      (2 * linked_cell->_cell_count_within_cutoff + 1) *
-      (2 * linked_cell->_cell_count_within_cutoff +
+      (2 * _linked_cell->_cell_count_within_cutoff + 1) *
+      (2 * _linked_cell->_cell_count_within_cutoff + 1) *
+      (2 * _linked_cell->_cell_count_within_cutoff +
        1); // TODO not test _cell_count_within_cutoff=2 ... just 1
   this->_neighbor_list =
-      std::make_shared<NeighborList>(linked_cell->_total_atoms_num, false);
+      std::make_shared<NeighborList>(_linked_cell->_total_atoms_num, false);
   this->_device_data = DataManager::getInstance().getDeviceData();
   this->FullNeighborListBuilder::ComputeNeighborCells();
 }
 
 std::shared_ptr<NeighborList> FullNeighborListBuilder::Build() {
-  _linked_cell->AssignAtomsToCell(_d_box);
+  _linked_cell->AssignAtomsToCell();
   _linked_cell->SortAtomsByCellKey();
   _linked_cell->ComputeCellRangesIndices();
   if (should_realloc) {
     // 好像就第一入口调用了  todo move to init?
-    this->EstimateNeighbousList();
+    this->EstimateNeighborsList();
   }
 
-  if (GenerateNeighbousList()) {
-    this->EstimateNeighbousList();
+  if (GenerateNeighborsList()) {
+    this->EstimateNeighborsList();
   } else {
-    GenerateNeighbousList();
+    GenerateNeighborsList();
   }
 
   return _neighbor_list;
@@ -48,7 +46,7 @@ void FullNeighborListBuilder::ComputeNeighborCells() {
       _linked_cell->_cell_count_within_cutoff);
 }
 
-void FullNeighborListBuilder::EstimateNeighbousList() {
+void FullNeighborListBuilder::EstimateNeighborsList() {
   rbmd::Id* d_total_max_neighbor_num;
   CHECK_RUNTIME(MALLOC(&d_total_max_neighbor_num, sizeof(rbmd::Id)));
   CHECK_RUNTIME(MEMCPY(d_total_max_neighbor_num,
@@ -81,7 +79,7 @@ void FullNeighborListBuilder::EstimateNeighbousList() {
   InitNeighborListIndices(); // realloc need
 }
 
-bool FullNeighborListBuilder::GenerateNeighbousList() {
+bool FullNeighborListBuilder::GenerateNeighborsList() {
   bool* d_should_realloc;
   CHECK_RUNTIME(MALLOC(&d_should_realloc, sizeof(bool)));
   op::GenerateFullNeighborListOp<device::DEVICE_GPU>
