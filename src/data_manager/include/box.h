@@ -1,6 +1,6 @@
 #pragma once
-#include "common/rbmd_define.h"
-#include "common/types.h"
+#include "../common/rbmd_define.h"
+#include "../common/types.h"
 
 class Box {
  public:

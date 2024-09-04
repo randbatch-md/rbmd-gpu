@@ -3,7 +3,7 @@
 #include "../common/unit_factor.h"
 #include <thrust/device_ptr.h>
 
-#include "common/unit_factor.h"
+#include "../common/unit_factor.h"
 #include "velocity_controller_op/update_velocity_op.h"
 
 DefaultVelocityController::DefaultVelocityController(){};
@@ -27,7 +27,7 @@ void DefaultVelocityController::Init() {
 }
 
 void DefaultVelocityController::Update() {
-  bool shake = false;  // �����ļ��ж�ȡ
+  bool shake = false;  
   if (shake) {
     // ��ǰLJ����Ҫ���shake���������
     // __device_data->_shake_vx = _device_data->_d_vx;

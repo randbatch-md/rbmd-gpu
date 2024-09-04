@@ -1,6 +1,6 @@
 #pragma once
 #include "structure_reader.h"
-#include "common/types.h"
+#include "../common/types.h"
 
 class AtomicReader : public StructureReder
 {

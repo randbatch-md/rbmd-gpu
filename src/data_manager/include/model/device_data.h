@@ -1,6 +1,6 @@
 ﻿#pragma once
 #include <thrust/device_vector.h>
-#include "common/types.h"
+#include "../common/types.h"
 
 
 class DeviceData

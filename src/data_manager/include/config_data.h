@@ -1,7 +1,7 @@
 #pragma once
 #include <fstream>
 
-#include "common/object.h"
+#include "../common/object.h"
 #include "json/reader.h"
 #include "json/value.h"
 
