@@ -6,8 +6,8 @@
 #include "neighbor_list/include/linked_cell.h"
 
 namespace op {
-__global__ void InitlizeCell(LinkedCellDeviceDataPtr* linked_cell, Box* box,
-                             Cell* cells, rbmd::Id total_cells) {
+__global__ void InitializeCell(LinkedCellDeviceDataPtr* linked_cell, Box* box,
+                               Cell* cells, rbmd::Id total_cells) {
   __shared__ Int3 s_per_dimension_cells;
   __shared__ Real3 s_cell_length;
   __shared__ Real3 s_box_min;
@@ -160,14 +160,13 @@ __global__ void ComputeCellRangesIndices(rbmd::Id* sorted_cell_index,
   }
 }
 
-struct InitlizeCellOp<device::DEVICE_GPU> {
-  // TODO 是否要和kernel完全一致呢，还是可以调用的参数一样？
+struct InitializeCellOp<device::DEVICE_GPU> {
   void operator()(LinkedCellDeviceDataPtr* linked_cell, Box* box, Cell* cells,
                   rbmd::Id total_cells) {
     int threads_per_block = BLOCK_SIZE;
     int blocks_per_grid =
         (total_cells + threads_per_block - 1) / threads_per_block;
-    CHECK_KERNEL(InitlizeCell<<<blocks_per_grid, threads_per_block, 0, 0>>>(
+    CHECK_KERNEL(InitializeCell<<<blocks_per_grid, threads_per_block, 0, 0>>>(
         linked_cell, box, cells, total_cells));
   }
 };

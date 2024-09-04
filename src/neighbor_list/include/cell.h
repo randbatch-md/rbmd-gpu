@@ -1,9 +1,6 @@
 #pragma once
-#include "common/types.h"
-#include <thrust/device_vector.h>
-#include <thrust/host_vector.h>
-
 #include "common/rbmd_define.h"
+#include "common/types.h"
 
 struct Cell {
     /// 当前cell的id TODO：考虑时候需要CellManager

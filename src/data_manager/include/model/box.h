@@ -1,6 +1,6 @@
 #pragma once
-#include "../common/rbmd_define.h"
-#include "../common/types.h"
+#include "../../../common/rbmd_define.h"
+#include "../../../common/types.h"
 
 class Box {
  public:
@@ -11,8 +11,17 @@ class Box {
   };
 
   BoxType _type = BoxType::ORTHOGONAL;  // 默认正交盒子
-  Box(BoxType box_type, const rbmd::Real coord_min[3],
-      const rbmd::Real coord_max[3], const bool pbc[3]);
+  Box() = default;
+
+  /**
+   * 读取配置文件时初始化盒子
+   * @param box_type  盒子类型，枚举变量
+   * @param coord_min 盒子右下角坐标（xyz最小值）
+   * @param coord_max 盒子左上角坐标（xyz最达值）
+   * @param pbc 是否使用周期性边界条件 bool数组，对应xyz维度
+   */
+  void Init(BoxType box_type, const rbmd::Real coord_min[3],
+            const rbmd::Real coord_max[3], const bool pbc[3]);
 
   // TODO 边长角度  不经常访问的就直接做成对齐数组了    xyz 半的xyz
   /// 在x维度使用周期性边界条件

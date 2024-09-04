@@ -3,17 +3,16 @@
 
 class FullNeighborListBuilder : public NeighborListBuilder {
 public:
-  explicit FullNeighborListBuilder(
-      const std::shared_ptr<LinkedCell>& linked_cell);
+  explicit FullNeighborListBuilder();
 
   std::shared_ptr<NeighborList> Build() override;
 
 protected:
   void ComputeNeighborCells() override;
 
-  void EstimateNeighbousList() override;
+  void EstimateNeighborsList() override;
 
-  bool GenerateNeighbousList() override;
+  bool GenerateNeighborsList() override;
 
   std::shared_ptr<DeviceData> _device_data;
 };

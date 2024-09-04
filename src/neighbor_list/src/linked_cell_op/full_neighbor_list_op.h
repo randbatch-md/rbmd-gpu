@@ -1,5 +1,5 @@
 #pragma once
-#include "box.h"
+#include "../../../data_manager/include/model/box.h"
 #include "common/types.h"
 
 namespace op {
@@ -32,4 +32,4 @@ struct GenerateFullNeighborListOp {
                   rbmd::Id* neighbors, Box* d_box, bool* should_realloc,
                   rbmd::Id* neighbor_cell, rbmd::Id neighbor_cell_num);
 };
-} // namespace op
+}  // namespace op
