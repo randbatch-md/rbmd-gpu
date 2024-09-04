@@ -1,9 +1,9 @@
 #include "NVTensemble.h"
-#include "controller/position_controller/default_position_controller.h"
-#include "controller/velocity_controller/default_velocity_controller.h"
-#include "controller/shake_controller/shake_controller.h"
-#include "controller/force_controller/default_force_controller.h"
-#include "controller/temperature_controller/rescale_controller.h"
+#include "default_position_controller.h"
+#include "default_velocity_controller.h"
+#include "shake_controller.h"
+#include "default_force_controller.h"
+#include "rescale_controller.h"
 
 NVTensemble::NVTensemble()
 {

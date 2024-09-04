@@ -1,6 +1,6 @@
 #pragma once
-#include "common/device_types.h"
-#include "common/types.h"
+#include "device_types.h"
+#include "types.h"
 namespace op
 {
 	template <typename DEVICE>

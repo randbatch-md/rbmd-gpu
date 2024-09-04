@@ -1,12 +1,15 @@
 #pragma once
-#include "../data_manager/include/model/device_data.h"
-#include "../data_manager/include/model/structure_info_data.h"
+#include "model/device_data.h"
+#include "model/structure_info_data.h"
 #include <memory>
 
 class TemperatureController
 {
 public:
-	TemperatureController() :_device_data(std::make_shared<DeviceData>()) {};
+	TemperatureController() 
+	:_device_data(std::make_shared<DeviceData>())
+	,_structure_info_data(std::make_shared<StructureInfoData>()){};
+
 	virtual ~TemperatureController()=default;
 
 	/**

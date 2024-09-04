@@ -1,6 +1,7 @@
 #include "nose_hoover_controller.h"
-#include "temperature_controller_op/update_temperature_op.h"
-#include "../common/unit_factor.h"
+#include "update_temperature_op.h"
+#include "unit_factor.h"
+#include "device_types.h"
 #include <thrust/device_ptr.h>
 #include <cmath>
 
