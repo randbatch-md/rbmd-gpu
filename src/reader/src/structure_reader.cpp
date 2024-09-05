@@ -54,7 +54,9 @@ int StructureReder::ReadHeader()
 	try
 	{
 		auto& info = _md_data._structure_info_data;
-		std::vector<int> a;
+		auto& box = _md_data._h_box;
+		rbmd::Real coord_min[3];
+		rbmd::Real coord_max[3];
 
 		for (; _locate < _file_size; ++_locate)
 		{
@@ -106,17 +108,19 @@ int StructureReder::ReadHeader()
 					}
 					else if (line.find("xlo xhi") != std::string::npos)
 					{
-						iss >> info->_range[0][0] >> info->_range[0][1];
+						iss >> coord_min[0] >> coord_max[0];
 						//std::cout << info->_range[0] << " xlo xhi" << std::endl;
 					}
 					else if (line.find("ylo yhi") != std::string::npos)
 					{
-						iss >> info->_range[1][0] >> info->_range[1][1];
+						iss >> coord_min[1] >> coord_max[1];
 						//std::cout << info->_range[1] << " ylo yhi" << std::endl;
 					}
 					else if (line.find("zlo zhi") != std::string::npos)
 					{
-						iss >> info->_range[2][0] >> info->_range[2][1];
+						iss >> coord_min[2] >> coord_max[2];
+						bool pbc[3] = { 1,1,1 };
+						box->Init(box->_type, coord_min, coord_max, pbc);
 						//std::cout << info->_range[2] << " zlo zhi" << std::endl;
 						_line_start = &_mapped_memory[_locate];
 						break;
