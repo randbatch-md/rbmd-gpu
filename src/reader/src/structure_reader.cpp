@@ -1,8 +1,12 @@
 #include "../include/structure_reader.h"
+#include "../include/lj_force_field_reader.h"
+#include "../include/cvff_force_field_reader.h"
+#include "../include/eam_force_field_reader.h"
 #include <sstream>
 #include "model/md_data.h"
 #include "../Utilities/string_util.h"
 #include <hip/hip_runtime.h>
+
 
 #define HIP_CHECK(call) { \
     hipError_t err = call; \
@@ -11,8 +15,8 @@
         exit(err); \
     } \
 }
-StructureReder::StructureReder(const std::string& filePath, MDData& data) :
-	MmapReader(filePath),
+StructureReder::StructureReder(const std::string& filePath, MDData& data, const std::string& atom_style, const std::string& force_field) :
+	MmapReader(filePath, atom_style, force_field),
 	_md_data(data)
 {
 
@@ -140,47 +144,25 @@ int StructureReder::ReadForceField()
 {
 	try
 	{
-		auto& info = _md_data._structure_info_data;
-		for (; _locate < _file_size; ++_locate)
+		if ("LJ" == _force_field)
 		{
-			if (_mapped_memory[_locate] == '\n')
-			{
-				auto line = std::string(_line_start, &_mapped_memory[_locate]);
-				std::istringstream iss(line);
-
-				if (rbmd::IsLegalLine(line))
-				{
-					if (line.find("Masses") != std::string::npos)
-					{
-						ReadMass(info->_num_atoms_type);
-						//std::cout <<"Masses" << std::endl;
-					}
-					else if (line.find("Pair Coeffs") != std::string::npos)
-					{
-						ReadPairCoeffs(info->_num_atoms_type);
-						//std::cout << "Pair Coeffs" << std::endl;
-					}
-					else if (line.find("Bond Coeffs") != std::string::npos)
-					{
-						ReadBondCoeffs(info->_num_bounds_type);
-						//std::cout << "Bond Coeffs" << std::endl;
-					}
-					else if (line.find("Angle Coeffs") != std::string::npos)
-					{
-						ReadAngleCoeffs(info->_num_angles_type);
-						//std::cout << "Angle Coeffs" << std::endl;
-					}
-					else if (line.find("group") != std::string::npos)
-					{
-						break;
-					}
-					else if (line.find("Atoms") != std::string::npos)
-					{
-						break;
-					}
-				}
-			}
+			_force_field_reader = std::make_shared<LJForceFieldReader>(_md_data, " ", _force_field, _file_size, _mapped_memory, _line_start, _locate);
 		}
+		else if ("CVFF" == _force_field)
+		{
+			_force_field_reader = std::make_shared<CVFFForceFieldReader>(_md_data, " ", _force_field, _file_size, _mapped_memory, _line_start, _locate);
+		}
+		else if ("EAM" == _force_field)
+		{
+			_force_field_reader = std::make_shared<EAMForceFieldReader>(_md_data, " ", _force_field, _file_size, _mapped_memory, _line_start, _locate);
+		}
+		else
+		{
+			//log
+			_console->error("ilLegal force_field style!");
+			return -1;
+		}
+
 	}
 	catch (const std::exception& e)
 	{

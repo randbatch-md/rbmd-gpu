@@ -1,17 +1,19 @@
-//#pragma once
-//
-//#include "mmap_reader.h"
+#pragma once
+
+#include "mmap_reader.h"
 #include "force_field/force_field_data.h"
-//
-//class StructureInfo;
-//
-//class ForceFieldReader : public MmapReader
-//{
-//public:
-//	ForceFieldReader(const std::string& filePath, const StructureInfo& info, std::shared_ptr<ForceFieldData>& force_field_data);
-//	~ForceFieldReader();
-//
-//private:
-//	std::shared_ptr<ForceFieldData>& _force_field_data;
-//
-//};
+
+class MDData;
+class ForceFieldReader : public MmapReader
+{
+public:
+	ForceFieldReader(MDData& data, const std::string& atom_style, const std::string& force_field, off_t& file_size, char*& mapped_memory, char*& line_start, rbmd::Id& locate);
+	~ForceFieldReader() = default;
+
+	int Execute() override;
+protected:
+	virtual int ReadData() = 0;
+	virtual void AllocateDataSpace() = 0;
+
+	MDData& _md_data;
+};

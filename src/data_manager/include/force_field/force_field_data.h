@@ -1,7 +1,7 @@
 #pragma once
 #include <vector>
 #include "types.h"
-#include "object.h"
+#include "../object.h"
 
 class ForceFieldData : public Object
 {

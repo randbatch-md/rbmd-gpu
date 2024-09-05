@@ -1,10 +1,10 @@
-#include "../include/mmap_reader.h"
+#include "../include/file_builder.h"
 #include <fcntl.h>
 #include <sys/mman.h>
 #include <sys/stat.h>
 #include <unistd.h>
 
-MmapReader::MmapReader(const std::string& filePath, const std::string& atom_style, const std::string& force_field) :
+FileBuilder::FileBuilder(const std::string& filePath, const std::string& atom_style, const std::string& force_field) :
 	BaseReader(filePath),
 	_file_size(0),
 	_mapped_memory(nullptr),
@@ -16,7 +16,7 @@ MmapReader::MmapReader(const std::string& filePath, const std::string& atom_styl
 
 }
 
-MmapReader::~MmapReader()
+FileBuilder::~FileBuilder()
 {
 	if (-1 == munmap(_mapped_memory, _file_size))
 	{
@@ -24,7 +24,7 @@ MmapReader::~MmapReader()
 	}
 }
 
-int MmapReader::Execute()
+int FileBuilder::Build()
 {
 	auto fd = ::open(_file_path.c_str(), O_RDONLY);
 	if (-1 == fd)

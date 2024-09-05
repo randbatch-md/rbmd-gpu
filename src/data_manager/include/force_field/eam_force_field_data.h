@@ -11,6 +11,15 @@ public:
 		return true;
 	}
 
+	///mass
+	rbmd::Real* _h_mass;
+
+	///eps
+	rbmd::Real* _h_eps;
+
+	///sigma
+	rbmd::Real* _h_sigma;
+
 	///F(ρ) on host
 	rbmd::Id _num_frho;
 	rbmd::Real* _h_frho;

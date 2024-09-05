@@ -13,8 +13,8 @@
         exit(err); \
     } \
 }
-AtomicReader::AtomicReader(const std::string& filePath, MDData& data) :
-	StructureReder(filePath, data)
+AtomicReader::AtomicReader(const std::string& filePath, MDData& data, const std::string& atom_style, const std::string& force_field) :
+	StructureReder(filePath, data, atom_style, force_field)
 {
 
 }
@@ -80,19 +80,19 @@ int AtomicReader::ReadAtoms(const rbmd::Id& atoms_num)
 		_line_start = &_mapped_memory[_locate];
 		for (auto num = 0; _locate < _file_size && num < atoms_num; ++_locate)
 		{
-			if (_mapped_memory[_locate] == '\n')
-			{
-				auto line = std::string(_line_start, &_mapped_memory[_locate]);
-				std::istringstream iss(line);
-				if (rbmd::IsLegalLine(line))
-				{
-					iss >> atom_id;
-					auto index = atom_id - 1;
-					ids[index] = atom_id;
-					iss >> types[index];
-					iss >> _md_data._structure_data->_h_px[index] >> _md_data._structure_data->_h_py[index] >>_md_data._structure_data->_h_pz[index];
-					++num;
-					//std::cout << atom_id << " " << types[index] << " " << _md_data._structure_data->_h_px[index] << " " << _md_data._structure_data->_h_py[index] << " " << _md_data._structure_data->_h_pz[index] << std::endl;
+ 			if (_mapped_memory[_locate] == '\n')
+ 			{
+ 				auto line = std::string(_line_start, &_mapped_memory[_locate]);
+ 				std::istringstream iss(line);
+ 				if (rbmd::IsLegalLine(line))
+ 				{
+ 					iss >> atom_id;
+ 					auto index = atom_id - 1;
+ 					ids[index] = atom_id;
+ 					iss >> types[index];
+ 					iss >> _md_data._structure_data->_h_px[index] >> _md_data._structure_data->_h_py[index] >>_md_data._structure_data->_h_pz[index];
+ 					++num;
+ 					//std::cout << atom_id << " " << types[index] << " " << _md_data._structure_data->_h_px[index] << " " << _md_data._structure_data->_h_py[index] << " " << _md_data._structure_data->_h_pz[index] << std::endl;
 				}
 				_line_start = &_mapped_memory[_locate];
 			}

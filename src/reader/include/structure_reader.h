@@ -1,11 +1,12 @@
 #pragma once
 #include "mmap_reader.h"
 
-struct MDData;
+class MDData;
+class ForceFieldReader;
 class StructureReder : public MmapReader
 {
 public:
-	StructureReder(const std::string& filePath, MDData& data);
+	StructureReder(const std::string& filePath, MDData& data, const std::string& atom_style, const std::string& force_field);
 	~StructureReder() = default;
 
 	int Execute() override;
@@ -25,5 +26,5 @@ private:
 
 protected:
 	MDData& _md_data;
-	//std::shared_ptr<ForceFieldReader> _force_field_reader;
+	std::shared_ptr<ForceFieldReader> _force_field_reader;
 };

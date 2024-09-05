@@ -53,9 +53,10 @@ int MDApplication::ReadMDData()
 	auto& md_data = std::dynamic_pointer_cast<MDSystem>(_system)->GetMDData();
 	std::shared_ptr<BaseReader> reader;
 	auto atom_style = _parser->Get<std::string>("atom_style", "init_configuration", "read_data");
+	auto force_field = _parser->Get<std::string>("type", "hyper_parameters", "force_field");
 	if ("atomic" == atom_style)
 	{
-		reader = std::make_shared<AtomicReader>("rbmd.data", md_data);
+		reader = std::make_shared<AtomicReader>("rbmd.data", md_data, atom_style, force_field);
 	}
 	else if ("charge" == atom_style)
 	{
