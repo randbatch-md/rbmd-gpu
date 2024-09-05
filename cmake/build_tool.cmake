@@ -15,6 +15,15 @@ if(NOT index EQUAL -1)
 	set_property(GLOBAL  PROPERTY SPDLOG_LINK_PATH ${TOOL_INSTALL_PATH}/lib64)
 endif()
 
+	include(ProcessorCount)
+	ProcessorCount(N)
+
+	if(NOT N EQUAL 0)
+		set(PARALLEL_OPTION "--parallel ${N}")
+	else()
+		set(PARALLEL_OPTION "")
+	endif()
+
 	#avoid repeated build
 	if(NOT EXISTS ${TOOL_INSTALL_PATH})
 		message("****** build ${toolname_without_ext} start ******")
@@ -31,7 +40,7 @@ endif()
 
 		message("--- cmake --build build ${toolname_without_ext} build type: ${CMAKE_BUILD_TYPE}---")
 		execute_process(COMMAND ${CMAKE_COMMAND} --build ${tool_source}/build
-		--config ${CMAKE_BUILD_TYPE})
+		--config ${CMAKE_BUILD_TYPE} ${PARALLEL_OPTION})
 
 		message("--- cmake --install ${toolname_without_ext} ---")
 		execute_process(COMMAND ${CMAKE_COMMAND} --install ${tool_source}/build

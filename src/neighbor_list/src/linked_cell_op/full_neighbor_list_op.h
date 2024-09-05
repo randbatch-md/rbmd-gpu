@@ -1,6 +1,6 @@
 #pragma once
-#include "../../../data_manager/include/model/box.h"
 #include "common/types.h"
+#include "model/box.h"
 
 namespace op {
 template <typename DEVICE>
