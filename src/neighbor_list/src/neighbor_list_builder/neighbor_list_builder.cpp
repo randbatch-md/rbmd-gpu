@@ -1,11 +1,12 @@
-#include "neighbor_list_builder.h"
+
+#include "neighbor_list_builder/neighbor_list_builder.h"
 
 #include <hipcub/hipcub.hpp>
 
 #include "common/device_types.h"
 #include "data_manager.h"
-#include "linked_cell_locator.h"
-#include "neighbor_list/src/linked_cell_op/neighbor_list_op.h"
+#include "linked_cell/linked_cell_locator.h"
+#include "neighbor_list_op.h"
 
 NeighborListBuilder::NeighborListBuilder() {
   this->_linked_cell = LinkedCellLocator::GetInstance().GetLinkedCell();

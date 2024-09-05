@@ -1,4 +1,4 @@
-#include "neighbor_list/include/linked_cell.h"
+#include "linked_cell/linked_cell.h"
 
 #include <hipcub/backend/rocprim/device/device_radix_sort.hpp>
 #include <hipcub/backend/rocprim/iterator/counting_input_iterator.hpp>
@@ -6,7 +6,7 @@
 #include "common/device_types.h"
 #include "common/types.h"
 #include "data_manager.h"
-#include "linked_cell_op/linked_cell_op.h"
+#include "linked_cell_op.h"
 #include "model/md_data.h"
 
 LinkedCell::LinkedCell() {
@@ -56,7 +56,7 @@ LinkedCellDeviceDataPtr* LinkedCell::GetDataPtr() {
 }
 
 void LinkedCell::InitializeCells() {
-    op::InitializeCellOp<device::DEVICE_GPU> initialize_cell_op;
+  op::InitializeCellOp<device::DEVICE_GPU> initialize_cell_op;
     initialize_cell_op(GetDataPtr(), _device_data->_d_box,
                      thrust::raw_pointer_cast(this->_cells.data()),
                      this->_total_cells);

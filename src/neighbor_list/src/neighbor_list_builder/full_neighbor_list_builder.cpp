@@ -1,9 +1,10 @@
-#include "full_neighbor_list_builder.h"
+
+#include "neighbor_list_builder/full_neighbor_list_builder.h"
 
 #include "common/device_types.h"
 #include "common/types.h"
 #include "data_manager.h"
-#include "src/linked_cell_op/full_neighbor_list_op.h"
+#include "full_neighbor_list_op.h"
 
 FullNeighborListBuilder::FullNeighborListBuilder() {
   this->_neighbor_cell_num =
