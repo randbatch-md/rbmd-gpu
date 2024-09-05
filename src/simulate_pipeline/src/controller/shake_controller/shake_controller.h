@@ -1,5 +1,5 @@
 #pragma once
-#include "common/types.h"
+#include "types.h"
 #include "vector"
 class ShakeController
 {

@@ -7,10 +7,20 @@
 class PositionController
 {
 public:
-	PositionController() {};
+	PositionController() 
+	:_device_data(std::make_shared<DeviceData>())
+    ,_structure_info_data(std::make_shared<StructureInfoData>()){};
+
 	virtual ~PositionController()=default;
 
+	/**
+	 * @brief Update Position
+	*/
 	virtual void Update() = 0;
+
+	/**
+	 * @brief Parameters and objects required for initializing the Position controller
+	*/
 	virtual void Init() = 0;
 
 protected:

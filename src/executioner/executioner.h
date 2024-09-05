@@ -16,7 +16,7 @@ public:
 
 protected:
 	Json::Value _exec_node;
-	std::shared_ptr<System>& _system;
+	//std::shared_ptr<System>& _system;
 	float _time_step;
 	int _num_steps;
 };

@@ -2,7 +2,7 @@
 
 #include <hipcub/hipcub.hpp>
 
-#include "box.h"
+#include "../../../../data_manager/include/model/box.h"
 #include "common/device_types.h"
 #include "common/rbmd_define.h"
 #include "common/types.h"

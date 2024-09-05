@@ -3,12 +3,13 @@
 #include <hipcub/hipcub.hpp>
 
 #include "common/device_types.h"
+#include "data_manager.h"
+#include "linked_cell_locator.h"
 #include "neighbor_list/src/linked_cell_op/neighbor_list_op.h"
 
-NeighborListBuilder::NeighborListBuilder(
-    std::shared_ptr<LinkedCell> linked_cell) {
-  this->_linked_cell = linked_cell;
-  // todo neighbor num by Cell in cutoff
+NeighborListBuilder::NeighborListBuilder() {
+  this->_linked_cell = LinkedCellLocator::GetInstance().GetLinkedCell();
+  this->_d_box = DataManager::getInstance().getDeviceData()->_d_box;
 }
 
 void NeighborListBuilder::ReductionSum(rbmd::Id* d_src_array, rbmd::Id* d_dst,

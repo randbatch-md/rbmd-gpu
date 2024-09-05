@@ -55,21 +55,20 @@ LinkedCellDeviceDataPtr* LinkedCell::GetDataPtr() {
   return this->_linked_cell_device_data_ptr;
 }
 
-void LinkedCell::InitlizeCells(bool use_kernel, Box* d_box) {
-  if (use_kernel) {
-    op::InitlizeCellOp<device::DEVICE_GPU> initlize_cell_op;
-    initlize_cell_op(GetDataPtr(), d_box,
+void LinkedCell::InitializeCells() {
+    op::InitializeCellOp<device::DEVICE_GPU> initialize_cell_op;
+    initialize_cell_op(GetDataPtr(), _device_data->_d_box,
                      thrust::raw_pointer_cast(this->_cells.data()),
                      this->_total_cells);
-  }
+
 }
 
-void LinkedCell::AssignAtomsToCell(Box* d_box) {
+void LinkedCell::AssignAtomsToCell() {
   op::AssignAtomsToCellOp<device::DEVICE_GPU> assign_atoms_to_cell_op;
   assign_atoms_to_cell_op(thrust::raw_pointer_cast(_device_data->_d_px.data()),
                           thrust::raw_pointer_cast(_device_data->_d_py.data()),
                           thrust::raw_pointer_cast(_device_data->_d_pz.data()),
-                          d_box, GetDataPtr(),
+                          _device_data->_d_box, GetDataPtr(),
                           thrust::raw_pointer_cast(this->_cells.data()),
                           thrust::raw_pointer_cast(_per_atom_cell_id.data()),
                           this->_total_atoms_num);
