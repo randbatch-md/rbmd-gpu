@@ -2,7 +2,7 @@
 #include <thrust/device_vector.h>
 
 #include "box.h"
-#include "common/types.h"
+#include "../common/types.h"
 
 class DeviceData {
  public:
@@ -85,7 +85,7 @@ class DeviceData {
   thrust::device_vector<rbmd::Real> _d_fx;
   thrust::device_vector<rbmd::Real> _d_fy;
   thrust::device_vector<rbmd::Real> _d_fz;
-
+  
   // box in device
   Box* _d_box;
   ~DeviceData() {

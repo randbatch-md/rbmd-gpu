@@ -1,8 +1,8 @@
 #pragma once
 #include <map>
 #include <string>
-
-#include "common/types.h"
+#include <cmath>
+#include "../common/types.h"
 
 enum class UNIT {
   LJ = 0,
@@ -41,9 +41,9 @@ struct UnitFactor<UNIT::REAL> {
   static const rbmd::Real _qqr2e;
 };
 
-const rbmd::Real UnitFactor<UNIT::REAL>::_kb = 1.9872067 * pow(10.0, -3);
-const rbmd::Real UnitFactor<UNIT::REAL>::_fmt2v = 4.186 * pow(10.0, -4);
-const rbmd::Real UnitFactor<UNIT::REAL>::_mvv2e = 1.0 / (4.186 * pow(10.0, -4));
+const rbmd::Real UnitFactor<UNIT::REAL>::_kb = 1.9872067 * std::pow(10.0, -3);
+const rbmd::Real UnitFactor<UNIT::REAL>::_fmt2v = 4.186 * std::pow(10.0, -4);
+const rbmd::Real UnitFactor<UNIT::REAL>::_mvv2e = 1.0 / (4.186 * std::pow(10.0, -4));
 const rbmd::Real UnitFactor<UNIT::REAL>::_qqr2e = 332.06371;
 
 /// METAL

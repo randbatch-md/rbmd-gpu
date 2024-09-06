@@ -1,5 +1,5 @@
 #include "default_position_controller.h"
-#include "position_controller_op/update_position_op.h"
+#include "update_position_op.h"
 #include <thrust/device_ptr.h>
 
 DefaultPositionController::DefaultPositionController() {};

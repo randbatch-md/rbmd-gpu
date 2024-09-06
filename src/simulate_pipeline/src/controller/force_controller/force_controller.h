@@ -1,6 +1,6 @@
 #pragma once
 #include "vector"
-#include "common/types.h"
+#include "types.h"
 class ForceController
 {
 public:

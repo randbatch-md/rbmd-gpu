@@ -19,9 +19,10 @@ foreach(header_file ${all_include_dirs})
 endforeach()
 list(REMOVE_DUPLICATES include_dirs)
 
-set(inclue_files "../data_manager/include" "../op/base" ${include_dirs} ${spdlog_include})
-set(link_dirs ${LIBRARY_DIR} ${spdlog_link} )
-set(depend_names "data_manager" "controller")
+set(inclue_files ${include_dirs} ${spdlog_include} ${rocthrust_INCLUDE_DIRS} ${hipcub_INCLUDE_DIRS} ${HIP_INCLUDE_DIRS} "../data_manager/include" "../common/")
+set(link_dirs ${LIBRARY_DIR} ${spdlog_link} ${rocthrust_LIBRARIES} ${hipcub_LIBRARIES} ${HIP_LIBRARIES})
+set(depend_names "data_manager" "controller" "roc::rocthrust")
+set(link_name "jsoncpp_lib" "spdlog" "hip::hipcub" "roc::rocthrust")
 
 cpp_library(
 name ${PROJECT_NAME}

@@ -1,4 +1,4 @@
-#include "../include/model/box.h"
+#include "model/box.h"
 
 void Box::Init(BoxType box_type, const rbmd::Real coord_min[3],
                const rbmd::Real coord_max[3], const bool pbc[3]) {

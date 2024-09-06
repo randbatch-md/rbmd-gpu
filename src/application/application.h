@@ -2,12 +2,14 @@
 
 #include <memory>
 #include "common/object.h"
+#include "config_data.h"
 
 class CommandLine;
 class BaseReader;
-class System;
-class JsonParser;
+//class System;
+//class JsonParser;
 class Executioner;
+class Ensemble;
 
 class Application : public Object
 {
@@ -31,7 +33,9 @@ private:
 
 protected:
 	std::shared_ptr<CommandLine> _command_line;
-	std::shared_ptr<System> _system;
-	std::shared_ptr<JsonParser> _parser;
+	//std::shared_ptr<System> _system;
+    std::vector<std::shared_ptr<Ensemble>> _simulate_pipeline; 
+	std::shared_ptr<ConfigData> _config_data;
+
 	std::shared_ptr<Executioner> _executioner;
 };

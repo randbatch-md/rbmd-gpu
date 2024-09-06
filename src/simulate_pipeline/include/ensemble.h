@@ -12,11 +12,30 @@ public:
 	Ensemble() {};
 	virtual ~Ensemble()=default;
 
+	/**
+	 *@brief init current ensemble
+	*/
 	virtual void Init() = 0;
+
+	/**
+	 *@brief Preprocessing settings before solving
+	*/
 	virtual void Presolve()=0;
+
+	/**
+	 * @brief Specific execution calculation part
+	*/
 	virtual void Solve() = 0;
+
+	/**
+	 * @brief Post processing after the completion of the current calculation step
+	*/
 	virtual void Postsolve() = 0;
 
+	/**
+	 * @brief The overall calculation process of the current calculation step
+	 * @return Determine if there is an error here. If executed normally, return 0. If not, return other values
+	*/
 	int Run() 
 	{
 		Presolve();

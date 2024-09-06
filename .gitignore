@@ -4,3 +4,5 @@ CMakeSettings.json
 tools/Windows
 tools/Linux
 lib
+cmake-build-debug
+.idea
