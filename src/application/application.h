@@ -34,7 +34,9 @@ private:
 protected:
 	std::shared_ptr<CommandLine> _command_line;
 	//std::shared_ptr<System> _system;
-    std::vector<std::shared_ptr<Ensemble>> _simulate_pipeline; 
+    std::vector<std::shared_ptr<Ensemble>> _simulate_pipelines; 
+	std::vector<Json::Value> _simulate_nodes;
+
 	std::shared_ptr<ConfigData> _config_data;
 
 	std::shared_ptr<Executioner> _executioner;
