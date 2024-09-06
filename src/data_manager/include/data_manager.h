@@ -1,9 +1,9 @@
 #pragma once
 #include <memory>
-#include "config_data.h"
+
 class MDData;
 class PostProcessData;
-//class ConfigData;
+class ConfigData;
 class DeviceData;
 class MemoryScheduler;
 
@@ -21,7 +21,7 @@ private:
   /**
    * @brief Constructors and destructors are not open to the public
   */
-    DataManager() : _config_data(std::make_shared<ConfigData>("rbmd.json")) {};
+  DataManager() = default;
 
   ~DataManager() = default;
 

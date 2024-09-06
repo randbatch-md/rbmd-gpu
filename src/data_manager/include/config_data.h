@@ -2,8 +2,8 @@
 #include <fstream>
 
 #include "../common/object.h"
-#include "../../tools/Windows/Debug/jsoncpp-1.9.5/include/json/reader.h"
-#include "../../tools/Windows/Debug/jsoncpp-1.9.5/include/json/value.h"
+#include "json/reader.h"
+#include "json/value.h"
 
 class ConfigData : public Object {
  public:

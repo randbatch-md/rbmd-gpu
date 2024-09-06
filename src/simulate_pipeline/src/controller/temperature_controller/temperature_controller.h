@@ -2,7 +2,7 @@
 #include "model/device_data.h"
 #include "model/structure_info_data.h"
 #include <memory>
-
+#include "../common/device_types.h"
 class TemperatureController
 {
 public:

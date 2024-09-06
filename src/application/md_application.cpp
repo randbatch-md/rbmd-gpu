@@ -2,11 +2,12 @@
 #include "command_line.h"
 #include "md_system.h"
 #include "atomic_reader.h"
-//#include "full_reader .h"
-//#include "charge_reader.h"
 #include "JsonParser.h"
 #include "executioner.h"
 #include <memory>
+#include "../simulate_pipeline/include/NVEensemble.h"
+#include "../simulate_pipeline/include/NVPensemble.h"
+#include "../simulate_pipeline/include/NVTensemble.h"
 
 MDApplication::MDApplication(int argc, char* argv[]) : 
 	Application(argc,argv)
@@ -29,15 +30,19 @@ int MDApplication::Execute()
 			return -1;
 		}
 		//_executioner = std::make_shared<Executioner>(_parser->GetJsonNode("execution"), _system);
-		_executioner = std::make_shared<Executioner>(_config_data->GetJsonNode("execution"), _simulate_pipeline);
+		//_executioner = std::make_shared<Executioner>(_config_data->GetJsonNode("execution"), _simulate_pipelines);
 
-		
-		_executioner->Init();
-
-		if (-1 == _executioner->Execute())
+		for (size_t i = 0; i < _simulate_pipelines.size(); i++)
 		{
-			//log
-			_console->error("execute failed!");
+			_executioner = std::make_shared<Executioner>(_simulate_nodes[i], _simulate_pipelines[i]);
+
+			_executioner->Init();
+
+			if (-1 == _executioner->Execute())
+			{
+				//log
+				_console->error("execute failed!");
+			}
 		}
 
 	}
@@ -53,6 +58,37 @@ int MDApplication::Execute()
 void MDApplication::AddSimulate()
 {
 	auto execution_node = _config_data->GetJsonNode("execution");
+	std::vector<std::string> simulate_pipelines;
+	if (execution_node.isObject()) 
+	{
+		simulate_pipelines = execution_node.getMemberNames();
+	}
+
+	for (const auto& simulate_pipeline : simulate_pipelines)
+	{
+		auto& simulate_child_node = execution_node[simulate_pipeline.c_str()];
+		auto type = simulate_child_node["type"].asString(); 
+		std::shared_ptr<Ensemble> ensemble;
+
+		if ("NVT"== type)
+		{
+			ensemble= std::make_shared<NVTensemble>();
+		}
+		else if ("NVP" == type)
+		{
+			ensemble = std::make_shared<NVPensemble>();
+		}
+		else if ("NVE" == type)
+		{
+			ensemble = std::make_shared<NVEensemble>();
+		}
+		else
+		{
+			std::cout << " the type of execution of json file is wrong" << std::endl;
+		}
+		_simulate_pipelines.push_back(ensemble);
+		_simulate_nodes.push_back(simulate_child_node);
+	}
 
 }
 
