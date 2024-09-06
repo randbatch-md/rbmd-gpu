@@ -1,5 +1,4 @@
 #pragma once
-#include "common/device_types.h"
 #include "common/types.h"
 
 
@@ -26,5 +25,8 @@ namespace op
 			            rbmd::Real* force_z,
 			            rbmd::Real* evdwl);
 	};
+
+    template <typename T>
+    void DeviceReduceSum(const T* d_data, T* d_result, int num_elements);
 
 }

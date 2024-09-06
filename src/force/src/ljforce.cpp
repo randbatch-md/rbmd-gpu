@@ -1,7 +1,8 @@
 #include "ljforce.h"
 #include "ljforce_op/ljforce_op.h"
 #include <thrust/device_vector.h>
-#include <thrust/reduce.h>
+#include <hipcub/hipcub.hpp> 
+#include <hipcub/backend/rocprim/block/block_reduce.hpp>
 
 LJForce::LJForce()
     : list(NeighborList(_structure_info_data->_num_atoms)) {};
@@ -38,9 +39,19 @@ void LJForce::Execute()
              thrust::raw_pointer_cast(_device_data->_d_fz.data()),
              thrust::raw_pointer_cast(_device_data->_d_evdwl.data()));
 
-    // 使用 thrust::reduce 对 _d_evdwl 进行归约，求和
-    rbmd::Real total_evdwl = thrust::reduce(_device_data->_d_evdwl.begin(), _device_data->_d_evdwl.end(), 0.0, thrust::plus<rbmd::Real>());
+     // 计算总势能
+    rbmd::Real* d_total_evdwl;
+    hipMalloc(&d_total_evdwl, sizeof(rbmd::Real));
+    op::DeviceReduceSum(thrust::raw_pointer_cast(_device_data->_d_evdwl.data()), d_total_evdwl, _num_atoms);
+
+    // 从设备复制结果到主机
+    rbmd::Real total_evdwl;
+    hipMemcpy(&total_evdwl, d_total_evdwl, sizeof(rbmd::Real), hipMemcpyDeviceToHost);
+
     std::cout << "Total evdwl: " << total_evdwl << std::endl;
+
+    hipFree(d_total_evdwl);
+
              
 }
 

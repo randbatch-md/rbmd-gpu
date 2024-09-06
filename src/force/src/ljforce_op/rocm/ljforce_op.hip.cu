@@ -1,6 +1,6 @@
 #include "ljforce_op/ljforce_op.h"
 #include <cmath>
-#include "box.h"
+#include "model/box.h"
 
 
 namespace op
