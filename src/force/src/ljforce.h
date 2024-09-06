@@ -3,6 +3,7 @@
 #include "common/types.h"
 #include "neighbor_list/include/neighbor_list.h"
 
+
 class LJForce: Force
 {
 public:
@@ -15,4 +16,6 @@ public:
 private:
 	rbmd::Id _num_atoms;
 	NeighborList list;
+	Box box;
+
 };

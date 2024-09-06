@@ -8,7 +8,7 @@
 //	struct ComputeLJforceOp<FPTYPE, device::DEVICE_CPU>
 //	{
 //		//to do openmp
-		//void operator()(BOX& box,
+		//void operator()(Box& box,
 		//	            const rbmd::Id& N,
 		//	            const rbmd::Id* atoms_type,
 		//	            const rbmd::Id* molecular_type,

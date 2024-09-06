@@ -13,7 +13,7 @@ namespace op
     //LJForce
 	__global__
     void ComputeLJForce(
-		    const BOX& box,
+		    Box* box,
 		    const rbmd::Id& num_atoms,
 		    const rbmd::Id* atoms_type,
 		    const rbmd::Id* molecular_type,
@@ -68,11 +68,11 @@ namespace op
 				rbmd::Real py12 = y2 - y1;
 				rbmd::Real pz12 = z2 - z1;
 
-				if (molecular_id_i == molecular_id_j)
-					continue; 
+				//if (molecular_id_i == molecular_id_j)
+					//continue; 
 
-				//MinMirror(box, px12, py12, pz12);
-				rbmd::Real f,evdwl;
+				//MinImageDistance(box, px12, py12, pz12);
+				rbmd::Real f_ij,e_ij;
 
 				LJForce(cut_off, px12, py12, pz12, eps_ij, sigma_ij,f_ij,e_ij);
 				sum_fx += f_ij * px12;
@@ -160,7 +160,7 @@ namespace op
 	//LJVirial
 	__global__
 		void ComputeJVirial(
-			const Box& box,
+			Box* box,
 			const rbmd::Id& num_atoms,
 			const rbmd::Id* atoms_type,
 			const rbmd::Id* molecular_type,
@@ -282,8 +282,8 @@ namespace op
 	struct LJforceOp<device::DEVICE_GPU>;
 	{
 		void operator()(
-			BOX& box,
-			rbmd::Id& num_atoms,
+			Box* box,
+			const rbmd::Id& num_atoms,
 			const rbmd::Id* atoms_type,
 			const rbmd::Id* molecular_type,
 			const rbmd::Real* sigma,

@@ -9,7 +9,7 @@ namespace op
 	template <typename DEVICE>
 	struct LJforceOp
 	{
-		void operator()(BOX& box,
+		void operator()(Box* box,
 			            const rbmd::Id& N,
 			            const rbmd::Id* atoms_type,
 			            const rbmd::Id* molecular_type,
