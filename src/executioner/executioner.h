@@ -7,13 +7,13 @@
 class Executioner : public Object
 {
 public:
-	Executioner(const Json::Value& node, std::shared_ptr<System>& system);
+	Executioner(const Json::Value& node, std::vector<std::shared_ptr<Ensemble>>& simulate_pipeline);
 	virtual ~Executioner() = default;
 
 public:
 	void Init();
 	int Execute();
-
+	int 
 protected:
 	Json::Value _exec_node;
 	//std::shared_ptr<System>& _system;

@@ -2,10 +2,10 @@
 
 #include <hipcub/hipcub.hpp>
 
-#include "../../../../data_manager/include/model/box.h"
 #include "common/device_types.h"
 #include "common/rbmd_define.h"
 #include "common/types.h"
+#include "model/box.h"
 
 namespace op {
 __global__ void ComputeFullNeighbors(rbmd::Id* per_dimension_cells,

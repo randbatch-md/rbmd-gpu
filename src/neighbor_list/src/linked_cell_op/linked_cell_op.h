@@ -1,6 +1,6 @@
 #pragma once
 #include "common/types.h"
-#include "neighbor_list/include/linked_cell.h"
+#include "linked_cell/linked_cell.h"
 
 namespace op {
 template <typename DEVICE>

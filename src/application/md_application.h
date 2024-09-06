@@ -9,6 +9,7 @@ public:
 
 public:
 	int Execute () override;
+	void AddSimulate();
 
 private:
 	int ReadMDData();
