@@ -5,9 +5,9 @@
 #include "JsonParser.h"
 #include "executioner.h"
 #include <memory>
-#include "../simulate_pipeline/include/NVEensemble.h"
-#include "../simulate_pipeline/include/NVPensemble.h"
-#include "../simulate_pipeline/include/NVTensemble.h"
+#include "../simulate_pipeline/include/nve_ensemble.h"
+#include "../simulate_pipeline/include/nvp_ensemble.h"
+#include "../simulate_pipeline/include/nvt_ensemble.h"
 
 MDApplication::MDApplication(int argc, char* argv[]) : 
 	Application(argc,argv)

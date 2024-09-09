@@ -1,4 +1,4 @@
-#include "NVTensemble.h"
+#include "nvt_ensemble.h"
 #include "default_position_controller.h"
 #include "default_velocity_controller.h"
 #include "shake_controller.h"

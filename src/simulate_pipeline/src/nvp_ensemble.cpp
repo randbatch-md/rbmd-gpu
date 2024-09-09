@@ -1,4 +1,4 @@
-#include "NVPensemble.h"
+#include "nvp_ensemble.h"
 
 NVPensemble::NVPensemble()
 {

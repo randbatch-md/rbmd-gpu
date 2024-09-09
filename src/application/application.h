@@ -1,8 +1,8 @@
 #pragma once
 
 #include <memory>
-#include "common/object.h"
-#include "config_data.h"
+#include "../common/object.h"
+#include "../data_manager/include/config_data.h"
 
 class CommandLine;
 class BaseReader;

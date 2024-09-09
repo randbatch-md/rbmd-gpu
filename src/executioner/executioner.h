@@ -1,6 +1,6 @@
 #pragma once
 #include "common/object.h"
-#include "system.h"
+//#include "system.h"
 #include "json/value.h"
 #include "json/reader.h"
 #include "common/types.h"
@@ -15,11 +15,15 @@ public:
 public:
 	void Init();
 	int Execute();
-	int 
+	bool KeepGoing();
 protected:
 	Json::Value _exec_node;
 	//std::shared_ptr<System>& _system;
-	std::shared_ptr<Ensemble>& _simulate_pipeline
+	std::shared_ptr<Ensemble>& _simulate_pipeline;
+
 	float _time_step;
+	float _current_time;
+
 	int _num_steps;
+	int _current_step;
 };

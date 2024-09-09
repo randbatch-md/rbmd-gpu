@@ -1,4 +1,4 @@
-#include "NVEensemble.h"
+#include "nve_ensemble.h"
 
 NVEensemble::NVEensemble()
 {
