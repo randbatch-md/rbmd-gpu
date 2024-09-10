@@ -1,5 +1,4 @@
 #include "position_controller_op/update_position_op.h"
-#include "base/rocm.h"
 
 namespace op
 {

@@ -6,6 +6,7 @@
 #include "common/device_types.h"
 #include "common/rbmd_define.h"
 #include "common/types.h"
+#include "neighbor_list_op.h"
 
 namespace op {
 __global__ void InitEndIndex(rbmd::Id* neighbor_num, rbmd::Id* start_index,
@@ -16,8 +17,7 @@ __global__ void InitEndIndex(rbmd::Id* neighbor_num, rbmd::Id* start_index,
   }
 }
 
-struct InitEndIndexOp<device::DEVICE_GPU> {
-  void operator()(rbmd::Id* neighbor_num, rbmd::Id* start_index,
+void InitEndIndexOp<device::DEVICE_GPU>::operator()(rbmd::Id* neighbor_num, rbmd::Id* start_index,
                   rbmd::Id* end_index, rbmd::Id total_atom_num) {
     unsigned int blocks_per_grid =
         (total_atom_num + BLOCK_SIZE - 1) / BLOCK_SIZE;
@@ -25,4 +25,4 @@ struct InitEndIndexOp<device::DEVICE_GPU> {
         neighbor_num, start_index, end_index, total_atom_num));
   }
 };
-}  // namespace op
+

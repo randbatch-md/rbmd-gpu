@@ -5,6 +5,7 @@
 #include "common/device_types.h"
 #include "common/rbmd_define.h"
 #include "common/types.h"
+#include "full_neighbor_list_op.h"
 #include "model/box.h"
 
 namespace op {
@@ -182,63 +183,57 @@ __global__ void GenerateFullNeighborList(
   }
 }
 
-struct ComputeFullNeighborsOp<device::DEVICE_GPU> {
-  void operator()(rbmd::Id* per_dimension_cells, rbmd::Id* neighbor_cell,
-                  rbmd::Id neighbor_num, rbmd::Id total_cell,
-                  rbmd::Id cell_count_within_cutoff) {
-    unsigned int blocks_per_grid = (total_cell + BLOCK_SIZE - 1) / BLOCK_SIZE;
-    CHECK_KERNEL(ComputeFullNeighbors<<<blocks_per_grid, BLOCK_SIZE, 0, 0>>>(
-        per_dimension_cells, neighbor_cell, neighbor_num, total_cell,
-        cell_count_within_cutoff));
-  }
-};
+void ComputeFullNeighborsOp<device::DEVICE_GPU>::operator()(
+    rbmd::Id* per_dimension_cells, rbmd::Id* neighbor_cell,
+    rbmd::Id neighbor_num, rbmd::Id total_cell,
+    rbmd::Id cell_count_within_cutoff) {
+  unsigned int blocks_per_grid = (total_cell + BLOCK_SIZE - 1) / BLOCK_SIZE;
+  CHECK_KERNEL(ComputeFullNeighbors<<<blocks_per_grid, BLOCK_SIZE, 0, 0>>>(
+      per_dimension_cells, neighbor_cell, neighbor_num, total_cell,
+      cell_count_within_cutoff));
+}
 
-struct EstimateFullNeighborListOp<device::DEVICE_GPU> {
-  void operator()(rbmd::Id* per_atom_cell_id,
-                  rbmd::Id* in_atom_list_start_index,
-                  rbmd::Id* in_atom_list_end_index, rbmd::Real cutoff_2,
-                  rbmd::Id total_atom_num, rbmd::Real* px, rbmd::Real* py,
-                  rbmd::Real* pz, rbmd::Id* neighbour_num,
-                  rbmd::Id* max_neighbour_num, Box* box,
-                  rbmd::Id* neighbor_cell, rbmd::Id neighbor_cell_num) {
-    unsigned int threads_per_block = BLOCK_SIZE;
-    unsigned int warps_per_block = threads_per_block / WARP_SIZE;
-    unsigned int blocks_per_grid =
-        (total_atom_num + warps_per_block - 1) / warps_per_block;
-    CHECK_KERNEL(EstimateFullNeighborList<<<
-                     blocks_per_grid, BLOCK_SIZE,
-                     sizeof(hipcub::WarpReduce<int>::TempStorage) *
-                         (BLOCK_SIZE / WARP_SIZE),
-                     0>>>(per_atom_cell_id, in_atom_list_start_index,
-                          in_atom_list_end_index, cutoff_2, total_atom_num, px,
-                          py, pz, neighbour_num, max_neighbour_num, box,
-                          neighbor_cell, neighbor_cell_num));
-  }
-};
+void EstimateFullNeighborListOp<device::DEVICE_GPU>::operator()(
+    rbmd::Id* per_atom_cell_id, rbmd::Id* in_atom_list_start_index,
+    rbmd::Id* in_atom_list_end_index, rbmd::Real cutoff_2,
+    rbmd::Id total_atom_num, rbmd::Real* px, rbmd::Real* py, rbmd::Real* pz,
+    rbmd::Id* neighbour_num, rbmd::Id* max_neighbour_num, Box* box,
+    rbmd::Id* neighbor_cell, rbmd::Id neighbor_cell_num) {
+  unsigned int threads_per_block = BLOCK_SIZE;
+  unsigned int warps_per_block = threads_per_block / WARP_SIZE;
+  unsigned int blocks_per_grid =
+      (total_atom_num + warps_per_block - 1) / warps_per_block;
+  CHECK_KERNEL(
+      EstimateFullNeighborList<<<blocks_per_grid, BLOCK_SIZE,
+                                 sizeof(hipcub::WarpReduce<int>::TempStorage) *
+                                     (BLOCK_SIZE / WARP_SIZE),
+                                 0>>>(
+          per_atom_cell_id, in_atom_list_start_index, in_atom_list_end_index,
+          cutoff_2, total_atom_num, px, py, pz, neighbour_num,
+          max_neighbour_num, box, neighbor_cell, neighbor_cell_num));
+}
 
-struct GenerateFullNeighborListOp<device::DEVICE_GPU> {
-  void operator()(rbmd::Id* per_atom_cell_id,
-                  rbmd::Id* in_atom_list_start_index,
-                  rbmd::Id* in_atom_list_end_index, rbmd::Real cutoff_2,
-                  rbmd::Id total_atom_num, rbmd::Real* px, rbmd::Real* py,
-                  rbmd::Real* pz, rbmd::Id* max_neighbor_num,
-                  rbmd::Id* neighbor_start, rbmd::Id* neighbor_end,
-                  rbmd::Id* neighbors, Box* d_box, bool* should_realloc,
-                  rbmd::Id* neighbor_cell, rbmd::Id neighbor_cell_num) {
-    unsigned int threads_per_block = BLOCK_SIZE;
-    unsigned int warps_per_block = threads_per_block / WARP_SIZE;
-    unsigned int blocks_per_grid =
-        (total_atom_num + warps_per_block - 1) / warps_per_block;
-    CHECK_KERNEL(
-        GenerateFullNeighborList<<<blocks_per_grid, BLOCK_SIZE,
-                                   sizeof(hipcub::WarpScan<int>::TempStorage) *
-                                       (BLOCK_SIZE / WARP_SIZE),
-                                   0>>>(
-            per_atom_cell_id, in_atom_list_start_index, in_atom_list_end_index,
-            cutoff_2, total_atom_num, px, py, pz, max_neighbor_num,
+void GenerateFullNeighborListOp<device::DEVICE_GPU>::operator()(
+    rbmd::Id* per_atom_cell_id, rbmd::Id* in_atom_list_start_index,
+    rbmd::Id* in_atom_list_end_index, rbmd::Real cutoff_2,
+    rbmd::Id total_atom_num, rbmd::Real* px, rbmd::Real* py, rbmd::Real* pz,
+    rbmd::Id* max_neighbor_num, rbmd::Id* neighbor_start,
+    rbmd::Id* neighbor_end, rbmd::Id* neighbors, Box* d_box,
+    bool* should_realloc, rbmd::Id* neighbor_cell, rbmd::Id neighbor_cell_num) {
+  unsigned int threads_per_block = BLOCK_SIZE;
+  unsigned int warps_per_block = threads_per_block / WARP_SIZE;
+  unsigned int blocks_per_grid =
+      (total_atom_num + warps_per_block - 1) / warps_per_block;
+  CHECK_KERNEL(
+      GenerateFullNeighborList<<<blocks_per_grid, BLOCK_SIZE,
+                                 sizeof(hipcub::WarpScan<int>::TempStorage) *
+                                     (BLOCK_SIZE / WARP_SIZE),
+                                 0>>>(
+          per_atom_cell_id, in_atom_list_start_index, in_atom_list_end_index,
+          cutoff_2, total_atom_num, px, py, pz, max_neighbor_num,
           neighbor_start, neighbor_end, neighbors, d_box, should_realloc,
           neighbor_cell, neighbor_cell_num));
 
   }
-};
+
 } // namespace op

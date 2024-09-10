@@ -20,7 +20,7 @@ endforeach()
 list(REMOVE_DUPLICATES include_dirs)
 
 
-# Á´½ÓÕÒµ½µÄËùÓÐ¾²Ì¬¿âµ½¿ÉÖ´ÐÐÎÄ¼þ
+# ï¿½ï¿½ï¿½ï¿½ï¿½Òµï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ð¾ï¿½Ì¬ï¿½âµ½ï¿½ï¿½Ö´ï¿½ï¿½ï¿½Ä¼ï¿½
 file(GLOB tools_path ${CMAKE_CURRENT_LIST_DIR}/../../tools/*.tar.gz)
 
 foreach(tool_path ${tools_path})
@@ -38,7 +38,7 @@ pkg_check_modules(SPDLOG REQUIRED spdlog IMPORTED_TARGET GLOBAL)
 
 set(include_dir ${include_dirs} ${TOOLS_INCLUDE_PATH} ${rocthrust_INCLUDE_DIRS} ${SPDLOG_INCLUDE_DIRS} ${JSONCPP_INCLUDE_DIRS} ${hipcub_INCLUDE_DIRS} ${HIP_INCLUDE_DIRS} "../common" "../data_manager/include")  # ${jsoncpp_INCLUDE_DIRS}
 set(link_dir  ${TOOLS_LINK_PATH} ${rocthrust_LIBRARIES} ${hipcub_LIBRARIES} ${HIP_LIBRARIES} ${SPDLOG_LIBRARY_DIRS} ${JSONCPP_LIBRARY_DIRS})  # ${jsoncpp_LIBRARIES}
-set(depends_name "roc::rocthrust" PkgConfig::JSONCPP PkgConfig::SPDLOG)
+set(depends_name "hip::device" "roc::rocthrust" PkgConfig::JSONCPP PkgConfig::SPDLOG)
 
 
 
