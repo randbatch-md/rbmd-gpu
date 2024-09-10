@@ -2,13 +2,16 @@
 #include "model/device_data.h"
 #include "model/structure_info_data.h"
 #include <memory>
-#include "../common/device_types.h"
+#include "device_types.h"
+#include "model/md_data.h"
+#include "data_manager.h"
+#include "types.h"
 class TemperatureController
 {
 public:
 	TemperatureController() 
-	:_device_data(std::make_shared<DeviceData>())
-	,_structure_info_data(std::make_shared<StructureInfoData>()){};
+	:_device_data(DataManager::getInstance().getDeviceData())
+	,_structure_info_data(DataManager::getInstance().getMDData()->_structure_info_data){};
 
 	virtual ~TemperatureController()=default;
 

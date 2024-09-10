@@ -1,4 +1,4 @@
-#include "ljforce_op/ljforce_op.h"
+#include "ljforce_op.h"
 #include "model/box.h"
 
 

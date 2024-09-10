@@ -36,7 +36,7 @@ pkg_check_modules(JSONCPP REQUIRED jsoncpp IMPORTED_TARGET GLOBAL)
 pkg_check_modules(SPDLOG REQUIRED spdlog IMPORTED_TARGET GLOBAL)
 #pkg_check_modules(CXXOPTS REQUIRED cxxopts IMPORTED_TARGET GLOBAL)
 
-set(include_dir ${include_dirs} ${TOOLS_INCLUDE_PATH} ${rocthrust_INCLUDE_DIRS} ${SPDLOG_INCLUDE_DIRS} ${JSONCPP_INCLUDE_DIRS} ${hipcub_INCLUDE_DIRS} ${HIP_INCLUDE_DIRS} "../common" "../data_manager/include")  # ${jsoncpp_INCLUDE_DIRS}
+set(include_dir ${include_dirs} ${TOOLS_INCLUDE_PATH} ${rocthrust_INCLUDE_DIRS} ${SPDLOG_INCLUDE_DIRS} ${JSONCPP_INCLUDE_DIRS} ${hipcub_INCLUDE_DIRS} ${HIP_INCLUDE_DIRS} "../common" "../data_manager/include" "../force/include")  # ${jsoncpp_INCLUDE_DIRS}
 set(link_dir  ${TOOLS_LINK_PATH} ${rocthrust_LIBRARIES} ${hipcub_LIBRARIES} ${HIP_LIBRARIES} ${SPDLOG_LIBRARY_DIRS} ${JSONCPP_LIBRARY_DIRS})  # ${jsoncpp_LIBRARIES}
 set(depends_name "hip::device" "roc::rocthrust" PkgConfig::JSONCPP PkgConfig::SPDLOG)
 

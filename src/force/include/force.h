@@ -3,7 +3,6 @@
 #include "model/structure_info_data.h"
 #include <memory>
 #include "data_manager.h"
-#include "model/box.h"
 
 class Force
 {
