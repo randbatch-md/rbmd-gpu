@@ -1,7 +1,7 @@
 #include "application.h"
 #include "command_line.h"
-#include "JsonParser.h"
-#include "data_manager.h"
+//#include "JsonParser.h"
+#include "data_manager/include/data_manager.h"
 
 Application::Application(int argc, char* argv[])
 {

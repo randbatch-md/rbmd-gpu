@@ -1,5 +1,4 @@
 #include "update_velocity_op.h"
-#include "base/rocm.h"
 
 namespace op
 {

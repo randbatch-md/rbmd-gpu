@@ -4,6 +4,7 @@
 #include "common/rbmd_define.h"
 #include "common/types.h"
 #include "linked_cell/linked_cell.h"
+#include "linked_cell_op.h"
 
 namespace op {
 __global__ void InitializeCell(LinkedCellDeviceDataPtr* linked_cell, Box* box,
@@ -160,37 +161,32 @@ __global__ void ComputeCellRangesIndices(rbmd::Id* sorted_cell_index,
   }
 }
 
-struct InitializeCellOp<device::DEVICE_GPU> {
-  void operator()(LinkedCellDeviceDataPtr* linked_cell, Box* box, Cell* cells,
-                  rbmd::Id total_cells) {
-    int threads_per_block = BLOCK_SIZE;
-    int blocks_per_grid =
-        (total_cells + threads_per_block - 1) / threads_per_block;
-    CHECK_KERNEL(InitializeCell<<<blocks_per_grid, threads_per_block, 0, 0>>>(
-        linked_cell, box, cells, total_cells));
-  }
-};
+void InitializeCellOp<device::DEVICE_GPU>::operator()(
+    LinkedCellDeviceDataPtr* linked_cell, Box* box, Cell* cells,
+    rbmd::Id total_cells) {
+  int threads_per_block = BLOCK_SIZE;
+  int blocks_per_grid =
+      (total_cells + threads_per_block - 1) / threads_per_block;
+  CHECK_KERNEL(InitializeCell<<<blocks_per_grid, threads_per_block, 0, 0>>>(
+      linked_cell, box, cells, total_cells));
+}
 
-struct AssignAtomsToCellOp<device::DEVICE_GPU> {
-  void operator()(rbmd::Real* px, rbmd::Real* py, rbmd::Real* pz, Box* d_box,
-                  LinkedCellDeviceDataPtr* linked_cell, Cell* cells,
-                  rbmd::Id* per_atom_cell_id, rbmd::Id total_atoms_num) {
-    unsigned int blocks_per_grid =
-        (total_atoms_num + BLOCK_SIZE - 1) / BLOCK_SIZE;
-    CHECK_KERNEL(AssignAtomsToCell<<<blocks_per_grid, BLOCK_SIZE, 0, 0>>>(
-        px, py, pz, d_box, linked_cell, cells, per_atom_cell_id,
-        total_atoms_num));
-  }
-};
+void AssignAtomsToCellOp<device::DEVICE_GPU>::operator()(
+    rbmd::Real* px, rbmd::Real* py, rbmd::Real* pz, Box* d_box,
+    LinkedCellDeviceDataPtr* linked_cell, Cell* cells,
+    rbmd::Id* per_atom_cell_id, rbmd::Id total_atoms_num) {
+  unsigned int blocks_per_grid =
+      (total_atoms_num + BLOCK_SIZE - 1) / BLOCK_SIZE;
+  CHECK_KERNEL(AssignAtomsToCell<<<blocks_per_grid, BLOCK_SIZE, 0, 0>>>(
+      px, py, pz, d_box, linked_cell, cells, per_atom_cell_id,
+      total_atoms_num));
+}
 
-struct ComputeCellRangesIndicesOp<device::DEVICE_GPU> {
-  void operator()(rbmd::Id* sorted_cell_index,
-                  rbmd::Id* d_in_atom_list_start_index,
-                  rbmd::Id* d_in_atom_list_end_index, rbmd::Id num_atoms) {
-    unsigned int blocks_per_grid = (num_atoms + BLOCK_SIZE - 1) / BLOCK_SIZE;
-    CHECK_KERNEL(
-        ComputeCellRangesIndices<<<blocks_per_grid,BLOCK_SIZE,0,0>>>(sorted_cell_index, d_in_atom_list_start_index,
+void ComputeCellRangesIndicesOp<device::DEVICE_GPU>::operator()(
+    rbmd::Id* sorted_cell_index, rbmd::Id* d_in_atom_list_start_index,
+    rbmd::Id* d_in_atom_list_end_index, rbmd::Id num_atoms) {
+  unsigned int blocks_per_grid = (num_atoms + BLOCK_SIZE - 1) / BLOCK_SIZE;
+  CHECK_KERNEL(ComputeCellRangesIndices<<<blocks_per_grid,BLOCK_SIZE,0,0>>>(sorted_cell_index, d_in_atom_list_start_index,
                        d_in_atom_list_end_index, num_atoms));
   }
-};
 } // namespace op

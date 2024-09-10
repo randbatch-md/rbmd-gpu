@@ -1,5 +1,4 @@
 #include "temperature_controller_op/update_temperature_op.h"
-#include "base/rocm.h"
 
 namespace op
 {
