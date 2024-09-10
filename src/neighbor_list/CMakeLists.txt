@@ -24,8 +24,8 @@ get_property(TOOLS_INCLUDE_PATH GLOBAL PROPERTY TOOLS_INCLUDE_PATH)
 get_property(TOOLS_LINK_PATH GLOBAL PROPERTY TOOLS_LINK_PATH)
 set(inclue_files ${TOOLS_INCLUDE_PATH}  "../data_manager/include"  ${include_dirs} ${spdlog_include} ${hipcub_INCLUDE_DIRS})
 set(link_dirs ${TOOLS_LINK_PATH}  ${spdlog_link} ${hipcub_LIBRARIES} )
-set(link_name "jsoncpp_lib" "spdlog" "hip::hipcub")
-set(depend_names "jsoncpp" "data_manager" "controller")
+set(link_name "spdlog" "hip::hipcub")
+set(depend_names "data_manager")
 
 
 
