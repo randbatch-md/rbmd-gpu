@@ -1,8 +1,10 @@
 #include "ljforce.h"
 #include "ljforce_op/ljforce_op.h"
-#include <thrust/device_vector.h>
-#include <hipcub/hipcub.hpp> 
-#include <hipcub/backend/rocprim/block/block_reduce.hpp>
+#include <thrust/device_ptr.h>
+#include "../../common/device_types.h"
+#include "../../common/types.h"
+//#include <hipcub/hipcub.hpp> 
+//#include <hipcub/backend/rocprim/block/block_reduce.hpp>
 
 LJForce::LJForce()
     : list(NeighborList(_structure_info_data->_num_atoms)) {};
@@ -15,14 +17,12 @@ void LJForce::Init()
 void LJForce::Execute()
 {
     LJForce::Init();
-    //
+    rbmd::Real cut_off = 5.0;
 
-    //BuildNeighbor(num_atoms, box, start_id, end_id, id_verletlist);
+	op::LJForceOp<device::DEVICE_GPU> lj_force_op;
 
-	op::LJforceOp<device::DEVICE_GPU> LJforceOp;
-
-    LJforceOp( 
-             _device_data->_d_box,
+    lj_force_op(_device_data->_d_box,
+             cut_off,
              _num_atoms,
              thrust::raw_pointer_cast(_device_data->_d_atoms_type.data()),
              thrust::raw_pointer_cast(_device_data->_d_molecular_id.data()),

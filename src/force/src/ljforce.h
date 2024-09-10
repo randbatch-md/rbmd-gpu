@@ -1,7 +1,8 @@
 #pragma once
 #include "force.h"
-#include "common/types.h"
+#include "../../common/types.h"
 #include "neighbor_list/include/neighbor_list.h"
+
 
 
 class LJForce: Force

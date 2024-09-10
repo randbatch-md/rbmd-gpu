@@ -35,4 +35,7 @@ public:
 	rbmd::Real* _h_fx;
 	rbmd::Real* _h_fy;
 	rbmd::Real* _h_fz;
+
+		//
+   rbmd::Real* _h_evdwl;
 };
