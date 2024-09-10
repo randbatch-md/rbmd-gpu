@@ -1,4 +1,5 @@
 #include "update_velocity_op.h"
+#include "rbmd_define.h"
 
 namespace op
 {
@@ -27,29 +28,19 @@ namespace op
 	}
 
 
-	struct UpdateVelocityOp<device::DEVICE_GPU>
+	void UpdateVelocityOp<device::DEVICE_GPU>::operator()(const rbmd::Id& num_atoms,
+			                                              const rbmd::Real& dt,
+			                                              const rbmd::Real& fmt2v,
+			                                              const rbmd::Real* mass,
+			                                              const rbmd::Real* fx,
+			                                              const rbmd::Real* fy,
+			                                              const rbmd::Real* fz,
+			                                              rbmd::Real* vx,
+			                                              rbmd::Real* vy,
+			                                              rbmd::Real* vz)
 	{
-		void operator()(const rbmd::Id& num_atoms,
-			            const rbmd::Real& dt,
-			            const rbmd::Real& fmt2v,
-			            const rbmd::Real* mass,
-			            const rbmd::Real* fx,
-			            const rbmd::Real* fy,
-			            const rbmd::Real* fz,
-			            rbmd::Real* vx,
-			            rbmd::Real* vy,
-			            rbmd::Real* vz)
-		{
-			int block_per_grid = (nAtoms + THREADS_PER_BLOCK - 1) / THREADS_PER_BLOCK;
-
-			hipLaunchKernelGGL(HIP_KERNEL_NAME(UpdateVelocity), dim3(block_per_grid), dim3(THREADS_PER_BLOCK), 0, 0,
-				num_atoms, dt, fmt2v, mass, fx, fy, fz, vx, vy, vz);
-
-			hipErrorCheck(hipGetLastError());
-			hipErrorCheck(hipDeviceSynchronize());
-		}
-	};
-
-	template struct UpdateVelocityOp<device::DEVICE_GPU>;
+		unsigned int blocks_per_grid = (num_atoms + BLOCK_SIZE - 1) / BLOCK_SIZE;
+		CHECK_KERNEL(UpdateVelocity <<<blocks_per_grid, BLOCK_SIZE, 0, 0 >>> (num_atoms, dt, fmt2v, mass, fx, fy, fz, vx, vy, vz));
+	}
 }
 

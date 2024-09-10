@@ -20,7 +20,7 @@ endforeach()
 list(REMOVE_DUPLICATES include_dirs)
 
 
-# �����ҵ������о�̬�⵽��ִ���ļ�
+# 循环链接库
 file(GLOB tools_path ${CMAKE_CURRENT_LIST_DIR}/../../tools/*.tar.gz)
 
 foreach(tool_path ${tools_path})

@@ -1,4 +1,5 @@
-#include "position_controller_op/update_position_op.h"
+#include "update_position_op.h"
+#include "rbmd_define.h"
 
 namespace op
 {
@@ -137,12 +138,12 @@ namespace op
 			py[tid] += vy[tid] * dt;
 			pz[tid] += vz[tid] * dt;
 
-			UpdateFlagOverRangePoint(min_x[tid],
-				                     min_y[tid],
-				                     min_z[tid],
-				                     max_x[tid],
-				                     max_y[tid],
-				                     max_z[tid],
+			UpdateFlagOverRangePoint(min_x,
+				                     min_y,
+				                     min_z,
+				                     max_x,
+				                     max_y,
+				                     max_z,
 				                     px[tid],
 				                     py[tid],
 				                     pz[tid],
@@ -176,12 +177,12 @@ namespace op
 			py[tid] += vy[tid] * dt;
 			pz[tid] += vz[tid] * dt;
 
-			UpdateOverRangePoint(min_x[tid],
-				                 min_y[tid],
-				                 min_z[tid],
-				                 max_x[tid],
-				                 max_y[tid],
-				                 max_z[tid],
+			UpdateOverRangePoint(min_x,
+				                 min_y,
+				                 min_z,
+				                 max_x,
+				                 max_y,
+				                 max_z,
 				                 px[tid],
 				                 py[tid],
 				                 pz[tid]);
@@ -189,9 +190,7 @@ namespace op
 	}
 
 
-	struct UpdatePositionFlagOp<device::DEVICE_GPU>
-	{
-		void operator()(const rbmd::Id& num_atoms,
+	void UpdatePositionFlagOp<device::DEVICE_GPU>::operator()(const rbmd::Id& num_atoms,
 			            const rbmd::Real& dt,
 			            const rbmd::Real& min_x,
 			            const rbmd::Real& min_y,
@@ -208,20 +207,13 @@ namespace op
 			            rbmd::Id* flag_px,
 			            rbmd::Id* flag_py,
 			            rbmd::Id* flag_pz)
-		{
-			int block_per_grid = (nAtoms + THREADS_PER_BLOCK - 1) / THREADS_PER_BLOCK;
-
-			hipLaunchKernelGGL(HIP_KERNEL_NAME(UpdatePositionFlag), dim3(block_per_grid), dim3(THREADS_PER_BLOCK), 0, 0,
-				num_atoms, dt, min_x, min_y, min_z, max_x, max_y, max_z, vx, vy, vz, px, py, pz, flag_px, flag_py, flag_pz);
-
-			hipErrorCheck(hipGetLastError());
-			hipErrorCheck(hipDeviceSynchronize());
-		}
-	};
-
-	struct UpdatePositionOp<device::DEVICE_GPU>
 	{
-		void operator()(const rbmd::Id& num_atoms,
+		unsigned int blocks_per_grid = (num_atoms + BLOCK_SIZE - 1) / BLOCK_SIZE;
+		CHECK_KERNEL(UpdatePositionFlag <<<blocks_per_grid, BLOCK_SIZE, 0, 0 >>> (num_atoms, dt, min_x, min_y, min_z, max_x, max_y, max_z, vx, vy, vz, px, py, pz, flag_px, flag_py, flag_pz));
+	}
+	
+
+	void UpdatePositionOp<device::DEVICE_GPU>::operator()(const rbmd::Id& num_atoms,
 			            const rbmd::Real& dt,
 			            const rbmd::Real& min_x,
 			            const rbmd::Real& min_y,
@@ -235,17 +227,9 @@ namespace op
 			            rbmd::Real* px,
 			            rbmd::Real* py,
 			            rbmd::Real* pz)
-		{
-			int block_per_grid = (nAtoms + THREADS_PER_BLOCK - 1) / THREADS_PER_BLOCK;
-
-			hipLaunchKernelGGL(HIP_KERNEL_NAME(UpdatePosition), dim3(block_per_grid), dim3(THREADS_PER_BLOCK), 0, 0,
-				num_atoms, dt, min_x, min_y, min_z, max_x, max_y, max_z, vx, vy, vz, px, py, pz, flag_px, flag_py, flag_pz);
-
-			hipErrorCheck(hipGetLastError());
-			hipErrorCheck(hipDeviceSynchronize());
-		}
-	};
-
-	template struct UpdatePositionFlagOp<device::DEVICE_GPU>;
-	template struct UpdatePositionOp<device::DEVICE_GPU>;
+	{
+		unsigned int blocks_per_grid = (num_atoms + BLOCK_SIZE - 1) / BLOCK_SIZE;
+		CHECK_KERNEL(UpdatePosition <<<blocks_per_grid, BLOCK_SIZE, 0, 0 >>> (num_atoms, dt, min_x, min_y, min_z, max_x, max_y, max_z, vx, vy, vz, px, py, pz));
+	}
+	
 }
