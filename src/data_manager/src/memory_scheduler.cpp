@@ -29,6 +29,9 @@ bool MemoryScheduler::asyncMemoryH2D() {
   auto& h_fy = _structure_data->_h_fy;
   auto& h_fz = _structure_data->_h_fz;
 
+  	//
+  auto& h_evdwl= _structure_data->_h_evdwl;
+
   auto& h_atoms_id = _structure_data->_h_atoms_id;
   auto& h_atoms_type = _structure_data->_h_atoms_type;
   auto& h_molecular_id = _structure_data->_h_molecular_id;
@@ -64,6 +67,9 @@ bool MemoryScheduler::asyncMemoryH2D() {
   thrust::copy(h_fx, h_fx + num_atoms, _device_data->_d_fx.begin());
   thrust::copy(h_fy, h_fy + num_atoms, _device_data->_d_fy.begin());
   thrust::copy(h_fz, h_fz + num_atoms, _device_data->_d_fz.begin());
+
+   //cpoy evdwl
+  thrust::copy(h_evdwl, h_evdwl + num_atoms, _device_data->_d_evdwl.begin());
 
   /// copy other
   _device_data->_d_atoms_id.resize(num_atoms);
