@@ -21,9 +21,11 @@ void BerendsenController::Init()
     case UNIT::LJ:
         _mvv2e = UnitFactor<UNIT::LJ>::_mvv2e;
         _kB = UnitFactor<UNIT::LJ>::_kb;
+        break;
     case UNIT::REAL:
         _mvv2e = UnitFactor<UNIT::REAL>::_mvv2e;
         _kB = UnitFactor<UNIT::REAL>::_kb;
+        break;
     default:
         break;
     }

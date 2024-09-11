@@ -14,11 +14,16 @@ void DefaultVelocityController::Init() {
   auto unit = "LJ";
   UNIT unit_factor = unit_factor_map[unit];
 
-  switch (unit_factor_map["lj"]) {
+  switch (unit_factor) {
+    case UNIT::METAL:
+      _fmt2v = UnitFactor<UNIT::METAL>::_kb;
+      break;
     case UNIT::LJ:
       _fmt2v = UnitFactor<UNIT::LJ>::_kb;
+      break;
     case UNIT::REAL:
       _fmt2v = UnitFactor<UNIT::REAL>::_kb;
+      break;
     default:
       break;
   }

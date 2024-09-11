@@ -1,11 +1,12 @@
 #include "ljforce_op.h"
 #include "model/box.h"
-
+#include <hip/hip_runtime.h>
+#include "../common/rbmd_define.h"
 
 namespace op
 {
 
-#define THREADS_PER_BLOCK 256
+//#define THREADS_PER_BLOCK 256
 
 
 	//force kernel 
@@ -38,7 +39,7 @@ namespace op
 
 	__global__ void ComputeLJForce(
 						Box* box,
-			            const rbmd::Real cut_off,
+			            const rbmd::Real& cut_off,
 			            const rbmd::Id& num_atoms,
 			            const rbmd::Id* atoms_type,
 			            const rbmd::Id* molecular_type,
@@ -107,7 +108,7 @@ namespace op
 				sum_eij += e_ij;
 			}
 
-			// Ê¹ÓÃ atomicAdd ±£´æÁ¦ºÍÊÆÄÜ£¬±ÜÃâÊý¾Ý¾ºÕù
+			// Ê¹ï¿½ï¿½ atomicAdd ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ü£ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ý¾ï¿½ï¿½ï¿½
 			//atomicAdd(&force_x[tid1],sum_fx);
 			//atomicAdd(&force_y[tid1],sum_fy);
 			//atomicAdd(&force_z[tid1],sum_fz);
@@ -280,9 +281,9 @@ namespace op
 	//
 	void LJForceOp<device::DEVICE_GPU>::operator()(
 						Box* box,
-			            const rbmd::Real cut_off,
+			            const rbmd::Real& cut_off,
 			            const rbmd::Id& num_atoms,
-			            const rbmd::Id* atoms_type,
+		                const rbmd::Id* atoms_type,
 			            const rbmd::Id* molecular_type,
 			            const rbmd::Real* sigma,
 			            const rbmd::Real* eps,
@@ -297,11 +298,28 @@ namespace op
 			            rbmd::Real* force_z,
 			            rbmd::Real* evdwl)
 		{
-			int threads_per_block = BLOCK_SIZE;
-            unsigned int blocks_per_grid =(num_atoms + threads_per_block - 1) / threads_per_block;
+		    unsigned int blocks_per_grid = (num_atoms + BLOCK_SIZE - 1) / BLOCK_SIZE;
+			printf("value of a ï¼š%f\n", cut_off);
+			printf("value of num_atoms ï¼š%d\n", num_atoms);
+			printf("value of atoms_type ï¼š%d\n", atoms_type[0]);
+			printf("value of molecular_type ï¼š%d\n", molecular_type[0]);
+			printf("value of sigma ï¼š%f\n", sigma[0]);
+			printf("value of eps ï¼š%f\n", eps[0]);
+			printf("value of start_id ï¼š%d\n", start_id[0]);
+			printf("value of end_id ï¼š%d\n", end_id[0]);
+			printf("value of id_verletlist ï¼š%d\n", id_verletlist[0]);
+			printf("value of px ï¼š%f\n", px[0]);
+			printf("value of py ï¼š%f\n", py[0]);
+			printf("value of pz ï¼š%f\n", pz[0]);
+			printf("value of force_x ï¼š%f\n", force_x[0]);
+			printf("value of force_y ï¼š%f\n", force_y[0]);
+			printf("value of force_z ï¼š%f\n", force_z[0]);
+			printf("value of evdwl ï¼š%f\n", evdwl[0]);
 
-			CHECK_KERNEL(ComputeLJForce<<<blocks_per_grid, threads_per_block, 0, 0>>>(box,cut_off,num_atoms, atoms_type, molecular_type,
-															sigma, eps, start_id, end_id, id_verletlist,px, py, pz, force_x, force_y, force_z,evdwl));
+
+
+		    CHECK_KERNEL(ComputeLJForce <<<blocks_per_grid, BLOCK_SIZE, 0, 0 >>> (box, cut_off, num_atoms, atoms_type, molecular_type,
+				sigma, eps, start_id, end_id, id_verletlist, px, py, pz, force_x, force_y, force_z, evdwl));
 		}
 
 }

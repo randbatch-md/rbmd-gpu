@@ -3,8 +3,8 @@
 //#include "md_system.h"
 #include "atomic_reader.h"
 //#include "JsonParser.h"
-#include "executioner.h"
 #include <memory>
+
 #include "../simulate_pipeline/include/nve_ensemble.h"
 #include "../simulate_pipeline/include/nvp_ensemble.h"
 #include "../simulate_pipeline/include/nvt_ensemble.h"
@@ -54,13 +54,10 @@ int MDApplication::Execute()
 	//	//log
 	//	return -1;
 	//}
-
 	ReadMDData();
+	_simulate_pipeline = std::make_shared<NVTensemble>();
 
-	std::shared_ptr<Ensemble> ensemble;
-	ensemble = std::make_shared<NVTensemble>();
-
-	_executioner = std::make_shared<Executioner>(ensemble);
+	_executioner = std::make_shared<Executioner>(_simulate_pipeline);
 
 	_executioner->Init();
 
@@ -135,8 +132,7 @@ int MDApplication::ReadMDData()
 	auto md_data = DataManager::getInstance().getMDData().get();
 	reader = std::make_shared<AtomicReader>("rbmd.data", *md_data);
 	reader->Execute();
-
-	std::shared_ptr<LJMemoryScheduler> lj_memory_scheduler = std::make_shared<LJMemoryScheduler>();
-	DataManager::getInstance().Fill2Device(lj_memory_scheduler);
+    std::shared_ptr<LJMemoryScheduler> lj_memory_scheduler = std::make_shared<LJMemoryScheduler>();
+    DataManager::getInstance().Fill2Device(lj_memory_scheduler);
 	return 0;
 }

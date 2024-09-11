@@ -22,10 +22,12 @@ void NoseHooverController::Init()
         _mvv2e = UnitFactor<UNIT::LJ>::_mvv2e;
         _kB = UnitFactor<UNIT::LJ>::_kb;
         _fmt2v = UnitFactor<UNIT::LJ>::_fmt2v;
+        break;
     case UNIT::REAL:
         _mvv2e = UnitFactor<UNIT::REAL>::_mvv2e;
         _kB = UnitFactor<UNIT::REAL>::_kb;
         _fmt2v = UnitFactor<UNIT::REAL>::_fmt2v;
+        break;
 
     default:
         break;

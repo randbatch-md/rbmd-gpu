@@ -7,8 +7,7 @@
 #include "../data_manager/include/model/md_data.h"
 #include "scheduler/memory_scheduler.h"
 
-
-//class MDData;
+// class MDData;
 class PostProcessData;
 //class ConfigData;
 //class DeviceData;
@@ -32,7 +31,7 @@ private:
     , _md_data(std::make_shared<MDData>()) 
     , _device_data(std::make_shared<DeviceData>()) 
     //, _memory_scheduler(std::make_shared<MemoryScheduler>())
-    {}; // ÕâÀï³õÊ¼»¯ÁË_config_data Ô­À´ÊÇDataManager() = default;
+    {}; // ï¿½ï¿½ï¿½ï¿½ï¿½Ê¼ï¿½ï¿½ï¿½ï¿½_config_data Ô­ï¿½ï¿½ï¿½ï¿½DataManager() = default;
 
   ~DataManager() = default;
 
@@ -76,9 +75,9 @@ public:
   */
   auto& getMemoryScheduler() const { return _memory_scheduler; }
 
-  void Fill2Device(const std::shared_ptr<MemoryScheduler>& memory_scheduler) {
-      this->_memory_scheduler = memory_scheduler;
-      this->_memory_scheduler->asyncMemoryH2D();
+  void Fill2Device(const std::shared_ptr<MemoryScheduler> &memory_scheduler) {
+    this->_memory_scheduler = memory_scheduler;
+    this->_memory_scheduler->asyncMemoryH2D();
   }
 
 private:

@@ -9,6 +9,8 @@
 LJForce::LJForce(){
     full_list_builder = std::make_shared<FullNeighborListBuilder>();
     list = full_list_builder->Build();
+    std::cout<<"  _h_total_max_neighbor_num   "<< list->_h_total_max_neighbor_num << std::endl;
+    std::cout <<" _d_neighbor_num 0  "<< list->_d_neighbor_num[0] << std::endl;
 };
 
 void LJForce::Init()
@@ -41,12 +43,13 @@ void LJForce::Execute()
              thrust::raw_pointer_cast(_device_data->_d_fz.data()),
              thrust::raw_pointer_cast(_device_data->_d_evdwl.data()));
 
-    // // ¼ÆËã×ÜÊÆÄÜ
+    std::cout << "out of force execute" << std::endl;
+    // // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
     //rbmd::Real* d_total_evdwl;
     //hipMalloc(&d_total_evdwl, sizeof(rbmd::Real));
     //op::DeviceReduceSum(thrust::raw_pointer_cast(_device_data->_d_evdwl.data()), d_total_evdwl, _num_atoms);
 
-    //// ´ÓÉè±¸¸´ÖÆ½á¹ûµ½Ö÷»ú
+    //// ï¿½ï¿½ï¿½è±¸ï¿½ï¿½ï¿½Æ½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
     //rbmd::Real total_evdwl;
     //hipMemcpy(&total_evdwl, d_total_evdwl, sizeof(rbmd::Real), hipMemcpyDeviceToHost);
 

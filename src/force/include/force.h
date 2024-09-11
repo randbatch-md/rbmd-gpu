@@ -7,7 +7,10 @@
 class Force
 {
 public:
-	Force() {};
+	Force() {
+	  this->_structure_info_data = DataManager::getInstance().getMDData()->_structure_info_data;
+	  this->_device_data = DataManager::getInstance().getDeviceData();
+	};
 	virtual ~Force()=default;
 
 	//virtual void Update()=0;
