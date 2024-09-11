@@ -3,8 +3,8 @@
 #include <hipcub/backend/rocprim/device/device_radix_sort.hpp>
 #include <hipcub/backend/rocprim/iterator/counting_input_iterator.hpp>
 
-#include "common/device_types.h"
-#include "common/types.h"
+#include "../common/device_types.h"
+#include "../common/types.h"
 #include "data_manager.h"
 #include "linked_cell_op.h"
 #include "model/md_data.h"
@@ -16,10 +16,8 @@ LinkedCell::LinkedCell() {
   this->_config_data = DataManager::getInstance().getConfigData();
   this->_per_atom_cell_id.resize(_structure_info_data->_num_atoms);
   // TODO  反序列化
-  this->_cutoff =
-      _config_data->Get<rbmd::Real>("cut_off", "hyper_parameters", "neighbor");
-  this->_total_atoms_num =
-      _structure_info_data->_num_atoms; // do this because nativate num
+  this->_cutoff = 5; //_config_data->Get<rbmd::Real>("cut_off", "hyper_parameters", "neighbor");
+  this->_total_atoms_num =  _structure_info_data->_num_atoms; // do this because nativate num
 }
 
 LinkedCell::~LinkedCell() {

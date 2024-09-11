@@ -1,6 +1,6 @@
 #include "ljforce_op.h"
 #include "model/box.h"
-
+#include <hip/hip_runtime.h>
 
 namespace op
 {
@@ -107,7 +107,7 @@ namespace op
 				sum_eij += e_ij;
 			}
 
-			// Ê¹ÓÃ atomicAdd ±£´æÁ¦ºÍÊÆÄÜ£¬±ÜÃâÊý¾Ý¾ºÕù
+			// Ê¹ï¿½ï¿½ atomicAdd ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ü£ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ý¾ï¿½ï¿½ï¿½
 			//atomicAdd(&force_x[tid1],sum_fx);
 			//atomicAdd(&force_y[tid1],sum_fy);
 			//atomicAdd(&force_z[tid1],sum_fz);

@@ -3,11 +3,14 @@
 //#include "md_system.h"
 #include "atomic_reader.h"
 //#include "JsonParser.h"
-#include "executioner.h"
 #include <memory>
+
 #include "../simulate_pipeline/include/nve_ensemble.h"
 #include "../simulate_pipeline/include/nvp_ensemble.h"
 #include "../simulate_pipeline/include/nvt_ensemble.h"
+#include "executioner.h"
+#include "lj_memory_scheduler.h"
+#include "memory_scheduler.h"
 
 MDApplication::MDApplication(int argc, char* argv[]) : 
 	Application(argc,argv)
@@ -17,40 +20,48 @@ MDApplication::MDApplication(int argc, char* argv[]) :
 
 int MDApplication::Execute()
 {
-	try
-	{
-		if (-1 == ReadMDData())
-		{
-			//log
-			return -1;
-		}
+	//try
+	//{
+	//	if (-1 == ReadMDData())
+	//	{
+	//		//log
+	//		return -1;
+	//	}
+	//
+	//	if (!_config_data->HasNode("execution"))
+	//	{
+	//		return -1;
+	//	}
+	//	//_executioner = std::make_shared<Executioner>(_parser->GetJsonNode("execution"), _system);
+	//	//_executioner = std::make_shared<Executioner>(_config_data->GetJsonNode("execution"), _simulate_pipelines);
+	//
+	//	for (size_t i = 0; i < _simulate_pipelines.size(); i++)
+	//	{
+	//		_executioner = std::make_shared<Executioner>(_simulate_nodes[i], _simulate_pipelines[i]);
+	//
+	//		_executioner->Init();
+	//
+	//		if (-1 == _executioner->Execute())
+	//		{
+	//			//log
+	//			//_console->error("execute failed!");
+	//		}
+	//	}
+	//
+	//}
+	//catch (const std::exception&)
+	//{
+	//	//log
+	//	return -1;
+	//}
+	ReadMDData();
+	_simulate_pipeline = std::make_shared<NVTensemble>();
 
-		if (!_config_data->HasNode("execution"))
-		{
-			return -1;
-		}
-		//_executioner = std::make_shared<Executioner>(_parser->GetJsonNode("execution"), _system);
-		//_executioner = std::make_shared<Executioner>(_config_data->GetJsonNode("execution"), _simulate_pipelines);
+	_executioner = std::make_shared<Executioner>(_simulate_pipeline);
 
-		for (size_t i = 0; i < _simulate_pipelines.size(); i++)
-		{
-			_executioner = std::make_shared<Executioner>(_simulate_nodes[i], _simulate_pipelines[i]);
+	_executioner->Init();
 
-			_executioner->Init();
-
-			if (-1 == _executioner->Execute())
-			{
-				//log
-				_console->error("execute failed!");
-			}
-		}
-
-	}
-	catch (const std::exception&)
-	{
-		//log
-		return -1;
-	}
+	_executioner->Execute();
 
 	return 0;
 }
@@ -94,30 +105,34 @@ void MDApplication::AddSimulate()
 
 int MDApplication::ReadMDData()
 {
-	//auto& md_data = std::dynamic_pointer_cast<MDSystem>(_system)->GetMDData();
-	auto md_data = DataManager::getInstance().getMDData().get();
+	////auto& md_data = std::dynamic_pointer_cast<MDSystem>(_system)->GetMDData();
+	//auto md_data = DataManager::getInstance().getMDData().get();
+	//std::shared_ptr<BaseReader> reader;
+	//_config_data = DataManager::getInstance().getConfigData();
+	//auto atom_style = _config_data->Get<std::string>("atom_style", "init_configuration", "read_data");
+	//if ("atomic" == atom_style)
+	//{
+	//	reader = std::make_shared<AtomicReader>("rbmd.data", *md_data);
+	//}
+	//else if ("charge" == atom_style)
+	//{
+	//	//reader = std::make_shared<Charge_Reader>("rbmd.data", md_data);
+	//}
+	//else if ("full" == atom_style)
+	//{
+	//	//reader = std::make_shared<FullReader>("rbmd.data", md_data);
+	//}
+	//else
+	//{
+	//	//log
+	//	//_console->error("ilLegal atom style!");
+	//	return -1;
+	//}
 	std::shared_ptr<BaseReader> reader;
-	_config_data = DataManager::getInstance().getConfigData();
-	auto atom_style = _config_data->Get<std::string>("atom_style", "init_configuration", "read_data");
-	if ("atomic" == atom_style)
-	{
-		reader = std::make_shared<AtomicReader>("rbmd.data", *md_data);
-	}
-	else if ("charge" == atom_style)
-	{
-		//reader = std::make_shared<Charge_Reader>("rbmd.data", md_data);
-	}
-	else if ("full" == atom_style)
-	{
-		//reader = std::make_shared<FullReader>("rbmd.data", md_data);
-	}
-	else
-	{
-		//log
-		_console->error("ilLegal atom style!");
-		return -1;
-	}
+	auto md_data = DataManager::getInstance().getMDData().get();
+	reader = std::make_shared<AtomicReader>("rbmd.data", *md_data);
 	reader->Execute();
-
+        std::shared_ptr<LJMemoryScheduler> lj_memory_scheduler = std::make_shared<LJMemoryScheduler>();
+        DataManager::getInstance().Fill2Device(lj_memory_scheduler);
 	return 0;
 }
