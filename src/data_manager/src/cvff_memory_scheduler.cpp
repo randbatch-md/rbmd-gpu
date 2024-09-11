@@ -8,13 +8,13 @@ bool CVFFMemoryScheduler::asyncMemoryH2D()
 		return false;
 	}
 
-	auto& num_atoms_type = _structure_info_data->_num_atoms_type;
-	auto& num_bonds = _structure_info_data->_num_bonds;
-	auto& num_bonds_type = _structure_info_data->_num_bounds_type;
-	auto& num_angles = _structure_info_data->_num_angles;
-	auto& num_angles_type = _structure_info_data->_num_angles_type;
-	auto& num_dihedrals = _structure_info_data->_num_dihedrals;
-	auto& num_dihedrals_type = _structure_info_data->_num_dihedrals_type;
+	auto& num_atoms_type = *(_structure_info_data->_num_atoms_type);
+	auto& num_bonds = *(_structure_info_data->_num_bonds);
+	auto& num_bonds_type = *(_structure_info_data->_num_bounds_type);
+	auto& num_angles = *(_structure_info_data->_num_angles);
+	auto& num_angles_type = *(_structure_info_data->_num_angles_type);
+	auto& num_dihedrals = *(_structure_info_data->_num_dihedrals);
+	auto& num_dihedrals_type = *(_structure_info_data->_num_dihedrals_type);
 	auto sd = std::dynamic_pointer_cast<FullStructureData>(_structure_data);
 	auto fd = std::dynamic_pointer_cast<CVFFForceFieldData>(_force_field_data);
 

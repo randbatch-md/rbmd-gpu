@@ -9,7 +9,7 @@ void DefaultPositionController::Init()
 	//auto atom_style = _config_data->Get<std::string>("atom_style", "init_configuration", "read_data");
 
 	_dt = 0.001;           // 配置文件中读取
-	_num_atoms = _structure_info_data->_num_atoms;
+	_num_atoms = *(_structure_info_data->_num_atoms);
 }
 
 void DefaultPositionController::Update() 
@@ -26,14 +26,14 @@ void DefaultPositionController::Update()
 			//_device_data->_shake_vz = _device_data->_d_pz;
 		}
 		op::UpdatePositionOp<device::DEVICE_GPU> update_position_op;
-		update_position_op(_structure_info_data->_num_atoms,
+		update_position_op(_num_atoms,
 			               _dt,
-			               _structure_info_data->_range[0][0], // 这在nvp里面是变化的
-			               _structure_info_data->_range[1][0],
-			               _structure_info_data->_range[2][0],
-			               _structure_info_data->_range[0][1],
-			               _structure_info_data->_range[1][1],
-			               _structure_info_data->_range[2][1],
+			               (*_structure_info_data->_range)[0][0], // 这在nvp里面是变化的
+			               (*_structure_info_data->_range)[1][0],
+			               (*_structure_info_data->_range)[2][0],
+			               (*_structure_info_data->_range)[0][1],
+			               (*_structure_info_data->_range)[1][1],
+			               (*_structure_info_data->_range)[2][1],
 			               thrust::raw_pointer_cast(_device_data->_d_vx.data()),
 			               thrust::raw_pointer_cast(_device_data->_d_vy.data()),
 			               thrust::raw_pointer_cast(_device_data->_d_vz.data()),
@@ -44,14 +44,14 @@ void DefaultPositionController::Update()
 	else
 	{
 		op::UpdatePositionFlagOp<device::DEVICE_GPU> update_position_op;
-		update_position_op(_structure_info_data->_num_atoms,
+		update_position_op(_num_atoms,
 			               _dt,
-			               _structure_info_data->_range[0][0],
-			               _structure_info_data->_range[1][0],
-			               _structure_info_data->_range[2][0],
-			               _structure_info_data->_range[0][1],
-			               _structure_info_data->_range[1][1],
-			               _structure_info_data->_range[2][1],
+			               (*_structure_info_data->_range)[0][0],
+			               (*_structure_info_data->_range)[1][0],
+			               (*_structure_info_data->_range)[2][0],
+			               (*_structure_info_data->_range)[0][1],
+			               (*_structure_info_data->_range)[1][1],
+			               (*_structure_info_data->_range)[2][1],
 			               thrust::raw_pointer_cast(_device_data->_d_vx.data()),
 			               thrust::raw_pointer_cast(_device_data->_d_vy.data()),
 			               thrust::raw_pointer_cast(_device_data->_d_vz.data()),

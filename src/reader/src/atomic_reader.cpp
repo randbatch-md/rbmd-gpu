@@ -34,12 +34,13 @@ int AtomicReader::ReadData()
 
 				if (line.find("Atoms") != std::string::npos)
 				{
-					ReadAtoms(num_atoms);
-					//std::cout << "Atoms" << std::endl;
+					std::cout << "Atoms" << std::endl;
+					ReadAtoms(*num_atoms);
 				}
 				else if (line.find("Velocities") != std::string::npos)
 				{
-					ReadVelocity(num_atoms);
+					std::cout << "Velocities" << std::endl;
+					ReadVelocity(*num_atoms);
 				}
 			}
 		}
@@ -59,14 +60,14 @@ void AtomicReader::AllocateDataSpace()
 	auto& md_data = DataManager::getInstance().getMDData();
 	auto& info = _md_data._structure_info_data;
 	auto& data = _md_data._structure_data;
-	HIP_CHECK(hipHostMalloc(&(data->_h_atoms_id), info->_num_atoms*sizeof(rbmd::Id)));
-	HIP_CHECK(hipHostMalloc(&(data->_h_atoms_type), info->_num_atoms * sizeof(rbmd::Id)));
-	HIP_CHECK(hipHostMalloc(&(data->_h_px), info->_num_atoms*sizeof(rbmd::Id)));
-	HIP_CHECK(hipHostMalloc(&(data->_h_py), info->_num_atoms*sizeof(rbmd::Id)));
-	HIP_CHECK(hipHostMalloc(&(data->_h_pz), info->_num_atoms*sizeof(rbmd::Id)));
-	HIP_CHECK(hipHostMalloc(&(data->_h_vx), info->_num_atoms*sizeof(rbmd::Id)));
-	HIP_CHECK(hipHostMalloc(&(data->_h_vy), info->_num_atoms*sizeof(rbmd::Id)));
-	HIP_CHECK(hipHostMalloc(&(data->_h_vz), info->_num_atoms*sizeof(rbmd::Id)));
+	HIP_CHECK(MALLOCHOST(&(data->_h_atoms_id), *(info->_num_atoms)*sizeof(rbmd::Id)));
+	HIP_CHECK(MALLOCHOST(&(data->_h_atoms_type), *(info->_num_atoms) * sizeof(rbmd::Id)));
+	HIP_CHECK(MALLOCHOST(&(data->_h_px), *(info->_num_atoms)*sizeof(rbmd::Id)));
+	HIP_CHECK(MALLOCHOST(&(data->_h_py), *(info->_num_atoms)*sizeof(rbmd::Id)));
+	HIP_CHECK(MALLOCHOST(&(data->_h_pz), *(info->_num_atoms)*sizeof(rbmd::Id)));
+	HIP_CHECK(MALLOCHOST(&(data->_h_vx), *(info->_num_atoms)*sizeof(rbmd::Id)));
+	HIP_CHECK(MALLOCHOST(&(data->_h_vy), *(info->_num_atoms)*sizeof(rbmd::Id)));
+	HIP_CHECK(MALLOCHOST(&(data->_h_vz), *(info->_num_atoms)*sizeof(rbmd::Id)));
 }
 
 int AtomicReader::ReadAtoms(const rbmd::Id& atoms_num)
@@ -92,7 +93,7 @@ int AtomicReader::ReadAtoms(const rbmd::Id& atoms_num)
 					iss >> types[index];
 					iss >> _md_data._structure_data->_h_px[index] >> _md_data._structure_data->_h_py[index] >>_md_data._structure_data->_h_pz[index];
 					++num;
-					//std::cout << atom_id << " " << types[index] << " " << _md_data._structure_data->_h_px[index] << " " << _md_data._structure_data->_h_py[index] << " " << _md_data._structure_data->_h_pz[index] << std::endl;
+					std::cout << atom_id << " " << types[index] << " " << _md_data._structure_data->_h_px[index] << " " << _md_data._structure_data->_h_py[index] << " " << _md_data._structure_data->_h_pz[index] << std::endl;
 				}
 				_line_start = &_mapped_memory[_locate];
 			}
@@ -126,7 +127,7 @@ int AtomicReader::ReadVelocity(const rbmd::Id& atoms_num)
 					auto index = atom_id - 1;
 					iss >> _md_data._structure_data->_h_vx[index] >> _md_data._structure_data->_h_vy[index] >> _md_data._structure_data->_h_vz[index];
 					++num;
-					//std::cout << atom_id << " " << _md_data._structure_data->_h_vx[index] << " " << _md_data._structure_data->_h_vy[index] << " " << _md_data._structure_data->_h_vz[index] << std::endl;
+					std::cout << atom_id << " " << _md_data._structure_data->_h_vx[index] << " " << _md_data._structure_data->_h_vy[index] << " " << _md_data._structure_data->_h_vz[index] << std::endl;
 				}
 				_line_start = &_mapped_memory[_locate];
 			}

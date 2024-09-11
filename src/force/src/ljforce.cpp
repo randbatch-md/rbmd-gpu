@@ -15,7 +15,7 @@ LJForce::LJForce(){
 
 void LJForce::Init()
 {
-    _num_atoms = _structure_info_data->_num_atoms;
+    _num_atoms = *(_structure_info_data->_num_atoms);
 }
 
 void LJForce::Execute()

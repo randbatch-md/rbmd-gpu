@@ -9,7 +9,7 @@ NoseHooverController::NoseHooverController() {};
 
 void NoseHooverController::Init()
 {
-    _num_atoms = _structure_info_data->_num_atoms;
+    _num_atoms = *(_structure_info_data->_num_atoms);
     _temp_sum = 0;
     _nosehooverxi = 0;
     _dt = 0.001;     // 配置文件中读取      

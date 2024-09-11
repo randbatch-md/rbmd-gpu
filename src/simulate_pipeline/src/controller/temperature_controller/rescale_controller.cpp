@@ -8,7 +8,7 @@ RescaleController::RescaleController() {};
 
 void RescaleController::Init()
 {
-    _num_atoms = _structure_info_data->_num_atoms;
+    _num_atoms = *(_structure_info_data->_num_atoms);
     _temp_sum = 0;
       
     auto unit = "LJ";   //ÅäÖÃÎÄ¼ş¶ÁÈ¡

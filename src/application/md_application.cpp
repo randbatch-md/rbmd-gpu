@@ -129,7 +129,7 @@ int MDApplication::ReadMDData()
 	//	return -1;
 	//}
 	std::shared_ptr<BaseReader> reader;
-	auto md_data = DataManager::getInstance().getMDData().get();
+	std::shared_ptr<MDData> md_data = DataManager::getInstance().getMDData();
 	reader = std::make_shared<AtomicReader>("rbmd.data", *md_data);
 	reader->Execute();
     std::shared_ptr<LJMemoryScheduler> lj_memory_scheduler = std::make_shared<LJMemoryScheduler>();

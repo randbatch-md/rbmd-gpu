@@ -9,7 +9,7 @@ BerendsenController::BerendsenController() {};
 
 void BerendsenController::Init()
 {
-    _num_atoms = _structure_info_data->_num_atoms;
+    _num_atoms = *(_structure_info_data->_num_atoms);
     _temp_sum = 0;
     _Tdamp = 0.1;    // 配置文件中读取 temperature [1.0,1.0,0.1]
     _dt = 0.001;     // 配置文件中读取      
