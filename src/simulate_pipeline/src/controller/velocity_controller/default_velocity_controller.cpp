@@ -3,6 +3,7 @@
 #include "unit_factor.h"
 #include <thrust/device_ptr.h>
 #include "device_types.h"
+#include "data_manager.h"
 
 DefaultVelocityController::DefaultVelocityController(){};
 

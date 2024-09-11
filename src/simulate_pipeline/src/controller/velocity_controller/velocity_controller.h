@@ -9,8 +9,8 @@ class VelocityController
 {
 public:
 	VelocityController()
-	:_device_data(DataManager::getInstance().getDeviceData())//_device_data(std::make_shared<DeviceData>())		
-	, _structure_info_data(DataManager::getInstance().getMDData()->_structure_info_data)//_structure_info_data(std::make_shared<StructureInfoData>())
+	:_device_data(DataManager::getInstance().getDeviceData()) // todo 最开始的初始化待定	 _device_data(std::make_shared<DeviceData>())	 
+	, _structure_info_data(DataManager::getInstance().getMDData()->_structure_info_data) //  todo 最开始的初始化待定	 _structure_info_data(std::make_shared<StructureInfoData>())
 	{};
 
 	virtual ~VelocityController()=default;

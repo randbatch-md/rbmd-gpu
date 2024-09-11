@@ -2,14 +2,14 @@
 #include "default_position_controller.h"
 #include "default_velocity_controller.h"
 #include "shake_controller.h"
-#include "default_force_controller.h"
+#include "ljforce.h"
 #include "rescale_controller.h"
 
 NVTensemble::NVTensemble()
 {
 	_position_controller = std::make_shared<DefaultPositionController>(); 
 	_velocity_controller = std::make_shared<DefaultVelocityController>(); 
-	_force_controller = std::make_shared<DefaultForceController>(); 
+	_force_controller = std::make_shared<LJForce>(); // todo ×Ô¶¨Òåforcetype =
 	_temperature_controller = std::make_shared<RescaleController>();
 
 }

@@ -2,7 +2,7 @@
 #include "../common/object.h"
 #include "velocity_controller.h"
 #include "position_controller.h"
-#include "force_controller.h"
+#include "force.h"
 #include "shake_controller.h"
 #include "temperature_controller.h"
 
@@ -49,7 +49,7 @@ protected:
 
 	std::shared_ptr<PositionController> _position_controller;
 	std::shared_ptr<VelocityController> _velocity_controller;
-	std::shared_ptr<ForceController> _force_controller;
+	std::shared_ptr<Force> _force_controller;
 	std::shared_ptr<ShakeController> _shake_controller;
 	std::shared_ptr<TemperatureController> _temperature_controller;
 };

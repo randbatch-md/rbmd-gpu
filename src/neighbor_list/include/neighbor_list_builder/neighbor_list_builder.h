@@ -1,9 +1,9 @@
 #pragma once
 #include "../../data_manager/include/model/box.h"
-#include "common/object.h"
-#include "common/types.h"
-#include "linked_cell/linked_cell.h"
-#include "neighbor_list.h"
+#include "../common/object.h"
+#include "../common/types.h"
+#include "../neighbor_list/include/linked_cell/linked_cell.h"
+#include "../neighbor_list/include/neighbor_list.h"
 
 // linked Cell should new in out
 class NeighborListBuilder : public Object {

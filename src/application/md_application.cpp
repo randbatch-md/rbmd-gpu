@@ -97,6 +97,7 @@ int MDApplication::ReadMDData()
 	//auto& md_data = std::dynamic_pointer_cast<MDSystem>(_system)->GetMDData();
 	std::shared_ptr<MDData> md_data = DataManager::getInstance().getMDData();
 	std::shared_ptr<BaseReader> reader;
+	_config_data = DataManager::getInstance().getConfigData();
 	auto atom_style = _config_data->Get<std::string>("atom_style", "init_configuration", "read_data");
 	if ("atomic" == atom_style)
 	{

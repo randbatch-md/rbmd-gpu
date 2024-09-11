@@ -86,8 +86,9 @@ set(LIB_DIR ${CMAKE_CURRENT_LIST_DIR}/lib)
 set(LIBRARY_NAMES
 		data_manager
 		reader
-		simulate_pipeline
 		neighbor_list
+		force
+		simulate_pipeline
 )
 
 target_link_libraries(${PROJECT_NAME} PUBLIC ${LIBRARY_NAMES} PkgConfig::JSONCPP PkgConfig::SPDLOG PkgConfig::CXXOPTS)

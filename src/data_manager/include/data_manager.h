@@ -22,9 +22,7 @@ private:
   /**
    * @brief Constructors and destructors are not open to the public
   */
-  DataManager() {
-      _config_data = std::make_shared<ConfigData>("rbmd.json");
-  };
+    DataManager() :_config_data(std::make_shared<ConfigData>("rbmd.json")) {}; // 这里初始化了_config_data 原来是DataManager() = default;
 
   ~DataManager() = default;
 
