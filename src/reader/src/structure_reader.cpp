@@ -54,6 +54,16 @@ int StructureReder::ReadHeader()
 	try
 	{
 		auto& info = _md_data._structure_info_data;
+		//HIP_CHECK(hipHostMalloc(&(& (info->_num_atoms)), sizeof(rbmd::Id)));
+		//HIP_CHECK(hipHostMalloc(&(info->_num_bonds), sizeof(rbmd::Id)));
+		//HIP_CHECK(hipHostMalloc(&(info->_num_angles), sizeof(rbmd::Id)));
+		//HIP_CHECK(hipHostMalloc(&(info->_num_dihedrals), sizeof(rbmd::Id)));
+		//HIP_CHECK(hipHostMalloc(&(info->_num_impropers), sizeof(rbmd::Id)));
+		//HIP_CHECK(hipHostMalloc(&(info->_num_atoms_type), sizeof(rbmd::Id)));
+		//HIP_CHECK(hipHostMalloc(&(info->_num_bounds_type), sizeof(rbmd::Id)));
+		//HIP_CHECK(hipHostMalloc(&(info->_num_angles_type), sizeof(rbmd::Id)));
+		//HIP_CHECK(hipHostMalloc(&(info->_num_dihedrals_type), sizeof(rbmd::Id)));
+		//HIP_CHECK(hipHostMalloc(&(info->_range), sizeof(rbmd::Range)));
 		auto& box = _md_data._h_box;
 		rbmd::Real coord_min[3];
 		rbmd::Real coord_max[3];
@@ -68,6 +78,7 @@ int StructureReder::ReadHeader()
 				{
 					if (line.find("atoms") != std::string::npos)
 					{
+						//std::cout << info->_num_atoms << " atoms" << std::endl;
 						iss >> info->_num_atoms;
 						//std::cout << info->_num_atoms << " atoms" << std::endl;
 					}
