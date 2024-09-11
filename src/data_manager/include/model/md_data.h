@@ -32,13 +32,13 @@ class MDData : public Object {
   bool checkMDData() {
     if (false == _structure_data->checkStructure()) {
       // log
-      _console->error("check structure data failed!");
+      //_console->error("check structure data failed!");
       return false;
     }
 
     if (false == _force_field_data->checkForceField()) {
       // log
-      _console->error("check force field data failed!");
+      //_console->error("check force field data failed!");
       return false;
     }
 

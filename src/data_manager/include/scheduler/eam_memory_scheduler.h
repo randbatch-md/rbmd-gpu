@@ -4,6 +4,10 @@
 class EAMMemoryScheduler : public MemoryScheduler
 {
 public:
+
+	EAMMemoryScheduler() {};
+	virtual ~EAMMemoryScheduler() = default;
+
 	/**
 	 * @brief async memeory host to device
 	 * @return error code

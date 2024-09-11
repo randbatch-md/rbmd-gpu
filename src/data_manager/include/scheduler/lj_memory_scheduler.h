@@ -4,6 +4,8 @@
 class LJMemoryScheduler : public MemoryScheduler
 {
 public:
+	LJMemoryScheduler() {};
+	virtual ~LJMemoryScheduler() = default;
 	/**
 	 * @brief async memeory host to device
 	 * @return error code
