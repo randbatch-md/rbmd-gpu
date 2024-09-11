@@ -8,7 +8,7 @@ bool LJMemoryScheduler::asyncMemoryH2D()
 		return false;
 	}
 
-	auto& num_atoms_type = _structure_info_data->_num_atoms_type;
+	auto& num_atoms_type = *(_structure_info_data->_num_atoms_type);
 	auto fd = std::dynamic_pointer_cast<LJForceFieldData>(_force_field_data);
 
 	///copy force field

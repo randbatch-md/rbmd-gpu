@@ -54,16 +54,16 @@ int StructureReder::ReadHeader()
 	try
 	{
 		auto& info = _md_data._structure_info_data;
-		//HIP_CHECK(hipHostMalloc(&(& (info->_num_atoms)), sizeof(rbmd::Id)));
-		//HIP_CHECK(hipHostMalloc(&(info->_num_bonds), sizeof(rbmd::Id)));
-		//HIP_CHECK(hipHostMalloc(&(info->_num_angles), sizeof(rbmd::Id)));
-		//HIP_CHECK(hipHostMalloc(&(info->_num_dihedrals), sizeof(rbmd::Id)));
-		//HIP_CHECK(hipHostMalloc(&(info->_num_impropers), sizeof(rbmd::Id)));
-		//HIP_CHECK(hipHostMalloc(&(info->_num_atoms_type), sizeof(rbmd::Id)));
-		//HIP_CHECK(hipHostMalloc(&(info->_num_bounds_type), sizeof(rbmd::Id)));
-		//HIP_CHECK(hipHostMalloc(&(info->_num_angles_type), sizeof(rbmd::Id)));
-		//HIP_CHECK(hipHostMalloc(&(info->_num_dihedrals_type), sizeof(rbmd::Id)));
-		//HIP_CHECK(hipHostMalloc(&(info->_range), sizeof(rbmd::Range)));
+		HIP_CHECK(MALLOCHOST(&(info->_num_atoms), sizeof(rbmd::Id)));
+		HIP_CHECK(MALLOCHOST(&(info->_num_bonds), sizeof(rbmd::Id)));
+		HIP_CHECK(MALLOCHOST(&(info->_num_angles), sizeof(rbmd::Id)));
+		HIP_CHECK(MALLOCHOST(&(info->_num_dihedrals), sizeof(rbmd::Id)));
+		HIP_CHECK(MALLOCHOST(&(info->_num_impropers), sizeof(rbmd::Id)));
+		HIP_CHECK(MALLOCHOST(&(info->_num_atoms_type), sizeof(rbmd::Id)));
+		HIP_CHECK(MALLOCHOST(&(info->_num_bounds_type), sizeof(rbmd::Id)));
+		HIP_CHECK(MALLOCHOST(&(info->_num_angles_type), sizeof(rbmd::Id)));
+		HIP_CHECK(MALLOCHOST(&(info->_num_dihedrals_type), sizeof(rbmd::Id)));
+        HIP_CHECK(hipHostMalloc(&(info->_range), sizeof(rbmd::Range)));
 		auto& box = _md_data._h_box;
 		rbmd::Real coord_min[3];
 		rbmd::Real coord_max[3];
@@ -79,60 +79,63 @@ int StructureReder::ReadHeader()
 					if (line.find("atoms") != std::string::npos)
 					{
 						//std::cout << info->_num_atoms << " atoms" << std::endl;
-						iss >> info->_num_atoms;
+						iss >> *(info->_num_atoms);
 						//std::cout << info->_num_atoms << " atoms" << std::endl;
 					}
 					else if (line.find("bonds") != std::string::npos)
 					{
-						iss >> info->_num_bonds;
+						iss >> *(info->_num_bonds);
 						//std::cout << info->_num_bonds << " bonds" << std::endl;
 					}
 					else if (line.find("angles") != std::string::npos)
 					{
-						iss >> info->_num_angles;
+						iss >> *(info->_num_angles);
 						//std::cout << info->_num_angles << " angles" << std::endl;
 					}
 					else if (line.find("dihedrals") != std::string::npos)
 					{
-						iss >> info->_num_dihedrals;
+						iss >> *(info->_num_dihedrals);
 						//std::cout << info->_num_dihedrals << " dihedrals" << std::endl;
 					}
 					else if (line.find("impropers") != std::string::npos)
 					{
-						iss >> info->_num_impropers;
+						iss >> *(info->_num_impropers);
 						//std::cout << info->_num_impropers << " impropers" << std::endl;
 					}
 					else if (line.find("atom types") != std::string::npos)
 					{
-						iss >> info->_num_atoms_type;
+						iss >> *(info->_num_atoms_type);
 						//std::cout << info->_num_atoms_type << " atom types" << std::endl;
 					}
 					else if (line.find("bond types") != std::string::npos)
 					{
-						iss >> info->_num_bounds_type;
+						iss >> *(info->_num_bounds_type);
 						//std::cout << info->_num_atoms_type << " bond types" << std::endl;
 					}
 					else if (line.find("angle types") != std::string::npos)
 					{
-						iss >> info->_num_angles_type;
+						iss >> *(info->_num_angles_type);
 						//std::cout << info->_num_atoms_type << " angle types" << std::endl;
 					}
 					else if (line.find("xlo xhi") != std::string::npos)
 					{
 						iss >> coord_min[0] >> coord_max[0];
-						//std::cout << info->_range[0] << " xlo xhi" << std::endl;
+						(*info->_range)[0][0] = coord_min[0];
+						(*info->_range)[0][1] = coord_max[0];
 					}
 					else if (line.find("ylo yhi") != std::string::npos)
 					{
 						iss >> coord_min[1] >> coord_max[1];
-						//std::cout << info->_range[1] << " ylo yhi" << std::endl;
+						(*info->_range)[1][0] = coord_min[1];
+						(*info->_range)[1][1] = coord_max[1];
 					}
 					else if (line.find("zlo zhi") != std::string::npos)
 					{
 						iss >> coord_min[2] >> coord_max[2];
+						(*info->_range)[2][0] = coord_min[2];
+						(*info->_range)[2][1] = coord_max[2];
 						bool pbc[3] = { 1,1,1 };
 						box->Init(box->_type, coord_min, coord_max, pbc);
-						//std::cout << info->_range[2] << " zlo zhi" << std::endl;
 						_line_start = &_mapped_memory[_locate];
 						break;
 					}
@@ -167,22 +170,22 @@ int StructureReder::ReadForceField()
 				{
 					if (line.find("Masses") != std::string::npos)
 					{
-						ReadMass(info->_num_atoms_type);
+						ReadMass(*(info->_num_atoms_type));
 						//std::cout <<"Masses" << std::endl;
 					}
 					else if (line.find("Pair Coeffs") != std::string::npos)
 					{
-						ReadPairCoeffs(info->_num_atoms_type);
+						ReadPairCoeffs(*(info->_num_atoms_type));
 						//std::cout << "Pair Coeffs" << std::endl;
 					}
 					else if (line.find("Bond Coeffs") != std::string::npos)
 					{
-						ReadBondCoeffs(info->_num_bounds_type);
+						ReadBondCoeffs(*(info->_num_bounds_type));
 						//std::cout << "Bond Coeffs" << std::endl;
 					}
 					else if (line.find("Angle Coeffs") != std::string::npos)
 					{
-						ReadAngleCoeffs(info->_num_angles_type);
+						ReadAngleCoeffs(*(info->_num_angles_type));
 						//std::cout << "Angle Coeffs" << std::endl;
 					}
 					else if (line.find("group") != std::string::npos)

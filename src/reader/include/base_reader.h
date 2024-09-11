@@ -1,6 +1,7 @@
 #pragma once
 #include <string>
 #include "common/object.h"
+#include <common/rbmd_define.h>
 
 class BaseReader : public Object
 {

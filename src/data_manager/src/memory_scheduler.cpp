@@ -11,7 +11,7 @@ MemoryScheduler::MemoryScheduler()
       _structure_info_data(_md_data->_structure_info_data) {}
 
 bool MemoryScheduler::asyncMemoryH2D() {
-  auto& num_atoms = _structure_info_data->_num_atoms;
+  auto& num_atoms = *(_structure_info_data->_num_atoms);
 
   auto& h_px = _structure_data->_h_px;
   auto& h_py = _structure_data->_h_py;
