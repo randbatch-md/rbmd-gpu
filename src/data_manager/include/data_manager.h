@@ -1,10 +1,17 @@
 #pragma once
 #include <memory>
 #include "config_data.h"
-class MDData;
+//#include "../data_manager/include/scheduler/memory_scheduler.h"
+//#include "../data_manager/include/model/post_process_data.h"
+#include "../data_manager/include/model/device_data.h"
+#include "../data_manager/include/model/md_data.h"
+#include "scheduler/memory_scheduler.h"
+
+
+//class MDData;
 class PostProcessData;
 //class ConfigData;
-class DeviceData;
+//class DeviceData;
 class MemoryScheduler;
 
 class DataManager {
@@ -21,7 +28,11 @@ private:
   /**
    * @brief Constructors and destructors are not open to the public
   */
-    DataManager() :_config_data(std::make_shared<ConfigData>("rbmd.json")) {}; // 这里初始化了_config_data 原来是DataManager() = default;
+    DataManager() :_config_data(std::make_shared<ConfigData>("rbmd.json")) 
+    , _md_data(std::make_shared<MDData>()) 
+    , _device_data(std::make_shared<DeviceData>()) 
+    //, _memory_scheduler(std::make_shared<MemoryScheduler>())
+    {}; // 这里初始化了_config_data 原来是DataManager() = default;
 
   ~DataManager() = default;
 
@@ -64,6 +75,11 @@ public:
    * @return _memory_scheduler
   */
   auto& getMemoryScheduler() const { return _memory_scheduler; }
+
+  void Fill2Device(const std::shared_ptr<MemoryScheduler>& memory_scheduler) {
+      this->_memory_scheduler = memory_scheduler;
+      this->_memory_scheduler->asyncMemoryH2D();
+  }
 
 private:
   std::shared_ptr<MDData> _md_data;

@@ -26,7 +26,7 @@ bool CommandLine::RunApplication()
 		auto file = _co["j"].as<std::string>();
 		if (file != "rbmd.json")
 		{
-			_console->error("the json name must be rbmd.json!");
+			//_console->error("the json name must be rbmd.json!");
 			return false;
 		}
 

@@ -9,7 +9,7 @@
 class Executioner : public Object
 {
 public:
-	Executioner(const Json::Value& node, std::shared_ptr<Ensemble>& simulate_pipeline);
+	Executioner(/*const Json::Value& node, */std::shared_ptr<Ensemble>& simulate_pipeline);
 	virtual ~Executioner() = default;
 
 public:
@@ -17,8 +17,7 @@ public:
 	int Execute();
 	bool KeepGoing();
 protected:
-	Json::Value _exec_node;
-	//std::shared_ptr<System>& _system;
+	//Json::Value _exec_node;
 	std::shared_ptr<Ensemble>& _simulate_pipeline;
 
 	float _time_step;

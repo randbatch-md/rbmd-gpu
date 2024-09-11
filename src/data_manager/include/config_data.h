@@ -13,7 +13,7 @@ class ConfigData : public Object {
    */
   ConfigData(const std::string& file) {
     if (!IsJsonFile(file)) {
-      _console->error("{} is not json file!", file);
+      //_console->error("{} is not json file!", file);
       return;
     }
 
@@ -39,7 +39,7 @@ class ConfigData : public Object {
       if (json_node[arg].isObject()) {
         json_node = json_node[arg];
       } else {
-        _console->error("{} is not a object!", arg);
+        //_console->error("{} is not a object!", arg);
         return;
       }
     };
@@ -54,7 +54,7 @@ class ConfigData : public Object {
       }
     } catch (const std::exception&) {
       // log
-      _console->error("no key named: {}", key);
+      //_console->error("no key named: {}", key);
       throw;
     }
   }
@@ -66,7 +66,7 @@ class ConfigData : public Object {
    */
   auto& GetJsonNode(const std::string& key) {
     if (!_json_node[key].isObject()) {
-      _console->warn("Can not find key: {}", key);
+      //_console->warn("Can not find key: {}", key);
     }
 
     return _json_node[key];
@@ -98,7 +98,7 @@ class ConfigData : public Object {
     try {
       std::ifstream filestream(file);
       if (!filestream.is_open()) {
-        _console->error("failed to open file: {}", file);
+        //_console->error("failed to open file: {}", file);
         return;
       }
 
@@ -108,7 +108,7 @@ class ConfigData : public Object {
       /// close file
       filestream.close();
     } catch (const std::exception&) {
-      _console->error("Error parsing JSON");
+      //_console->error("Error parsing JSON");
     }
   }
 

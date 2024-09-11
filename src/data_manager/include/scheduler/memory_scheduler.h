@@ -2,9 +2,9 @@
 #include <hip/hip_runtime.h>
 #include "common/object.h"
 
-#include "include/data_manager.h"
-#include "include/model/device_data.h"
-#include "include/model/md_data.h"
+//#include "../data_manager/include/data_manager.h"
+#include "../data_manager/include/model/device_data.h"
+#include "../data_manager/include/model/md_data.h"
 
 class MemoryScheduler : public Object
 {
@@ -13,21 +13,21 @@ public:
 	 * @brief constructor
 	*/
 	MemoryScheduler();
-
+	virtual ~MemoryScheduler() = default;
 	/**
 	 * @brief async memeory host to device
 	 * @return error code
 	*/
-	virtual bool asyncMemoryH2D() = 0;
+	virtual bool asyncMemoryH2D();
 
 	/**
 	 * @brief async memory device to host
 	 * @return error code
 	*/
-	virtual bool asyncMemoryD2H() = 0;
+	virtual bool asyncMemoryD2H();
 
 protected:
-	DataManager& _data_manager;
+	//DataManager& _data_manager;
 	std::shared_ptr<DeviceData>& _device_data;
 	const std::shared_ptr<MDData>& _md_data;
 	const std::shared_ptr<StructureData>& _structure_data;

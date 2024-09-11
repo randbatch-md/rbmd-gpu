@@ -1,11 +1,12 @@
 #include "include/scheduler/memory_scheduler.h"
+#include "../data_manager/include/data_manager.h"
 
 #include <thrust/copy.h>
 
 MemoryScheduler::MemoryScheduler()
-    : _data_manager(DataManager::getInstance()),
-      _device_data(_data_manager.getDeviceData()),
-      _md_data(_data_manager.getMDData()),
+    : //_data_manager(DataManager::getInstance()),
+      _device_data(DataManager::getInstance().getDeviceData()),
+      _md_data(DataManager::getInstance().getMDData()),
       _structure_data(_md_data->_structure_data),
       _force_field_data(_md_data->_force_field_data),
       _structure_info_data(_md_data->_structure_info_data) {}

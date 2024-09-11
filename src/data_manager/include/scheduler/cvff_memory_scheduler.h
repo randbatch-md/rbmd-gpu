@@ -4,6 +4,8 @@
 class CVFFMemoryScheduler : public MemoryScheduler
 {
 public:
+	CVFFMemoryScheduler() {};
+	virtual ~CVFFMemoryScheduler() = default;
 	/**
 	 * @brief async memeory host to device
 	 * @return error code
