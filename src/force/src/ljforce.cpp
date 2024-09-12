@@ -43,7 +43,7 @@ void LJForce::Execute() {
               thrust::raw_pointer_cast(_device_data->_d_sigma.data()),
               thrust::raw_pointer_cast(list->_start_idx.data()),
               thrust::raw_pointer_cast(list->_end_idx.data()),
-              thrust::raw_pointer_cast(list->_d_neighbor_num.data()),
+              thrust::raw_pointer_cast(list->_d_neighbors.data()),
               thrust::raw_pointer_cast(_device_data->_d_px.data()),
               thrust::raw_pointer_cast(_device_data->_d_py.data()),
               thrust::raw_pointer_cast(_device_data->_d_pz.data()),
