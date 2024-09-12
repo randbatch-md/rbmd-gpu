@@ -25,7 +25,8 @@ namespace op
 			            rbmd::Real* force_x,
 			            rbmd::Real* force_y,
 			            rbmd::Real* force_z,
-			            rbmd::Real* evdwl);
+			            rbmd::Real* evdwl,
+			            rbmd::Real* total_evdwl);
 	};
 
 	template <>
@@ -47,7 +48,8 @@ namespace op
 			            rbmd::Real* force_x,
 			            rbmd::Real* force_y,
 			            rbmd::Real* force_z,
-			            rbmd::Real* evdwl);
+			            rbmd::Real* evdwl,
+						rbmd::Real* total_evdwl);
 	};
     //template <typename T>
     //void DeviceReduceSum(const T* d_data, T* d_result, int num_elements);
