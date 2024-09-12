@@ -41,7 +41,8 @@ void NeighborListBuilder::InitNeighborListIndices() {
     temp, temp_bytes,
     thrust::raw_pointer_cast(_neighbor_list->_d_max_neighbor_num.data()),
     thrust::raw_pointer_cast(_neighbor_list->_start_idx.data()),
-    static_cast<int>(_linked_cell->_total_atoms_num)));
+    (_linked_cell->_total_atoms_num)));
+
   CHECK_RUNTIME(FREE(temp));
   op::InitEndIndexOp<device::DEVICE_GPU> init_end_index_op;
   init_end_index_op(
@@ -49,4 +50,6 @@ void NeighborListBuilder::InitNeighborListIndices() {
       thrust::raw_pointer_cast(_neighbor_list->_start_idx.data()),
       thrust::raw_pointer_cast(_neighbor_list->_end_idx.data()),
       _linked_cell->_total_atoms_num);
+  // 这里索引没有问题 2024-09-12
+
 }

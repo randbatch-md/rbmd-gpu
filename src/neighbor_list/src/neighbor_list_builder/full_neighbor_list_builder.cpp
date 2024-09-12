@@ -15,7 +15,15 @@ FullNeighborListBuilder::FullNeighborListBuilder() {
   this->_neighbor_list =
       std::make_shared<NeighborList>(_linked_cell->_total_atoms_num, false);
   this->_device_data = DataManager::getInstance().getDeviceData();
-  this->FullNeighborListBuilder::ComputeNeighborCells();
+  if (_linked_cell->_total_cells < this->_neighbor_cell_num) {
+    this->_neighbor_cell_num = _linked_cell->_total_cells;
+    std::cout << "\033[31mwarning: The current simulation domain is too small for PBC to be effective.\033[0m" << std::endl;
+    this->FullNeighborListBuilder::ComputeNeighborCellsWithoutPBC();
+  }else {
+    this->FullNeighborListBuilder::ComputeNeighborCells();
+
+  }
+
 }
 
 std::shared_ptr<NeighborList> FullNeighborListBuilder::Build() {
@@ -26,13 +34,12 @@ std::shared_ptr<NeighborList> FullNeighborListBuilder::Build() {
     // 好像就第一入口调用了  todo move to init?
     this->EstimateNeighborsList();
   }
-
+  // 索引没有问题
   if (GenerateNeighborsList()) {
     this->EstimateNeighborsList();
   } else {
     GenerateNeighborsList();
   }
-
   return _neighbor_list;
 }
 
@@ -45,6 +52,13 @@ void FullNeighborListBuilder::ComputeNeighborCells() {
       thrust::raw_pointer_cast(_linked_cell->_neighbor_cell.data()),
       this->_neighbor_cell_num, _linked_cell->_total_cells,
       _linked_cell->_cell_count_within_cutoff);
+}
+void FullNeighborListBuilder::ComputeNeighborCellsWithoutPBC(){
+  _linked_cell->_neighbor_cell.resize(
+    (_linked_cell->_total_cells * this->_neighbor_cell_num));
+  op::ComputeFullNeighborsWithoutPBCOp<device::DEVICE_GPU> compute_full_neighbors_without_pbc_op;
+  compute_full_neighbors_without_pbc_op( thrust::raw_pointer_cast(_linked_cell->_neighbor_cell.data()),
+      this->_neighbor_cell_num, _linked_cell->_total_cells);
 }
 
 void FullNeighborListBuilder::EstimateNeighborsList() {
@@ -78,6 +92,7 @@ void FullNeighborListBuilder::EstimateNeighborsList() {
   _neighbor_list->_d_neighbors.resize(
       _neighbor_list->_h_total_max_neighbor_num);
   InitNeighborListIndices(); // realloc need
+  // 2024-09-12 索引没有问题
 }
 
 bool FullNeighborListBuilder::GenerateNeighborsList() {

@@ -18,6 +18,8 @@ class NeighborListBuilder : public Object {
 
   virtual void ComputeNeighborCells() = 0;
 
+  virtual void ComputeNeighborCellsWithoutPBC() = 0;
+
   virtual void EstimateNeighborsList() = 0;
 
   virtual bool GenerateNeighborsList() = 0;
