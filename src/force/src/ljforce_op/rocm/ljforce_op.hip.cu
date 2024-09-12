@@ -60,28 +60,42 @@ namespace op
 		rbmd::Real sum_fy = 0;
 	    rbmd::Real sum_fz = 0;
 		rbmd::Real sum_eij = 0;
+		printf("value of a ：%f\n", cut_off);
+		printf("value of num_atoms ：%d\n", num_atoms);
+		printf("--------test-1-------\n");
 
-		int tid1 = threadIdx.x + blockIdx.x * blockDim.x;
+		unsigned int tid1 = blockIdx.x * blockDim.x + threadIdx.x;
+		printf("--------test-2-------\n,tid1:%d,   num_atoms:%d",tid1,num_atoms);
 		if (tid1 < num_atoms)
 		{
+			printf("--------test-3-------\n");
+
 			rbmd::Id typei = atoms_type[tid1];
+			printf("--------test-4-------\n");
+
+
 			rbmd::Id molecular_id_i=  molecular_type[tid1];
 			rbmd::Real eps_i = eps[typei];
 			rbmd::Real sigma_i = sigma[typei];
+			printf("--------test-5-------\n");
 
 			rbmd::Real x1 = px[tid1];
 			rbmd::Real y1 = py[tid1];
 			rbmd::Real z1 = pz[tid1];
+			printf("--------test-6-------\n");
 
 
 			for (int j = start_id[tid1]; j < end_id[tid1]; ++j)
 			{
+				printf("--------test-7-------\n");
+
 				rbmd::Id tid2 = id_verletlist[j];
 
 				rbmd::Id typej = atoms_type[tid2];
 				rbmd::Id molecular_id_j = molecular_type[tid2];
 				rbmd::Real eps_j = eps[typej];
 				rbmd::Real sigma_j = sigma[typej];
+				printf("--------test-8-------\n");
 
 				//mix
 				rbmd::Real eps_ij = sqrt(eps_i * eps_j);
@@ -93,6 +107,7 @@ namespace op
 				rbmd::Real px12 = x2 - x1;
 				rbmd::Real py12 = y2 - y1;
 				rbmd::Real pz12 = z2 - z1;
+				printf("--------test-9-------\n");
 
 				//if (molecular_id_i == molecular_id_j)
 					//continue; 
@@ -106,6 +121,8 @@ namespace op
 				sum_fz += f_ij * pz12;
 
 				sum_eij += e_ij;
+				printf("--------test-10-------\n");
+
 			}
 
 			// ʹ�� atomicAdd �����������ܣ��������ݾ���
@@ -119,6 +136,8 @@ namespace op
 			force_z[tid1] += sum_fz;
 
 		    evdwl[tid1] += sum_eij;
+			printf("--------test-11-------\n");
+
 		}
 	}
 
