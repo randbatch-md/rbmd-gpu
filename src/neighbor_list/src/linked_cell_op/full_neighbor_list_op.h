@@ -11,6 +11,12 @@ struct ComputeFullNeighborsOp {
 };
 
 template <typename DEVICE>
+struct ComputeFullNeighborsWithoutPBCOp {
+  void operator()(rbmd::Id* neighbor_cell,
+                  rbmd::Id neighbor_num, rbmd::Id total_cell);
+};
+
+template <typename DEVICE>
 struct EstimateFullNeighborListOp {
   void operator()(rbmd::Id* per_atom_cell_id,
                   rbmd::Id* in_atom_list_start_index,
@@ -40,6 +46,12 @@ struct ComputeFullNeighborsOp<device::DEVICE_GPU> {
   void operator()(rbmd::Id* per_dimension_cells, rbmd::Id* neighbor_cell,
                   rbmd::Id neighbor_num, rbmd::Id total_cell,
                   rbmd::Id cell_count_within_cutoff);
+};
+
+template <>
+struct ComputeFullNeighborsWithoutPBCOp<device::DEVICE_GPU> {
+  void operator()(rbmd::Id* neighbor_cell,
+                  rbmd::Id neighbor_num, rbmd::Id total_cell);
 };
 
 template <>
