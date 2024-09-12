@@ -39,8 +39,8 @@ namespace op
 
 	__global__ void ComputeLJForce(
 						Box* box,
-			            const rbmd::Real& cut_off,
-			            const rbmd::Id& num_atoms,
+			            const rbmd::Real cut_off,
+			            const rbmd::Id num_atoms,
 			            const rbmd::Id* atoms_type,
 			            const rbmd::Id* molecular_type,
 			            const rbmd::Real* sigma,
@@ -60,42 +60,42 @@ namespace op
 		rbmd::Real sum_fy = 0;
 	    rbmd::Real sum_fz = 0;
 		rbmd::Real sum_eij = 0;
-		printf("value of a ：%f\n", cut_off);
-		printf("value of num_atoms ：%d\n", num_atoms);
-		printf("--------test-1-------\n");
+		printf("---neibu----value of sigma ：%f\n", sigma[0]);
+		printf("---neibu----value of eps ：%f\n", eps[0]);
+		printf("---neibu----value of a ：%f\n", cut_off);
+		printf("---neibu----value of num_atoms ：%d\n", num_atoms);
 
 		unsigned int tid1 = blockIdx.x * blockDim.x + threadIdx.x;
-		printf("--------test-2-------\n,tid1:%d,   num_atoms:%d",tid1,num_atoms);
 		if (tid1 < num_atoms)
 		{
-			printf("--------test-3-------\n");
-
 			rbmd::Id typei = atoms_type[tid1];
-			printf("--------test-4-------\n");
-
-
 			rbmd::Id molecular_id_i=  molecular_type[tid1];
 			rbmd::Real eps_i = eps[typei];
 			rbmd::Real sigma_i = sigma[typei];
-			printf("--------test-5-------\n");
 
 			rbmd::Real x1 = px[tid1];
 			rbmd::Real y1 = py[tid1];
 			rbmd::Real z1 = pz[tid1];
 			printf("--------test-6-------\n");
 
-
 			for (int j = start_id[tid1]; j < end_id[tid1]; ++j)
 			{
 				printf("--------test-7-------\n");
 
 				rbmd::Id tid2 = id_verletlist[j];
+				printf("--------test-7-1----tid2:%d---\n", tid2);
 
 				rbmd::Id typej = atoms_type[tid2];
+				printf("--------test-7-2----typej:%d---\n", typej);
+
 				rbmd::Id molecular_id_j = molecular_type[tid2];
+				printf("--------test-7-3----molecular_id_j:%d---\n", molecular_id_j);
+
 				rbmd::Real eps_j = eps[typej];
+				printf("--------test-7-4----eps_j:%f---\n", eps_j);
+
 				rbmd::Real sigma_j = sigma[typej];
-				printf("--------test-8-------\n");
+				printf("--------test-8-----sigma_j:%f---\n", sigma_j);
 
 				//mix
 				rbmd::Real eps_ij = sqrt(eps_i * eps_j);
@@ -124,6 +124,7 @@ namespace op
 				printf("--------test-10-------\n");
 
 			}
+			printf("--------test-11-------\n");
 
 			// ʹ�� atomicAdd �����������ܣ��������ݾ���
 			//atomicAdd(&force_x[tid1],sum_fx);
@@ -136,7 +137,7 @@ namespace op
 			force_z[tid1] += sum_fz;
 
 		    evdwl[tid1] += sum_eij;
-			printf("--------test-11-------\n");
+			printf("--------test-12-------\n");
 
 		}
 	}
@@ -300,8 +301,8 @@ namespace op
 	//
 	void LJForceOp<device::DEVICE_GPU>::operator()(
 						Box* box,
-			            const rbmd::Real& cut_off,
-			            const rbmd::Id& num_atoms,
+			            const rbmd::Real cut_off,
+			            const rbmd::Id num_atoms,
 		                const rbmd::Id* atoms_type,
 			            const rbmd::Id* molecular_type,
 			            const rbmd::Real* sigma,

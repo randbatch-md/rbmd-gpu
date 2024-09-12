@@ -10,8 +10,8 @@ namespace op
 	struct LJForceOp
 	{
 		void operator()(Box* box,
-			            const rbmd::Real& cut_off,
-			            const rbmd::Id& num_atoms,
+			            const rbmd::Real cut_off,
+			            const rbmd::Id num_atoms,
 			            const rbmd::Id* atoms_type,
 			            const rbmd::Id* molecular_type,
 			            const rbmd::Real* sigma,
@@ -32,8 +32,8 @@ namespace op
 	struct LJForceOp<device::DEVICE_GPU>
 	{
 		void operator()(Box* box,
-			            const rbmd::Real& cut_off,
-			            const rbmd::Id& num_atoms,
+			            const rbmd::Real cut_off,
+			            const rbmd::Id num_atoms,
 			            const rbmd::Id* atoms_type,
 			            const rbmd::Id* molecular_type,
 			            const rbmd::Real* sigma,
