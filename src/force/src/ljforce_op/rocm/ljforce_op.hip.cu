@@ -82,6 +82,12 @@ namespace op
 			{
 				printf("--------test-7-------\n");
 
+			    printf("--------test-7-0----start_id[tid1]:%d---\n", start_id[tid1]);
+
+
+		        printf("--------test-7-00----end_id[tid1]:%d---\n", end_id[tid1]);
+
+
 				rbmd::Id tid2 = id_verletlist[j];
 				printf("--------test-7-1----tid2:%d---\n", tid2);
 
