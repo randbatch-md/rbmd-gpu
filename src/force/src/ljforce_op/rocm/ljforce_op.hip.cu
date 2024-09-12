@@ -60,10 +60,6 @@ namespace op
 		rbmd::Real sum_fy = 0;
 	    rbmd::Real sum_fz = 0;
 		rbmd::Real sum_eij = 0;
-		printf("---neibu----value of sigma ：%f\n", sigma[0]);
-		printf("---neibu----value of eps ：%f\n", eps[0]);
-		printf("---neibu----value of a ：%f\n", cut_off);
-		printf("---neibu----value of num_atoms ：%d\n", num_atoms);
 
 		unsigned int tid1 = blockIdx.x * blockDim.x + threadIdx.x;
 		if (tid1 < num_atoms)
