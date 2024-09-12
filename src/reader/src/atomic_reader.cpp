@@ -34,12 +34,12 @@ int AtomicReader::ReadData()
 
 				if (line.find("Atoms") != std::string::npos)
 				{
-					std::cout << "Atoms" << std::endl;
+					//std::cout << "Atoms" << std::endl;
 					ReadAtoms(*num_atoms);
 				}
 				else if (line.find("Velocities") != std::string::npos)
 				{
-					std::cout << "Velocities" << std::endl;
+					//std::cout << "Velocities" << std::endl;
 					ReadVelocity(*num_atoms);
 				}
 			}
@@ -93,7 +93,7 @@ int AtomicReader::ReadAtoms(const rbmd::Id& atoms_num)
 					iss >> types[index];
 					iss >> _md_data._structure_data->_h_px[index] >> _md_data._structure_data->_h_py[index] >>_md_data._structure_data->_h_pz[index];
 					++num;
-					std::cout << atom_id << " " << types[index] << " " << _md_data._structure_data->_h_px[index] << " " << _md_data._structure_data->_h_py[index] << " " << _md_data._structure_data->_h_pz[index] << std::endl;
+					//std::cout << atom_id << " " << types[index] << " " << _md_data._structure_data->_h_px[index] << " " << _md_data._structure_data->_h_py[index] << " " << _md_data._structure_data->_h_pz[index] << std::endl;
 				}
 				_line_start = &_mapped_memory[_locate];
 			}
@@ -127,7 +127,7 @@ int AtomicReader::ReadVelocity(const rbmd::Id& atoms_num)
 					auto index = atom_id - 1;
 					iss >> _md_data._structure_data->_h_vx[index] >> _md_data._structure_data->_h_vy[index] >> _md_data._structure_data->_h_vz[index];
 					++num;
-					std::cout << atom_id << " " << _md_data._structure_data->_h_vx[index] << " " << _md_data._structure_data->_h_vy[index] << " " << _md_data._structure_data->_h_vz[index] << std::endl;
+					//std::cout << atom_id << " " << _md_data._structure_data->_h_vx[index] << " " << _md_data._structure_data->_h_vy[index] << " " << _md_data._structure_data->_h_vz[index] << std::endl;
 				}
 				_line_start = &_mapped_memory[_locate];
 			}
