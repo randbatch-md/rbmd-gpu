@@ -15,7 +15,7 @@
 #define MIN(x, y) (((x) < (y)) ? (x) : (y))
 #define BLOCK_SIZE (256)
 #define MAX_GPU_STREAMS (6)
-#define WARP_SIZE 64  /// TODO
+#define WARP_SIZE 32  /// TODO 使用宏来获取 ，目前服务器的AMD显卡的warpSize 不是64而是32
 
 #if USE_DOUBLE
 typedef double3 Real3;

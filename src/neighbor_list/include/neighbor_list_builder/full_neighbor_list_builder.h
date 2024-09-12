@@ -10,6 +10,8 @@ public:
 protected:
   void ComputeNeighborCells() override;
 
+  void ComputeNeighborCellsWithoutPBC() override;
+
   void EstimateNeighborsList() override;
 
   bool GenerateNeighborsList() override;

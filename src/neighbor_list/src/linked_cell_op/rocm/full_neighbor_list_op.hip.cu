@@ -52,6 +52,21 @@ __global__ void ComputeFullNeighbors(rbmd::Id* per_dimension_cells,
   }
 }
 
+// use while total_cell < computed neighbor_num
+__global__ void ComputeFullNeighborsWithoutPBC(rbmd::Id* neighbor_cell, rbmd::Id neighbor_num,
+                                         rbmd::Id total_cell) {
+  const unsigned int cell_idx = blockIdx.x * blockDim.x + threadIdx.x;
+  if (cell_idx < total_cell) {
+    int neighbor_count = 0;
+    for (int neighbor_cell_idx = 0; neighbor_cell_idx < neighbor_num; ++neighbor_cell_idx) {
+      neighbor_cell[cell_idx * neighbor_num + neighbor_count] =
+        neighbor_cell_idx;
+      ++neighbor_count;
+    }
+  }
+}
+
+
 __host__ __device__ __forceinline__ rbmd::Real CaculateDistance(
     Box* box, rbmd::Real i_x, rbmd::Real i_y, rbmd::Real i_z, rbmd::Real j_x,
     rbmd::Real j_y, rbmd::Real j_z) {
@@ -191,6 +206,11 @@ void ComputeFullNeighborsOp<device::DEVICE_GPU>::operator()(
   CHECK_KERNEL(ComputeFullNeighbors<<<blocks_per_grid, BLOCK_SIZE, 0, 0>>>(
       per_dimension_cells, neighbor_cell, neighbor_num, total_cell,
       cell_count_within_cutoff));
+}
+
+void ComputeFullNeighborsWithoutPBCOp<device::DEVICE_GPU>::operator()(rbmd::Id* neighbor_cell, rbmd::Id neighbor_num, rbmd::Id total_cell){
+  unsigned int blocks_per_grid = (total_cell + BLOCK_SIZE - 1) / BLOCK_SIZE;
+  CHECK_KERNEL(ComputeFullNeighborsWithoutPBC<<<blocks_per_grid, BLOCK_SIZE, 0, 0>>>(neighbor_cell, neighbor_num, total_cell));
 }
 
 void EstimateFullNeighborListOp<device::DEVICE_GPU>::operator()(
