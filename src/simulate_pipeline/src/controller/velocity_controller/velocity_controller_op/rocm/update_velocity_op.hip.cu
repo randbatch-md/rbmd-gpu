@@ -6,9 +6,9 @@ namespace op
     #define THREADS_PER_BLOCK 256
 
 	__global__
-		void UpdateVelocity(const rbmd::Id& num_atoms,
-			                const rbmd::Real& dt,
-			                const rbmd::Real& fmt2v,
+		void UpdateVelocity(const rbmd::Id num_atoms,
+			                const rbmd::Real dt,
+			                const rbmd::Real fmt2v,
 			                const rbmd::Real* fx,
 			                const rbmd::Real* fy,
 			                const rbmd::Real* fz,
@@ -28,9 +28,9 @@ namespace op
 	}
 
 
-	void UpdateVelocityOp<device::DEVICE_GPU>::operator()(const rbmd::Id& num_atoms,
-			                                              const rbmd::Real& dt,
-			                                              const rbmd::Real& fmt2v,
+	void UpdateVelocityOp<device::DEVICE_GPU>::operator()(const rbmd::Id num_atoms,
+			                                              const rbmd::Real dt,
+			                                              const rbmd::Real fmt2v,
 			                                              const rbmd::Real* mass,
 			                                              const rbmd::Real* fx,
 			                                              const rbmd::Real* fy,

@@ -6,8 +6,8 @@ namespace op
     #define THREADS_PER_BLOCK 256
 
 	__global__
-		void ComputeTemperature(const rbmd::Id& num_atoms,
-			                    const rbmd::Real& mvv2e,
+		void ComputeTemperature(const rbmd::Id num_atoms,
+			                    const rbmd::Real mvv2e,
 			                    const rbmd::Real* mass,
 			                    const rbmd::Real* vx,
 			                    const rbmd::Real* vy,
@@ -23,8 +23,8 @@ namespace op
 	}
 
 	__global__
-		void UpdataVelocityRescale(const rbmd::Id& num_atoms,
-			                       const rbmd::Real& coeff_rescale,
+		void UpdataVelocityRescale(const rbmd::Id num_atoms,
+			                       const rbmd::Real coeff_rescale,
 			                       rbmd::Real* vx,
 			                       rbmd::Real* vy,
 			                       rbmd::Real* vz)
@@ -40,10 +40,10 @@ namespace op
 	}
 
 	__global__
-		void UpdataVelocityNoseHoover(const rbmd::Id& num_atoms,
-			                          const rbmd::Real& dt,
-			                          const rbmd::Real& fmt2v,
-			                          const rbmd::Real& nosehooverxi,
+		void UpdataVelocityNoseHoover(const rbmd::Id num_atoms,
+			                          const rbmd::Real dt,
+			                          const rbmd::Real fmt2v,
+			                          const rbmd::Real nosehooverxi,
 			                          const rbmd::Real* mass,
 			                          const rbmd::Real* fx,
 			                          const rbmd::Real* fy,
@@ -63,11 +63,11 @@ namespace op
 	}
 
 	__global__
-		void UpdataVelocityBerendsen(const rbmd::Id& num_atoms,
-			                       const rbmd::Real& coeff_Berendsen,
-			                       rbmd::Real* vx,
-			                       rbmd::Real* vy,
-			                       rbmd::Real* vz)
+		void UpdataVelocityBerendsen(const rbmd::Id num_atoms,
+			                         const rbmd::Real coeff_Berendsen,
+			                         rbmd::Real* vx,
+			                         rbmd::Real* vy,
+			                         rbmd::Real* vz)
 	{
 		int tid = threadIdx.x + blockIdx.x * blockDim.x;
 
@@ -79,8 +79,8 @@ namespace op
 		}
 	}
 
-	void ComputeTemperatureOp<device::DEVICE_GPU>::operator()(const rbmd::Id& num_atoms,
-			                                                       const rbmd::Real& mvv2e,
+	void ComputeTemperatureOp<device::DEVICE_GPU>::operator()(const rbmd::Id num_atoms,
+			                                                       const rbmd::Real mvv2e,
 			                                                       const rbmd::Real* mass,
 			                                                       const rbmd::Real* vx,
 			                                                       const rbmd::Real* vy,
@@ -93,8 +93,8 @@ namespace op
 	
 
 
-	void UpdataVelocityRescaleOp<device::DEVICE_GPU>::operator()(const rbmd::Id& num_atoms,
-																	  const rbmd::Real& coeff_rescale,
+	void UpdataVelocityRescaleOp<device::DEVICE_GPU>::operator()(const rbmd::Id num_atoms,
+																	  const rbmd::Real coeff_rescale,
 																	  rbmd::Real* vx,
 																	  rbmd::Real* vy,
 																	  rbmd::Real* vz)
@@ -105,10 +105,10 @@ namespace op
 	
 
 
-	void UpdataVelocityNoseHooverOp<device::DEVICE_GPU>::operator()(const rbmd::Id& num_atoms,
-																		 const rbmd::Real& dt,
-																		 const rbmd::Real& fmt2v,
-																		 const rbmd::Real& nosehooverxi,
+	void UpdataVelocityNoseHooverOp<device::DEVICE_GPU>::operator()(const rbmd::Id num_atoms,
+																		 const rbmd::Real dt,
+																		 const rbmd::Real fmt2v,
+																		 const rbmd::Real nosehooverxi,
 																		 const rbmd::Real* mass,
 																		 const rbmd::Real* fx,
 																		 const rbmd::Real* fy,
@@ -122,8 +122,8 @@ namespace op
 	}
 	
 
-	void UpdataVelocityBerendsenOp<device::DEVICE_GPU>::operator()(const rbmd::Id& num_atoms,
-			                                                            const rbmd::Real& coeff_Berendsen,
+	void UpdataVelocityBerendsenOp<device::DEVICE_GPU>::operator()(const rbmd::Id num_atoms,
+			                                                            const rbmd::Real coeff_Berendsen,
 			                                                            rbmd::Real* vx,
 			                                                            rbmd::Real* vy,
 			                                                            rbmd::Real* vz)
