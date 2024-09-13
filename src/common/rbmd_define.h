@@ -1,5 +1,6 @@
 #pragma once
 #include <hipcub/hipcub.hpp>
+#include "types.h"
 #include <hip/hip_runtime.h>
 #include <hip/hip_runtime_api.h>
 #include <thrust/device_vector.h>
