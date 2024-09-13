@@ -33,7 +33,7 @@ void NVTensemble::Presolve()
 void NVTensemble::Solve()
 {
 	_velocity_controller->Update();
-	
+
 	_position_controller->Update();
 	
 	bool use_shake;

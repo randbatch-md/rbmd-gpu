@@ -19,7 +19,7 @@ namespace op
 			                          rbmd::Id& flag_py_tid,
 			                          rbmd::Id& flag_pz_tid)
 	{
-
+		/*
 		flag_px_tid += (px_tid > max_x_tid)-(px_tid < min_x_tid);
 		px_tid += (px_tid < min_x_tid) * (max_x_tid - min_x_tid) - (px_tid > max_x_tid) * (max_x_tid - min_x_tid);
 
@@ -28,7 +28,7 @@ namespace op
 
 		flag_pz_tid += (pz_tid > max_z_tid) - (pz_tid < min_z_tid);
 		pz_tid += (pz_tid < min_z_tid) * (max_z_tid - min_z_tid) - (pz_tid > max_z_tid) * (max_z_tid - min_z_tid);
-		/*
+		
 		if (px_tid < min_x_tid)
 		{
 			px_tid += max_x_tid - min_x_tid;
@@ -62,6 +62,36 @@ namespace op
 			flag_pz_tid += 1;
 		}
 		*/
+
+		// x方向
+		if (px_tid > max_x_tid) {
+			flag_px_tid += 1;
+			px_tid -= (max_x_tid - min_x_tid); 
+		}
+		else if (px_tid < min_x_tid) {
+			flag_px_tid -= 1;
+			px_tid += (max_x_tid - min_x_tid); 
+		}
+
+		// y方向
+		if (py_tid > max_y_tid) {
+			flag_py_tid += 1;
+			py_tid -= (max_y_tid - min_y_tid);
+		}
+		else if (py_tid < min_y_tid) {
+			flag_py_tid -= 1;
+			py_tid += (max_y_tid - min_y_tid);
+		}
+
+		// z方向
+		if (pz_tid > max_z_tid) {
+			flag_pz_tid += 1;
+			pz_tid -= (max_z_tid - min_z_tid);
+		}
+		else if (pz_tid < min_z_tid) {
+			flag_pz_tid -= 1;
+			pz_tid += (max_z_tid - min_z_tid);
+		}
 	}
 
 	__device__
