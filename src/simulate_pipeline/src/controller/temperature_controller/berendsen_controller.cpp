@@ -40,6 +40,9 @@ void BerendsenController::Update()
 
 void BerendsenController::ComputeTemp()
 {
+    rbmd::Real* temp_contrib;
+    CHECK_RUNTIME(hipMemset(temp_contrib, 0, sizeof(rbmd::Real)));
+
     op::ComputeTemperatureOp<device::DEVICE_GPU> compute_temperature_op;
     compute_temperature_op(_num_atoms,
                            _mvv2e,
@@ -47,7 +50,9 @@ void BerendsenController::ComputeTemp()
                            thrust::raw_pointer_cast(_device_data->_d_vx.data()),
                            thrust::raw_pointer_cast(_device_data->_d_vy.data()),
                            thrust::raw_pointer_cast(_device_data->_d_vz.data()),
-                           _temp_sum);
+                           temp_contrib);
+
+    CHECK_RUNTIME(MEMCPY(&_temp_sum, temp_contrib, sizeof(rbmd::Real), D2H));
 
     bool available_shake = false;
     std::string init_type = "inbuild";

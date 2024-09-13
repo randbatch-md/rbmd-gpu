@@ -3,6 +3,7 @@
 #include "unit_factor.h"
 #include "device_types.h"
 #include <thrust/device_ptr.h>
+#include "rbmd_define.h"
 
 RescaleController::RescaleController() {};
 
@@ -40,6 +41,11 @@ void RescaleController::Update()
 
 void RescaleController::ComputeTemp()
 {
+    rbmd::Real* temp_contrib;
+
+    CHECK_RUNTIME(MALLOC(&temp_contrib, sizeof(rbmd::Real)));
+    CHECK_RUNTIME(MEMCPY(temp_contrib, &_temp_sum, sizeof(rbmd::Real), H2D));
+
     op::ComputeTemperatureOp<device::DEVICE_GPU> compute_temperature_op;
     compute_temperature_op(_num_atoms,
                            _mvv2e,
@@ -47,7 +53,10 @@ void RescaleController::ComputeTemp()
                            thrust::raw_pointer_cast(_device_data->_d_vx.data()),
                            thrust::raw_pointer_cast(_device_data->_d_vy.data()),
                            thrust::raw_pointer_cast(_device_data->_d_vz.data()),
-                           _temp_sum);
+                           temp_contrib);
+
+    CHECK_RUNTIME(MEMCPY(&_temp_sum, temp_contrib, sizeof(rbmd::Real), D2H));
+    std::cout << _temp_sum << std::endl;
 
     bool available_shake = false;
     std::string init_type = "inbuild";

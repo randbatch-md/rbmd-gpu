@@ -1,5 +1,6 @@
 #include "update_temperature_op.h"
 #include "rbmd_define.h"
+#include <hipcub/hipcub.hpp>
 
 namespace op
 {
@@ -12,14 +13,22 @@ namespace op
 			                    const rbmd::Real* vx,
 			                    const rbmd::Real* vy,
 			                    const rbmd::Real* vz,
-			                    rbmd::Real temp_sum)
+			                    rbmd::Real* temp_contrib)
 	{
+		__shared__ typename hipcub::BlockReduce<rbmd::Real, BLOCK_SIZE>::TempStorage temp_storage;
+
 		int tid = threadIdx.x + blockIdx.x * blockDim.x;
-		
+		rbmd::Real local_temp = 0;
 		if (tid < num_atoms)
 		{
-			temp_sum += mvv2e * mass[tid] * (vx[tid] * vx[tid] + vy[tid] * vy[tid] + vz[tid] * vz[tid]);
+			local_temp = mvv2e * mass[tid] * (vx[tid] * vx[tid] + vy[tid] * vy[tid] + vz[tid] * vz[tid]);
 		}
+
+		rbmd::Real block_sum = hipcub::BlockReduce<rbmd::Real, BLOCK_SIZE>(temp_storage).Sum(local_temp);
+		if (threadIdx.x == 0) {
+			atomicAdd(temp_contrib, block_sum);
+		}
+
 	}
 
 	__global__
@@ -85,10 +94,14 @@ namespace op
 			                                                       const rbmd::Real* vx,
 			                                                       const rbmd::Real* vy,
 			                                                       const rbmd::Real* vz,
+<<<<<<< .mine
 			                                                       rbmd::Real temp_sum)
+=======
+			                                                       rbmd::Real* temp_contrib)
+>>>>>>> .theirs
 	{
 		unsigned int blocks_per_grid = (num_atoms + BLOCK_SIZE - 1) / BLOCK_SIZE;
-		CHECK_KERNEL(ComputeTemperature <<<blocks_per_grid, BLOCK_SIZE, 0, 0 >>> (num_atoms, mvv2e, mass, vx, vy, vz, temp_sum));
+		CHECK_KERNEL(ComputeTemperature <<<blocks_per_grid, BLOCK_SIZE, 0, 0 >>> (num_atoms, mvv2e, mass, vx, vy, vz, temp_contrib));
 	}
 	
 
