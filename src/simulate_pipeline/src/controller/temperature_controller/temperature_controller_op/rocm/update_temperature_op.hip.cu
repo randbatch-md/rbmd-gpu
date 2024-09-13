@@ -94,11 +94,8 @@ namespace op
 			                                                       const rbmd::Real* vx,
 			                                                       const rbmd::Real* vy,
 			                                                       const rbmd::Real* vz,
-<<<<<<< .mine
-			                                                       rbmd::Real temp_sum)
-=======
 			                                                       rbmd::Real* temp_contrib)
->>>>>>> .theirs
+
 	{
 		unsigned int blocks_per_grid = (num_atoms + BLOCK_SIZE - 1) / BLOCK_SIZE;
 		CHECK_KERNEL(ComputeTemperature <<<blocks_per_grid, BLOCK_SIZE, 0, 0 >>> (num_atoms, mvv2e, mass, vx, vy, vz, temp_contrib));
