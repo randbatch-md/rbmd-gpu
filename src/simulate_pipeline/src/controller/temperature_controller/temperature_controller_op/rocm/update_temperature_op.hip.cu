@@ -42,9 +42,10 @@ namespace op
 
 		if (tid < num_atoms)
 		{
-			vx[tid] = vx[tid] * coeff_rescale;
-			vy[tid] = vy[tid] * coeff_rescale;
-			vz[tid] = vz[tid] * coeff_rescale;
+			rbmd::Real scale = coeff_rescale;
+			vx[tid] *= vx[tid];
+			vy[tid] *= vy[tid];
+			vz[tid] *= vz[tid];
 		}
 	}
 
@@ -104,10 +105,10 @@ namespace op
 
 
 	void UpdataVelocityRescaleOp<device::DEVICE_GPU>::operator()(const rbmd::Id num_atoms,
-																	  const rbmd::Real coeff_rescale,
-																	  rbmd::Real* vx,
-																	  rbmd::Real* vy,
-																	  rbmd::Real* vz)
+																 const rbmd::Real coeff_rescale,
+																 rbmd::Real* vx,
+																 rbmd::Real* vy,
+																 rbmd::Real* vz)
 	{
 		unsigned int blocks_per_grid = (num_atoms + BLOCK_SIZE - 1) / BLOCK_SIZE;
 		CHECK_KERNEL(UpdataVelocityRescale <<<blocks_per_grid, BLOCK_SIZE, 0, 0 >>> (num_atoms, coeff_rescale, vx, vy, vz));

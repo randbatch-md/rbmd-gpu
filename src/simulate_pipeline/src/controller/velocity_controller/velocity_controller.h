@@ -1,6 +1,6 @@
 #pragma once
-#include "model/device_data.h"
-#include "model/structure_info_data.h"
+//#include "model/device_data.h"
+//#include "model/structure_info_data.h"
 #include <memory>
 #include "data_manager.h"
 #include "model/md_data.h"
@@ -8,10 +8,11 @@
 class VelocityController
 {
 public:
-	VelocityController()
-	:_device_data(DataManager::getInstance().getDeviceData()) // todo 最开始的初始化待定	 _device_data(std::make_shared<DeviceData>())	 
-	, _structure_info_data(DataManager::getInstance().getMDData()->_structure_info_data) //  todo 最开始的初始化待定	 _structure_info_data(std::make_shared<StructureInfoData>())
-	{};
+	VelocityController()	
+	{
+		this->_device_data = DataManager::getInstance().getDeviceData();// todo 最开始的初始化待定	 _device_data(std::make_shared<DeviceData>())	 
+		this->_structure_info_data = DataManager::getInstance().getMDData()->_structure_info_data; //  todo 最开始的初始化待定	 _structure_info_data(std::make_shared<StructureInfoData>())
+	};
 
 	virtual ~VelocityController()=default;
 

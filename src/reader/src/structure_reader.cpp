@@ -239,6 +239,8 @@ int StructureReder::ReadMass(const rbmd::Id& numAtomTypes)
 				_line_start = &_mapped_memory[_locate];
 			}
 		}
+		auto& mass_1 = force_filed->_h_mass;
+		std::cout << "mass[0]="<<force_filed->_h_mass[0] << "," << "mass[1]=" << force_filed->_h_mass[1] << std::endl;
 	}
 	catch (const std::exception& e)
 	{
