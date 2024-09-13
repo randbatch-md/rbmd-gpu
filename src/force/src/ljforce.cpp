@@ -8,9 +8,9 @@
 // #include <hipcub/hipcub.hpp>
 // #include <hipcub/backend/rocprim/block/block_reduce.hpp>
 
-LJForce::LJForce() {
+LJForce::LJForce()
+{
   full_list_builder = std::make_shared<FullNeighborListBuilder>();
-  list = full_list_builder->Build();
 };
 
 void LJForce::Init() { _num_atoms = *(_structure_info_data->_num_atoms); }
@@ -18,7 +18,9 @@ void LJForce::Init() { _num_atoms = *(_structure_info_data->_num_atoms); }
 void LJForce::Execute() {
   LJForce::Init();
   rbmd::Real cut_off = 5.0;
+  //
 
+  list = full_list_builder->Build();
 
   //
   rbmd::Real h_total_evdwl = 0.0;
@@ -55,17 +57,6 @@ void LJForce::Execute() {
 
   // 释放设备端分配的内存
   CHECK_RUNTIME(FREE(d_total_evdwl));
-
-  std::ofstream outfile1("f.txt");
-  for (int i = 0; i < _device_data->_d_fx.size(); ++i)
-  {   
-
-      outfile1 << "fx " << _device_data->_d_fx[i] << " " << "fy " << _device_data->_d_fy[i] << " " << "fz " << _device_data->_d_fz[i] << std::endl;
-
-  }
-  outfile1.close();
-
-
 
      //std::cout <<"id0" << _device_data->_d_atoms_id[0] << std::endl;
      //std::cout << "p_atoms_id[0] "  <<  _device_data->_d_vx[0]<< " "

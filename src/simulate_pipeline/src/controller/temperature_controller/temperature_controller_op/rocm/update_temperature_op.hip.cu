@@ -19,9 +19,10 @@ namespace op
 
 		int tid = threadIdx.x + blockIdx.x * blockDim.x;
 		rbmd::Real local_temp = 0;
+		rbmd::Real massi = 1.0;
 		if (tid < num_atoms)
 		{
-			local_temp = mvv2e * mass[tid] * (vx[tid] * vx[tid] + vy[tid] * vy[tid] + vz[tid] * vz[tid]);
+			local_temp = mvv2e * massi * (vx[tid] * vx[tid] + vy[tid] * vy[tid] + vz[tid] * vz[tid]);
 		}
 
 		rbmd::Real block_sum = hipcub::BlockReduce<rbmd::Real, BLOCK_SIZE>(temp_storage).Sum(local_temp);

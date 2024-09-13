@@ -56,13 +56,13 @@ void RescaleController::ComputeTemp()
                            temp_contrib);
 
     CHECK_RUNTIME(MEMCPY(&_temp_sum, temp_contrib, sizeof(rbmd::Real), D2H));
-    std::cout << _temp_sum << std::endl;
+    //std::cout << "_temp_sum" << _temp_sum << std::endl;
 
     bool available_shake = false;
     std::string init_type = "inbuild";
     if (init_type== "inbuild") // LJ / LJ_salt
     {
-        _temp = 0.5 * _temp_sum / (3 * _num_atoms / 2.0);
+        _temp = 0.5 * _temp_sum / ((3 * _num_atoms -3) *_kB / 2.0);
     }
     else
     {
@@ -75,7 +75,7 @@ void RescaleController::ComputeTemp()
             }
             else
             {
-                _temp = 0.5 * _temp_sum / ((3 * _num_atoms) * _kB / 2.0);
+                _temp = 0.5 * _temp_sum / ((3 * _num_atoms -3) * _kB / 2.0);
             }
         }
         else // PEO
@@ -84,6 +84,7 @@ void RescaleController::ComputeTemp()
 
         }
     }
+    std::cout << "_temp=" << _temp << std::endl;
 }
 
 void RescaleController::UpdataVelocity()
@@ -98,4 +99,6 @@ void RescaleController::UpdataVelocity()
                        thrust::raw_pointer_cast(_device_data->_d_vx.data()),
                        thrust::raw_pointer_cast(_device_data->_d_vy.data()),
                        thrust::raw_pointer_cast(_device_data->_d_vz.data()));
+
+
 }

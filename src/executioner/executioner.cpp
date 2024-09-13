@@ -7,7 +7,7 @@ Executioner::Executioner(/*const Json::Value& node, */std::shared_ptr<Ensemble>&
 	//_num_steps(_exec_node["num_steps"].asInt())
 {
 	_time_step = 0.001;
-	_num_steps = 1;
+	_num_steps = 10;
 	_current_step = 0;
 	_current_time = 0;
 }
@@ -25,8 +25,8 @@ int Executioner::Execute()
 		_current_time += _time_step;
 		//_system->Evolve(); //dynamic
 		_simulate_pipeline->Run();
-		return 0;
 	}
+	return 0;
 }
 
 bool Executioner::KeepGoing()
