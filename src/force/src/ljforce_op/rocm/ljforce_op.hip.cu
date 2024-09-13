@@ -94,19 +94,25 @@ namespace op
 					//continue; 
 
 				MinImageDistance(box, px12, py12, pz12);
-				rbmd::Real f_ij,e_ij;
+
+				rbmd::Real f_ij;
+				rbmd::Real e_ij;
 
 				lj126(cut_off, px12, py12, pz12, eps_ij, sigma_ij,f_ij,e_ij);
 				sum_fx += f_ij * px12;
 				sum_fy += f_ij * py12;
 				sum_fz += f_ij * pz12;
-
 				sum_eij += e_ij;
 			}
 
 			force_x[tid1] += sum_fx;
 			force_y[tid1] += sum_fy;
 			force_z[tid1] += sum_fz;
+			//atomicAdd(&force_x[tid1], sum_fx);
+			//atomicAdd(&force_y[tid1], sum_fy);
+			//atomicAdd(&force_z[tid1], sum_fz);
+
+			//printf("--------test--force_x[tid1]:%f,force_y[tid1]:%f,force_z[tid1]:%f--\n", force_x[tid1], force_y[tid1], force_z[tid1]);
 
 		    evdwl[tid1] += sum_eij;
 			atomicAdd(total_evdwl, sum_eij);

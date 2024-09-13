@@ -56,6 +56,23 @@ void LJForce::Execute() {
   // 释放设备端分配的内存
   CHECK_RUNTIME(FREE(d_total_evdwl));
 
+  std::ofstream outfile1("f.txt");
+  for (int i = 0; i < _device_data->_d_fx.size(); ++i)
+  {   
+
+      outfile1 << "fx " << _device_data->_d_fx[i] << " " << "fy " << _device_data->_d_fy[i] << " " << "fz " << _device_data->_d_fz[i] << std::endl;
+
+  }
+  outfile1.close();
+
+
+
+     //std::cout <<"id0" << _device_data->_d_atoms_id[0] << std::endl;
+     //std::cout << "p_atoms_id[0] "  <<  _device_data->_d_vx[0]<< " "
+     //    << _device_data->_d_vy[0] << " "
+     //    << _device_data->_d_vz[0]
+     //    << std::endl;
+
   std::cout << "out of force execute" << std::endl;
              
 }
