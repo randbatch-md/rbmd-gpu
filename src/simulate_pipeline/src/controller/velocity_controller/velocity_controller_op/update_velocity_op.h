@@ -14,10 +14,7 @@ struct UpdateVelocityOp {
                   const rbmd::Real* fz, 
                   rbmd::Real* vx, 
                   rbmd::Real* vy,
-                  rbmd::Real* vz,
-                 rbmd::Real* px,
-                 rbmd::Real* py,
-                 rbmd::Real* pz);
+                  rbmd::Real* vz);
 };               
 
 template <>
@@ -32,9 +29,6 @@ struct UpdateVelocityOp<device::DEVICE_GPU> {
                   const rbmd::Real* fz, 
                   rbmd::Real* vx, 
                   rbmd::Real* vy,
-                  rbmd::Real* vz,
-      rbmd::Real* px,
-      rbmd::Real* py,
-      rbmd::Real* pz);
+                  rbmd::Real* vz);
 };
 }  // namespace op

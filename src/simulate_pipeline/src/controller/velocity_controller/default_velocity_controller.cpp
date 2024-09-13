@@ -46,9 +46,6 @@ void DefaultVelocityController::Update() {
                      thrust::raw_pointer_cast(_device_data->_d_fz.data()),
                      thrust::raw_pointer_cast(_device_data->_d_vx.data()),
                      thrust::raw_pointer_cast(_device_data->_d_vy.data()),
-                     thrust::raw_pointer_cast(_device_data->_d_vz.data()),
-      thrust::raw_pointer_cast(_device_data->_d_px.data()),
-      thrust::raw_pointer_cast(_device_data->_d_py.data()),
-      thrust::raw_pointer_cast(_device_data->_d_pz.data()));
+                     thrust::raw_pointer_cast(_device_data->_d_vz.data()));
 }
 

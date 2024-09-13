@@ -92,11 +92,8 @@ namespace op
 				rbmd::Real pz12 = z2 - z1;
 				//if (molecular_id_i == molecular_id_j)
 					//continue; 
-				//printf("-----pre---test--px12:%f,py12:%f,pz12:%f--\n", px12, py12, pz12);
 
 				MinImageDistance(box, px12, py12, pz12);
-
-				//printf("------post--test--px12:%f,py12:%f,pz12:%f--\n", px12, py12, pz12);
 
 				rbmd::Real f_ij;
 				rbmd::Real e_ij;
