@@ -291,27 +291,23 @@ namespace op
 						rbmd::Real* total_evdwl)
 		{
 		    unsigned int blocks_per_grid = (num_atoms + BLOCK_SIZE - 1) / BLOCK_SIZE;
-			printf("---force_out----cut_off:%f\n", cut_off);
-			printf("---force_out----num_atoms:%d\n", num_atoms);
-			printf("---force_out----atoms_type:%d\n", atoms_type[0]);
-			printf("---force_out----molecular_type:%f\n", molecular_type[0]);
-			printf("---force_out----eps:%f\n", eps[0]);
-			printf("---force_out----start_id:%d\n", start_id[0]);
-			printf("---force_out----end_id:%d\n", end_id[0]);
-			printf("---force_out----id_verletlist:%d\n", id_verletlist[0]);
-			printf("---force_out----px:%f\n", px[0]);
-			printf("---force_out----py:%f\n", py[0]);
-			printf("---force_out----pz:%f\n", pz[0]);
-			printf("---force_out----force_x:%f\n", force_x[0]);
-			printf("---force_out----force_y:%f\n", force_y[0]);
-			printf("---force_out----force_z:%f\n", force_z[0]);
-			printf("---force_out----evdwl:%f\n", evdwl[0]);
-			printf("---force_out----total_evdwl:%f\n", total_evdwl[0]);
-
-
-
-
-
+			//printf("---force_out----cut_off:%f\n", cut_off);
+			//printf("---force_out----num_atoms:%d\n", num_atoms);
+			//printf("---force_out----atoms_type:%d\n", atoms_type[0]);
+			//printf("---force_out----molecular_type:%f\n", molecular_type[0]);
+			//printf("---force_out----sigma:%f\n", sigma[0]);
+			//printf("---force_out----eps:%f\n", eps[0]);
+			//printf("---force_out----start_id:%d\n", start_id[0]);
+			//printf("---force_out----end_id:%d\n", end_id[0]);
+			//printf("---force_out----id_verletlist:%d\n", id_verletlist[0]);
+			//printf("---force_out----px:%f\n", px[0]);
+			//printf("---force_out----py:%f\n", py[0]);
+			//printf("---force_out----pz:%f\n", pz[0]);
+			//printf("---force_out----force_x:%f\n", force_x[0]);
+			//printf("---force_out----force_y:%f\n", force_y[0]);
+			//printf("---force_out----force_z:%f\n", force_z[0]);
+			//printf("---force_out----evdwl:%f\n", evdwl[0]);
+			//printf("---force_out----total_evdwl:%f\n", total_evdwl[0]);
 
 		    CHECK_KERNEL(ComputeLJForce <<<blocks_per_grid, BLOCK_SIZE, 0, 0 >>> (box, cut_off, num_atoms, atoms_type, molecular_type,
 				sigma, eps, start_id, end_id, id_verletlist, px, py, pz, force_x, force_y, force_z, evdwl,total_evdwl));
