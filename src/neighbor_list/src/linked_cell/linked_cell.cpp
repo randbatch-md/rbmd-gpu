@@ -16,8 +16,10 @@ LinkedCell::LinkedCell() {
   this->_config_data = DataManager::getInstance().getConfigData();
   this->_per_atom_cell_id.resize(*(_structure_info_data->_num_atoms));
   // TODO  反序列化
-  this->_cutoff = 5; //_config_data->Get<rbmd::Real>("cut_off", "hyper_parameters", "neighbor");
-  this->_total_atoms_num =  *(_structure_info_data->_num_atoms); // do this because nativate num
+  this->_cutoff = 5;  //_config_data->Get<rbmd::Real>("cut_off",
+                      //"hyper_parameters", "neighbor");
+  this->_total_atoms_num =
+      *(_structure_info_data->_num_atoms);  // do this because nativate num
 }
 
 LinkedCell::~LinkedCell() {
@@ -28,7 +30,7 @@ __host__ void LinkedCell::Rebuild(Box* box) {
   rbmd::Id _cells_number = 1;
   for (int dim = 0; dim < 3; dim++) {
     box->_box_width_as_cell_units[dim] = static_cast<rbmd::Id>(
-      floor((box->_coord_max[dim] - box->_coord_min[dim]) / _cutoff));
+        floor((box->_coord_max[dim] - box->_coord_min[dim]) / _cutoff));
     _per_dimension_cells[dim] = box->_box_width_as_cell_units[dim];
     _cells_number *= _per_dimension_cells[dim];
 
@@ -55,10 +57,9 @@ LinkedCellDeviceDataPtr* LinkedCell::GetDataPtr() {
 
 void LinkedCell::InitializeCells() {
   op::InitializeCellOp<device::DEVICE_GPU> initialize_cell_op;
-    initialize_cell_op(GetDataPtr(), _device_data->_d_box,
+  initialize_cell_op(GetDataPtr(), _device_data->_d_box,
                      thrust::raw_pointer_cast(this->_cells.data()),
                      this->_total_cells);
-
 }
 
 void LinkedCell::AssignAtomsToCell() {
@@ -87,21 +88,21 @@ void LinkedCell::SyncHToD() {
     this->AllocDeviceMemory();
   }
   CHECK_RUNTIME(MEMCPY(&_linked_cell_device_data_ptr->_d_total_cells,
-    &this->_total_cells, sizeof(rbmd::Id), H2D));
+                       &this->_total_cells, sizeof(rbmd::Id), H2D));
 
   CHECK_RUNTIME(MEMCPY(_linked_cell_device_data_ptr->_d_per_dimension_cells,
-    this->_per_dimension_cells, ALIGN_SIZE(rbmd::Id, 3),
-    H2D));
+                       this->_per_dimension_cells, ALIGN_SIZE(rbmd::Id, 3),
+                       H2D));
 
   CHECK_RUNTIME(MEMCPY(_linked_cell_device_data_ptr->_d_cell_length,
-    this->_cell_length, ALIGN_SIZE(rbmd::Real, 3), H2D));
+                       this->_cell_length, ALIGN_SIZE(rbmd::Real, 3), H2D));
 
   CHECK_RUNTIME(MEMCPY(_linked_cell_device_data_ptr->_d_cell_length_reciprocal,
-    this->_cell_length_reciprocal, ALIGN_SIZE(rbmd::Real, 3),
-    H2D));
+                       this->_cell_length_reciprocal, ALIGN_SIZE(rbmd::Real, 3),
+                       H2D));
 
   CHECK_RUNTIME(MEMCPY(&_linked_cell_device_data_ptr->_d_cutoff, &this->_cutoff,
-    sizeof(rbmd::Real), H2D));
+                       sizeof(rbmd::Real), H2D));
 }
 
 void LinkedCell::SortAtomsByCellKey() {
@@ -110,31 +111,31 @@ void LinkedCell::SortAtomsByCellKey() {
   void* d_temp_storage = nullptr;
   // 计算临时存储空间
   CHECK_RUNTIME(hipcub::DeviceRadixSort::SortPairs(
-    d_temp_storage, temp_storage_bytes,
-    thrust::raw_pointer_cast(_per_atom_cell_id.data()),
-    thrust::raw_pointer_cast(_per_atom_cell_id.data()),
-    thrust::raw_pointer_cast(_device_data->_d_atoms_id.data()),
-    thrust::raw_pointer_cast(_device_data->_d_atoms_id.data()),
-    _device_data->_d_atoms_id.size()));
+      d_temp_storage, temp_storage_bytes,
+      thrust::raw_pointer_cast(_per_atom_cell_id.data()),
+      thrust::raw_pointer_cast(_per_atom_cell_id.data()),
+      thrust::raw_pointer_cast(_device_data->_d_atoms_id.data()),
+      thrust::raw_pointer_cast(_device_data->_d_atoms_id.data()),
+      _device_data->_d_atoms_id.size()));
 
   CHECK_RUNTIME(MALLOC(&d_temp_storage, temp_storage_bytes));
   // 对每个数组进行排序
   thrust::device_vector<rbmd::Id> per_atom_cell_id_copy = _per_atom_cell_id;
   CHECK_RUNTIME(hipcub::DeviceRadixSort::SortPairs(
-    d_temp_storage, temp_storage_bytes,
-    thrust::raw_pointer_cast(_per_atom_cell_id.data()),
-    thrust::raw_pointer_cast(per_atom_cell_id_copy.data()),
-    thrust::raw_pointer_cast(_device_data->_d_atoms_id.data()),
-    thrust::raw_pointer_cast(_device_data->_d_atoms_id.data()),
-    _device_data->_d_atoms_id.size()));
+      d_temp_storage, temp_storage_bytes,
+      thrust::raw_pointer_cast(_per_atom_cell_id.data()),
+      thrust::raw_pointer_cast(per_atom_cell_id_copy.data()),
+      thrust::raw_pointer_cast(_device_data->_d_atoms_id.data()),
+      thrust::raw_pointer_cast(_device_data->_d_atoms_id.data()),
+      _device_data->_d_atoms_id.size()));
 
   CHECK_RUNTIME(hipcub::DeviceRadixSort::SortPairs(
-    d_temp_storage, temp_storage_bytes,
-    thrust::raw_pointer_cast(_per_atom_cell_id.data()),
-    thrust::raw_pointer_cast(per_atom_cell_id_copy.data()),
-    thrust::raw_pointer_cast(_device_data->_d_atoms_type.data()),
-    thrust::raw_pointer_cast(_device_data->_d_atoms_type.data()),
-    _device_data->_d_atoms_type.size()));
+      d_temp_storage, temp_storage_bytes,
+      thrust::raw_pointer_cast(_per_atom_cell_id.data()),
+      thrust::raw_pointer_cast(per_atom_cell_id_copy.data()),
+      thrust::raw_pointer_cast(_device_data->_d_atoms_type.data()),
+      thrust::raw_pointer_cast(_device_data->_d_atoms_type.data()),
+      _device_data->_d_atoms_type.size()));
 
   /// TODO
   // hipcub::DeviceRadixSort::SortPairs(
@@ -145,29 +146,79 @@ void LinkedCell::SortAtomsByCellKey() {
   //     thrust::raw_pointer_cast(_d_mass.data()), _d_mass.size());
 
   CHECK_RUNTIME(hipcub::DeviceRadixSort::SortPairs(
-    d_temp_storage, temp_storage_bytes,
-    thrust::raw_pointer_cast(_per_atom_cell_id.data()),
-    thrust::raw_pointer_cast(per_atom_cell_id_copy.data()),
-    thrust::raw_pointer_cast(_device_data->_d_px.data()),
-    thrust::raw_pointer_cast(_device_data->_d_px.data()),
-    _device_data->_d_px.size()));
+      d_temp_storage, temp_storage_bytes,
+      thrust::raw_pointer_cast(_per_atom_cell_id.data()),
+      thrust::raw_pointer_cast(per_atom_cell_id_copy.data()),
+      thrust::raw_pointer_cast(_device_data->_d_px.data()),
+      thrust::raw_pointer_cast(_device_data->_d_px.data()),
+      _device_data->_d_px.size()));
 
   CHECK_RUNTIME(hipcub::DeviceRadixSort::SortPairs(
-    d_temp_storage, temp_storage_bytes,
-    thrust::raw_pointer_cast(_per_atom_cell_id.data()),
-    thrust::raw_pointer_cast(per_atom_cell_id_copy.data()),
-    thrust::raw_pointer_cast(_device_data->_d_py.data()),
-    thrust::raw_pointer_cast(_device_data->_d_py.data()),
-    _device_data->_d_py.size()));
+      d_temp_storage, temp_storage_bytes,
+      thrust::raw_pointer_cast(_per_atom_cell_id.data()),
+      thrust::raw_pointer_cast(per_atom_cell_id_copy.data()),
+      thrust::raw_pointer_cast(_device_data->_d_py.data()),
+      thrust::raw_pointer_cast(_device_data->_d_py.data()),
+      _device_data->_d_py.size()));
+  //   thrust::raw_pointer_cast(  _per_atom_cell_id.data()), // note
+  //   最后一次修改这个
 
   CHECK_RUNTIME(hipcub::DeviceRadixSort::SortPairs(
-    d_temp_storage, temp_storage_bytes,
-    thrust::raw_pointer_cast(_per_atom_cell_id.data()),
-    thrust::raw_pointer_cast(
-      _per_atom_cell_id.data()), // note 最后一次修改这个
-    thrust::raw_pointer_cast(_device_data->_d_pz.data()),
-    thrust::raw_pointer_cast(_device_data->_d_pz.data()),
-    _device_data->_d_pz.size()));
+      d_temp_storage, temp_storage_bytes,
+      thrust::raw_pointer_cast(_per_atom_cell_id.data()),
+      thrust::raw_pointer_cast(per_atom_cell_id_copy.data()),
+      thrust::raw_pointer_cast(_device_data->_d_pz.data()),
+      thrust::raw_pointer_cast(_device_data->_d_pz.data()),
+      _device_data->_d_pz.size()));
+
+  CHECK_RUNTIME(hipcub::DeviceRadixSort::SortPairs(
+      d_temp_storage, temp_storage_bytes,
+      thrust::raw_pointer_cast(_per_atom_cell_id.data()),
+      thrust::raw_pointer_cast(per_atom_cell_id_copy.data()),
+      thrust::raw_pointer_cast(_device_data->_d_vx.data()),
+      thrust::raw_pointer_cast(_device_data->_d_vx.data()),
+      _device_data->_d_vx.size()));
+
+  CHECK_RUNTIME(hipcub::DeviceRadixSort::SortPairs(
+      d_temp_storage, temp_storage_bytes,
+      thrust::raw_pointer_cast(_per_atom_cell_id.data()),
+      thrust::raw_pointer_cast(per_atom_cell_id_copy.data()),
+      thrust::raw_pointer_cast(_device_data->_d_vy.data()),
+      thrust::raw_pointer_cast(_device_data->_d_vy.data()),
+      _device_data->_d_vy.size()));
+
+  CHECK_RUNTIME(hipcub::DeviceRadixSort::SortPairs(
+      d_temp_storage, temp_storage_bytes,
+      thrust::raw_pointer_cast(_per_atom_cell_id.data()),
+      thrust::raw_pointer_cast(per_atom_cell_id_copy.data()),
+      thrust::raw_pointer_cast(_device_data->_d_vz.data()),
+      thrust::raw_pointer_cast(_device_data->_d_vz.data()),
+      _device_data->_d_vz.size()));
+
+  CHECK_RUNTIME(hipcub::DeviceRadixSort::SortPairs(
+      d_temp_storage, temp_storage_bytes,
+      thrust::raw_pointer_cast(_per_atom_cell_id.data()),
+      thrust::raw_pointer_cast(per_atom_cell_id_copy.data()),
+      thrust::raw_pointer_cast(_device_data->_d_fx.data()),
+      thrust::raw_pointer_cast(_device_data->_d_fx.data()),
+      _device_data->_d_fx.size()));
+
+  CHECK_RUNTIME(hipcub::DeviceRadixSort::SortPairs(
+      d_temp_storage, temp_storage_bytes,
+      thrust::raw_pointer_cast(_per_atom_cell_id.data()),
+      thrust::raw_pointer_cast(per_atom_cell_id_copy.data()),
+      thrust::raw_pointer_cast(_device_data->_d_fy.data()),
+      thrust::raw_pointer_cast(_device_data->_d_fy.data()),
+      _device_data->_d_fy.size()));
+
+  CHECK_RUNTIME(hipcub::DeviceRadixSort::SortPairs(
+      d_temp_storage, temp_storage_bytes,
+      thrust::raw_pointer_cast(_per_atom_cell_id.data()),
+      thrust::raw_pointer_cast(_per_atom_cell_id.data()),
+      thrust::raw_pointer_cast(_device_data->_d_fz.data()),
+      thrust::raw_pointer_cast(_device_data->_d_fz.data()),
+      _device_data->_d_fz.size()));
+
   // 释放临时存储空间
   CHECK_RUNTIME(FREE(d_temp_storage));
 }
