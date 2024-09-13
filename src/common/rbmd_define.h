@@ -1,4 +1,5 @@
 #pragma once
+#include <hipcub/hipcub.hpp>
 #include <hip/hip_runtime.h>
 #include <hip/hip_runtime_api.h>
 #include <thrust/device_vector.h>
@@ -106,3 +107,17 @@ static bool CheckHipRuntime(hipError_t e, const char *call, int line,
       exit(EXIT_FAILURE);                                               \
     }                                                                   \
   } while (0);
+
+
+template<typename T>
+// d_src_array input array  d_dst outputnum size：input array size
+static void ReductionSum(T* d_src_array, T* d_dst, rbmd::Id size) {
+  void* temp = nullptr;
+  size_t temp_bytes = 0;
+  CHECK_RUNTIME(hipcub::DeviceReduce::Sum(temp, temp_bytes, d_src_array, d_dst,
+    static_cast<int>(size)));
+  CHECK_RUNTIME(MALLOC(&temp, temp_bytes));
+  CHECK_RUNTIME(hipcub::DeviceReduce::Sum(temp, temp_bytes, d_src_array, d_dst,
+    static_cast<int>(size)));
+  CHECK_RUNTIME(FREE(temp));
+}
