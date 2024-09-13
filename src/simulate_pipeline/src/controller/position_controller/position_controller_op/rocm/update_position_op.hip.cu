@@ -134,9 +134,18 @@ namespace op
 
 		if (tid < num_atoms)
 		{
-			px[tid] += vx[tid] * dt;
-			py[tid] += vy[tid] * dt;
-			pz[tid] += vz[tid] * dt;
+			rbmd::Real sum_px = px[tid];
+			rbmd::Real sum_py = py[tid];
+			rbmd::Real sum_pz = pz[tid];
+
+			sum_px += vx[tid] * dt;
+			sum_py += vy[tid] * dt;
+			sum_pz += vz[tid] * dt;
+
+			px[tid] = sum_px;
+			py[tid] = sum_py;
+			pz[tid] = sum_pz;
+
 
 			UpdateFlagOverRangePoint(min_x,
 				                     min_y,
@@ -173,9 +182,17 @@ namespace op
 
 		if (tid < num_atoms)
 		{
-			px[tid] += vx[tid] * dt;
-			py[tid] += vy[tid] * dt;
-			pz[tid] += vz[tid] * dt;
+			rbmd::Real sum_px = px[tid];
+			rbmd::Real sum_py = py[tid];
+			rbmd::Real sum_pz = pz[tid];
+
+			sum_px += vx[tid] * dt;
+			sum_py += vy[tid] * dt;
+			sum_pz += vz[tid] * dt;
+
+			px[tid] = sum_px;
+			py[tid] = sum_py;
+			pz[tid] = sum_pz;
 
 			UpdateOverRangePoint(min_x,
 				                 min_y,

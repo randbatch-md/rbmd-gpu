@@ -6,8 +6,8 @@ Executioner::Executioner(/*const Json::Value& node, */std::shared_ptr<Ensemble>&
 	//_time_step(_exec_node["num_steps"].asFloat()),
 	//_num_steps(_exec_node["num_steps"].asInt())
 {
-	_time_step = 0.01;
-	_num_steps = 1000;
+	_time_step = 0.001;
+	_num_steps = 1;
 	_current_step = 0;
 	_current_time = 0;
 }

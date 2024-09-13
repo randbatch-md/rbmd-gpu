@@ -39,12 +39,16 @@ void DefaultVelocityController::Update() {
   
   op::UpdateVelocityOp<device::DEVICE_GPU> update_velocity_op;
   update_velocity_op(_num_atoms, _dt, _fmt2v,
+                     thrust::raw_pointer_cast(_device_data->_d_atoms_type.data()),
                      thrust::raw_pointer_cast(_device_data->_d_mass.data()),
                      thrust::raw_pointer_cast(_device_data->_d_fx.data()),
                      thrust::raw_pointer_cast(_device_data->_d_fy.data()),
                      thrust::raw_pointer_cast(_device_data->_d_fz.data()),
                      thrust::raw_pointer_cast(_device_data->_d_vx.data()),
                      thrust::raw_pointer_cast(_device_data->_d_vy.data()),
-                     thrust::raw_pointer_cast(_device_data->_d_vz.data()));
+                     thrust::raw_pointer_cast(_device_data->_d_vz.data()),
+      thrust::raw_pointer_cast(_device_data->_d_px.data()),
+      thrust::raw_pointer_cast(_device_data->_d_py.data()),
+      thrust::raw_pointer_cast(_device_data->_d_pz.data()));
 }
 
