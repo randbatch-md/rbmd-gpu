@@ -49,6 +49,7 @@ void NoseHooverController::ComputeTemp()
     op::ComputeTemperatureOp<device::DEVICE_GPU> compute_temperature_op;
     compute_temperature_op(_num_atoms,
                            _mvv2e,
+                           thrust::raw_pointer_cast(_device_data->_d_atoms_type.data()),
                            thrust::raw_pointer_cast(_device_data->_d_mass.data()),
                            thrust::raw_pointer_cast(_device_data->_d_vx.data()),
                            thrust::raw_pointer_cast(_device_data->_d_vy.data()),
@@ -94,6 +95,7 @@ void NoseHooverController::UpdataVelocity()
                                    _dt,
                                    _fmt2v,
                                    _nosehooverxi,
+                                   thrust::raw_pointer_cast(_device_data->_d_atoms_type.data()),
                                    thrust::raw_pointer_cast(_device_data->_d_mass.data()),
                                    thrust::raw_pointer_cast(_device_data->_d_fx.data()),
                                    thrust::raw_pointer_cast(_device_data->_d_fy.data()),

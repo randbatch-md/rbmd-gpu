@@ -9,6 +9,7 @@ namespace op
 	{
 		void operator()(const rbmd::Id num_atoms,
 			            const rbmd::Real mvv2e,
+						const rbmd::Id* atoms_type,
 			            const rbmd::Real* mass,
 			            const rbmd::Real* vx,
 		                const rbmd::Real* vy,
@@ -33,6 +34,7 @@ namespace op
 			            const rbmd::Real dt,
 			            const rbmd::Real fmt2v,
 			            const rbmd::Real nosehooverxi,
+						const rbmd::Id* atoms_type,
 			            const rbmd::Real* mass,
 						const rbmd::Real* fx,
 						const rbmd::Real* fy,
@@ -57,6 +59,7 @@ namespace op
 	{
 		void operator()(const rbmd::Id num_atoms,
 						const rbmd::Real mvv2e,
+						const rbmd::Id* atoms_type,
 						const rbmd::Real* mass,
 						const rbmd::Real* vx,
 						const rbmd::Real* vy,
@@ -81,6 +84,7 @@ namespace op
 						const rbmd::Real dt,
 						const rbmd::Real fmt2v,
 						const rbmd::Real nosehooverxi,
+						const rbmd::Id* atoms_type,
 						const rbmd::Real* mass,
 						const rbmd::Real* fx,
 						const rbmd::Real* fy,

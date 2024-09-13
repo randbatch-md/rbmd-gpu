@@ -9,6 +9,7 @@ namespace op
 	__global__
 		void ComputeTemperature(const rbmd::Id num_atoms,
 			                    const rbmd::Real mvv2e,
+								const rbmd::Id* atoms_type,
 			                    const rbmd::Real* mass,
 			                    const rbmd::Real* vx,
 			                    const rbmd::Real* vy,
@@ -21,7 +22,7 @@ namespace op
 		rbmd::Real local_temp = 0;
 		if (tid < num_atoms)
 		{
-			local_temp = mvv2e * mass[tid] * (vx[tid] * vx[tid] + vy[tid] * vy[tid] + vz[tid] * vz[tid]);
+			local_temp = mvv2e * mass[atoms_type[tid]-1] * (vx[tid] * vx[tid] + vy[tid] * vy[tid] + vz[tid] * vz[tid]);
 		}
 
 		rbmd::Real block_sum = hipcub::BlockReduce<rbmd::Real, BLOCK_SIZE>(temp_storage).Sum(local_temp);
@@ -54,6 +55,7 @@ namespace op
 			                          const rbmd::Real dt,
 			                          const rbmd::Real fmt2v,
 			                          const rbmd::Real nosehooverxi,
+									  const rbmd::Id* atoms_type,
 			                          const rbmd::Real* mass,
 			                          const rbmd::Real* fx,
 			                          const rbmd::Real* fy,
@@ -66,9 +68,9 @@ namespace op
 
 		if (tid < num_atoms)
 		{
-			vx[tid] += 0.5 * dt * (fx[tid] / mass[tid] - nosehooverxi * vx[tid]) * fmt2v;
-			vy[tid] += 0.5 * dt * (fy[tid] / mass[tid] - nosehooverxi * vy[tid]) * fmt2v;
-			vz[tid] += 0.5 * dt * (fz[tid] / mass[tid] - nosehooverxi * vz[tid]) * fmt2v;
+			vx[tid] += 0.5 * dt * (fx[tid] / mass[atoms_type[tid]-1] - nosehooverxi * vx[tid]) * fmt2v;
+			vy[tid] += 0.5 * dt * (fy[tid] / mass[atoms_type[tid]-1] - nosehooverxi * vy[tid]) * fmt2v;
+			vz[tid] += 0.5 * dt * (fz[tid] / mass[atoms_type[tid]-1] - nosehooverxi * vz[tid]) * fmt2v;
 		}
 	}
 
@@ -90,15 +92,16 @@ namespace op
 	}
 
 	void ComputeTemperatureOp<device::DEVICE_GPU>::operator()(const rbmd::Id num_atoms,
-			                                                       const rbmd::Real mvv2e,
-			                                                       const rbmd::Real* mass,
-			                                                       const rbmd::Real* vx,
-			                                                       const rbmd::Real* vy,
-			                                                       const rbmd::Real* vz,
-			                                                       rbmd::Real* temp_contrib)
+			                                                  const rbmd::Real mvv2e,
+															  const rbmd::Id* atoms_type,
+			                                                  const rbmd::Real* mass,
+			                                                  const rbmd::Real* vx,
+			                                                  const rbmd::Real* vy,
+			                                                  const rbmd::Real* vz,
+			                                                  rbmd::Real* temp_contrib)
 	{
 		unsigned int blocks_per_grid = (num_atoms + BLOCK_SIZE - 1) / BLOCK_SIZE;
-		CHECK_KERNEL(ComputeTemperature <<<blocks_per_grid, BLOCK_SIZE, 0, 0 >>> (num_atoms, mvv2e, mass, vx, vy, vz, temp_contrib));
+		CHECK_KERNEL(ComputeTemperature <<<blocks_per_grid, BLOCK_SIZE, 0, 0 >>> (num_atoms, mvv2e, atoms_type, mass, vx, vy, vz, temp_contrib));
 	}
 	
 
@@ -116,19 +119,20 @@ namespace op
 
 
 	void UpdataVelocityNoseHooverOp<device::DEVICE_GPU>::operator()(const rbmd::Id num_atoms,
-																		 const rbmd::Real dt,
-																		 const rbmd::Real fmt2v,
-																		 const rbmd::Real nosehooverxi,
-																		 const rbmd::Real* mass,
-																		 const rbmd::Real* fx,
-																		 const rbmd::Real* fy,
-																		 const rbmd::Real* fz,
-																		 rbmd::Real* vx,
-																		 rbmd::Real* vy,
-																		 rbmd::Real* vz) 
+																	const rbmd::Real dt,
+																	const rbmd::Real fmt2v,
+																	const rbmd::Real nosehooverxi,
+																	const rbmd::Id* atoms_type,
+																	const rbmd::Real* mass,
+																	const rbmd::Real* fx,
+																	const rbmd::Real* fy,
+																	const rbmd::Real* fz,
+																	rbmd::Real* vx,
+																	rbmd::Real* vy,
+																	rbmd::Real* vz) 
 	{
 		unsigned int blocks_per_grid = (num_atoms + BLOCK_SIZE - 1) / BLOCK_SIZE;
-		CHECK_KERNEL(UpdataVelocityNoseHoover <<<blocks_per_grid, BLOCK_SIZE, 0, 0 >>> (num_atoms, dt, fmt2v, nosehooverxi, mass, fx, fy, fz, vx, vy, vz));
+		CHECK_KERNEL(UpdataVelocityNoseHoover <<<blocks_per_grid, BLOCK_SIZE, 0, 0 >>> (num_atoms, dt, fmt2v, nosehooverxi, atoms_type, mass, fx, fy, fz, vx, vy, vz));
 	}
 	
 
