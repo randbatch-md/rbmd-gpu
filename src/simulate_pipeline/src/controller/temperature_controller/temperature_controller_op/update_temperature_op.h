@@ -13,7 +13,7 @@ namespace op
 			            const rbmd::Real* vx,
 		                const rbmd::Real* vy,
 		                const rbmd::Real* vz,
-			            rbmd::Real& temp_sum);
+			            rbmd::Real* temp_contrib);
 	};
 
 	template <typename DEVICE>
@@ -61,7 +61,7 @@ namespace op
 						const rbmd::Real* vx,
 						const rbmd::Real* vy,
 						const rbmd::Real* vz,
-						rbmd::Real& temp_sum);
+						rbmd::Real* temp_contrib);
 	};
 
 	template <>
