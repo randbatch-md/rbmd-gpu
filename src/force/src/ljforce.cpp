@@ -21,9 +21,9 @@ void LJForce::Execute() {
   //
 
   list = full_list_builder->Build();
-
+  list->print("./step1neighbor.csv");
   //
-  rbmd::Real h_total_evdwl = 0.0;
+    rbmd::Real h_total_evdwl = 0.0;
   rbmd::Real* d_total_evdwl;
 
   CHECK_RUNTIME(MALLOC(&d_total_evdwl, sizeof(rbmd::Real)));

@@ -15,4 +15,6 @@ class NeighborList {
   thrust::device_vector<rbmd::Id> _d_neighbors{};
   thrust::device_vector<rbmd::Id> _start_idx{};
   thrust::device_vector<rbmd::Id> _end_idx{};
+
+  void print(const std::string& filename);
 };

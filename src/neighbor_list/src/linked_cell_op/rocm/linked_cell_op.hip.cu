@@ -161,6 +161,15 @@ __global__ void ComputeCellRangesIndices(rbmd::Id* sorted_cell_index,
   }
 }
 
+__global__ void MapAtomidToIdx(rbmd::Id* d_atomid2idx, rbmd::Id* d_sorted_atom_idx, rbmd::Id num_atoms) {
+  int idx = threadIdx.x + blockIdx.x * blockDim.x;
+  if (idx < num_atoms) {
+    // 使用排序后的索引数组来创建映射
+    d_atomid2idx[d_sorted_atom_idx[idx]] = idx;
+  }
+}
+
+
 void InitializeCellOp<device::DEVICE_GPU>::operator()(
     LinkedCellDeviceDataPtr* linked_cell, Box* box, Cell* cells,
     rbmd::Id total_cells) {
@@ -186,7 +195,12 @@ void ComputeCellRangesIndicesOp<device::DEVICE_GPU>::operator()(
     rbmd::Id* sorted_cell_index, rbmd::Id* d_in_atom_list_start_index,
     rbmd::Id* d_in_atom_list_end_index, rbmd::Id num_atoms) {
   unsigned int blocks_per_grid = (num_atoms + BLOCK_SIZE - 1) / BLOCK_SIZE;
-  CHECK_KERNEL(ComputeCellRangesIndices<<<blocks_per_grid,BLOCK_SIZE,0,0>>>(sorted_cell_index, d_in_atom_list_start_index,
+  CHECK_KERNEL(ComputeCellRangesIndices<<<blocks_per_grid, BLOCK_SIZE, 0, 0>>>(
+      sorted_cell_index, d_in_atom_list_start_index,
                        d_in_atom_list_end_index, num_atoms));
   }
+void MapAtomidToIdxOp<device::DEVICE_GPU>::operator()(rbmd::Id* d_atomid2idx, rbmd::Id* d_sorted_atom_idx, rbmd::Id num_atoms){
+  unsigned int blocks_per_grid = (num_atoms + BLOCK_SIZE - 1) / BLOCK_SIZE;
+  CHECK_KERNEL(MapAtomidToIdx<<<blocks_per_grid, BLOCK_SIZE, 0, 0>>>(d_atomid2idx,d_sorted_atom_idx,num_atoms));
+}
 } // namespace op

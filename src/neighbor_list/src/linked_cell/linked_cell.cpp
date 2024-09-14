@@ -20,6 +20,7 @@ LinkedCell::LinkedCell() {
                       //"hyper_parameters", "neighbor");
   this->_total_atoms_num =
       *(_structure_info_data->_num_atoms);  // do this because nativate num
+  this->_atom_id_to_idx.resize(_total_atoms_num);
 }
 
 LinkedCell::~LinkedCell() {
@@ -30,7 +31,7 @@ __host__ void LinkedCell::Rebuild(Box* box) {
   rbmd::Id _cells_number = 1;
   for (int dim = 0; dim < 3; dim++) {
     box->_box_width_as_cell_units[dim] = static_cast<rbmd::Id>(
-        floor((box->_coord_max[dim] - box->_coord_min[dim]) / _cutoff));
+        floor(static_cast<double>(box->_coord_max[dim] - box->_coord_min[dim]) / _cutoff));
     _per_dimension_cells[dim] = box->_box_width_as_cell_units[dim];
     _cells_number *= _per_dimension_cells[dim];
 
@@ -128,6 +129,11 @@ void LinkedCell::SortAtomsByCellKey() {
       thrust::raw_pointer_cast(_device_data->_d_atoms_id.data()),
       thrust::raw_pointer_cast(_device_data->_d_atoms_id.data()),
       _device_data->_d_atoms_id.size()));
+
+
+  op::MapAtomidToIdxOp<device::DEVICE_GPU> map_atomid_to_idx_op;
+  map_atomid_to_idx_op(thrust::raw_pointer_cast(_atom_id_to_idx.data()),raw_ptr(_device_data->_d_atoms_id),_total_atoms_num);
+
 
   CHECK_RUNTIME(hipcub::DeviceRadixSort::SortPairs(
       d_temp_storage, temp_storage_bytes,

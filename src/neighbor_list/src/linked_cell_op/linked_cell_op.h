@@ -23,7 +23,6 @@ struct ComputeCellRangesIndicesOp {
                   rbmd::Id* d_in_atom_list_end_index, rbmd::Id num_atoms);
 };
 
-
 template <>
 struct InitializeCellOp<device::DEVICE_GPU> {
   void operator()(LinkedCellDeviceDataPtr* linked_cell, Box* box, Cell* cells,
@@ -44,4 +43,17 @@ struct ComputeCellRangesIndicesOp<device::DEVICE_GPU> {
                   rbmd::Id* d_in_atom_list_end_index, rbmd::Id num_atoms);
 };
 
-} // namespace op
+template <typename DEVICE>
+struct MapAtomidToIdxOp {
+  void operator()(rbmd::Id* d_atomid2idx, rbmd::Id* d_sorted_atom_idx,
+                rbmd::Id num_atoms);
+};
+
+
+template <>
+struct MapAtomidToIdxOp<device::DEVICE_GPU> {
+  void operator()(rbmd::Id* d_atomid2idx, rbmd::Id* d_sorted_atom_idx,
+                rbmd::Id num_atoms);
+};
+
+}  // namespace op
