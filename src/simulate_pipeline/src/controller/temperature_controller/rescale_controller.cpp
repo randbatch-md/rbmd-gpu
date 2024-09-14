@@ -15,8 +15,8 @@ void RescaleController::Init() {
   _num_atoms = *(_structure_info_data->_num_atoms);
   _temp_sum = 0;
 
-  auto unit = "LJ";                          // �����ļ���ȡ
-  UNIT unit_factor = unit_factor_map[unit];  // ����������ض�������
+  auto unit = "LJ";                          
+  UNIT unit_factor = unit_factor_map[unit];  
 
   switch (unit_factor) {
     case UNIT::LJ:
@@ -77,7 +77,7 @@ void RescaleController::ComputeTemp() {
 }
 
 void RescaleController::UpdataVelocity() {
-  rbmd::Real kbT = 1;  // �����ļ���ȡ
+  rbmd::Real kbT = 1; 
   rbmd::Real coeff_rescale = std::sqrt(kbT / _temp);
 
   op::UpdataVelocityRescaleOp<device::DEVICE_GPU> updata_velocity_op;
@@ -87,12 +87,12 @@ void RescaleController::UpdataVelocity() {
                      thrust::raw_pointer_cast(_device_data->_d_vz.data()));
 
 #ifdef TEMP_OUTPUT
-  // ���������ڴ�
+  
   rbmd::Real* h_vx = new rbmd::Real[_device_data->_d_vx.size()];
   rbmd::Real* h_vy = new rbmd::Real[_device_data->_d_vy.size()];
   rbmd::Real* h_vz = new rbmd::Real[_device_data->_d_vz.size()];
 
-  // ���豸���ݿ���������
+
   CHECK_RUNTIME(MEMCPY(h_vx,
                        thrust::raw_pointer_cast(_device_data->_d_vx.data()),
                        _device_data->_d_vx.size() * sizeof(rbmd::Real), D2H));

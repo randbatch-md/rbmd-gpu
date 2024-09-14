@@ -11,16 +11,16 @@ void DefaultPositionController::Init() {
   // auto atom_style = _config_data->Get<std::string>("atom_style",
   // "init_configuration", "read_data");
 
-  _dt = 0.001;  // �����ļ��ж�ȡ
+  _dt = 0.001;  
   _num_atoms = *(_structure_info_data->_num_atoms);
 }
 
 void DefaultPositionController::Update() {
-  bool available_shake = false;  // �����ļ��ж�ȡ
+  bool available_shake = false;  
   if (available_shake) {
-    bool shake = false;  // �����ļ��ж�ȡ
-    if (shake) {
-      // ��ǰlj����Ҫ����shake
+    bool shake = false;  
+    if (shake) 
+    {
       //_device_data->_shake_vx = _device_data->_d_px;
       //_device_data->_shake_vy = _device_data->_d_py;
       //_device_data->_shake_vz = _device_data->_d_pz;
@@ -28,7 +28,7 @@ void DefaultPositionController::Update() {
     op::UpdatePositionOp<device::DEVICE_GPU> update_position_op;
     update_position_op(
         _num_atoms, _dt,
-        (*_structure_info_data->_range)[0][0],  // ����nvp�����Ǳ仯��
+        (*_structure_info_data->_range)[0][0],  
         (*_structure_info_data->_range)[1][0],
         (*_structure_info_data->_range)[2][0],
         (*_structure_info_data->_range)[0][1],
@@ -57,13 +57,13 @@ void DefaultPositionController::Update() {
         thrust::raw_pointer_cast(_device_data->_d_px.data()),
         thrust::raw_pointer_cast(_device_data->_d_py.data()),
         thrust::raw_pointer_cast(_device_data->_d_pz.data()),
-        thrust::raw_pointer_cast(_device_data->_d_flagX.data()),  // ������Ҫ����
+        thrust::raw_pointer_cast(_device_data->_d_flagX.data()),  
         thrust::raw_pointer_cast(_device_data->_d_flagY.data()),
         thrust::raw_pointer_cast(_device_data->_d_flagZ.data()));
   }
 
 #ifdef POSITION_OUTPUT
-  // ���������ڴ�
+
   rbmd::Real* h_vx = new rbmd::Real[_device_data->_d_vx.size()];
   rbmd::Real* h_vy = new rbmd::Real[_device_data->_d_vy.size()];
   rbmd::Real* h_vz = new rbmd::Real[_device_data->_d_vz.size()];
@@ -72,7 +72,6 @@ void DefaultPositionController::Update() {
   rbmd::Real* h_py = new rbmd::Real[_device_data->_d_py.size()];
   rbmd::Real* h_pz = new rbmd::Real[_device_data->_d_pz.size()];
 
-  // ���豸���ݿ���������
   CHECK_RUNTIME(MEMCPY(h_vx,
                        thrust::raw_pointer_cast(_device_data->_d_vx.data()),
                        _device_data->_d_vx.size() * sizeof(rbmd::Real), D2H));
@@ -125,6 +124,6 @@ void DefaultPositionController::SetCenterTargetPositions()
 	std::string init_type = "inbuild";
 	if (init_type==_init_type)
 	{
-		//Ϊ����rdf�����������׼����
+		
 	}
 }
