@@ -20,6 +20,14 @@ LinkedCell::LinkedCell() {
                       //"hyper_parameters", "neighbor");
   this->_total_atoms_num =
       *(_structure_info_data->_num_atoms);  // do this because nativate num
+  this->_atom_id_to_idx.resize(_total_atoms_num);
+  this->_original_idx.resize(_total_atoms_num);
+  thrust::transform(
+  thrust::make_counting_iterator(0), // 从0开始的计数迭代器
+  thrust::make_counting_iterator(_total_atoms_num), // 结束位置
+  this->_original_idx.begin(), // 输出到 original_idx
+  [] __device__ (const int i) { return i; } // 直接返回计数器的值
+);
 }
 
 LinkedCell::~LinkedCell() {
@@ -30,7 +38,7 @@ __host__ void LinkedCell::Rebuild(Box* box) {
   rbmd::Id _cells_number = 1;
   for (int dim = 0; dim < 3; dim++) {
     box->_box_width_as_cell_units[dim] = static_cast<rbmd::Id>(
-        floor((box->_coord_max[dim] - box->_coord_min[dim]) / _cutoff));
+        floor(static_cast<double>(box->_coord_max[dim] - box->_coord_min[dim]) / _cutoff));
     _per_dimension_cells[dim] = box->_box_width_as_cell_units[dim];
     _cells_number *= _per_dimension_cells[dim];
 
@@ -128,6 +136,21 @@ void LinkedCell::SortAtomsByCellKey() {
       thrust::raw_pointer_cast(_device_data->_d_atoms_id.data()),
       thrust::raw_pointer_cast(_device_data->_d_atoms_id.data()),
       _device_data->_d_atoms_id.size()));
+
+  thrust::device_vector<int> _original_idx(_total_atoms_num);
+  thrust::transform(
+    thrust::make_counting_iterator(0), // 从0开始的计数迭代器
+    thrust::make_counting_iterator(_total_atoms_num), // 结束位置
+    _original_idx.begin(), // 输出到 original_idx
+    [] __device__ (const int i) { return i; } // 直接返回计数器的值
+);
+  thrust::scatter(thrust::make_counting_iterator(0),
+                thrust::make_counting_iterator(_total_atoms_num),
+                _original_idx.begin(),
+                _atom_id_to_idx.begin());
+  // std::cout<< "idx = 1 对应的原子id： " << _device_data->_d_atoms_id[1] << std::endl;
+  // std::cout << _atom_id_to_idx[7] << "---应该是1" << std::endl;
+
 
   CHECK_RUNTIME(hipcub::DeviceRadixSort::SortPairs(
       d_temp_storage, temp_storage_bytes,

@@ -50,7 +50,7 @@ class LinkedCell {
   thrust::device_vector<Cell> _cells{};
   // 存储邻居
   thrust::device_vector<rbmd::Id> _neighbor_cell{};
-
+  thrust::device_vector<rbmd::Id> _atom_id_to_idx{};
   rbmd::Real _cutoff = 0;
   rbmd::Id _cell_count_within_cutoff = 1;
 
@@ -73,6 +73,6 @@ class LinkedCell {
   std::shared_ptr<DeviceData> _device_data;
   std::shared_ptr<StructureInfoData> _structure_info_data;
   std::shared_ptr<ConfigData> _config_data;
-
+  thrust::device_vector<int> _original_idx{};
   void AllocDeviceMemory();
 };
