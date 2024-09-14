@@ -1,7 +1,7 @@
 #include "default_position_controller.h"
 #include "update_position_op.h"
 #include <thrust/device_ptr.h>
-
+#define POSITION_OUTPUT
 DefaultPositionController::DefaultPositionController() {};
 
 void DefaultPositionController::Init()
@@ -62,6 +62,44 @@ void DefaultPositionController::Update()
 			               thrust::raw_pointer_cast(_device_data->_d_flagY.data()),
 			               thrust::raw_pointer_cast(_device_data->_d_flagZ.data()));
 	}
+
+#ifdef POSITION_OUTPUT
+	// 分配主机内存
+	rbmd::Real* h_vx = new rbmd::Real[_device_data->_d_vx.size()];
+	rbmd::Real* h_vy = new rbmd::Real[_device_data->_d_vy.size()];
+	rbmd::Real* h_vz = new rbmd::Real[_device_data->_d_vz.size()];
+
+	rbmd::Real* h_px = new rbmd::Real[_device_data->_d_px.size()];
+	rbmd::Real* h_py = new rbmd::Real[_device_data->_d_py.size()];
+	rbmd::Real* h_pz = new rbmd::Real[_device_data->_d_pz.size()];
+
+	// 将设备数据拷贝到主机
+	CHECK_RUNTIME(MEMCPY(h_vx, thrust::raw_pointer_cast(_device_data->_d_vx.data()), _device_data->_d_vx.size() * sizeof(rbmd::Real), D2H));
+	CHECK_RUNTIME(MEMCPY(h_vy, thrust::raw_pointer_cast(_device_data->_d_vy.data()), _device_data->_d_vy.size() * sizeof(rbmd::Real), D2H));
+	CHECK_RUNTIME(MEMCPY(h_vz, thrust::raw_pointer_cast(_device_data->_d_vz.data()), _device_data->_d_vz.size() * sizeof(rbmd::Real), D2H));
+
+	CHECK_RUNTIME(MEMCPY(h_px, thrust::raw_pointer_cast(_device_data->_d_px.data()), _device_data->_d_px.size() * sizeof(rbmd::Real), D2H));
+	CHECK_RUNTIME(MEMCPY(h_py, thrust::raw_pointer_cast(_device_data->_d_py.data()), _device_data->_d_py.size() * sizeof(rbmd::Real), D2H));
+	CHECK_RUNTIME(MEMCPY(h_pz, thrust::raw_pointer_cast(_device_data->_d_pz.data()), _device_data->_d_pz.size() * sizeof(rbmd::Real), D2H));
+
+	std::ofstream output_file_p_velocity;
+	output_file_p_velocity.open("output_file_p_velocity_" + std::to_string(test_current_step) + ".txt");
+	for (size_t i = 0; i < _num_atoms; i++)
+	{
+		output_file_p_velocity << i << "," << h_vx[i] << "," << h_vy[i] << "," << h_vz[i] << std::endl;
+
+	}
+
+	std::ofstream output_file_p_position;
+	output_file_p_position.open("output_file_p_position_" + std::to_string(test_current_step) + ".txt");
+	for (size_t i = 0; i < _num_atoms; i++)
+	{
+		output_file_p_position << i << "," << h_px[i] << "," << h_py[i] << "," << h_pz[i] << std::endl;
+
+	}
+
+#endif // V_OUTPUT
+
 }
 
 

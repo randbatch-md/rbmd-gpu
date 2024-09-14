@@ -1,5 +1,7 @@
 #include "executioner.h"
 
+int test_current_step = 0;
+
 Executioner::Executioner(/*const Json::Value& node, */std::shared_ptr<Ensemble>& simulate_pipeline) :
 	_simulate_pipeline(simulate_pipeline)
 	//_exec_node(node),
@@ -23,6 +25,7 @@ int Executioner::Execute()
 	{
 		_current_step++;
 		_current_time += _time_step;
+		test_current_step = _current_step;
 		//_system->Evolve(); //dynamic
 		_simulate_pipeline->Run();
 	}

@@ -1,5 +1,6 @@
 #pragma once
 #include "temperature_controller.h"
+#include "../executioner/executioner.h"
 
 class RescaleController : public TemperatureController
 {

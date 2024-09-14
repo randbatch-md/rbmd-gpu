@@ -56,30 +56,23 @@ void BerendsenController::ComputeTemp()
     CHECK_RUNTIME(MEMCPY(&_temp_sum, temp_contrib, sizeof(rbmd::Real), D2H));
 
     bool available_shake = false;
-    std::string init_type = "inbuild";
-    if (init_type== "inbuild")  // LJ / LJ_salt
+
+    if (available_shake) // H2O / NACl / EAM ...
     {
-        _temp = 0.5 * _temp_sum / (3 * _num_atoms / 2.0);
-    }
-    else
-    {
-        if (available_shake) // H2O / NACl / EAM ...
+        bool shake = true;
+        if (shake)
         {
-            bool shake = false;
-            if (shake)
-            {
-                _temp = 0.5 * _temp_sum / ((3 * _num_atoms - _num_atoms - 3) * _kB / 2.0);
-            }
-            else
-            {
-                _temp = 0.5 * _temp_sum / ((3 * _num_atoms) * _kB / 2.0);
-            }
+            _temp = 0.5 * _temp_sum / ((3 * _num_atoms - _num_atoms - 3) * _kB / 2.0);
         }
-        else // PEO
+        else
         {
             _temp = 0.5 * _temp_sum / ((3 * _num_atoms - 3) * _kB / 2.0);
-
         }
+    }
+    else // PEO 
+    {
+        _temp = 0.5 * _temp_sum / ((3 * _num_atoms - 3) * _kB / 2.0);
+
     }
 }
 
