@@ -44,7 +44,7 @@ void NVTensemble::Solve()
 	
 	_force_controller->Execute();
 	
-	_velocity_controller->Update();
+	_velocity_controller->Update2();
 	
 	if (true == use_shake)
 	{

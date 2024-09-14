@@ -6,6 +6,8 @@
 #include "common/types.h"
 #include "../simulate_pipeline/include/ensemble.h"
 
+extern int test_current_step;
+
 class Executioner : public Object
 {
 public:

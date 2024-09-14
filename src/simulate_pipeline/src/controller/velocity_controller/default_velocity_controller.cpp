@@ -4,6 +4,7 @@
 #include <thrust/device_ptr.h>
 #include "device_types.h"
 #include "data_manager.h"
+#define V_OUTPUT
 
 DefaultVelocityController::DefaultVelocityController(){};
 
@@ -47,5 +48,102 @@ void DefaultVelocityController::Update() {
                      thrust::raw_pointer_cast(_device_data->_d_vx.data()),
                      thrust::raw_pointer_cast(_device_data->_d_vy.data()),
                      thrust::raw_pointer_cast(_device_data->_d_vz.data()));
+  
+#ifdef V_OUTPUT
+  // 分配主机内存
+  rbmd::Real* h_vx = new rbmd::Real[_device_data->_d_vx.size()];
+  rbmd::Real* h_vy = new rbmd::Real[_device_data->_d_vy.size()];
+  rbmd::Real* h_vz = new rbmd::Real[_device_data->_d_vz.size()];
+
+  rbmd::Real* h_fx = new rbmd::Real[_device_data->_d_fx.size()];
+  rbmd::Real* h_fy = new rbmd::Real[_device_data->_d_fy.size()];
+  rbmd::Real* h_fz = new rbmd::Real[_device_data->_d_fz.size()];
+
+  // 将设备数据拷贝到主机
+  CHECK_RUNTIME(MEMCPY(h_vx, thrust::raw_pointer_cast(_device_data->_d_vx.data()), _device_data->_d_vx.size() * sizeof(rbmd::Real), D2H));
+  CHECK_RUNTIME(MEMCPY(h_vy, thrust::raw_pointer_cast(_device_data->_d_vy.data()), _device_data->_d_vy.size() * sizeof(rbmd::Real), D2H));
+  CHECK_RUNTIME(MEMCPY(h_vz, thrust::raw_pointer_cast(_device_data->_d_vz.data()), _device_data->_d_vz.size() * sizeof(rbmd::Real), D2H));
+
+  CHECK_RUNTIME(MEMCPY(h_fx, thrust::raw_pointer_cast(_device_data->_d_fx.data()), _device_data->_d_fx.size() * sizeof(rbmd::Real), D2H));
+  CHECK_RUNTIME(MEMCPY(h_fy, thrust::raw_pointer_cast(_device_data->_d_fy.data()), _device_data->_d_fy.size() * sizeof(rbmd::Real), D2H));
+  CHECK_RUNTIME(MEMCPY(h_fz, thrust::raw_pointer_cast(_device_data->_d_fz.data()), _device_data->_d_fz.size() * sizeof(rbmd::Real), D2H));
+
+  std::ofstream output_file_v1_velocity;
+  output_file_v1_velocity.open("output_file_v1_velocity_"+std::to_string(test_current_step)+".txt");
+  for (size_t i = 0; i < _num_atoms; i++)
+  {
+      output_file_v1_velocity << i << "," << h_vx[i] << "," << h_vy[i] << "," << h_vz[i] << std::endl;
+
+  }
+
+  std::ofstream output_file_v1_force;
+  output_file_v1_force.open("output_file_v1_force_" + std::to_string(test_current_step) + ".txt");
+  for (size_t i = 0; i < _num_atoms; i++)
+  {
+      output_file_v1_force << i << "," << h_fx[i] << "," << h_fy[i] << "," << h_fz[i] << std::endl;
+
+  }
+
+#endif // V_OUTPUT
+
+
 }
 
+void DefaultVelocityController::Update2() {
+    bool shake = false;
+    if (shake) {
+        // __device_data->_shake_vx = _device_data->_d_vx;
+        // __device_data->_shake_vy = _device_data->_d_vy;
+        // __device_data->_shake_vz = _device_data->_d_vz;
+    }
+
+    op::UpdateVelocityOp<device::DEVICE_GPU> update_velocity_op;
+    update_velocity_op(_num_atoms, _dt, _fmt2v,
+        thrust::raw_pointer_cast(_device_data->_d_atoms_type.data()),
+        thrust::raw_pointer_cast(_device_data->_d_mass.data()),
+        thrust::raw_pointer_cast(_device_data->_d_fx.data()),
+        thrust::raw_pointer_cast(_device_data->_d_fy.data()),
+        thrust::raw_pointer_cast(_device_data->_d_fz.data()),
+        thrust::raw_pointer_cast(_device_data->_d_vx.data()),
+        thrust::raw_pointer_cast(_device_data->_d_vy.data()),
+        thrust::raw_pointer_cast(_device_data->_d_vz.data()));
+
+#ifdef V_OUTPUT
+    // 分配主机内存
+    rbmd::Real* h_vx = new rbmd::Real[_device_data->_d_vx.size()];
+    rbmd::Real* h_vy = new rbmd::Real[_device_data->_d_vy.size()];
+    rbmd::Real* h_vz = new rbmd::Real[_device_data->_d_vz.size()];
+
+    rbmd::Real* h_fx = new rbmd::Real[_device_data->_d_fx.size()];
+    rbmd::Real* h_fy = new rbmd::Real[_device_data->_d_fy.size()];
+    rbmd::Real* h_fz = new rbmd::Real[_device_data->_d_fz.size()];
+
+    // 将设备数据拷贝到主机
+    CHECK_RUNTIME(MEMCPY(h_vx, thrust::raw_pointer_cast(_device_data->_d_vx.data()), _device_data->_d_vx.size() * sizeof(rbmd::Real), D2H));
+    CHECK_RUNTIME(MEMCPY(h_vy, thrust::raw_pointer_cast(_device_data->_d_vy.data()), _device_data->_d_vy.size() * sizeof(rbmd::Real), D2H));
+    CHECK_RUNTIME(MEMCPY(h_vz, thrust::raw_pointer_cast(_device_data->_d_vz.data()), _device_data->_d_vz.size() * sizeof(rbmd::Real), D2H));
+
+    CHECK_RUNTIME(MEMCPY(h_fx, thrust::raw_pointer_cast(_device_data->_d_fx.data()), _device_data->_d_fx.size() * sizeof(rbmd::Real), D2H));
+    CHECK_RUNTIME(MEMCPY(h_fy, thrust::raw_pointer_cast(_device_data->_d_fy.data()), _device_data->_d_fy.size() * sizeof(rbmd::Real), D2H));
+    CHECK_RUNTIME(MEMCPY(h_fz, thrust::raw_pointer_cast(_device_data->_d_fz.data()), _device_data->_d_fz.size() * sizeof(rbmd::Real), D2H));
+
+    std::ofstream output_file_v2_velocity;
+    output_file_v2_velocity.open("output_file_v2_velocity_" + std::to_string(test_current_step) + ".txt");
+    for (size_t i = 0; i < _num_atoms; i++)
+    {
+        output_file_v2_velocity << i << "," << h_vx[i] << "," << h_vy[i] << "," << h_vz[i] << std::endl;
+
+    }
+
+    std::ofstream output_file_v2_force;
+    output_file_v2_force.open("output_file_v2_force_" + std::to_string(test_current_step) + ".txt");
+    for (size_t i = 0; i < _num_atoms; i++)
+    {
+        output_file_v2_force << i << "," << h_fx[i] << "," << h_fy[i] << "," << h_fz[i] << std::endl;
+
+    }
+
+#endif // V_OUTPUT
+
+
+}

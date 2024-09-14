@@ -4,6 +4,7 @@
 #include "device_types.h"
 #include <thrust/device_ptr.h>
 #include "rbmd_define.h"
+#define TEMP_OUTPUT
 
 RescaleController::RescaleController() {};
 
@@ -59,32 +60,26 @@ void RescaleController::ComputeTemp()
     CHECK_RUNTIME(MEMCPY(&_temp_sum, temp_contrib, sizeof(rbmd::Real), D2H));
     //std::cout << "_temp_sum" << _temp_sum << std::endl;
 
-    bool available_shake = false;
-    std::string init_type = "inbuild";
-    if (init_type== "inbuild") // LJ / LJ_salt
+    bool available_shake = true;
+
+    if (available_shake) // H2O / NACl / EAM ...
     {
-        _temp = 0.5 * _temp_sum / ((3 * _num_atoms -3) *_kB / 2.0);
-    }
-    else
-    {
-        if (available_shake) // H2O / NACl / EAM ...
+        bool shake = true;
+        if (shake)
         {
-            bool shake = false;
-            if (shake)
-            {
-                _temp = 0.5 * _temp_sum / ((3 * _num_atoms - _num_atoms - 3) * _kB / 2.0);
-            }
-            else
-            {
-                _temp = 0.5 * _temp_sum / ((3 * _num_atoms -3) * _kB / 2.0);
-            }
+            _temp = 0.5 * _temp_sum / ((3 * _num_atoms - _num_atoms - 3) * _kB / 2.0);
         }
-        else // PEO
+        else
         {
             _temp = 0.5 * _temp_sum / ((3 * _num_atoms - 3) * _kB / 2.0);
-
         }
     }
+    else // PEO 
+    {
+        _temp = 0.5 * _temp_sum / ((3 * _num_atoms - 3) * _kB / 2.0);
+
+    }
+
     std::cout << "_temp=" << _temp << std::endl;
 }
 
@@ -101,5 +96,24 @@ void RescaleController::UpdataVelocity()
                        thrust::raw_pointer_cast(_device_data->_d_vy.data()),
                        thrust::raw_pointer_cast(_device_data->_d_vz.data()));
 
+#ifdef TEMP_OUTPUT
+    // 分配主机内存
+    rbmd::Real* h_vx = new rbmd::Real[_device_data->_d_vx.size()];
+    rbmd::Real* h_vy = new rbmd::Real[_device_data->_d_vy.size()];
+    rbmd::Real* h_vz = new rbmd::Real[_device_data->_d_vz.size()];
 
+    // 将设备数据拷贝到主机
+    CHECK_RUNTIME(MEMCPY(h_vx, thrust::raw_pointer_cast(_device_data->_d_vx.data()), _device_data->_d_vx.size() * sizeof(rbmd::Real), D2H));
+    CHECK_RUNTIME(MEMCPY(h_vy, thrust::raw_pointer_cast(_device_data->_d_vy.data()), _device_data->_d_vy.size() * sizeof(rbmd::Real), D2H));
+    CHECK_RUNTIME(MEMCPY(h_vz, thrust::raw_pointer_cast(_device_data->_d_vz.data()), _device_data->_d_vz.size() * sizeof(rbmd::Real), D2H));
+
+    std::ofstream output_file_temp;
+    output_file_temp.open("output_file_temp_velocity_" + std::to_string(test_current_step) + ".txt");
+    for (size_t i = 0; i < _num_atoms; i++)
+    {
+        output_file_temp << i << "," << h_vx[i] << "," << h_vy[i] << "," << h_vz[i] << std::endl;
+
+    }
+
+#endif // V_OUTPUT
 }
