@@ -58,7 +58,7 @@ void RescaleController::ComputeTemp() {
   CHECK_RUNTIME(MEMCPY(&_temp_sum, temp_contrib, sizeof(rbmd::Real), D2H));
   // std::cout << "_temp_sum" << _temp_sum << std::endl;
 
-  bool available_shake = true;
+  bool available_shake = false;
 
   if (available_shake)  // H2O / NACl / EAM ...
   {
