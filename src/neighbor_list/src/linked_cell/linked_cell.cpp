@@ -64,6 +64,7 @@ void LinkedCell::InitializeCells() {
 
 void LinkedCell::AssignAtomsToCell() {
   op::AssignAtomsToCellOp<device::DEVICE_GPU> assign_atoms_to_cell_op;
+  _per_atom_cell_id.clear();
   assign_atoms_to_cell_op(thrust::raw_pointer_cast(_device_data->_d_px.data()),
                           thrust::raw_pointer_cast(_device_data->_d_py.data()),
                           thrust::raw_pointer_cast(_device_data->_d_pz.data()),
@@ -76,6 +77,8 @@ void LinkedCell::AssignAtomsToCell() {
 void LinkedCell::ComputeCellRangesIndices() {
   op::ComputeCellRangesIndicesOp<device::DEVICE_GPU>
       compute_cell_ranges_indices_op;
+  _in_atom_list_start_index.clear();
+  _in_atom_list_end_index.clear();
   compute_cell_ranges_indices_op(
       thrust::raw_pointer_cast(_per_atom_cell_id.data()),
       thrust::raw_pointer_cast(_in_atom_list_start_index.data()),
