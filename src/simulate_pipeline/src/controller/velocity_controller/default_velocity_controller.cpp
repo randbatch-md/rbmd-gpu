@@ -1,9 +1,12 @@
 #include "default_velocity_controller.h"
-#include "update_velocity_op.h"
-#include "unit_factor.h"
+
 #include <thrust/device_ptr.h>
-#include "device_types.h"
+
 #include "data_manager.h"
+#include "device_types.h"
+#include "neighbor_list/include/linked_cell/linked_cell_locator.h"
+#include "unit_factor.h"
+#include "update_velocity_op.h"
 #define V_OUTPUT
 
 DefaultVelocityController::DefaultVelocityController(){};
@@ -50,7 +53,7 @@ void DefaultVelocityController::Update() {
                      thrust::raw_pointer_cast(_device_data->_d_vz.data()));
   
 #ifdef V_OUTPUT
-  // ·ÖÅäÖ÷»úÄÚ´æ
+  // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ú´ï¿½
   rbmd::Real* h_vx = new rbmd::Real[_device_data->_d_vx.size()];
   rbmd::Real* h_vy = new rbmd::Real[_device_data->_d_vy.size()];
   rbmd::Real* h_vz = new rbmd::Real[_device_data->_d_vz.size()];
@@ -59,7 +62,7 @@ void DefaultVelocityController::Update() {
   rbmd::Real* h_fy = new rbmd::Real[_device_data->_d_fy.size()];
   rbmd::Real* h_fz = new rbmd::Real[_device_data->_d_fz.size()];
 
-  // ½«Éè±¸Êý¾Ý¿½±´µ½Ö÷»ú
+  // ï¿½ï¿½ï¿½è±¸ï¿½ï¿½ï¿½Ý¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
   CHECK_RUNTIME(MEMCPY(h_vx, thrust::raw_pointer_cast(_device_data->_d_vx.data()), _device_data->_d_vx.size() * sizeof(rbmd::Real), D2H));
   CHECK_RUNTIME(MEMCPY(h_vy, thrust::raw_pointer_cast(_device_data->_d_vy.data()), _device_data->_d_vy.size() * sizeof(rbmd::Real), D2H));
   CHECK_RUNTIME(MEMCPY(h_vz, thrust::raw_pointer_cast(_device_data->_d_vz.data()), _device_data->_d_vz.size() * sizeof(rbmd::Real), D2H));
@@ -69,19 +72,26 @@ void DefaultVelocityController::Update() {
   CHECK_RUNTIME(MEMCPY(h_fz, thrust::raw_pointer_cast(_device_data->_d_fz.data()), _device_data->_d_fz.size() * sizeof(rbmd::Real), D2H));
 
   std::ofstream output_file_v1_velocity;
-  output_file_v1_velocity.open("output_file_v1_velocity_"+std::to_string(test_current_step)+".txt");
+  thrust::host_vector<rbmd::Id> atomid2idx=  LinkedCellLocator::GetInstance().GetLinkedCell()->_atom_id_to_idx;
+  output_file_v1_velocity.open("output_file_v1_velocity_" + std::to_string(test_current_step) + ".csv");
+
+  // å†™å…¥è¡¨å¤´
+  output_file_v1_velocity << "atomid,vx,vy,vz" << std::endl;
+
   for (size_t i = 0; i < _num_atoms; i++)
   {
-      output_file_v1_velocity << i << "," << h_vx[i] << "," << h_vy[i] << "," << h_vz[i] << std::endl;
-
+    output_file_v1_velocity << i << "," << h_vx[atomid2idx[i]] << "," << h_vy[atomid2idx[i]] << "," << h_vz[atomid2idx[i]] << std::endl;
   }
 
   std::ofstream output_file_v1_force;
-  output_file_v1_force.open("output_file_v1_force_" + std::to_string(test_current_step) + ".txt");
+  output_file_v1_force.open("output_file_v1_force_" + std::to_string(test_current_step) + ".csv");
+
+  // å†™å…¥è¡¨å¤´
+  output_file_v1_force << "atomid,fx,fy,fz" << std::endl;
+
   for (size_t i = 0; i < _num_atoms; i++)
   {
-      output_file_v1_force << i << "," << h_fx[i] << "," << h_fy[i] << "," << h_fz[i] << std::endl;
-
+    output_file_v1_force << i << "," << h_fx[atomid2idx[i]] << "," << h_fy[atomid2idx[i]] << "," << h_fz[atomid2idx[i]] << std::endl;
   }
 
 #endif // V_OUTPUT
@@ -109,7 +119,7 @@ void DefaultVelocityController::Update2() {
         thrust::raw_pointer_cast(_device_data->_d_vz.data()));
 
 #ifdef V_OUTPUT
-    // ·ÖÅäÖ÷»úÄÚ´æ
+    // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ú´ï¿½
     rbmd::Real* h_vx = new rbmd::Real[_device_data->_d_vx.size()];
     rbmd::Real* h_vy = new rbmd::Real[_device_data->_d_vy.size()];
     rbmd::Real* h_vz = new rbmd::Real[_device_data->_d_vz.size()];
@@ -118,7 +128,7 @@ void DefaultVelocityController::Update2() {
     rbmd::Real* h_fy = new rbmd::Real[_device_data->_d_fy.size()];
     rbmd::Real* h_fz = new rbmd::Real[_device_data->_d_fz.size()];
 
-    // ½«Éè±¸Êý¾Ý¿½±´µ½Ö÷»ú
+    // ï¿½ï¿½ï¿½è±¸ï¿½ï¿½ï¿½Ý¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
     CHECK_RUNTIME(MEMCPY(h_vx, thrust::raw_pointer_cast(_device_data->_d_vx.data()), _device_data->_d_vx.size() * sizeof(rbmd::Real), D2H));
     CHECK_RUNTIME(MEMCPY(h_vy, thrust::raw_pointer_cast(_device_data->_d_vy.data()), _device_data->_d_vy.size() * sizeof(rbmd::Real), D2H));
     CHECK_RUNTIME(MEMCPY(h_vz, thrust::raw_pointer_cast(_device_data->_d_vz.data()), _device_data->_d_vz.size() * sizeof(rbmd::Real), D2H));
@@ -127,21 +137,28 @@ void DefaultVelocityController::Update2() {
     CHECK_RUNTIME(MEMCPY(h_fy, thrust::raw_pointer_cast(_device_data->_d_fy.data()), _device_data->_d_fy.size() * sizeof(rbmd::Real), D2H));
     CHECK_RUNTIME(MEMCPY(h_fz, thrust::raw_pointer_cast(_device_data->_d_fz.data()), _device_data->_d_fz.size() * sizeof(rbmd::Real), D2H));
 
-    std::ofstream output_file_v2_velocity;
-    output_file_v2_velocity.open("output_file_v2_velocity_" + std::to_string(test_current_step) + ".txt");
-    for (size_t i = 0; i < _num_atoms; i++)
-    {
-        output_file_v2_velocity << i << "," << h_vx[i] << "," << h_vy[i] << "," << h_vz[i] << std::endl;
+  std::ofstream output_file_v2_velocity;
+  thrust::host_vector<rbmd::Id> atomid2idx=  LinkedCellLocator::GetInstance().GetLinkedCell()->_atom_id_to_idx;
+  output_file_v2_velocity.open("output_file_v1_velocity_" + std::to_string(test_current_step) + ".csv");
 
-    }
+  // å†™å…¥è¡¨å¤´
+  output_file_v2_velocity << "atomid,vx,vy,vz" << std::endl;
 
-    std::ofstream output_file_v2_force;
-    output_file_v2_force.open("output_file_v2_force_" + std::to_string(test_current_step) + ".txt");
-    for (size_t i = 0; i < _num_atoms; i++)
-    {
-        output_file_v2_force << i << "," << h_fx[i] << "," << h_fy[i] << "," << h_fz[i] << std::endl;
+  for (size_t i = 0; i < _num_atoms; i++)
+  {
+    output_file_v2_velocity << i << "," << h_vx[atomid2idx[i]] << "," << h_vy[atomid2idx[i]] << "," << h_vz[atomid2idx[i]] << std::endl;
+  }
 
-    }
+  std::ofstream output_file_v2_force;
+  output_file_v2_force.open("output_file_v1_force_" + std::to_string(test_current_step) + ".csv");
+
+  // å†™å…¥è¡¨å¤´
+  output_file_v2_force << "atomid,fx,fy,fz" << std::endl;
+
+  for (size_t i = 0; i < _num_atoms; i++)
+  {
+    output_file_v2_force << i << "," << h_fx[atomid2idx[i]] << "," << h_fy[atomid2idx[i]] << "," << h_fz[atomid2idx[i]] << std::endl;
+  }
 
 #endif // V_OUTPUT
 

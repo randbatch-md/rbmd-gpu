@@ -19,11 +19,11 @@ void LJForce::Execute() {
   LJForce::Init();
   rbmd::Real cut_off = 5.0;
   //
-
+  extern int test_current_step;
   list = full_list_builder->Build();
-  list->print("./step1neighbor.csv");
-  //
-    rbmd::Real h_total_evdwl = 0.0;
+  list->print("./neighbor_list_step_" + std::to_string(test_current_step)+"_.csv");
+
+  rbmd::Real h_total_evdwl = 0.0;
   rbmd::Real* d_total_evdwl;
 
   CHECK_RUNTIME(MALLOC(&d_total_evdwl, sizeof(rbmd::Real)));
