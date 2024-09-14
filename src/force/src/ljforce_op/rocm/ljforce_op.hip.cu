@@ -62,8 +62,8 @@ namespace op
 		unsigned int tid1 = blockIdx.x * blockDim.x + threadIdx.x;
 		if (tid1 < num_atoms)
 		{
-			rbmd::Id typei = atoms_type[tid1]-1;     // The value of atoms_type starts from 1, so typei is  atoms_type[tid1]-1;
-			rbmd::Id molecular_id_i=  molecular_type[tid1]-1;
+			rbmd::Id typei = atoms_type[tid1];     // The value of atoms_type starts from 1, so typei is  atoms_type[tid1]-1;
+			rbmd::Id molecular_id_i=  molecular_type[tid1];
 			rbmd::Real eps_i = eps[typei];
 			rbmd::Real sigma_i = sigma[typei];
 
@@ -75,8 +75,8 @@ namespace op
 			{
 
 				rbmd::Id tid2 = id_verletlist[j];
-				rbmd::Id typej = atoms_type[tid2]-1;
-				rbmd::Id molecular_id_j = molecular_type[tid2]-1;
+				rbmd::Id typej = atoms_type[tid2];
+				rbmd::Id molecular_id_j = molecular_type[tid2];
 				rbmd::Real eps_j = eps[typej];
 				rbmd::Real sigma_j = sigma[typej];
 

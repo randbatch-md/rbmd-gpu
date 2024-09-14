@@ -22,7 +22,7 @@ namespace op
 		rbmd::Real local_temp = 0;
 		if (tid < num_atoms)
 		{
-			local_temp = mvv2e * mass[atoms_type[tid]-1] * (vx[tid] * vx[tid] + vy[tid] * vy[tid] + vz[tid] * vz[tid]);
+			local_temp = mvv2e * mass[atoms_type[tid]] * (vx[tid] * vx[tid] + vy[tid] * vy[tid] + vz[tid] * vz[tid]);
 		}
 
 		rbmd::Real block_sum = hipcub::BlockReduce<rbmd::Real, BLOCK_SIZE>(temp_storage).Sum(local_temp);
@@ -68,9 +68,9 @@ namespace op
 
 		if (tid < num_atoms)
 		{
-			vx[tid] += 0.5 * dt * (fx[tid] / mass[atoms_type[tid]-1] - nosehooverxi * vx[tid]) * fmt2v;
-			vy[tid] += 0.5 * dt * (fy[tid] / mass[atoms_type[tid]-1] - nosehooverxi * vy[tid]) * fmt2v;
-			vz[tid] += 0.5 * dt * (fz[tid] / mass[atoms_type[tid]-1] - nosehooverxi * vz[tid]) * fmt2v;
+			vx[tid] += 0.5 * dt * (fx[tid] / mass[atoms_type[tid]] - nosehooverxi * vx[tid]) * fmt2v;
+			vy[tid] += 0.5 * dt * (fy[tid] / mass[atoms_type[tid]] - nosehooverxi * vy[tid]) * fmt2v;
+			vz[tid] += 0.5 * dt * (fz[tid] / mass[atoms_type[tid]] - nosehooverxi * vz[tid]) * fmt2v;
 		}
 	}
 

@@ -22,7 +22,7 @@ namespace op
 
 		if (tid < num_atoms)
 		{
-			rbmd::Id typei = atoms_type[tid] - 1;
+			rbmd::Id typei = atoms_type[tid];
 			rbmd::Real sum_vx = vx[tid];
 			rbmd::Real sum_vy = vy[tid];
 			rbmd::Real sum_vz = vz[tid];
