@@ -69,6 +69,9 @@ void FullNeighborListBuilder::EstimateNeighborsList() {
     sizeof(rbmd::Id), H2D));
   op::EstimateFullNeighborListOp<device::DEVICE_GPU>
       estimate_full_neighbor_list_op;
+  _neighbor_list->_d_neighbor_num.clear();
+  _neighbor_list->_d_max_neighbor_num.clear();
+
   estimate_full_neighbor_list_op(
       thrust::raw_pointer_cast(_linked_cell->_per_atom_cell_id.data()),
       thrust::raw_pointer_cast(_linked_cell->_in_atom_list_start_index.data()),
@@ -89,6 +92,7 @@ void FullNeighborListBuilder::EstimateNeighborsList() {
       d_total_max_neighbor_num, _linked_cell->_total_atoms_num);
   CHECK_RUNTIME(MEMCPY(&(_neighbor_list->_h_total_max_neighbor_num),
     d_total_max_neighbor_num, sizeof(rbmd::Id), D2H));
+  _neighbor_list->_d_neighbors.clear();
   _neighbor_list->_d_neighbors.resize(
       _neighbor_list->_h_total_max_neighbor_num);
   InitNeighborListIndices(); // realloc need
