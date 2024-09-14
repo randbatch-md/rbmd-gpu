@@ -43,7 +43,9 @@ void DefaultPositionController::Update() {
   } else {
     op::UpdatePositionFlagOp<device::DEVICE_GPU> update_position_op;
     update_position_op(
-        _num_atoms, _dt, (*_structure_info_data->_range)[0][0],
+        _num_atoms, _dt, 
+        _device_data->_d_box,
+        (*_structure_info_data->_range)[0][0],
         (*_structure_info_data->_range)[1][0],
         (*_structure_info_data->_range)[2][0],
         (*_structure_info_data->_range)[0][1],
