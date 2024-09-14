@@ -28,6 +28,7 @@ void NeighborListBuilder::ReductionSum(rbmd::Id* d_src_array, rbmd::Id* d_dst,
 void NeighborListBuilder::InitNeighborListIndices() {
   void* temp = nullptr;
   size_t temp_bytes = 0;
+
   CHECK_RUNTIME(hipcub::DeviceScan::ExclusiveSum(
     temp, temp_bytes,
     thrust::raw_pointer_cast(_neighbor_list->_d_max_neighbor_num.data()),
