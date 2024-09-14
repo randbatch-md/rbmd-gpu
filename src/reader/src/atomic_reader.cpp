@@ -77,6 +77,7 @@ int AtomicReader::ReadAtoms(const rbmd::Id& atoms_num)
 		auto& ids = _md_data._structure_data->_h_atoms_id;
 		auto& types = _md_data._structure_data->_h_atoms_type;
 		rbmd::Id atom_id;
+		rbmd::Id atom_type;
 
 		_line_start = &_mapped_memory[_locate];
 		for (auto num = 0; _locate < _file_size && num < atoms_num; ++_locate)
@@ -89,8 +90,9 @@ int AtomicReader::ReadAtoms(const rbmd::Id& atoms_num)
 				{
 					iss >> atom_id;
 					auto index = atom_id - 1;
-					ids[index] = atom_id;
-					iss >> types[index];
+					ids[index] = atom_id - 1;
+					iss >> atom_type;
+				    types[index]= atom_type-1;
 					iss >> _md_data._structure_data->_h_px[index] >> _md_data._structure_data->_h_py[index] >>_md_data._structure_data->_h_pz[index];
 					++num;
 					//std::cout << atom_id << " " << types[index] << " " << _md_data._structure_data->_h_px[index] << " " << _md_data._structure_data->_h_py[index] << " " << _md_data._structure_data->_h_pz[index] << std::endl;

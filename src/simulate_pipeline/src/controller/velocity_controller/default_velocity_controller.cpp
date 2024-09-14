@@ -53,7 +53,6 @@ void DefaultVelocityController::Update() {
                      thrust::raw_pointer_cast(_device_data->_d_vz.data()));
   
 #ifdef V_OUTPUT
-  // ���������ڴ�
   rbmd::Real* h_vx = new rbmd::Real[_device_data->_d_vx.size()];
   rbmd::Real* h_vy = new rbmd::Real[_device_data->_d_vy.size()];
   rbmd::Real* h_vz = new rbmd::Real[_device_data->_d_vz.size()];
@@ -62,7 +61,6 @@ void DefaultVelocityController::Update() {
   rbmd::Real* h_fy = new rbmd::Real[_device_data->_d_fy.size()];
   rbmd::Real* h_fz = new rbmd::Real[_device_data->_d_fz.size()];
 
-  // ���豸���ݿ���������
   CHECK_RUNTIME(MEMCPY(h_vx, thrust::raw_pointer_cast(_device_data->_d_vx.data()), _device_data->_d_vx.size() * sizeof(rbmd::Real), D2H));
   CHECK_RUNTIME(MEMCPY(h_vy, thrust::raw_pointer_cast(_device_data->_d_vy.data()), _device_data->_d_vy.size() * sizeof(rbmd::Real), D2H));
   CHECK_RUNTIME(MEMCPY(h_vz, thrust::raw_pointer_cast(_device_data->_d_vz.data()), _device_data->_d_vz.size() * sizeof(rbmd::Real), D2H));
@@ -119,7 +117,6 @@ void DefaultVelocityController::Update2() {
         thrust::raw_pointer_cast(_device_data->_d_vz.data()));
 
 #ifdef V_OUTPUT
-    // ���������ڴ�
     rbmd::Real* h_vx = new rbmd::Real[_device_data->_d_vx.size()];
     rbmd::Real* h_vy = new rbmd::Real[_device_data->_d_vy.size()];
     rbmd::Real* h_vz = new rbmd::Real[_device_data->_d_vz.size()];
@@ -128,7 +125,6 @@ void DefaultVelocityController::Update2() {
     rbmd::Real* h_fy = new rbmd::Real[_device_data->_d_fy.size()];
     rbmd::Real* h_fz = new rbmd::Real[_device_data->_d_fz.size()];
 
-    // ���豸���ݿ���������
     CHECK_RUNTIME(MEMCPY(h_vx, thrust::raw_pointer_cast(_device_data->_d_vx.data()), _device_data->_d_vx.size() * sizeof(rbmd::Real), D2H));
     CHECK_RUNTIME(MEMCPY(h_vy, thrust::raw_pointer_cast(_device_data->_d_vy.data()), _device_data->_d_vy.size() * sizeof(rbmd::Real), D2H));
     CHECK_RUNTIME(MEMCPY(h_vz, thrust::raw_pointer_cast(_device_data->_d_vz.data()), _device_data->_d_vz.size() * sizeof(rbmd::Real), D2H));
