@@ -73,6 +73,5 @@ class LinkedCell {
   std::shared_ptr<DeviceData> _device_data;
   std::shared_ptr<StructureInfoData> _structure_info_data;
   std::shared_ptr<ConfigData> _config_data;
-  thrust::device_vector<int> _original_idx{};
   void AllocDeviceMemory();
 };

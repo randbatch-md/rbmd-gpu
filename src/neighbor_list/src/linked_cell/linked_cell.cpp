@@ -21,13 +21,6 @@ LinkedCell::LinkedCell() {
   this->_total_atoms_num =
       *(_structure_info_data->_num_atoms);  // do this because nativate num
   this->_atom_id_to_idx.resize(_total_atoms_num);
-  this->_original_idx.resize(_total_atoms_num);
-  thrust::transform(
-  thrust::make_counting_iterator(0), // 从0开始的计数迭代器
-  thrust::make_counting_iterator(_total_atoms_num), // 结束位置
-  this->_original_idx.begin(), // 输出到 original_idx
-  [] __device__ (const int i) { return i; } // 直接返回计数器的值
-);
 }
 
 LinkedCell::~LinkedCell() {
@@ -137,19 +130,9 @@ void LinkedCell::SortAtomsByCellKey() {
       thrust::raw_pointer_cast(_device_data->_d_atoms_id.data()),
       _device_data->_d_atoms_id.size()));
 
-  thrust::device_vector<int> _original_idx(_total_atoms_num);
-  thrust::transform(
-    thrust::make_counting_iterator(0), // 从0开始的计数迭代器
-    thrust::make_counting_iterator(_total_atoms_num), // 结束位置
-    _original_idx.begin(), // 输出到 original_idx
-    [] __device__ (const int i) { return i; } // 直接返回计数器的值
-);
-  thrust::scatter(thrust::make_counting_iterator(0),
-                thrust::make_counting_iterator(_total_atoms_num),
-                _original_idx.begin(),
-                _atom_id_to_idx.begin());
-  // std::cout<< "idx = 1 对应的原子id： " << _device_data->_d_atoms_id[1] << std::endl;
-  // std::cout << _atom_id_to_idx[7] << "---应该是1" << std::endl;
+
+  op::MapAtomidToIdxOp<device::DEVICE_GPU> map_atomid_to_idx_op;
+  map_atomid_to_idx_op(thrust::raw_pointer_cast(_atom_id_to_idx.data()),raw_ptr(_device_data->_d_atoms_id),_total_atoms_num);
 
 
   CHECK_RUNTIME(hipcub::DeviceRadixSort::SortPairs(
