@@ -43,10 +43,9 @@ namespace op
 
 		if (tid < num_atoms)
 		{
-			rbmd::Real scale = coeff_rescale;
-			vx[tid] *= vx[tid];
-			vy[tid] *= vy[tid];
-			vz[tid] *= vz[tid];
+	        	vx[tid] *= coeff_rescale;
+			vy[tid] *= coeff_rescale;
+			vz[tid] *= coeff_rescale;
 		}
 	}
 
