@@ -144,6 +144,7 @@ namespace op
 	__global__
 		void UpdatePositionFlag(const rbmd::Id num_atoms,
 			                    const rbmd::Real dt,
+							 	 Box* box,
 			                    const rbmd::Real min_x,
 			                    const rbmd::Real min_y,
 			                    const rbmd::Real min_z,
@@ -176,19 +177,20 @@ namespace op
 			py[tid] = sum_py;
 			pz[tid] = sum_pz;
 
+			ApplyPBC(box,px[tid],py[tid],pz[tid],flag_px[tid],flag_py[tid],flag_pz[tid]);
 
-			UpdateFlagOverRangePoint(min_x,
-				                     min_y,
-				                     min_z,
-				                     max_x,
-				                     max_y,
-				                     max_z,
-				                     px[tid],
-				                     py[tid],
-				                     pz[tid],
-				                     flag_px[tid],
-				                     flag_py[tid],
-				                     flag_pz[tid]);
+			//UpdateFlagOverRangePoint(min_x,
+			//	                     min_y,
+			//	                     min_z,
+			//	                     max_x,
+			//	                     max_y,
+			//	                     max_z,
+			//	                     px[tid],
+			//	                     py[tid],
+			//	                     pz[tid],
+			//	                     flag_px[tid],
+			//	                     flag_py[tid],
+			//	                     flag_pz[tid]);
 		}
 	}
 
@@ -239,6 +241,7 @@ namespace op
 
 	void UpdatePositionFlagOp<device::DEVICE_GPU>::operator()(const rbmd::Id num_atoms,
 												   const rbmd::Real dt,
+												   Box* box,
 												   const rbmd::Real min_x,
 												   const rbmd::Real min_y,
 												   const rbmd::Real min_z,
@@ -256,7 +259,7 @@ namespace op
 												   rbmd::Id* flag_pz)
 	{
 		unsigned int blocks_per_grid = (num_atoms + BLOCK_SIZE - 1) / BLOCK_SIZE;
-		CHECK_KERNEL(UpdatePositionFlag <<<blocks_per_grid, BLOCK_SIZE, 0, 0 >>> (num_atoms, dt, min_x, min_y, min_z, max_x, max_y, max_z, vx, vy, vz, px, py, pz, flag_px, flag_py, flag_pz));
+		CHECK_KERNEL(UpdatePositionFlag <<<blocks_per_grid, BLOCK_SIZE, 0, 0 >>> (num_atoms, dt, box, min_x, min_y, min_z, max_x, max_y, max_z, vx, vy, vz, px, py, pz, flag_px, flag_py, flag_pz));
 	}
 	
 

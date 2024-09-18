@@ -22,11 +22,19 @@ namespace op
 
 		if (tid < num_atoms)
 		{
-			rbmd::Id typei = atoms_type[tid] - 1;
-			vx[tid] += 0.5 * fx[tid] / mass[typei] * dt * fmt2v;
-			vy[tid] += 0.5 * fy[tid] / mass[typei] * dt * fmt2v;
-			vz[tid] += 0.5 * fz[tid] / mass[typei] * dt * fmt2v;
+			rbmd::Id typei = atoms_type[tid];
+			rbmd::Real sum_vx = vx[tid];
+			rbmd::Real sum_vy = vy[tid];
+			rbmd::Real sum_vz = vz[tid];
 
+
+			sum_vx += 0.5 * fx[tid] / mass[typei] * dt * fmt2v;
+			sum_vy += 0.5 * fy[tid] / mass[typei] * dt * fmt2v;
+			sum_vz += 0.5 * fz[tid] / mass[typei] * dt * fmt2v;
+
+			vx[tid] = sum_vx;
+			vy[tid] = sum_vy;
+			vz[tid] = sum_vz;
 		}
 
 	}

@@ -42,7 +42,7 @@ class Box {
   rbmd::Id ALIGN(ALIGN_SIZE(rbmd::Id, 3)) _box_width_as_cell_units[3]{};
 };
 
-__host__ __device__ __forceinline__ void MinImageDistance(const Box* box,
+__host__ __device__ __forceinline__ void MinImageDistance(Box* box,
                                                           rbmd::Real& dx,
                                                           rbmd::Real& dy,
                                                           rbmd::Real& dz) {
@@ -64,4 +64,64 @@ __host__ __device__ __forceinline__ void MinImageDistance(const Box* box,
     }
   }
   // TODO else: tri
+}
+
+//
+
+__host__ __device__ __forceinline__ void ApplyPBC(Box* box,
+    rbmd::Real& px,
+    rbmd::Real& py,
+    rbmd::Real& pz,
+    rbmd::Id& flag_px_tid,
+    rbmd::Id& flag_py_tid,
+    rbmd::Id& flag_pz_tid)
+{
+    if (box->_type == Box::BoxType::ORTHOGONAL) 
+    {
+        // x 
+        if (box->_pbc_x)
+        {
+            if (px > box->_coord_max[0])
+            {
+                flag_px_tid += 1;
+                px -= box->_length[0];
+
+            }
+            else if (px < box->_coord_min[0])
+            {
+                flag_px_tid -= 1;
+                px += box->_length[0];
+            }
+        }
+
+        // y 
+        if (box->_pbc_y)
+        {
+            if (py > box->_coord_max[1])
+            {
+                flag_py_tid += 1;
+                py -= box->_length[1];
+            }
+            else if (py < box->_coord_min[1])
+            {
+                flag_py_tid -= 1;
+                py += box->_length[1];
+            }
+        }
+
+        // z 
+        if (box->_pbc_z)
+        {
+            if (pz > box->_coord_max[2])
+            {
+                flag_pz_tid += 1;
+                pz -= box->_length[2];
+            }
+            else if (pz < box->_coord_min[2])
+            {
+                flag_pz_tid -= 1;
+                pz += box->_length[2];
+            }
+        }
+    }
 }

@@ -1,6 +1,7 @@
 #pragma once
 #include "device_types.h"
 #include "types.h"
+#include "../../data_manager/include/model/box.h"
 
 namespace op
 {
@@ -9,6 +10,7 @@ namespace op
 	{
 		void operator()(const rbmd::Id num_atoms,
 			            const rbmd::Real dt,
+						Box* box,
 			            const rbmd::Real min_x,
 			            const rbmd::Real min_y,
 			            const rbmd::Real min_z,
@@ -50,6 +52,7 @@ namespace op
 	{
 		void operator()(const rbmd::Id num_atoms,
 						const rbmd::Real dt,
+						Box* box,
 						const rbmd::Real min_x,
 						const rbmd::Real min_y,
 						const rbmd::Real min_z,
