@@ -45,8 +45,7 @@ void RescaleController::ComputeTemp() {
     _temp_sum = 0;
 
   CHECK_RUNTIME(MALLOC(&temp_contrib, sizeof(rbmd::Real)));
-  CHECK_RUNTIME(MEMCPY(temp_contrib, &_temp_sum, sizeof(rbmd::Real), H2D));
-
+  CHECK_RUNTIME(MEMSET(temp_contrib,0,sizeof(rbmd::Real)));
   op::ComputeTemperatureOp<device::DEVICE_GPU> compute_temperature_op;
   compute_temperature_op(
       _num_atoms, _mvv2e,
