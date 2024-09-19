@@ -4,6 +4,8 @@
 #include "shake_controller.h"
 #include "ljforce.h"
 #include "rescale_controller.h"
+#include "berendsen_controller.h"
+#include "nose_hoover_controller.h"
 
 NVTensemble::NVTensemble()
 {
@@ -11,7 +13,6 @@ NVTensemble::NVTensemble()
 	_velocity_controller = std::make_shared<DefaultVelocityController>(); 
 	_force_controller = std::make_shared<LJForce>(); // todo ×Ô¶¨Òåforcetype =
 	_temperature_controller = std::make_shared<RescaleController>();
-
 }
 
 void NVTensemble::Init()
@@ -44,7 +45,7 @@ void NVTensemble::Solve()
 	
 	_force_controller->Execute();
 	
-	_velocity_controller->Update2();
+	_velocity_controller->Update();
 	
 	if (true == use_shake)
 	{

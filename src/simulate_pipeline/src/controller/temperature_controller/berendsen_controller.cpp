@@ -11,7 +11,7 @@ void BerendsenController::Init()
 {
     _num_atoms = *(_structure_info_data->_num_atoms);
     _temp_sum = 0;
-    _Tdamp = 10;    // 配置文件中读取 temperature [1.0,1.0,0.1]
+    _Tdamp = 0.1;    // 配置文件中读取 temperature [1.0,1.0,0.1]
     _dt = 0.001;     // 配置文件中读取      
     auto unit = "LJ";   
     UNIT unit_factor = unit_factor_map[unit]; // 这里可能有重定义隐患
@@ -43,9 +43,9 @@ void BerendsenController::ComputeTemp()
     //rbmd::Real* temp_contrib;
     //CHECK_RUNTIME(hipMemset(temp_contrib, 0, sizeof(rbmd::Real)));
 
-    rbmd::Real* temp_contrib;
     _temp_sum = 0;
 
+    rbmd::Real* temp_contrib;
     CHECK_RUNTIME(MALLOC(&temp_contrib, sizeof(rbmd::Real)));
     CHECK_RUNTIME(MEMCPY(temp_contrib, &_temp_sum, sizeof(rbmd::Real), H2D));
 

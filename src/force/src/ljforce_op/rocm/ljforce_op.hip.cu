@@ -105,14 +105,9 @@ namespace op
 				sum_eij += e_ij;
 			}
 
-			//force_x[tid1] += sum_fx;
-			//force_y[tid1] += sum_fy;
-			//force_z[tid1] += sum_fz;
-			atomicAdd(&force_x[tid1], sum_fx);
-			atomicAdd(&force_y[tid1], sum_fy);
-			atomicAdd(&force_z[tid1], sum_fz);
-
-			//printf("--------test--force_x[tid1]:%f,force_y[tid1]:%f,force_z[tid1]:%f--\n", force_x[tid1], force_y[tid1], force_z[tid1]);
+			force_x[tid1] = sum_fx;
+			force_y[tid1] = sum_fy;
+			force_z[tid1] = sum_fz;
 
 		    evdwl[tid1] += sum_eij;
 			atomicAdd(total_evdwl, sum_eij);
