@@ -9,6 +9,7 @@
 class NeighborListBuilder : public Object {
  public:
   explicit NeighborListBuilder();
+  ~NeighborListBuilder() override;
 
   virtual std::shared_ptr<NeighborList> Build() = 0;
 
@@ -31,4 +32,6 @@ class NeighborListBuilder : public Object {
   rbmd::Id _neighbor_cell_num = 0;
   bool should_realloc = true;
   Box* _d_box;   // TODO 可能不太适合 待重构
+  bool* _d_should_realloc;
+
 };

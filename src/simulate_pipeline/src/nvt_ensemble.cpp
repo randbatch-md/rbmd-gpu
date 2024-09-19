@@ -11,13 +11,13 @@ NVTensemble::NVTensemble()
 {
 	_position_controller = std::make_shared<DefaultPositionController>(); 
 	_velocity_controller = std::make_shared<DefaultVelocityController>(); 
-	_force_controller = std::make_shared<LJForce>(); // todo ×Ô¶¨Òåforcetype =
+	_force_controller = std::make_shared<LJForce>(); // todo ï¿½Ô¶ï¿½ï¿½ï¿½forcetype =
 	_temperature_controller = std::make_shared<RescaleController>();
 }
 
 void NVTensemble::Init()
 {
-	// ¸÷×Ô¼ÆËãËùÐèµÄ±äÁ¿ÔÚ¸÷×ÔµÄinitÀïÃæ³õÊ¼»¯£»
+	// ï¿½ï¿½ï¿½Ô¼ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ä±ï¿½ï¿½ï¿½ï¿½Ú¸ï¿½ï¿½Ôµï¿½initï¿½ï¿½ï¿½ï¿½ï¿½Ê¼ï¿½ï¿½ï¿½ï¿½
 	_position_controller->Init();
 	_velocity_controller->Init();
 	_temperature_controller->Init();
@@ -28,11 +28,12 @@ void NVTensemble::Init()
 
 void NVTensemble::Presolve()
 {
-	// ¼ÆËãÔ¶³ÌÁ¦Ê± ÒªÌí¼ÓÏàÓ¦²ÎÊý
+	// ï¿½ï¿½ï¿½ï¿½Ô¶ï¿½ï¿½ï¿½ï¿½Ê± Òªï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ó¦ï¿½ï¿½ï¿½ï¿½
 }
 
 void NVTensemble::Solve()
 {
+  auto start = std::chrono::high_resolution_clock::now();
 	_velocity_controller->Update();
 
 	_position_controller->Update();
@@ -52,6 +53,12 @@ void NVTensemble::Solve()
 		_shake_controller->ShakeB();
 	}
 	_temperature_controller->Update();
+  CHECK_RUNTIME(hipDeviceSynchronize());
+  auto end = std::chrono::high_resolution_clock::now();
+  std::chrono::duration<rbmd::Real> duration = end - start;
+        std::cout << "èŠ±è´¹äº†"
+            << duration.count()
+     << "ç§’" << std::endl;
 }
 
 void NVTensemble::Postsolve()
