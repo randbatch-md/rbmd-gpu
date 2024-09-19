@@ -41,7 +41,8 @@ void RescaleController::Update() {
 }
 
 void RescaleController::ComputeTemp() {
-  rbmd::Real* temp_contrib;
+    rbmd::Real* temp_contrib;
+    _temp_sum = 0;
 
   CHECK_RUNTIME(MALLOC(&temp_contrib, sizeof(rbmd::Real)));
   CHECK_RUNTIME(MEMCPY(temp_contrib, &_temp_sum, sizeof(rbmd::Real), H2D));
@@ -74,6 +75,7 @@ void RescaleController::ComputeTemp() {
   }
 
   std::cout << "_temp=" << _temp << std::endl;
+  CHECK_RUNTIME(FREE(temp_contrib));
 }
 
 void RescaleController::UpdataVelocity() {

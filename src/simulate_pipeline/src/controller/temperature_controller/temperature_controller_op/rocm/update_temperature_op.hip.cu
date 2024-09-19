@@ -15,11 +15,11 @@ namespace op
 			                    const rbmd::Real* vy,
 			                    const rbmd::Real* vz,
 			                    rbmd::Real* temp_contrib)
-	{
+	{			
 		__shared__ typename hipcub::BlockReduce<rbmd::Real, BLOCK_SIZE>::TempStorage temp_storage;
 
-		int tid = threadIdx.x + blockIdx.x * blockDim.x;
 		rbmd::Real local_temp = 0;
+		int tid = threadIdx.x + blockIdx.x * blockDim.x;
 		if (tid < num_atoms)
 		{
 			local_temp = mvv2e * mass[atoms_type[tid]] * (vx[tid] * vx[tid] + vy[tid] * vy[tid] + vz[tid] * vz[tid]);
@@ -29,6 +29,22 @@ namespace op
 		if (threadIdx.x == 0) {
 			atomicAdd(temp_contrib, block_sum);
 		}
+
+/*		rbmd::Real temp_sum = 0;
+
+		int tid = threadIdx.x + blockIdx.x * blockDim.x;
+		if (tid < num_atoms)
+		{
+			rbmd::Real massi = mass[atoms_type[tid]];
+
+			rbmd::Real vx_temp = vx[tid];
+			rbmd::Real vy_temp = vy[tid];
+			rbmd::Real vz_temp = vz[tid];
+
+			temp_sum += mvv2e * massi *
+				(vx_temp * vx_temp + vy_temp * vy_temp + vz_temp * vz_temp);
+		}
+		atomicAdd(temp_contrib, temp_sum);	*/	
 
 	}
 
@@ -44,9 +60,9 @@ namespace op
 		if (tid < num_atoms)
 		{
 			rbmd::Real scale = coeff_rescale;
-			vx[tid] *= vx[tid];
-			vy[tid] *= vy[tid];
-			vz[tid] *= vz[tid];
+			vx[tid] = vx[tid] * scale;
+			vy[tid] = vy[tid] * scale;
+			vz[tid] = vz[tid] * scale;
 		}
 	}
 

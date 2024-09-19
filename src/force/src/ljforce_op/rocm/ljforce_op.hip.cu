@@ -62,7 +62,7 @@ namespace op
 		unsigned int tid1 = blockIdx.x * blockDim.x + threadIdx.x;
 		if (tid1 < num_atoms)
 		{
-			rbmd::Id typei = atoms_type[tid1];     // The value of atoms_type starts from 1, so typei is  atoms_type[tid1]-1;
+			rbmd::Id typei = atoms_type[tid1]; 
 			rbmd::Id molecular_id_i=  molecular_type[tid1];
 			rbmd::Real eps_i = eps[typei];
 			rbmd::Real sigma_i = sigma[typei];
@@ -99,24 +99,10 @@ namespace op
 				rbmd::Real e_ij;
 
 				lj126(cut_off, px12, py12, pz12, eps_ij, sigma_ij,f_ij,e_ij);
-				//sum_fx += f_ij * px12;
-				//sum_fy += f_ij * py12;
-				//sum_fz += f_ij * pz12;
-				//sum_eij += e_ij;
-
-				rbmd::Real  fix = 0.5 * f_ij * px12;
-				rbmd::Real  fiy = 0.5 * f_ij * py12;
-				rbmd::Real  fiz = 0.5 * f_ij * pz12;
-
-				rbmd::Real  fjx = -fix;
-				rbmd::Real  fjy = -fiy;
-				rbmd::Real  fjz = -fiz;
+				sum_fx += f_ij * px12;
+				sum_fy += f_ij * py12;
+				sum_fz += f_ij * pz12;
 				sum_eij += e_ij;
-
-				sum_fx += fix - fjx;
-				sum_fy += fiy - fjy;
-				sum_fz += fiz - fjz;
-
 			}
 
 			//force_x[tid1] += sum_fx;
