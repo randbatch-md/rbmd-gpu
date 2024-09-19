@@ -80,6 +80,7 @@ typedef int3 Int3;
 #define D2H hipMemcpyDeviceToHost
 #define D2D hipMemcpyDeviceToDevice
 #define FREE hipFree
+#define MEMSET hipMemset
 
 template<typename T>
 static T *raw_ptr(thrust::device_vector<T> &vec) {

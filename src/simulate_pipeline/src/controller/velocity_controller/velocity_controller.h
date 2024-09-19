@@ -20,7 +20,6 @@ public:
 	 * @brief Update Speed
 	*/
 	virtual void Update()=0;
-	virtual void Update2() = 0;
 	/**
 	 * @brief Parameters and objects required for initializing the speed controller
 	*/

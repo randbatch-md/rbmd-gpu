@@ -1,7 +1,5 @@
 #include "ljforce.h"
-
 #include <thrust/device_ptr.h>
-
 #include "../../common/device_types.h"
 #include "../../common/types.h"
 #include "ljforce_op/ljforce_op.h"
@@ -13,15 +11,15 @@ LJForce::LJForce()
   full_list_builder = std::make_shared<FullNeighborListBuilder>();
 };
 
-void LJForce::Init() { _num_atoms = *(_structure_info_data->_num_atoms); }
+void LJForce::Init() { _num_atoms = *(_structure_info_data->_num_atoms);}
 
 void LJForce::Execute() {
-  LJForce::Init();
+
   rbmd::Real cut_off = 5.0;
   //
   extern int test_current_step;
   list = full_list_builder->Build();
-  list->print("./neighbor_list_step_" + std::to_string(test_current_step)+"_.csv");
+  //list->print("./neighbor_list_step_" + std::to_string(test_current_step)+"_.csv");
 
   rbmd::Real h_total_evdwl = 0.0;
   rbmd::Real* d_total_evdwl;
@@ -53,18 +51,18 @@ void LJForce::Execute() {
 
   // 打印累加后的总能量
   rbmd::Real  ave_evdwl = h_total_evdwl/_num_atoms;
-  std::cout << "Total evdwl: " << h_total_evdwl  << ","<<  "ave_evdwl: "  << ave_evdwl << std::endl;
+  std::cout << "test_current_step:" << test_current_step <<  " " << "average_vdwl_energy:" << ave_evdwl << std::endl;
 
   // 释放设备端分配的内存
   CHECK_RUNTIME(FREE(d_total_evdwl));
 
-     //std::cout <<"id0" << _device_data->_d_atoms_id[0] << std::endl;
-     //std::cout << "p_atoms_id[0] "  <<  _device_data->_d_vx[0]<< " "
-     //    << _device_data->_d_vy[0] << " "
-     //    << _device_data->_d_vz[0]
-     //    << std::endl;
-
   std::cout << "out of force execute" << std::endl;
+
+
+  //out
+  std::ofstream outfile("ave_evdwl.txt", std::ios::app);
+  outfile << test_current_step << " " << ave_evdwl << std::endl;
+  outfile.close();
              
 }
 
