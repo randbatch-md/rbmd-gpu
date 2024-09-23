@@ -34,6 +34,55 @@ namespace op
 		}
 	}
 
+	__device__ void lj126_rs(
+		rbmd::Real rs,
+		rbmd::Real px12,
+		rbmd::Real py12,
+		rbmd::Real pz12,
+		rbmd::Real eps_ij,
+		rbmd::Real sigma_ij,
+		rbmd::Real& fs_ij)
+	{
+		const rbmd::Real  small_value = 0.0001;
+		const rbmd::Real dis_2 = px12 * px12 + py12 * py12 + pz12 * pz12;
+		const rbmd::Real rs_2 = rs * rs;
+
+		if (dis_2 < rs_2 && dis_2 > small_value)
+		{
+			rbmd::Real sigmaij_6 = sigma_ij * sigma_ij * sigma_ij * sigma_ij * sigma_ij * sigma_ij;
+			rbmd::Real dis_6 = dis_2 * dis_2 * dis_2;
+			rbmd::Real sigmaij_dis_6 = sigmaij_6 / dis_6;
+
+			fs_ij = -24 * eps_ij * ((2 * sigmaij_dis_6 - 1) * sigmaij_dis_6) / dis_2;
+		}
+	}
+
+	__device__ void lj126_rcs(
+		rbmd::Real rc,
+		rbmd::Real rs,
+		rbmd::Id pice_num,
+		rbmd::Real px12,
+		rbmd::Real py12,
+		rbmd::Real pz12,
+		rbmd::Real eps_ij,
+		rbmd::Real sigma_ij,
+		rbmd::Real& fcs_ij)
+	{
+		const rbmd::Real  small_value = 0.0001;
+		const rbmd::Real dis_2 = px12 * px12 + py12 * py12 + pz12 * pz12;
+		const rbmd::Real rc_2 = rc * rc;
+		const rbmd::Real rs_2 = rs * rs;
+
+		if (dis_2 < rc_2 && dis_2 > rs_2)
+		{
+			rbmd::Real sigmaij_6 = sigma_ij * sigma_ij * sigma_ij * sigma_ij * sigma_ij * sigma_ij;
+			rbmd::Real dis_6 = dis_2 * dis_2 * dis_2;
+			rbmd::Real sigmaij_dis_6 = sigmaij_6 / dis_6;
+
+			fcs_ij = pice_num  * (-24 * eps_ij * ((2 * sigmaij_dis_6 - 1) * sigmaij_dis_6) / dis_2);
+		}
+	}
+
 	__global__ void ComputeLJForce(
 						Box* box,
 			            const rbmd::Real cut_off,
@@ -114,6 +163,153 @@ namespace op
 			//printf("--------test---evdwl[tid1]:%f---\n",evdwl[tid1]);
 		}
 		
+	}
+
+	__global__ void ComputeLJRBLForce(
+		Box* box,
+		const rbmd::Real rs,
+		const rbmd::Real rc,
+		const rbmd::Id pice_num,
+		const rbmd::Id num_atoms,
+		const rbmd::Id* atoms_type,
+		const rbmd::Id* molecular_type,
+		const rbmd::Real* sigma,
+		const rbmd::Real* eps,
+		const rbmd::Id* start_id,
+		const rbmd::Id* end_id,
+		const rbmd::Id* id_verletlist,
+		const rbmd::Id* id_verletlist_rcs,
+		const rbmd::Real* px,
+		const rbmd::Real* py,
+		const rbmd::Real* pz,
+		rbmd::Real* corr_force_x,
+		rbmd::Real* corr_force_y,
+		rbmd::Real* corr_force_z,
+		rbmd::Real* corr_value_x,
+		rbmd::Real* corr_value_y,
+		rbmd::Real* corr_value_z)
+	{
+		rbmd::Real sum_fx = 0;
+		rbmd::Real sum_fy = 0;
+		rbmd::Real sum_fz = 0;
+		rbmd::Real sum_eij = 0;
+
+		rbmd::Real sum_fsx = 0;
+		rbmd::Real sum_fsy = 0;
+		rbmd::Real sum_fsz = 0;
+
+		rbmd::Real sum_fcsx = 0;
+		rbmd::Real sum_fcsy = 0;
+		rbmd::Real sum_fcsz = 0;
+
+		rbmd::Real  corr_fx_temp = 0;
+		rbmd::Real  corr_fy_temp = 0;
+		rbmd::Real  corr_fz_temp = 0;
+
+
+		unsigned int tid1 = blockIdx.x * blockDim.x + threadIdx.x;
+		if (tid1 < num_atoms)
+		{
+			rbmd::Id typei = atoms_type[tid1];
+			rbmd::Id molecular_id_i = molecular_type[tid1];
+			rbmd::Real eps_i = eps[typei];
+			rbmd::Real sigma_i = sigma[typei];
+
+			rbmd::Real x1 = px[tid1];
+			rbmd::Real y1 = py[tid1];
+			rbmd::Real z1 = pz[tid1];
+
+			rbmd::Real fs_ij, fcs_ij;
+
+
+			//rs 
+			for (int j = start_id[tid1]; j < end_id[tid1]; ++j)
+			{
+
+				rbmd::Id tid2 = id_verletlist[j];
+				rbmd::Id typej = atoms_type[tid2];
+				rbmd::Id molecular_id_j = molecular_type[tid2];
+				rbmd::Real eps_j = eps[typej];
+				rbmd::Real sigma_j = sigma[typej];
+
+				//mix
+				rbmd::Real eps_ij = sqrt(eps_i * eps_j);
+				rbmd::Real sigma_ij = (sigma_i + sigma_j) / 2;
+
+				rbmd::Real x2 = px[tid2];
+				rbmd::Real y2 = py[tid2];
+				rbmd::Real z2 = pz[tid2];
+				rbmd::Real px12 = x2 - x1;
+				rbmd::Real py12 = y2 - y1;
+				rbmd::Real pz12 = z2 - z1;
+				//if (molecular_id_i == molecular_id_j)
+					//continue; 
+
+				MinImageDistance(box, px12, py12, pz12);
+
+				lj126_rs(rs, px12, py12, pz12, eps_ij, sigma_ij, fs_ij);			// the force of rs 
+
+				sum_fsx += fs_ij * px12;
+				sum_fsy += fs_ij * py12;
+				sum_fsz += fs_ij * pz12;
+			}
+
+			//rcs
+			for (int j = 0; j < pice_num; ++j)
+			{
+
+				rbmd::Id tid2 = id_verletlist_rcs[j];
+				rbmd::Id typej = atoms_type[tid2];
+				rbmd::Id molecular_id_j = molecular_type[tid2];
+				rbmd::Real eps_j = eps[typej];
+				rbmd::Real sigma_j = sigma[typej];
+
+				//mix
+				rbmd::Real eps_ij = sqrt(eps_i * eps_j);
+				rbmd::Real sigma_ij = (sigma_i + sigma_j) / 2;
+
+				rbmd::Real x2 = px[tid2];
+				rbmd::Real y2 = py[tid2];
+				rbmd::Real z2 = pz[tid2];
+				rbmd::Real px12 = x2 - x1;
+				rbmd::Real py12 = y2 - y1;
+				rbmd::Real pz12 = z2 - z1;
+				//if (molecular_id_i == molecular_id_j)
+					//continue; 
+
+				MinImageDistance(box, px12, py12, pz12);
+
+				lj126_rcs(rc, rs, pice_num,px12, py12, pz12, eps_ij, sigma_ij, fcs_ij); //the force  rs to rc
+
+				sum_fcsx += fcs_ij * px12;
+				sum_fcsy += fcs_ij * py12;
+				sum_fcsz += fcs_ij * pz12;
+			}
+
+			//sum
+			sum_fx = sum_fsx + sum_fcsx;
+			sum_fy = sum_fsy + sum_fcsy;
+			sum_fz = sum_fsz + sum_fcsz;
+			
+			corr_force_x[tid1] = sum_fx;
+			corr_force_y[tid1] = sum_fy;
+			corr_force_z[tid1] = sum_fz;
+
+			corr_fx_temp += corr_force_x[tid1];
+			corr_fy_temp += corr_force_y[tid1];
+			corr_fz_temp += corr_force_z[tid1];
+
+			corr_force_x[tid1] = corr_force_x[tid1] - corr_fx_temp;
+			corr_force_y[tid1] = corr_force_y[tid1] - corr_fy_temp;
+			corr_force_z[tid1] = corr_force_z[tid1] - corr_fz_temp;
+
+
+			//atomicAdd(corr_value_x, corr_fx_temp);
+			//atomicAdd(corr_value_y, corr_fy_temp);
+			//atomicAdd(corr_value_z, corr_fz_temp);
+			//printf("--------test---evdwl[tid1]:%f---\n",evdwl[tid1]);
+		}
+
 	}
 
 	__device__
@@ -292,27 +488,41 @@ namespace op
 						rbmd::Real* total_evdwl)
 		{
 		    unsigned int blocks_per_grid = (num_atoms + BLOCK_SIZE - 1) / BLOCK_SIZE;
-			//printf("---force_out----cut_off:%f\n", cut_off);
-			//printf("---force_out----num_atoms:%d\n", num_atoms);
-			//printf("---force_out----atoms_type:%d\n", atoms_type[0]);
-			//printf("---force_out----molecular_type:%f\n", molecular_type[0]);
-			//printf("---force_out----sigma:%f\n", sigma[0]);
-			//printf("---force_out----eps:%f\n", eps[0]);
-			//printf("---force_out----start_id:%d\n", start_id[0]);
-			//printf("---force_out----end_id:%d\n", end_id[0]);
-			//printf("---force_out----id_verletlist:%d\n", id_verletlist[0]);
-			//printf("---force_out----px:%f\n", px[0]);
-			//printf("---force_out----py:%f\n", py[0]);
-			//printf("---force_out----pz:%f\n", pz[0]);
-			//printf("---force_out----force_x:%f\n", force_x[0]);
-			//printf("---force_out----force_y:%f\n", force_y[0]);
-			//printf("---force_out----force_z:%f\n", force_z[0]);
-			//printf("---force_out----evdwl:%f\n", evdwl[0]);
-			//printf("---force_out----total_evdwl:%f\n", total_evdwl[0]);
 
 		    CHECK_KERNEL(ComputeLJForce <<<blocks_per_grid, BLOCK_SIZE, 0, 0 >>> (box, cut_off, num_atoms, atoms_type, molecular_type,
 				sigma, eps, start_id, end_id, id_verletlist, px, py, pz, force_x, force_y, force_z, evdwl,total_evdwl));
 		}
+
+	//RBL
+	void LJRBLForceOp<device::DEVICE_GPU>::operator()(
+		Box* box,
+		const rbmd::Real rs,
+		const rbmd::Real rc,
+		const rbmd::Id pice_num,
+		const rbmd::Id num_atoms,
+		const rbmd::Id* atoms_type,
+		const rbmd::Id* molecular_type,
+		const rbmd::Real* sigma,
+		const rbmd::Real* eps,
+		const rbmd::Id* start_id,
+		const rbmd::Id* end_id,
+		const rbmd::Id* id_verletlist,
+		const rbmd::Id* id_verletlist_rcs,
+		const rbmd::Real* px,
+		const rbmd::Real* py,
+		const rbmd::Real* pz,
+		rbmd::Real* corr_force_x,
+		rbmd::Real* corr_force_y,
+		rbmd::Real* corr_force_z,
+		rbmd::Real* corr_value_x,
+		rbmd::Real* corr_value_y,
+		rbmd::Real* corr_value_z )
+	{
+		unsigned int blocks_per_grid = (num_atoms + BLOCK_SIZE - 1) / BLOCK_SIZE;
+
+		CHECK_KERNEL(ComputeLJRBLForce <<<blocks_per_grid, BLOCK_SIZE, 0, 0 >>> (box, rs, rc, pice_num, num_atoms, atoms_type, molecular_type,
+			sigma, eps, start_id, end_id, id_verletlist, id_verletlist_rcs, px, py, pz, corr_force_x, corr_force_y, corr_force_z, corr_value_x, corr_value_y, corr_value_z));
+	}
 
 }
 

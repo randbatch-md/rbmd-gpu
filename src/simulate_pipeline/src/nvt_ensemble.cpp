@@ -6,6 +6,7 @@
 #include "rescale_controller.h"
 #include "berendsen_controller.h"
 #include "nose_hoover_controller.h"
+#include <chrono>  // 添加计时功能的库
 
 NVTensemble::NVTensemble()
 {
@@ -33,6 +34,9 @@ void NVTensemble::Presolve()
 
 void NVTensemble::Solve()
 {
+	// 记录开始时间
+	auto start_time = std::chrono::high_resolution_clock::now();
+
 	_velocity_controller->Update();
 
 	_position_controller->Update();
@@ -52,6 +56,13 @@ void NVTensemble::Solve()
 		_shake_controller->ShakeB();
 	}
 	_temperature_controller->Update();
+
+	// 记录结束时间
+	auto end_time = std::chrono::high_resolution_clock::now();
+
+	// 计算耗时
+	std::chrono::duration<rbmd::Real> duration = end_time - start_time;
+	std::cout << " time pre step: " << duration.count() << " seconds" << std::endl;
 }
 
 void NVTensemble::Postsolve()
