@@ -62,6 +62,7 @@ void FullNeighborListBuilder::ComputeNeighborCellsWithoutPBC(){
 }
 
 void FullNeighborListBuilder::EstimateNeighborsList() {
+  std::cout << "\033[31mresizing neighbor list array...\033[0m" << std::endl;
   rbmd::Id* d_total_max_neighbor_num;
   CHECK_RUNTIME(MALLOC(&d_total_max_neighbor_num, sizeof(rbmd::Id)));
   CHECK_RUNTIME(MEMCPY(d_total_max_neighbor_num,
@@ -89,15 +90,15 @@ void FullNeighborListBuilder::EstimateNeighborsList() {
       d_total_max_neighbor_num, _linked_cell->_total_atoms_num);
   CHECK_RUNTIME(MEMCPY(&(_neighbor_list->_h_total_max_neighbor_num),
     d_total_max_neighbor_num, sizeof(rbmd::Id), D2H));
+  CHECK_RUNTIME(FREE(d_total_max_neighbor_num));
   _neighbor_list->_d_neighbors.resize(
       _neighbor_list->_h_total_max_neighbor_num);
-  InitNeighborListIndices(); // realloc need
-  // 2024-09-12 索引没有问题
+  InitNeighborListIndices();
+  this->should_realloc = false;
 }
 
 bool FullNeighborListBuilder::GenerateNeighborsList() {
-  bool* d_should_realloc;
-  CHECK_RUNTIME(MALLOC(&d_should_realloc, sizeof(bool)));
+  CHECK_RUNTIME(MEMCPY( _d_should_realloc, &(this->should_realloc),sizeof(bool), H2D));
   op::GenerateFullNeighborListOp<device::DEVICE_GPU>
       generate_full_neighbor_list_op;
   generate_full_neighbor_list_op(
@@ -114,11 +115,9 @@ bool FullNeighborListBuilder::GenerateNeighborsList() {
       thrust::raw_pointer_cast(this->_neighbor_list->_start_idx.data()),
       thrust::raw_pointer_cast(this->_neighbor_list->_end_idx.data()),
       thrust::raw_pointer_cast(this->_neighbor_list->_d_neighbors.data()),
-      _d_box, d_should_realloc,
+      _d_box, _d_should_realloc,
       thrust::raw_pointer_cast(_linked_cell->_neighbor_cell.data()),
       _neighbor_cell_num);
-  bool h_should_realloc;
-  CHECK_RUNTIME(MEMCPY(&h_should_realloc, d_should_realloc, sizeof(bool), D2H));
-  this->should_realloc = h_should_realloc;
-  return h_should_realloc;
+  CHECK_RUNTIME(MEMCPY(&(this->should_realloc), _d_should_realloc, sizeof(bool), D2H));
+  return this->should_realloc;
 }

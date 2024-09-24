@@ -10,8 +10,12 @@ public:
 	Force() {
 	  this->_structure_info_data = DataManager::getInstance().getMDData()->_structure_info_data;
 	  this->_device_data = DataManager::getInstance().getDeviceData();
+	  CHECK_RUNTIME(MALLOC(&_d_total_evdwl, sizeof(rbmd::Real)));
+
 	};
-	virtual ~Force()=default;
+	virtual ~Force() {
+	  CHECK_RUNTIME(FREE(_d_total_evdwl));
+	};
 
 	//virtual void Update()=0;
 	virtual void Init() {};
@@ -20,6 +24,8 @@ public:
 protected:
 	std::shared_ptr<StructureInfoData> _structure_info_data;
 	std::shared_ptr<DeviceData> _device_data;
+        rbmd::Real* _d_total_evdwl;
+
 
 
 };

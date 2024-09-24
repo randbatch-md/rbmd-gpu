@@ -11,6 +11,10 @@
 NeighborListBuilder::NeighborListBuilder() {
   this->_linked_cell = LinkedCellLocator::GetInstance().GetLinkedCell();
   this->_d_box = DataManager::getInstance().getDeviceData()->_d_box;
+  CHECK_RUNTIME(MALLOC(&_d_should_realloc, sizeof(bool)));
+}
+NeighborListBuilder::~NeighborListBuilder() {
+  CHECK_RUNTIME(FREE(_d_should_realloc));
 }
 
 void NeighborListBuilder::ReductionSum(rbmd::Id* d_src_array, rbmd::Id* d_dst,

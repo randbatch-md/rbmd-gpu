@@ -9,6 +9,7 @@
 LJForce::LJForce()
 {
   full_list_builder = std::make_shared<FullNeighborListBuilder>();
+
 };
 
 void LJForce::Init() { _num_atoms = *(_structure_info_data->_num_atoms);}
@@ -22,11 +23,8 @@ void LJForce::Execute() {
   //list->print("./neighbor_list_step_" + std::to_string(test_current_step)+"_.csv");
 
   rbmd::Real h_total_evdwl = 0.0;
-  rbmd::Real* d_total_evdwl;
 
-  CHECK_RUNTIME(MALLOC(&d_total_evdwl, sizeof(rbmd::Real)));
-  CHECK_RUNTIME(MEMCPY(d_total_evdwl,&h_total_evdwl , sizeof(rbmd::Real), H2D));
-
+  CHECK_RUNTIME(MEMSET(_d_total_evdwl,0,sizeof(rbmd::Real)));
   //compute LJForce
   op::LJForceOp<device::DEVICE_GPU> lj_force_op;
   lj_force_op(_device_data->_d_box, cut_off, _num_atoms,
@@ -44,17 +42,16 @@ void LJForce::Execute() {
               thrust::raw_pointer_cast(_device_data->_d_fy.data()),
               thrust::raw_pointer_cast(_device_data->_d_fz.data()),
               thrust::raw_pointer_cast(_device_data->_d_evdwl.data()),
-              d_total_evdwl);
+              _d_total_evdwl);
 
 
-  CHECK_RUNTIME(MEMCPY(&h_total_evdwl,d_total_evdwl , sizeof(rbmd::Real), D2H));
+  CHECK_RUNTIME(MEMCPY(&h_total_evdwl,_d_total_evdwl , sizeof(rbmd::Real), D2H));
 
   // 打印累加后的总能量
   rbmd::Real  ave_evdwl = h_total_evdwl/_num_atoms;
   std::cout << "test_current_step:" << test_current_step <<  " " << "average_vdwl_energy:" << ave_evdwl << std::endl;
 
-  // 释放设备端分配的内存
-  CHECK_RUNTIME(FREE(d_total_evdwl));
+
 
   std::cout << "out of force execute" << std::endl;
 

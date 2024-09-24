@@ -8,7 +8,12 @@
 #include "unit_factor.h"
 #include "update_temperature_op.h"
 
-RescaleController::RescaleController(){};
+RescaleController::RescaleController() {
+  CHECK_RUNTIME(MALLOC(&_d_temp_contrib, sizeof(rbmd::Real)));
+}
+RescaleController::~RescaleController() {
+  CHECK_RUNTIME(FREE(_d_temp_contrib));
+};
 
 void RescaleController::Init() {
   _num_atoms = *(_structure_info_data->_num_atoms);
@@ -42,12 +47,8 @@ void RescaleController::Update() {
 void RescaleController::ComputeTemp()
 {
     extern int test_current_step;
-    _temp_sum = 0;
-
-    rbmd::Real* temp_contrib;
-    CHECK_RUNTIME(MALLOC(&temp_contrib, sizeof(rbmd::Real)));
-    CHECK_RUNTIME(MEMCPY(temp_contrib, &_temp_sum, sizeof(rbmd::Real), H2D));
-
+    // CHECK_RUNTIME(MEMCPY(temp_contrib, &_temp_sum, sizeof(rbmd::Real), H2D));
+    CHECK_RUNTIME(MEMSET(_d_temp_contrib,0,sizeof(rbmd::Real)));
   op::ComputeTemperatureOp<device::DEVICE_GPU> compute_temperature_op;
   compute_temperature_op(
       _num_atoms, _mvv2e,
@@ -55,9 +56,9 @@ void RescaleController::ComputeTemp()
       thrust::raw_pointer_cast(_device_data->_d_mass.data()),
       thrust::raw_pointer_cast(_device_data->_d_vx.data()),
       thrust::raw_pointer_cast(_device_data->_d_vy.data()),
-      thrust::raw_pointer_cast(_device_data->_d_vz.data()), temp_contrib);
+      thrust::raw_pointer_cast(_device_data->_d_vz.data()), _d_temp_contrib);
 
-  CHECK_RUNTIME(MEMCPY(&_temp_sum, temp_contrib, sizeof(rbmd::Real), D2H));
+  CHECK_RUNTIME(MEMCPY(&_temp_sum, _d_temp_contrib, sizeof(rbmd::Real), D2H));
   // std::cout << "_temp_sum" << _temp_sum << std::endl;
 
   bool available_shake = false;
@@ -77,9 +78,6 @@ void RescaleController::ComputeTemp()
 
   std::cout << "_temp=" << _temp << std::endl;
 
-  CHECK_RUNTIME(FREE(temp_contrib));
-
-
   //out
   std::ofstream outfile("temp.txt", std::ios::app);
   outfile << test_current_step << " " << _temp << std::endl;
@@ -95,5 +93,4 @@ void RescaleController::UpdataVelocity() {
                      thrust::raw_pointer_cast(_device_data->_d_vx.data()),
                      thrust::raw_pointer_cast(_device_data->_d_vy.data()),
                      thrust::raw_pointer_cast(_device_data->_d_vz.data()));
-
 }
