@@ -1,23 +1,22 @@
 
-#include "neighbor_list_builder/neighbor_list_builder.h"
-
 #include <hipcub/hipcub.hpp>
 
 #include "common/device_types.h"
 #include "data_manager.h"
 #include "linked_cell/linked_cell_locator.h"
+#include "neighbor_list_builder/base_neighbor_list_builder.h"
 #include "neighbor_list_op.h"
 
-NeighborListBuilder::NeighborListBuilder() {
+BaseNeighborListBuilder::BaseNeighborListBuilder() {
   this->_linked_cell = LinkedCellLocator::GetInstance().GetLinkedCell();
   this->_d_box = DataManager::getInstance().getDeviceData()->_d_box;
   CHECK_RUNTIME(MALLOC(&_d_should_realloc, sizeof(bool)));
 }
-NeighborListBuilder::~NeighborListBuilder() {
+BaseNeighborListBuilder::~BaseNeighborListBuilder() {
   CHECK_RUNTIME(FREE(_d_should_realloc));
 }
 
-void NeighborListBuilder::ReductionSum(rbmd::Id* d_src_array, rbmd::Id* d_dst,
+void BaseNeighborListBuilder::ReductionSum(rbmd::Id* d_src_array, rbmd::Id* d_dst,
                                        rbmd::Id size) {
   void* temp = nullptr;
   size_t temp_bytes = 0;
@@ -29,7 +28,7 @@ void NeighborListBuilder::ReductionSum(rbmd::Id* d_src_array, rbmd::Id* d_dst,
   CHECK_RUNTIME(FREE(temp));
 }
 
-void NeighborListBuilder::InitNeighborListIndices() {
+void BaseNeighborListBuilder::InitNeighborListIndices() {
   void* temp = nullptr;
   size_t temp_bytes = 0;
 

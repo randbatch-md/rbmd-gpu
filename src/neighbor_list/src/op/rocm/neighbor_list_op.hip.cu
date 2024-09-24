@@ -1,12 +1,11 @@
 #include <hip/hip_runtime.h>
+#include "neighbor_list_op.h"
 
 #include <hipcub/hipcub.hpp>
 
-#include "../../../../data_manager/include/model/box.h"
 #include "common/device_types.h"
 #include "common/rbmd_define.h"
 #include "common/types.h"
-#include "neighbor_list_op.h"
 
 namespace op {
 __global__ void InitEndIndex(rbmd::Id* neighbor_num, rbmd::Id* start_index,

@@ -1,14 +1,18 @@
 #include "ljforce.h"
+
 #include <thrust/device_ptr.h>
+
 #include "../../common/device_types.h"
 #include "../../common/types.h"
 #include "ljforce_op/ljforce_op.h"
+#include "neighbor_list/include/neighbor_list_builder/half_neighbor_list_builder.h"
+#include "neighbor_list/include/neighbor_list_builder/rbl_full_neighbor_list_builder.h"
 // #include <hipcub/hipcub.hpp>
 // #include <hipcub/backend/rocprim/block/block_reduce.hpp>
 
 LJForce::LJForce()
 {
-  full_list_builder = std::make_shared<FullNeighborListBuilder>();
+  _neighbor_list_builder = std::make_shared<RblFullNeighborListBuilder>();
 
 };
 
@@ -19,9 +23,16 @@ void LJForce::Execute() {
   rbmd::Real cut_off = 5.0;
   //
   extern int test_current_step;
-  list = full_list_builder->Build();
-  //list->print("./neighbor_list_step_" + std::to_string(test_current_step)+"_.csv");
+  auto start = std::chrono::high_resolution_clock::now();
 
+  list = _neighbor_list_builder->Build();
+  //list->print("./neighbor_list_step_" + std::to_string(test_current_step)+"_.csv");
+  auto end = std::chrono::high_resolution_clock::now();
+  std::chrono::duration<rbmd::Real> duration = end - start;
+  std::cout << "构建邻居列表花费了"
+      << duration.count()
+<< "秒" << std::endl;
+  thrust::host_vector<rbmd::Id> random_neighbor_num = list->_d_random_neighbor_num;
   rbmd::Real h_total_evdwl = 0.0;
 
   CHECK_RUNTIME(MEMSET(_d_total_evdwl,0,sizeof(rbmd::Real)));

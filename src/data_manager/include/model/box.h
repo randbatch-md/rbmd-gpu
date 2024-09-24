@@ -125,3 +125,13 @@ __host__ __device__ __forceinline__ void ApplyPBC(Box* box,
         }
     }
 }
+
+
+__host__ __device__ __forceinline__ rbmd::Real CalculateVolume(const Box* box) {
+  if (box->_type == Box::BoxType::ORTHOGONAL) {
+    return box->_length[0]*box->_length[1]*box->_length[2];
+  }else {
+    return 0;
+    exit(0); //todo
+  }
+}

@@ -1,9 +1,9 @@
 #pragma once
-#include "force.h"
 #include "../../common/types.h"
-#include "../neighbor_list/include/neighbor_list.h"
-#include "../neighbor_list/include/neighbor_list_builder/full_neighbor_list_builder.h"
+#include "force.h"
 #include "model/box.h"
+#include "neighbor_list/include/neighbor_list/neighbor_list.h"
+#include "neighbor_list/include/neighbor_list_builder/full_neighbor_list_builder.h"
 class LJForce : public Force
 {
 public:
@@ -15,7 +15,7 @@ public:
 
 private:
 	rbmd::Id _num_atoms;
-	std::shared_ptr<FullNeighborListBuilder> full_list_builder;
+	std::shared_ptr<BaseNeighborListBuilder> _neighbor_list_builder;
 	std::shared_ptr<NeighborList> list;
 	Box box;
 

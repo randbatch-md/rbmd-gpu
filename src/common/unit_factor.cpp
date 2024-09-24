@@ -1,21 +1,21 @@
 #include "unit_factor.h"
 
-// ³õÊ¼»¯ unit_factor_map
+// ï¿½ï¿½Ê¼ï¿½ï¿½ unit_factor_map
 std::map<std::string, UNIT> unit_factor_map = { {"LJ", UNIT::LJ}, {"REAL", UNIT::REAL}, {"METAL", UNIT::METAL} };
 
-// LJ µ¥Î»ÖÆ³£Á¿¶¨Òå
+// LJ ï¿½ï¿½Î»ï¿½Æ³ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 const rbmd::Real UnitFactor<UNIT::LJ>::_kb = 1.0;
 const rbmd::Real UnitFactor<UNIT::LJ>::_fmt2v = 1.0;
 const rbmd::Real UnitFactor<UNIT::LJ>::_mvv2e = 1.0;
 const rbmd::Real UnitFactor<UNIT::LJ>::_qqr2e = 1.0;
 
-// REAL µ¥Î»ÖÆ³£Á¿¶¨Òå
-const rbmd::Real UnitFactor<UNIT::REAL>::_kb = 1.9872067 * std::pow(10.0, -3);
-const rbmd::Real UnitFactor<UNIT::REAL>::_fmt2v = 4.186 * std::pow(10.0, -4);
-const rbmd::Real UnitFactor<UNIT::REAL>::_mvv2e = 1.0 / (4.186 * std::pow(10.0, -4));
+// REAL ï¿½ï¿½Î»ï¿½Æ³ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+const rbmd::Real UnitFactor<UNIT::REAL>::_kb = 1.9872067 * std::pow(10.0, -3.0);
+const rbmd::Real UnitFactor<UNIT::REAL>::_fmt2v = 4.186 * std::pow(10.0, -4.0);
+const rbmd::Real UnitFactor<UNIT::REAL>::_mvv2e = 1.0 / (4.186 * std::pow(10.0, -4.0));
 const rbmd::Real UnitFactor<UNIT::REAL>::_qqr2e = 332.06371;
 
-// METAL µ¥Î»ÖÆ³£Á¿¶¨Òå
+// METAL ï¿½ï¿½Î»ï¿½Æ³ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 const rbmd::Real UnitFactor<UNIT::METAL>::_kb = 8.617343e-5;
 const rbmd::Real UnitFactor<UNIT::METAL>::_fmt2v = 1.0 / 1.0364269e-4;
 const rbmd::Real UnitFactor<UNIT::METAL>::_mvv2e = 1.0364269e-4;

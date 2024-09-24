@@ -1,7 +1,11 @@
-#include "neighbor_list/include/neighbor_list.h"
+#include "neighbor_list.h"
+
+#include <thrust/host_vector.h>
+
 #include <fstream>
 #include <iostream>
 #include <vector>
+
 #include "common/rbmd_define.h"
 #include "data_manager.h"
 #include "linked_cell_locator.h"
