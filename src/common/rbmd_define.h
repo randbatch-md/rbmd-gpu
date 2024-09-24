@@ -21,11 +21,15 @@
 
 #if USE_DOUBLE
 typedef double3 Real3;
+typedef double2 Real2;
 #define make_Real3 make_double3
+#define make_Real2 make_double2
 #define POW pow
 #else
 typedef float3 Real3;
+typedef float2 Real2;
 #define make_Real3 make_float3
+#define make_Real2 make_float2
 #define POW powf
 #endif
 

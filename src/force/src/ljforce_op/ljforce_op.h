@@ -56,6 +56,39 @@ namespace op
 			rbmd::Real* corr_value_z);
 	};
 
+	template <typename DEVICE>
+	struct ComputeChargeStructureFactorComponentOp
+	{
+		void operator()(
+			const rbmd::Id num_atoms,
+			const float3& k,
+			const rbmd::Real* px,
+			const rbmd::Real* py,
+			const rbmd::Real* pz,
+			const rbmd::Real* charge,
+			rbmd::Real* density_real,
+			rbmd::Real* density_imag);
+	};
+
+	template <typename DEVICE>
+	struct ComputeEwaldForceOp
+	{
+		void operator()(
+			Box* box,
+			const rbmd::Id num_atoms,
+			const rbmd::Id  Kmax,
+			const rbmd::Real alpha,
+			const float2  whole_rhok,
+			const rbmd::Real* charge,
+			const rbmd::Real* px,
+			const rbmd::Real* py,
+			const rbmd::Real* pz,
+			rbmd::Real* ewald_force_x,
+			rbmd::Real* ewald_force_y,
+			rbmd::Real* ewald_force_z);
+	};
+
+
 	template <>
 	struct LJForceOp<device::DEVICE_GPU>
 	{
@@ -105,7 +138,39 @@ namespace op
 			rbmd::Real* corr_value_y,
 			rbmd::Real* corr_value_z);
 	};
-    //template <typename T>
-    //void DeviceReduceSum(const T* d_data, T* d_result, int num_elements);
+
+	template <>
+	struct ComputeChargeStructureFactorComponentOp<device::DEVICE_GPU>
+	{
+		void operator()(
+			const rbmd::Id num_atoms,
+			const float3& k,
+			const rbmd::Real* px,
+			const rbmd::Real* py,
+			const rbmd::Real* pz,
+			const rbmd::Real* charge,
+			rbmd::Real* density_real,
+			rbmd::Real* density_imag);
+	};
+
+	template <>
+	struct ComputeEwaldForceOp<device::DEVICE_GPU>
+	{
+		void operator()(
+			Box* box,
+			const rbmd::Id num_atoms,
+			const rbmd::Id  Kmax,
+			const rbmd::Real alpha,
+			const float2  whole_rhok,
+			const rbmd::Real* charge,
+			const rbmd::Real* px,
+			const rbmd::Real* py,
+			const rbmd::Real* pz,
+			rbmd::Real* ewald_force_x,
+			rbmd::Real* ewald_force_y,
+			rbmd::Real* ewald_force_z);
+	};
+
+
 
 }// namespace op

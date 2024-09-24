@@ -87,6 +87,8 @@ class DeviceData {
   thrust::device_vector<rbmd::Real> _d_fz;
     //	
   thrust::device_vector<rbmd::Real> _d_evdwl;
+
+  thrust::device_vector<rbmd::Real> _d_charge;
   
   // box in device
   Box* _d_box;

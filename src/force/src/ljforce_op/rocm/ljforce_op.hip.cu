@@ -255,7 +255,7 @@ namespace op
 			}
 
 			//rcs
-			for (int j = 0; j < pice_num; ++j)
+			for (int j = id_verletlist_rcs[tid1* pice_num]; j < pice_num; ++j)
 			{
 
 				rbmd::Id tid2 = id_verletlist_rcs[j];
@@ -343,6 +343,113 @@ namespace op
 
 		}
 		return CoulForce;
+	}
+
+	__device__ void EwaldForce(
+		Box* box,
+		const rbmd::Real alpha
+		float3 M,
+		float2 rhok_ri,
+		const rbmd::Real* charge,
+		const rbmd::Real* px,
+		const rbmd::Real* py,
+		const rbmd::Real* pz,
+		rbmd::Real ewald_force_x,
+		rbmd::Real ewald_force_y
+		rbmd::Real ewald_force_z)
+	{
+		rbmd::Real ewald_force;
+		rbmd::Real volume = box->_length[0] * box->_length[1] * box->_length[2];
+
+		float3 k{ 0,0,0 };
+		K[0] = 2 * M_PI * M[0] / box->_length[0];
+		K[1] = 2 * M_PI * M[1] / box->_length[1];
+		K[2] = 2 * M_PI * M[2] / box->_length[2];
+
+		rbmd::Real range_K_2 = K[0] * K[0] + K[1] * K[1] + K[2] * K[2];
+		rbmd::Real dot_product = K[0] * px + K[1] * py + K[2] * pz;
+
+		rbmd::Real factor_a = -4 * M_PI * charge;
+		rbmd::Real factor_b = exp(-range_K_2 / (4 * alpha));
+		rbmd::Real factor_c = cos(dot_product) * rhok_ri[1];
+		rbmd::Real factor_d = sin(dot_product) * rhok_ri[0];
+
+		ewald_force = factor_a / (volume * range_K_2) * factor_b * (factor_c - factor_d);
+		ewald_force_x = ewald_force * K[0];
+		ewald_force_y = ewald_force * K[1];
+		ewald_force_z = ewald_force * K[2];
+	}
+
+
+	__global__ void ComputeChargeStructureFactorComponent(
+		const rbmd::Id num_atoms,
+		float3 K,
+		const rbmd::Real* px,
+		const rbmd::Real* py,
+		const rbmd::Real* pz,
+		const rbmd::Real* charge,
+		rbmd::Real* density_real,
+		rbmd::Real* density_imag)
+	{
+		unsigned int tid1 = blockIdx.x * blockDim.x + threadIdx.x;
+		if (tid1 < num_atoms)
+		{
+			rbmd::Real local_charge = charge[tid1];
+			rbmd::Real dot_product = K.x * px[tid1] + K.y * py[tid1] + K.z * pz[tid1];
+
+			density_real[tid1] = local_charge * cos(dot_product);
+			density_imag[tid1] = local_charge * sin(dot_product);
+		}
+	}
+
+	__global__ void ComputeEwaldForce(
+		Box* box,
+		const rbmd::Id num_atoms,
+	    const rbmd::Id  Kmax,
+		const rbmd::Real alpha,
+	    const float2  whole_rhok,
+		const rbmd::Real* charge,
+		const rbmd::Real* px,
+		const rbmd::Real* py,
+		const rbmd::Real* pz,
+		rbmd::Real* ewald_force_x,
+		rbmd::Real* ewald_force_y,
+		rbmd::Real* ewald_force_z)
+	{
+		unsigned int tid1 = blockIdx.x * blockDim.x + threadIdx.x;
+
+		if (tid1 < num_atoms)
+		{
+			rbmd::Real p_x = px[tid1];
+			rbmd::Real p_y = py[tid1];
+			rbmd::Real p_z = pz[tid1];
+			charge_i = charge[tid1];
+			rbmd::Real force_x, force_y, force_z;
+
+			for (rbmd::Id i = -Kmax; i <= Kmax; ++i)
+			{
+				for (rbmd::Id j = -Kmax; j <= Kmax; ++j)
+				{
+					for (rbmd::Id k = -Kmax; k <= Kmax; ++k)
+					{
+						if (!(i == 0 && j == 0 && k == 0)) 
+						{
+							float3 M = { (rbmd::Real)i, (rbmd::Real)j, (rbmd::Real)k };
+							rbmd::Id indexEwald = (i + Kmax) * (2 * Kmax + 1) * 
+												  (2 * Kmax + 1) + (j + Kmax) *
+												  (2 * Kmax + 1) + (k + Kmax);
+							 float2 rhok_i = whole_rhok[indexEwald];
+
+							 EwaldForce(box, alpha,M, rhok_i, charge_i, p_x, p_y, p_z,
+										force_x, force_y, force_z);
+						}
+					}
+				}
+			}
+			ewald_force_x[tid1] = force_x;
+			ewald_force_y[tid1] = force_y;
+			ewald_force_z[tid1] = force_z;
+	    }
 	}
 
 
@@ -522,6 +629,45 @@ namespace op
 
 		CHECK_KERNEL(ComputeLJRBLForce <<<blocks_per_grid, BLOCK_SIZE, 0, 0 >>> (box, rs, rc, pice_num, num_atoms, atoms_type, molecular_type,
 			sigma, eps, start_id, end_id, id_verletlist, id_verletlist_rcs, px, py, pz, corr_force_x, corr_force_y, corr_force_z, corr_value_x, corr_value_y, corr_value_z));
+	}
+
+	void ComputeChargeStructureFactorComponentOp<device::DEVICE_GPU>::operator()(
+		const rbmd::Id num_atoms,
+		const float3& k,
+		const rbmd::Real* px,
+		const rbmd::Real* py,
+		const rbmd::Real* pz,
+		const rbmd::Real* charge,
+		rbmd::Real* density_real,
+		rbmd::Real* density_imag)
+	{
+		unsigned int blocks_per_grid = (num_atoms + BLOCK_SIZE - 1) / BLOCK_SIZE;
+		
+		CHECK_KERNEL(ComputeChargeStructureFactorComponent <<<blocks_per_grid, BLOCK_SIZE, 0, 0 >>>
+			(num_atoms, k, px, py ,pz, charge, density_real, density_imag));
+
+	}
+
+	void ComputeEwaldForceOp<device::DEVICE_GPU>::operator()(
+		Box* box,
+		const rbmd::Id num_atoms,
+		const rbmd::Id  Kmax,
+		const rbmd::Real alpha,
+		const float2  whole_rhok,
+		const rbmd::Real* charge,
+		const rbmd::Real* px,
+		const rbmd::Real* py,
+		const rbmd::Real* pz,
+		rbmd::Real* ewald_force_x,
+		rbmd::Real* ewald_force_y,
+		rbmd::Real* ewald_force_z)
+	{
+		unsigned int blocks_per_grid = (num_atoms + BLOCK_SIZE - 1) / BLOCK_SIZE;
+
+		CHECK_KERNEL(ComputeEwaldForce <<<blocks_per_grid, BLOCK_SIZE, 0, 0 >>>
+			(box,num_atoms, Kmax, alpha, whole_rhok, charge,
+		     px, py, pz, ewald_force_x, ewald_force_y, ewald_force_z));
+
 	}
 
 }

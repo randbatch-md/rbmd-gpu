@@ -3,6 +3,7 @@
 #include "../../common/device_types.h"
 #include "../../common/types.h"
 #include "ljforce_op/ljforce_op.h"
+#include <thrust/reduce.h>
 // #include <hipcub/hipcub.hpp>
 // #include <hipcub/backend/rocprim/block/block_reduce.hpp>
 
@@ -13,7 +14,8 @@ LJForce::LJForce()
 
 void LJForce::Init() { _num_atoms = *(_structure_info_data->_num_atoms);}
 
-void LJForce::Execute() {
+void LJForce::Execute() 
+{
 
   rbmd::Real cut_off = 5.0;
   //
@@ -62,7 +64,48 @@ void LJForce::Execute() {
   //out
   std::ofstream outfile("ave_evdwl.txt", std::ios::app);
   outfile << test_current_step << " " << ave_evdwl << std::endl;
-  outfile.close();
-             
+  outfile.close();   
+}
+
+void LJForce::ComputeChargeStructureFactorEwald(
+    Box* box,
+    rbmd::Id num_atoms,
+    rbmd::Id Kmax, 
+    std::vector<float2> rhok)
+{
+
+    thrust::device_vector<rbmd::Real> density_real(num_atoms, 0.0f);
+    thrust::device_vector<rbmd::Real> density_imag(num_atoms, 0.0f);
+
+    for (rbmd::Id i = -Kmax; i <= Kmax; i++)
+    {
+        for (rbmd::Id j = -Kmax; j <= Kmax; j++)
+        {
+            for (rbmd::Id k = -Kmax; k <= Kmax; k++)
+            {
+                if (!(i == 0 && j == 0 && k == 0))
+                {
+                    float3 K = make_float3(2.0 * M_PI * i / box->_length[0],
+                                           2.0 * M_PI * j / box->_length[1],
+                                           2.0 * M_PI * k / box->_length[2]);
+
+                    op::ComputeChargeStructureFactorComponentOp<device::DEVICE_GPU> charge_structure_factor_op;
+
+                    charge_structure_factor_op(num_atoms, K,
+                        thrust::raw_pointer_cast(_device_data->_d_px.data()),
+                        thrust::raw_pointer_cast(_device_data->_d_py.data()),
+                        thrust::raw_pointer_cast(_device_data->_d_pz.data()),
+                        thrust::raw_pointer_cast(_device_data->_d_charge.data()),
+                        thrust::raw_pointer_cast(density_real.data()),
+                        thrust::raw_pointer_cast(density_imag.data()));
+
+                    rbmd::Real value_Re = thrust::reduce(density_real.begin(), density_real.end(), 0.0f, thrust::plus<rbmd::Real>());
+                    rbmd::Real value_Im = thrust::reduce(density_imag.begin(), density_imag.end(), 0.0f, thrust::plus<rbmd::Real>());
+
+                    rhok.push_back(make_float2(value_Re, value_Im));
+                }
+            }
+        }
+    }
 }
 

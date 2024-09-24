@@ -12,6 +12,11 @@ public:
 
 	void Init() override;
 	void  Execute() override;
+	void  ComputeChargeStructureFactorEwald(
+		Box* box, 
+		rbmd::Id _num_atoms,
+		rbmd::Id Kmax, 
+		std::vector<float2> rhok);
 
 private:
 	rbmd::Id _num_atoms;
