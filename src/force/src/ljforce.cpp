@@ -12,7 +12,7 @@
 
 LJForce::LJForce()
 {
-  _neighbor_list_builder = std::make_shared<RblFullNeighborListBuilder>();
+  _neighbor_list_builder = std::make_shared<HalfNeighborListBuilder>();
 
 };
 
