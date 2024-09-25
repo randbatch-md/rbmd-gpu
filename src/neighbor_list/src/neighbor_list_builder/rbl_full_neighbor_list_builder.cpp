@@ -10,37 +10,23 @@
 RblFullNeighborListBuilder::RblFullNeighborListBuilder() {
   _r_core = DataManager::getInstance().getConfigData()->Get<rbmd::Real>(
       "r_core", "hyper_parameters", "neighbor");
-  if (_r_core > _linked_cell->_cutoff) {
-    std::cout << "\033[31mError r_core must be less than or equal to the "
-                 "cutoff.\033[0m"
-              << std::endl;
-    exit(0);
-  }
-  _linked_cell->_cell_count_within_cutoff = static_cast<rbmd::Id>(
-      std::ceil(static_cast<double>(_linked_cell->_cutoff / _r_core)));
-  _linked_cell->Build(DataManager::getInstance().getMDData()->_h_box.get());
-  _linked_cell->SyncHToD();  // TODO 逻辑有点复杂   是否放到locator里面去更好
-  _linked_cell->InitializeCells();
-
+  // _linked_cell->_cell_count_within_cutoff = static_cast<rbmd::Id>(
+  //     std::ceil(static_cast<double>(_linked_cell->_cutoff / _r_core)));
+  // _linked_cell->Build(DataManager::getInstance().getMDData()->_h_box.get());
+  // _linked_cell->SyncHToD();  // TODO 逻辑有点复杂   是否放到locator里面去更好
+  // _linked_cell->InitializeCells();
   _neighbor_sample_num =
       DataManager::getInstance().getConfigData()->Get<rbmd::Id>(
           "neighbor_sample_num", "hyper_parameters", "neighbor");
+  if (_neighbor_sample_num <= 0) {
+    std::cout << "\033[31mError neighbor_sample_num must be large than 0.\033[0m"
+                << std::endl;
+    exit(0);
+  }
   _trunc_distance_power_2 = _r_core * _r_core - EPSILON;  // for estimate
   _neighbor_list->_d_random_neighbor.resize(
       _linked_cell->_total_atoms_num * _neighbor_sample_num);  // cs neighbor
   _neighbor_list->_d_random_neighbor_num.resize(_linked_cell->_total_atoms_num);
-#pragma region rbl prar
-  _system_rho = _linked_cell->_total_atoms_num / CalculateVolume(DataManager::getInstance().getMDData()->_h_box.get());
-  rbmd::Id rs_num = std::ceil(_system_rho * (4.0/3.0 * M_PI * std::pow(_r_core, 3)));
-  rbmd::Id rc_num = std::ceil(
-      _system_rho * (4.0 / 3.0 * M_PI * std::pow(_linked_cell->_cutoff,3)));
-  auto random_rate  = static_cast<rbmd::Real>(_neighbor_sample_num)/static_cast<rbmd::Real>(rc_num-rs_num);
-  _selection_frequency =
-      std::floor(1.0 / random_rate);
-#pragma endregion
-
-
-
   // neighbor num !
   this->_neighbor_cell_num = (2 * _linked_cell->_cell_count_within_cutoff + 1) *
                              (2 * _linked_cell->_cell_count_within_cutoff + 1) *
@@ -54,10 +40,24 @@ RblFullNeighborListBuilder::RblFullNeighborListBuilder() {
   } else {
     this->FullNeighborListBuilder::ComputeNeighborCells();
   }
-
 }
 
+void RblFullNeighborListBuilder::GetRblParams(){
+#pragma region rbl prarms
+  _system_rho = _linked_cell->_total_atoms_num / CalculateVolume(DataManager::getInstance().getMDData()->_h_box.get());
+  rbmd::Id rs_num = std::ceil(_system_rho * (4.0/3.0 * M_PI * std::pow(_r_core, 3)));
+  rbmd::Id rc_num = std::ceil(
+      _system_rho * (4.0 / 3.0 * M_PI * std::pow(_linked_cell->_cutoff,3)));
+  auto random_rate  = static_cast<rbmd::Real>(_neighbor_sample_num)/static_cast<rbmd::Real>(rc_num-rs_num);
+  _selection_frequency =
+      std::floor(1.0 / random_rate);   // note：The ceil function rarely samples the desired number of neighbor_sample_num, while the floor function may to some extent affect performance.
+  _neighbor_list->_selection_frequency = this->_selection_frequency;
+#pragma endregion
+}
+
+
 bool RblFullNeighborListBuilder::GenerateNeighborsList() {
+  GetRblParams();
   CHECK_RUNTIME(
       MEMCPY(_d_should_realloc, &(this->should_realloc), sizeof(bool), H2D));
   op::GenerateRblFullNeighborListOp<device::DEVICE_GPU>
@@ -83,8 +83,9 @@ bool RblFullNeighborListBuilder::GenerateNeighborsList() {
           this->_neighbor_list->_d_random_neighbor_num.data()),
       _d_box, _d_should_realloc,
       thrust::raw_pointer_cast(_linked_cell->_neighbor_cell.data()),
-      _neighbor_cell_num,_selection_frequency);
+      _neighbor_cell_num, _selection_frequency);
   CHECK_RUNTIME(
       MEMCPY(&(this->should_realloc), _d_should_realloc, sizeof(bool), D2H));
   return this->should_realloc;
 }
+

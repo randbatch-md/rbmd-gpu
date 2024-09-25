@@ -17,6 +17,7 @@ HalfNeighborListBuilder::HalfNeighborListBuilder() {
                  "for PBC to be effective.\033[0m"
               << std::endl;
     _without_pbc = true;
+    HalfNeighborListBuilder::ComputeNeighborCellsWithoutPBC();
   } else {
     this->_neighbor_cell_num = this->_neighbor_cell_num / 2 + 1;
     HalfNeighborListBuilder::ComputeNeighborCells();
