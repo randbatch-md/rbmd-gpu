@@ -1,6 +1,7 @@
 #pragma once
 #include "common/types.h"
 #include "model/box.h"
+#include "common/device_types.h"
 
 namespace op {
 template <typename DEVICE>
@@ -78,3 +79,14 @@ struct GenerateFullNeighborListOp<device::DEVICE_GPU> {
 };
 
 }  // namespace op
+
+
+__host__ __device__ __forceinline__ rbmd::Real CaculateDistance(
+    Box* box, rbmd::Real i_x, rbmd::Real i_y, rbmd::Real i_z, rbmd::Real j_x,
+    rbmd::Real j_y, rbmd::Real j_z) {
+  rbmd::Real dx = i_x - j_x;
+  rbmd::Real dy = i_y - j_y;
+  rbmd::Real dz = i_z - j_z;
+  MinImageDistance(box, dx, dy, dz);
+  return (POW(dx, 2) + POW(dy, 2) + POW(dz, 2));
+}

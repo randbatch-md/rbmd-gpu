@@ -6,19 +6,19 @@
 #include "rescale_controller.h"
 #include "berendsen_controller.h"
 #include "nose_hoover_controller.h"
-#include <chrono>  // Ìí¼Ó¼ÆÊ±¹¦ÄÜµÄ¿â
+#include <chrono>  // æ·»åŠ è®¡æ—¶åŠŸèƒ½çš„åº“
 
 NVTensemble::NVTensemble()
 {
 	_position_controller = std::make_shared<DefaultPositionController>(); 
 	_velocity_controller = std::make_shared<DefaultVelocityController>(); 
-	_force_controller = std::make_shared<LJForce>(); // todo ×Ô¶¨Òåforcetype =
+	_force_controller = std::make_shared<LJForce>(); // todo ï¿½Ô¶ï¿½ï¿½ï¿½forcetype =
 	_temperature_controller = std::make_shared<RescaleController>();
 }
 
 void NVTensemble::Init()
 {
-	// ¸÷×Ô¼ÆËãËùÐèµÄ±äÁ¿ÔÚ¸÷×ÔµÄinitÀïÃæ³õÊ¼»¯£»
+	// ï¿½ï¿½ï¿½Ô¼ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ä±ï¿½ï¿½ï¿½ï¿½Ú¸ï¿½ï¿½Ôµï¿½initï¿½ï¿½ï¿½ï¿½ï¿½Ê¼ï¿½ï¿½ï¿½ï¿½
 	_position_controller->Init();
 	_velocity_controller->Init();
 	_temperature_controller->Init();
@@ -29,13 +29,12 @@ void NVTensemble::Init()
 
 void NVTensemble::Presolve()
 {
-	// ¼ÆËãÔ¶³ÌÁ¦Ê± ÒªÌí¼ÓÏàÓ¦²ÎÊý
+	// ï¿½ï¿½ï¿½ï¿½Ô¶ï¿½ï¿½ï¿½ï¿½Ê± Òªï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ó¦ï¿½ï¿½ï¿½ï¿½
 }
 
 void NVTensemble::Solve()
 {
-	// ¼ÇÂ¼¿ªÊ¼Ê±¼ä
-	auto start_time = std::chrono::high_resolution_clock::now();
+    auto start = std::chrono::high_resolution_clock::now();
 
 	_velocity_controller->Update();
 
@@ -57,12 +56,11 @@ void NVTensemble::Solve()
 	}
 	_temperature_controller->Update();
 
-	// ¼ÇÂ¼½áÊøÊ±¼ä
-	auto end_time = std::chrono::high_resolution_clock::now();
+  CHECK_RUNTIME(hipDeviceSynchronize());
+  auto end = std::chrono::high_resolution_clock::now();
+  std::chrono::duration<rbmd::Real> duration = end - start;
 
-	// ¼ÆËãºÄÊ±
-	std::chrono::duration<rbmd::Real> duration = end_time - start_time;
-	std::cout << " time pre step: " << duration.count() << " seconds" << std::endl;
+  std::cout << "time pre step "<< duration.count() << "ç§’" << std::endl;
 }
 
 void NVTensemble::Postsolve()

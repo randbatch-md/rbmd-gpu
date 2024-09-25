@@ -1,6 +1,7 @@
 #pragma once
 #include "common/types.h"
 #include "linked_cell/linked_cell.h"
+#include "common/device_types.h"
 
 namespace op {
 template <typename DEVICE>
@@ -23,6 +24,15 @@ struct ComputeCellRangesIndicesOp {
                   rbmd::Id* d_in_atom_list_end_index, rbmd::Id num_atoms);
 };
 
+
+// template <typename DEVICE>
+// struct ComputeCellAtomsCountOp {
+//   void operator()(Cell* cells,
+//                   rbmd::Id* d_in_atom_list_start_index,
+//                   rbmd::Id* d_in_atom_list_end_index, rbmd::Id num_cells);;
+// };
+
+
 template <>
 struct InitializeCellOp<device::DEVICE_GPU> {
   void operator()(LinkedCellDeviceDataPtr* linked_cell, Box* box, Cell* cells,
@@ -42,6 +52,13 @@ struct ComputeCellRangesIndicesOp<device::DEVICE_GPU> {
                   rbmd::Id* d_in_atom_list_start_index,
                   rbmd::Id* d_in_atom_list_end_index, rbmd::Id num_atoms);
 };
+
+// template <>
+// struct ComputeCellAtomsCountOp<device::DEVICE_GPU> {
+//   void operator()(Cell* cells,
+//                   rbmd::Id* d_in_atom_list_start_index,
+//                   rbmd::Id* d_in_atom_list_end_index, rbmd::Id num_cells);
+// };
 
 template <typename DEVICE>
 struct MapAtomidToIdxOp {

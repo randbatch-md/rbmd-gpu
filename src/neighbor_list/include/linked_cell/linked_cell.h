@@ -55,7 +55,7 @@ class LinkedCell {
   rbmd::Id _cell_count_within_cutoff = 1;
 
   thrust::device_vector<rbmd::Id> _per_atom_cell_id{};
-  __host__ void Rebuild(Box* box);
+  __host__ void Build(Box* box);
 
   LinkedCellDeviceDataPtr* GetDataPtr();
 

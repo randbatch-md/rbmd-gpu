@@ -60,7 +60,7 @@ namespace op
 	__device__ void lj126_rcs(
 		rbmd::Real rc,
 		rbmd::Real rs,
-		rbmd::Id pice_num,
+		rbmd::Id  real_random_num,
 		rbmd::Real px12,
 		rbmd::Real py12,
 		rbmd::Real pz12,
@@ -79,8 +79,76 @@ namespace op
 			rbmd::Real dis_6 = dis_2 * dis_2 * dis_2;
 			rbmd::Real sigmaij_dis_6 = sigmaij_6 / dis_6;
 
-			fcs_ij = pice_num  * (-24 * eps_ij * ((2 * sigmaij_dis_6 - 1) * sigmaij_dis_6) / dis_2);
+			fcs_ij = real_random_num * (-24 * eps_ij * ((2 * sigmaij_dis_6 - 1) * sigmaij_dis_6) / dis_2);
 		}
+	}
+
+	__device__
+		rbmd::Real CoulForce(
+			rbmd::Real cut_off,
+			rbmd::Real alpha,
+			rbmd::Real charge_pi,
+			rbmd::Real charge_pj,
+			rbmd::Real px12,
+			rbmd::Real py12,
+			rbmd::Real pz12)
+	{
+		rbmd::Real MY_pi = 3.14159265358979323846; //pi
+		rbmd::Real MY_pis = 1.77245385090551602729; // sqrt(pi)
+
+		rbmd::Real CoulForce = 0;
+		const rbmd::Real  small_value = 0.0001;
+		const rbmd::Real dis_2 = px12 * px12 + py12 * py12 + pz12 * pz12;
+		const rbmd::Real dis = sqrt(dis_2);
+		const rbmd::Real cut_off_2 = cut_off * cut_off;
+
+		if (dis_2 < cut_off_2 && dis_2 > small_value)
+		{
+			rbmd::Real erfcx = sqrt(alpha) * dis;
+			rbmd::Real expx = -alpha * dis * dis;
+			rbmd::Real Gnearvalue = (1.0 - erf(erfcx)) / (dis * dis) +
+				2 * sqrt(alpha) * exp(expx) / (MY_pis * dis);
+
+			CoulForce = -charge_pi * charge_pj * Gnearvalue / dis;
+
+
+		}
+		return CoulForce;
+	}
+
+	__device__ void EwaldForce(
+		Box* box,
+		const rbmd::Real alpha,
+		Real3 M,
+		const rbmd::Real rhok_real_i,
+		const rbmd::Real rhok_imag_i,
+		const rbmd::Real charge,
+		const rbmd::Real px,
+		const rbmd::Real py,
+		const rbmd::Real pz,
+		rbmd::Real& ewald_force_x,
+		rbmd::Real& ewald_force_y,
+		rbmd::Real& ewald_force_z)
+	{
+		rbmd::Real ewald_force;
+		rbmd::Real volume = box->_length[0] * box->_length[1] * box->_length[2];
+		Real3 K = make_Real3(2 * M_PI * M.x / box->_length[0],
+			2 * M_PI * M.y / box->_length[1],
+			2 * M_PI * M.z / box->_length[2]);
+
+
+		rbmd::Real range_K_2 = K.x * K.x + K.y * K.y + K.z * K.z;
+		rbmd::Real dot_product = K.x * px + K.y * py + K.z * pz;
+
+		rbmd::Real factor_a = -4 * M_PI * charge;
+		rbmd::Real factor_b = exp(-range_K_2 / (4 * alpha));
+		rbmd::Real factor_c = cos(dot_product) * rhok_imag_i;
+		rbmd::Real factor_d = sin(dot_product) * rhok_real_i;
+
+		ewald_force = factor_a / (volume * range_K_2) * factor_b * (factor_c - factor_d);
+		ewald_force_x = ewald_force * K.x;
+		ewald_force_y = ewald_force * K.y;
+		ewald_force_z = ewald_force * K.z;
 	}
 
 	__global__ void ComputeLJForce(
@@ -169,8 +237,8 @@ namespace op
 		Box* box,
 		const rbmd::Real rs,
 		const rbmd::Real rc,
-		const rbmd::Id pice_num,
 		const rbmd::Id num_atoms,
+		const rbmd::Id pice_num,
 		const rbmd::Id* atoms_type,
 		const rbmd::Id* molecular_type,
 		const rbmd::Real* sigma,
@@ -178,16 +246,14 @@ namespace op
 		const rbmd::Id* start_id,
 		const rbmd::Id* end_id,
 		const rbmd::Id* id_verletlist,
-		const rbmd::Id* id_verletlist_rcs,
+		const rbmd::Id* id_random_neighbor,
+		const rbmd::Id* random_neighbor_num,
 		const rbmd::Real* px,
 		const rbmd::Real* py,
 		const rbmd::Real* pz,
 		rbmd::Real* corr_force_x,
 		rbmd::Real* corr_force_y,
-		rbmd::Real* corr_force_z,
-		rbmd::Real* corr_value_x,
-		rbmd::Real* corr_value_y,
-		rbmd::Real* corr_value_z)
+		rbmd::Real* corr_force_z)
 	{
 		rbmd::Real sum_fx = 0;
 		rbmd::Real sum_fy = 0;
@@ -202,9 +268,6 @@ namespace op
 		rbmd::Real sum_fcsy = 0;
 		rbmd::Real sum_fcsz = 0;
 
-		rbmd::Real  corr_fx_temp = 0;
-		rbmd::Real  corr_fy_temp = 0;
-		rbmd::Real  corr_fz_temp = 0;
 
 
 		unsigned int tid1 = blockIdx.x * blockDim.x + threadIdx.x;
@@ -223,7 +286,7 @@ namespace op
 
 
 			//rs 
-			for (int j = start_id[tid1]; j < end_id[tid1]; ++j)
+			for (rbmd::Id j = start_id[tid1]; j < end_id[tid1]; ++j)
 			{
 
 				rbmd::Id tid2 = id_verletlist[j];
@@ -255,10 +318,11 @@ namespace op
 			}
 
 			//rcs
-			for (int j = id_verletlist_rcs[tid1* pice_num]; j < pice_num; ++j)
+			rbmd::Id real_random_num = random_neighbor_num[tid1];
+			for (rbmd::Id jj = id_random_neighbor[tid1* real_random_num]; jj < real_random_num; ++jj)
 			{
 
-				rbmd::Id tid2 = id_verletlist_rcs[j];
+				rbmd::Id tid2 = id_random_neighbor[jj];
 				rbmd::Id typej = atoms_type[tid2];
 				rbmd::Id molecular_id_j = molecular_type[tid2];
 				rbmd::Real eps_j = eps[typej];
@@ -279,7 +343,7 @@ namespace op
 
 				MinImageDistance(box, px12, py12, pz12);
 
-				lj126_rcs(rc, rs, pice_num,px12, py12, pz12, eps_ij, sigma_ij, fcs_ij); //the force  rs to rc
+				lj126_rcs(rc, rs, real_random_num, px12, py12, pz12, eps_ij, sigma_ij, fcs_ij); //the force  rs to rc
 
 				sum_fcsx += fcs_ij * px12;
 				sum_fcsy += fcs_ij * py12;
@@ -295,95 +359,33 @@ namespace op
 			corr_force_y[tid1] = sum_fy;
 			corr_force_z[tid1] = sum_fz;
 
-			corr_fx_temp += corr_force_x[tid1];
-			corr_fy_temp += corr_force_y[tid1];
-			corr_fz_temp += corr_force_z[tid1];
-
-			corr_force_x[tid1] = corr_force_x[tid1] - corr_fx_temp;
-			corr_force_y[tid1] = corr_force_y[tid1] - corr_fy_temp;
-			corr_force_z[tid1] = corr_force_z[tid1] - corr_fz_temp;
-
-
-			//atomicAdd(corr_value_x, corr_fx_temp);
-			//atomicAdd(corr_value_y, corr_fy_temp);
-			//atomicAdd(corr_value_z, corr_fz_temp);
-			//printf("--------test---evdwl[tid1]:%f---\n",evdwl[tid1]);
+			//printf("--------------corr_force_x[tid1]:%f--,corr_force_y[tid1]:%f--,corr_force_z[tid1]:%f-\n",corr_force_x[tid1],corr_force_y[tid1],corr_force_z[tid1]);
 		}
 
 	}
 
-	__device__
-		rbmd::Real CoulForce(
-			 rbmd::Real cut_off,
-			 rbmd::Real alpha,
-			 rbmd::Real charge_pi,
-			 rbmd::Real charge_pj,
-			 rbmd::Real px12,
-			 rbmd::Real py12,
-			 rbmd::Real pz12)
+	__global__ void FixLJRBLForce(
+		const rbmd::Id num_atoms,
+		const rbmd::Real corr_value_x,
+		const rbmd::Real corr_value_y,
+		const rbmd::Real corr_value_z,
+		rbmd::Real* corr_force_x,
+		rbmd::Real* corr_force_y,
+		rbmd::Real* corr_force_z)
 	{
-		rbmd::Real MY_pi = 3.14159265358979323846; //pi
-		rbmd::Real MY_pis = 1.77245385090551602729; // sqrt(pi)
-
-		rbmd::Real CoulForce = 0;
-		const rbmd::Real  small_value = 0.0001;
-		const rbmd::Real dis_2 = px12 * px12 + py12 * py12 + pz12 * pz12;
-		const rbmd::Real dis = sqrt(dis_2);
-		const rbmd::Real cut_off_2 = cut_off * cut_off;
-
-		if (dis_2 < cut_off_2 && dis_2 > small_value)
+		unsigned int tid1 = blockIdx.x * blockDim.x + threadIdx.x;
+		if (tid1 < num_atoms)
 		{
-			rbmd::Real erfcx = sqrt(alpha) * dis;
-			rbmd::Real expx = -alpha * dis * dis;
-			rbmd::Real Gnearvalue = (1.0 - erf(erfcx)) / (dis * dis) +
-				2 * sqrt(alpha) * exp(expx) / (MY_pis * dis);
-
-			CoulForce = -charge_pi * charge_pj * Gnearvalue / dis;
-
-
+			corr_force_x[tid1] = corr_force_x[tid1] - corr_value_x;
+			corr_force_y[tid1] = corr_force_y[tid1] - corr_value_y;
+			corr_force_z[tid1] = corr_force_z[tid1] - corr_value_z;
 		}
-		return CoulForce;
-	}
-
-	__device__ void EwaldForce(
-		Box* box,
-		const rbmd::Real alpha
-		float3 M,
-		float2 rhok_ri,
-		const rbmd::Real* charge,
-		const rbmd::Real* px,
-		const rbmd::Real* py,
-		const rbmd::Real* pz,
-		rbmd::Real ewald_force_x,
-		rbmd::Real ewald_force_y
-		rbmd::Real ewald_force_z)
-	{
-		rbmd::Real ewald_force;
-		rbmd::Real volume = box->_length[0] * box->_length[1] * box->_length[2];
-
-		float3 k{ 0,0,0 };
-		K[0] = 2 * M_PI * M[0] / box->_length[0];
-		K[1] = 2 * M_PI * M[1] / box->_length[1];
-		K[2] = 2 * M_PI * M[2] / box->_length[2];
-
-		rbmd::Real range_K_2 = K[0] * K[0] + K[1] * K[1] + K[2] * K[2];
-		rbmd::Real dot_product = K[0] * px + K[1] * py + K[2] * pz;
-
-		rbmd::Real factor_a = -4 * M_PI * charge;
-		rbmd::Real factor_b = exp(-range_K_2 / (4 * alpha));
-		rbmd::Real factor_c = cos(dot_product) * rhok_ri[1];
-		rbmd::Real factor_d = sin(dot_product) * rhok_ri[0];
-
-		ewald_force = factor_a / (volume * range_K_2) * factor_b * (factor_c - factor_d);
-		ewald_force_x = ewald_force * K[0];
-		ewald_force_y = ewald_force * K[1];
-		ewald_force_z = ewald_force * K[2];
 	}
 
 
 	__global__ void ComputeChargeStructureFactorComponent(
 		const rbmd::Id num_atoms,
-		float3 K,
+		Real3 K,
 		const rbmd::Real* px,
 		const rbmd::Real* py,
 		const rbmd::Real* pz,
@@ -407,7 +409,8 @@ namespace op
 		const rbmd::Id num_atoms,
 	    const rbmd::Id  Kmax,
 		const rbmd::Real alpha,
-	    const float2  whole_rhok,
+	    const rbmd::Real* real_array,
+		const rbmd::Real* imag_array,
 		const rbmd::Real* charge,
 		const rbmd::Real* px,
 		const rbmd::Real* py,
@@ -423,7 +426,7 @@ namespace op
 			rbmd::Real p_x = px[tid1];
 			rbmd::Real p_y = py[tid1];
 			rbmd::Real p_z = pz[tid1];
-			charge_i = charge[tid1];
+			rbmd::Real charge_i = charge[tid1];
 			rbmd::Real force_x, force_y, force_z;
 
 			for (rbmd::Id i = -Kmax; i <= Kmax; ++i)
@@ -434,13 +437,14 @@ namespace op
 					{
 						if (!(i == 0 && j == 0 && k == 0)) 
 						{
-							float3 M = { (rbmd::Real)i, (rbmd::Real)j, (rbmd::Real)k };
+							Real3 M = { (rbmd::Real)i, (rbmd::Real)j, (rbmd::Real)k };
 							rbmd::Id indexEwald = (i + Kmax) * (2 * Kmax + 1) * 
 												  (2 * Kmax + 1) + (j + Kmax) *
 												  (2 * Kmax + 1) + (k + Kmax);
-							 float2 rhok_i = whole_rhok[indexEwald];
+							rbmd::Real rhok_real_i = real_array[indexEwald];
+							rbmd::Real rhok_imag_i = imag_array[indexEwald];
 
-							 EwaldForce(box, alpha,M, rhok_i, charge_i, p_x, p_y, p_z,
+							 EwaldForce(box, alpha,M, rhok_real_i, rhok_imag_i,charge_i, p_x, p_y, p_z,
 										force_x, force_y, force_z);
 						}
 					}
@@ -605,8 +609,8 @@ namespace op
 		Box* box,
 		const rbmd::Real rs,
 		const rbmd::Real rc,
-		const rbmd::Id pice_num,
 		const rbmd::Id num_atoms,
+		const rbmd::Id pice_num,
 		const rbmd::Id* atoms_type,
 		const rbmd::Id* molecular_type,
 		const rbmd::Real* sigma,
@@ -614,37 +618,54 @@ namespace op
 		const rbmd::Id* start_id,
 		const rbmd::Id* end_id,
 		const rbmd::Id* id_verletlist,
-		const rbmd::Id* id_verletlist_rcs,
+		const rbmd::Id* id_random_neighbor,
+		const rbmd::Id* random_neighbor_num,
 		const rbmd::Real* px,
 		const rbmd::Real* py,
 		const rbmd::Real* pz,
 		rbmd::Real* corr_force_x,
 		rbmd::Real* corr_force_y,
-		rbmd::Real* corr_force_z,
-		rbmd::Real* corr_value_x,
-		rbmd::Real* corr_value_y,
-		rbmd::Real* corr_value_z )
+		rbmd::Real* corr_force_z)
 	{
 		unsigned int blocks_per_grid = (num_atoms + BLOCK_SIZE - 1) / BLOCK_SIZE;
 
-		CHECK_KERNEL(ComputeLJRBLForce <<<blocks_per_grid, BLOCK_SIZE, 0, 0 >>> (box, rs, rc, pice_num, num_atoms, atoms_type, molecular_type,
-			sigma, eps, start_id, end_id, id_verletlist, id_verletlist_rcs, px, py, pz, corr_force_x, corr_force_y, corr_force_z, corr_value_x, corr_value_y, corr_value_z));
+		CHECK_KERNEL(ComputeLJRBLForce <<<blocks_per_grid, BLOCK_SIZE, 0, 0 >>> 
+			(box, rs, rc, num_atoms, pice_num, 
+			atoms_type, molecular_type,sigma, eps, 
+			start_id, end_id, id_verletlist, id_random_neighbor, random_neighbor_num,
+			px, py, pz, corr_force_x, corr_force_y, corr_force_z));
 	}
+
+	void FixLJRBLForceOp<device::DEVICE_GPU>::operator()(
+		const rbmd::Id num_atoms,
+		const rbmd::Real corr_value_x,
+		const rbmd::Real corr_value_y,
+		const rbmd::Real corr_value_z,
+		rbmd::Real* corr_force_x,
+		rbmd::Real* corr_force_y,
+		rbmd::Real* corr_force_z)
+	{
+		unsigned int blocks_per_grid = (num_atoms + BLOCK_SIZE - 1) / BLOCK_SIZE;
+
+		CHECK_KERNEL(FixLJRBLForce <<<blocks_per_grid, BLOCK_SIZE, 0, 0 >>>
+			(num_atoms, corr_value_x, corr_value_y, corr_value_z,corr_force_x, corr_force_y, corr_force_z));
+	}
+
 
 	void ComputeChargeStructureFactorComponentOp<device::DEVICE_GPU>::operator()(
 		const rbmd::Id num_atoms,
-		const float3& k,
+		const Real3 K,
+		const rbmd::Real* charge,
 		const rbmd::Real* px,
 		const rbmd::Real* py,
 		const rbmd::Real* pz,
-		const rbmd::Real* charge,
 		rbmd::Real* density_real,
 		rbmd::Real* density_imag)
 	{
 		unsigned int blocks_per_grid = (num_atoms + BLOCK_SIZE - 1) / BLOCK_SIZE;
 		
 		CHECK_KERNEL(ComputeChargeStructureFactorComponent <<<blocks_per_grid, BLOCK_SIZE, 0, 0 >>>
-			(num_atoms, k, px, py ,pz, charge, density_real, density_imag));
+			(num_atoms, K, charge, px, py ,pz , density_real, density_imag));
 
 	}
 
@@ -653,7 +674,8 @@ namespace op
 		const rbmd::Id num_atoms,
 		const rbmd::Id  Kmax,
 		const rbmd::Real alpha,
-		const float2  whole_rhok,
+		const rbmd::Real* real_array,
+		const rbmd::Real* imag_array,
 		const rbmd::Real* charge,
 		const rbmd::Real* px,
 		const rbmd::Real* py,
@@ -665,7 +687,7 @@ namespace op
 		unsigned int blocks_per_grid = (num_atoms + BLOCK_SIZE - 1) / BLOCK_SIZE;
 
 		CHECK_KERNEL(ComputeEwaldForce <<<blocks_per_grid, BLOCK_SIZE, 0, 0 >>>
-			(box,num_atoms, Kmax, alpha, whole_rhok, charge,
+			(box,num_atoms, Kmax, alpha, real_array, imag_array, charge,
 		     px, py, pz, ewald_force_x, ewald_force_y, ewald_force_z));
 
 	}

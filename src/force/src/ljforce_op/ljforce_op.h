@@ -35,8 +35,8 @@ namespace op
 		void operator()(Box* box,
 			const rbmd::Real rs,
 			const rbmd::Real rc,
-			const rbmd::Id pice_num,
 			const rbmd::Id num_atoms,
+			const rbmd::Id pice_num,
 			const rbmd::Id* atoms_type,
 			const rbmd::Id* molecular_type,
 			const rbmd::Real* sigma,
@@ -44,28 +44,40 @@ namespace op
 			const rbmd::Id* start_id,
 			const rbmd::Id* end_id,
 			const rbmd::Id* id_verletlist,
-			const rbmd::Id* id_verletlist_rcs,
+			const rbmd::Id* id_random_neighbor,
+			const rbmd::Id* random_neighbor_num,
 			const rbmd::Real* px,
 			const rbmd::Real* py,
 			const rbmd::Real* pz,
 			rbmd::Real* corr_force_x,
 			rbmd::Real* corr_force_y,
-			rbmd::Real* corr_force_z,
-			rbmd::Real* corr_value_x,
-			rbmd::Real* corr_value_y,
-			rbmd::Real* corr_value_z);
+			rbmd::Real* corr_force_z);
 	};
+
+	template <typename DEVICE>
+	struct FixLJRBLForceOp
+	{
+		void operator()(
+			const rbmd::Id num_atoms,
+			const rbmd::Real corr_value_x,
+			const rbmd::Real corr_value_y,
+			const rbmd::Real corr_value_z,
+			rbmd::Real* corr_force_x,
+			rbmd::Real* corr_force_y,
+			rbmd::Real* corr_force_z);
+	};
+
 
 	template <typename DEVICE>
 	struct ComputeChargeStructureFactorComponentOp
 	{
 		void operator()(
 			const rbmd::Id num_atoms,
-			const float3& k,
+			const Real3 K,
+			const rbmd::Real* charge,
 			const rbmd::Real* px,
 			const rbmd::Real* py,
 			const rbmd::Real* pz,
-			const rbmd::Real* charge,
 			rbmd::Real* density_real,
 			rbmd::Real* density_imag);
 	};
@@ -78,7 +90,8 @@ namespace op
 			const rbmd::Id num_atoms,
 			const rbmd::Id  Kmax,
 			const rbmd::Real alpha,
-			const float2  whole_rhok,
+			const rbmd::Real* real_array,
+			const rbmd::Real* imag_array,
 			const rbmd::Real* charge,
 			const rbmd::Real* px,
 			const rbmd::Real* py,
@@ -118,8 +131,8 @@ namespace op
 		void operator()(Box* box,
 			const rbmd::Real rs,
 			const rbmd::Real rc,
-			const rbmd::Id pice_num,
 			const rbmd::Id num_atoms,
+			const rbmd::Id pice_num,
 			const rbmd::Id* atoms_type,
 			const rbmd::Id* molecular_type,
 			const rbmd::Real* sigma,
@@ -127,28 +140,40 @@ namespace op
 			const rbmd::Id* start_id,
 			const rbmd::Id* end_id,
 			const rbmd::Id* id_verletlist,
-			const rbmd::Id* id_verletlist_rcs,
+			const rbmd::Id* id_random_neighbor,
+			const rbmd::Id* random_neighbor_num,
 			const rbmd::Real* px,
 			const rbmd::Real* py,
 			const rbmd::Real* pz,
 			rbmd::Real* corr_force_x,
 			rbmd::Real* corr_force_y,
-			rbmd::Real* corr_force_z,
-			rbmd::Real* corr_value_x,
-			rbmd::Real* corr_value_y,
-			rbmd::Real* corr_value_z);
+			rbmd::Real* corr_force_z);
 	};
+
+	template <>
+	struct FixLJRBLForceOp<device::DEVICE_GPU>
+	{
+		void operator()(
+			const rbmd::Id num_atoms,
+			const rbmd::Real corr_value_x,
+			const rbmd::Real corr_value_y,
+			const rbmd::Real corr_value_z,
+			rbmd::Real* corr_force_x,
+			rbmd::Real* corr_force_y,
+			rbmd::Real* corr_force_z);
+	};
+
 
 	template <>
 	struct ComputeChargeStructureFactorComponentOp<device::DEVICE_GPU>
 	{
 		void operator()(
 			const rbmd::Id num_atoms,
-			const float3& k,
+			const Real3 K,
+			const rbmd::Real* charge,
 			const rbmd::Real* px,
 			const rbmd::Real* py,
 			const rbmd::Real* pz,
-			const rbmd::Real* charge,
 			rbmd::Real* density_real,
 			rbmd::Real* density_imag);
 	};
@@ -161,7 +186,8 @@ namespace op
 			const rbmd::Id num_atoms,
 			const rbmd::Id  Kmax,
 			const rbmd::Real alpha,
-			const float2  whole_rhok,
+			const rbmd::Real* real_array,
+			const rbmd::Real* imag_array,
 			const rbmd::Real* charge,
 			const rbmd::Real* px,
 			const rbmd::Real* py,

@@ -25,7 +25,7 @@ get_property(TOOLS_LINK_PATH GLOBAL PROPERTY TOOLS_LINK_PATH)
 set(inclue_files ${TOOLS_INCLUDE_PATH}  "../data_manager/include"  ${include_dirs} ${spdlog_include} ${hipcub_INCLUDE_DIRS})
 set(link_dirs ${TOOLS_LINK_PATH}  ${spdlog_link} ${hipcub_LIBRARIES} )
 #set(link_name "hip::device" "spdlog" "hip::hipcub")
-set(depend_names  "spdlog" "hip::hipcub"  "data_manager")
+set(depend_names "hip::hipcub"  "data_manager")
 
 
 
