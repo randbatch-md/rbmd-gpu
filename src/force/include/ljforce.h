@@ -8,7 +8,7 @@ class LJForce : public Force
 {
 public:
 	LJForce();
-	virtual ~LJForce() = default;
+	virtual ~LJForce();
 
 	void Init() override;
 	void  Execute() override;
@@ -19,14 +19,19 @@ public:
 		rbmd::Real* value_Re_array,
 		rbmd::Real* value_Im_array);
 
+	void ComputeEwladForce();
+
 private:
 	rbmd::Id _num_atoms;
-	std::shared_ptr<BaseNeighborListBuilder> _neighbor_list_builder;
-	std::shared_ptr<NeighborList> list;
+	std::shared_ptr<BaseNeighborListBuilder> _rbl_neighbor_list_builder;
+	//std::shared_ptr<BaseNeighborListBuilder> _neighbor_list_builder;
+	std::shared_ptr<NeighborList> rbl_list;
+	//std::shared_ptr<NeighborList> list;
 	Box box;
 
 	rbmd::Real _h_corr_value_x;
 	rbmd::Real _h_corr_value_y;
 	rbmd::Real _h_corr_value_z;
+	rbmd::Real* _d_total_evdwl;
 
 };

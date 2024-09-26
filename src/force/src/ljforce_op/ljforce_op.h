@@ -36,6 +36,7 @@ namespace op
 			const rbmd::Real rs,
 			const rbmd::Real rc,
 			const rbmd::Id num_atoms,
+			const rbmd::Id neighbor_sample_num,
 			const rbmd::Id pice_num,
 			const rbmd::Id* atoms_type,
 			const rbmd::Id* molecular_type,
@@ -65,6 +66,25 @@ namespace op
 			rbmd::Real* corr_force_x,
 			rbmd::Real* corr_force_y,
 			rbmd::Real* corr_force_z);
+	};
+
+	template <typename DEVICE>
+	struct LJEnergyOp
+	{
+		void operator()(Box* box,
+			const rbmd::Real cut_off,
+			const rbmd::Id num_atoms,
+			const rbmd::Id* atoms_type,
+			const rbmd::Id* molecular_type,
+			const rbmd::Real* sigma,
+			const rbmd::Real* eps,
+			const rbmd::Id* start_id,
+			const rbmd::Id* end_id,
+			const rbmd::Id* id_verletlist,
+			const rbmd::Real* px,
+			const rbmd::Real* py,
+			const rbmd::Real* pz,
+			rbmd::Real* total_evdwl);
 	};
 
 
@@ -132,6 +152,7 @@ namespace op
 			const rbmd::Real rs,
 			const rbmd::Real rc,
 			const rbmd::Id num_atoms,
+			const rbmd::Id neighbor_sample_num,
 			const rbmd::Id pice_num,
 			const rbmd::Id* atoms_type,
 			const rbmd::Id* molecular_type,
@@ -161,6 +182,25 @@ namespace op
 			rbmd::Real* corr_force_x,
 			rbmd::Real* corr_force_y,
 			rbmd::Real* corr_force_z);
+	};
+
+	template <>
+	struct LJEnergyOp<device::DEVICE_GPU>
+	{
+		void operator()(Box* box,
+			const rbmd::Real cut_off,
+			const rbmd::Id num_atoms,
+			const rbmd::Id* atoms_type,
+			const rbmd::Id* molecular_type,
+			const rbmd::Real* sigma,
+			const rbmd::Real* eps,
+			const rbmd::Id* start_id,
+			const rbmd::Id* end_id,
+			const rbmd::Id* id_verletlist,
+			const rbmd::Real* px,
+			const rbmd::Real* py,
+			const rbmd::Real* pz,
+			rbmd::Real* total_evdwl);
 	};
 
 

@@ -13,7 +13,7 @@ RescaleController::RescaleController() {
 }
 RescaleController::~RescaleController() {
   CHECK_RUNTIME(FREE(_d_temp_contrib));
-};
+}
 
 void RescaleController::Init() {
   _num_atoms = *(_structure_info_data->_num_atoms);

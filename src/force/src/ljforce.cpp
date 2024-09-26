@@ -6,15 +6,24 @@
 #include "../../common/types.h"
 #include "ljforce_op/ljforce_op.h"
 #include "neighbor_list/include/neighbor_list_builder/half_neighbor_list_builder.h"
+#include "neighbor_list/include/neighbor_list_builder/full_neighbor_list_builder.h"
 #include "neighbor_list/include/neighbor_list_builder/rbl_full_neighbor_list_builder.h"
 // #include <hipcub/hipcub.hpp>
 // #include <hipcub/backend/rocprim/block/block_reduce.hpp>
 
 LJForce::LJForce()
 {
-  _neighbor_list_builder = std::make_shared<HalfNeighborListBuilder>();
+  _rbl_neighbor_list_builder = std::make_shared<RblFullNeighborListBuilder>();
+  //_neighbor_list_builder = std::make_shared<FullNeighborListBuilder>();
 
-};
+  CHECK_RUNTIME(MALLOC(&_d_total_evdwl, sizeof(rbmd::Real)));
+
+}
+
+LJForce::~LJForce()
+{
+    CHECK_RUNTIME(FREE(_d_total_evdwl));
+}
 
 void LJForce::Init() 
 { 
@@ -28,18 +37,17 @@ void LJForce::Execute()
 {
 
   rbmd::Real cut_off = 5.0;
-  rbmd::Real rs = cut_off / 2.0;
+  rbmd::Real rs = 2.5;
 
   //
   extern int test_current_step;
   auto start = std::chrono::high_resolution_clock::now();
-  list = _neighbor_list_builder->Build();
+  rbl_list = _rbl_neighbor_list_builder->Build();
+
   auto end = std::chrono::high_resolution_clock::now();
 
   std::chrono::duration<rbmd::Real> duration = end - start;
   std::cout << "构建RBL邻居列表耗时"<< duration.count()<< "秒" << std::endl;
-
-  thrust::host_vector<rbmd::Id> random_neighbor_num = list->_d_random_neighbor_num;
 
 
   //rbmd::Real h_total_evdwl = 0.0;
@@ -86,19 +94,20 @@ void LJForce::Execute()
 
 
   //RBL
-  rbmd::Id pice_num = 50;
+  rbmd::Id neighbor_sample_num = DataManager::getInstance().getConfigData()->Get<rbmd::Id>(
+                                 "neighbor_sample_num", "hyper_parameters", "neighbor");
 
   op::LJRBLForceOp<device::DEVICE_GPU> lj_rbl_force_op;
-  lj_rbl_force_op(_device_data->_d_box, rs, cut_off, _num_atoms, pice_num,
+  lj_rbl_force_op(_device_data->_d_box, rs, cut_off, _num_atoms, neighbor_sample_num, rbl_list-> _selection_frequency,
       thrust::raw_pointer_cast(_device_data->_d_atoms_type.data()),
       thrust::raw_pointer_cast(_device_data->_d_molecular_id.data()),
       thrust::raw_pointer_cast(_device_data->_d_sigma.data()),
       thrust::raw_pointer_cast(_device_data->_d_eps.data()),
-      thrust::raw_pointer_cast(list->_start_idx.data()),
-      thrust::raw_pointer_cast(list->_end_idx.data()),
-      thrust::raw_pointer_cast(list->_d_neighbors.data()),
-      thrust::raw_pointer_cast(list->_d_random_neighbor.data()),
-      thrust::raw_pointer_cast(list->_d_random_neighbor_num.data()),
+      thrust::raw_pointer_cast(rbl_list->_start_idx.data()),
+      thrust::raw_pointer_cast(rbl_list->_end_idx.data()),
+      thrust::raw_pointer_cast(rbl_list->_d_neighbors.data()),
+      thrust::raw_pointer_cast(rbl_list->_d_random_neighbor.data()),
+      thrust::raw_pointer_cast(rbl_list->_d_random_neighbor_num.data()),
       thrust::raw_pointer_cast(_device_data->_d_px.data()),
       thrust::raw_pointer_cast(_device_data->_d_py.data()),
       thrust::raw_pointer_cast(_device_data->_d_pz.data()),
@@ -111,16 +120,44 @@ void LJForce::Execute()
   _h_corr_value_y = thrust::reduce(_device_data->_d_fy.begin(), _device_data->_d_fy.end(), 0.0f, thrust::plus<rbmd::Real>());
   _h_corr_value_z = thrust::reduce(_device_data->_d_fz.begin(), _device_data->_d_fz.end(), 0.0f, thrust::plus<rbmd::Real>());
 
-  std::cout << "_h_corr_value_x:" << _h_corr_value_x << " " << "_h_corr_value_y:" << _h_corr_value_y
-      << "_h_corr_value_z:" << _h_corr_value_z << std::endl;
+  //std::cout << "_h_corr_value_x:" << _h_corr_value_x << " " << "_h_corr_value_y:" << _h_corr_value_y
+  //    << "_h_corr_value_z:" << _h_corr_value_z << std::endl;
 
-  //fix
+  //fix RBL
   op::FixLJRBLForceOp<device::DEVICE_GPU> fix_lj_rbl_force_op;
   fix_lj_rbl_force_op(_num_atoms, _h_corr_value_x, _h_corr_value_y, _h_corr_value_z,
                        thrust::raw_pointer_cast(_device_data->_d_fx.data()),
                        thrust::raw_pointer_cast(_device_data->_d_fy.data()),
                        thrust::raw_pointer_cast(_device_data->_d_fz.data()));
 
+
+  //energy
+
+  //list = _neighbor_list_builder->Build();
+
+  //rbmd::Real h_total_evdwl = 0.0;
+
+  //CHECK_RUNTIME(MEMSET(_d_total_evdwl,0,sizeof(rbmd::Real)));
+
+  //op::LJEnergyOp<device::DEVICE_GPU> lj_energy_op;
+  //lj_energy_op(_device_data->_d_box, cut_off, _num_atoms,
+  //          thrust::raw_pointer_cast(_device_data->_d_atoms_type.data()),
+  //          thrust::raw_pointer_cast(_device_data->_d_molecular_id.data()),
+  //          thrust::raw_pointer_cast(_device_data->_d_sigma.data()),
+  //          thrust::raw_pointer_cast(_device_data->_d_eps.data()),
+  //          thrust::raw_pointer_cast(list->_start_idx.data()),
+  //          thrust::raw_pointer_cast(list->_end_idx.data()),
+  //          thrust::raw_pointer_cast(list->_d_neighbors.data()),
+  //          thrust::raw_pointer_cast(_device_data->_d_px.data()),
+  //          thrust::raw_pointer_cast(_device_data->_d_py.data()),
+  //          thrust::raw_pointer_cast(_device_data->_d_pz.data()),
+  //          _d_total_evdwl);
+
+  // CHECK_RUNTIME(MEMCPY(&h_total_evdwl,_d_total_evdwl , sizeof(rbmd::Real), D2H));
+  // 
+  // // 打印累加后的总能量
+  // rbmd::Real  ave_evdwl = h_total_evdwl/_num_atoms;
+  // std::cout << "test_current_step:" << test_current_step <<  " " << "average_vdwl_energy:" << ave_evdwl << std::endl;
 
 }
 
@@ -152,7 +189,6 @@ void LJForce::ComputeChargeStructureFactorEwald(
                                            2.0 * M_PI * k / box->_length[2]);
 
                     op::ComputeChargeStructureFactorComponentOp<device::DEVICE_GPU> charge_structure_factor_op;
-
                     charge_structure_factor_op(num_atoms, K,
                         thrust::raw_pointer_cast(_device_data->_d_px.data()),
                         thrust::raw_pointer_cast(_device_data->_d_py.data()),
@@ -171,5 +207,25 @@ void LJForce::ComputeChargeStructureFactorEwald(
             }
         }
     }
+}
+
+void LJForce::ComputeEwladForce() 
+{
+    //rbmd::Id  Kmax = 2;
+    //rbmd::Real  alpha = 0.01;
+    //rbmd::Real* value_Re_array;
+    //rbmd::Real* value_Im_array;
+
+    //ComputeChargeStructureFactorEwald(_device_data->_d_box, _num_atoms, Kmax, value_Re_array, value_Im_array);
+
+    //op::ComputeEwaldForceOp<device::DEVICE_GPU> ewlad_force_op;
+    //ewlad_force_op(_device_data->_d_box,_num_atoms, Kmax, alpha,
+    //    value_Re_array,
+    //    value_Im_array,
+    //    thrust::raw_pointer_cast(_device_data->_d_charge.data()),
+    //    thrust::raw_pointer_cast(_device_data->_d_fx.data()),
+    //    thrust::raw_pointer_cast(_device_data->_d_fy.data()),
+    //    thrust::raw_pointer_cast(_device_data->_d_fz.data()));
+
 }
 

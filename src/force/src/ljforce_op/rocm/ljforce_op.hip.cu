@@ -6,8 +6,8 @@
 namespace op
 {
 
-	//force kernel 
-    //LJForce
+	//---------device---------//
+    //lj126
     __device__ void lj126(
 		    rbmd::Real cut_off,
 		    rbmd::Real px12,
@@ -34,6 +34,7 @@ namespace op
 		}
 	}
 
+	//lj126_rs
 	__device__ void lj126_rs(
 		rbmd::Real rs,
 		rbmd::Real px12,
@@ -57,10 +58,11 @@ namespace op
 		}
 	}
 
+	//lj126_rcs
 	__device__ void lj126_rcs(
 		rbmd::Real rc,
 		rbmd::Real rs,
-		rbmd::Id  real_random_num,
+		rbmd::Id  pice_num,
 		rbmd::Real px12,
 		rbmd::Real py12,
 		rbmd::Real pz12,
@@ -79,10 +81,11 @@ namespace op
 			rbmd::Real dis_6 = dis_2 * dis_2 * dis_2;
 			rbmd::Real sigmaij_dis_6 = sigmaij_6 / dis_6;
 
-			fcs_ij = real_random_num * (-24 * eps_ij * ((2 * sigmaij_dis_6 - 1) * sigmaij_dis_6) / dis_2);
+			fcs_ij = pice_num * (-24 * eps_ij * ((2 * sigmaij_dis_6 - 1) * sigmaij_dis_6) / dis_2);
 		}
 	}
 
+	//CoulForce
 	__device__
 		rbmd::Real CoulForce(
 			rbmd::Real cut_off,
@@ -116,6 +119,7 @@ namespace op
 		return CoulForce;
 	}
 
+	//EwaldForce
 	__device__ void EwaldForce(
 		Box* box,
 		const rbmd::Real alpha,
@@ -133,8 +137,8 @@ namespace op
 		rbmd::Real ewald_force;
 		rbmd::Real volume = box->_length[0] * box->_length[1] * box->_length[2];
 		Real3 K = make_Real3(2 * M_PI * M.x / box->_length[0],
-			2 * M_PI * M.y / box->_length[1],
-			2 * M_PI * M.z / box->_length[2]);
+			                 2 * M_PI * M.y / box->_length[1],
+			                 2 * M_PI * M.z / box->_length[2]);
 
 
 		rbmd::Real range_K_2 = K.x * K.x + K.y * K.y + K.z * K.z;
@@ -151,6 +155,9 @@ namespace op
 		ewald_force_z = ewald_force * K.z;
 	}
 
+
+	//------global---------//
+	//verlet-list: LJForce
 	__global__ void ComputeLJForce(
 						Box* box,
 			            const rbmd::Real cut_off,
@@ -233,11 +240,13 @@ namespace op
 		
 	}
 
+	//RBL: LJForce
 	__global__ void ComputeLJRBLForce(
 		Box* box,
 		const rbmd::Real rs,
 		const rbmd::Real rc,
 		const rbmd::Id num_atoms,
+		const rbmd::Id neighbor_sample_num,
 		const rbmd::Id pice_num,
 		const rbmd::Id* atoms_type,
 		const rbmd::Id* molecular_type,
@@ -319,7 +328,7 @@ namespace op
 
 			//rcs
 			rbmd::Id real_random_num = random_neighbor_num[tid1];
-			for (rbmd::Id jj = id_random_neighbor[tid1* real_random_num]; jj < real_random_num; ++jj)
+			for (rbmd::Id jj = id_random_neighbor[tid1* neighbor_sample_num]; jj < real_random_num; ++jj)
 			{
 
 				rbmd::Id tid2 = id_random_neighbor[jj];
@@ -343,7 +352,7 @@ namespace op
 
 				MinImageDistance(box, px12, py12, pz12);
 
-				lj126_rcs(rc, rs, real_random_num, px12, py12, pz12, eps_ij, sigma_ij, fcs_ij); //the force  rs to rc
+				lj126_rcs(rc, rs, pice_num, px12, py12, pz12, eps_ij, sigma_ij, fcs_ij); //the force  rs to rc
 
 				sum_fcsx += fcs_ij * px12;
 				sum_fcsy += fcs_ij * py12;
@@ -364,6 +373,7 @@ namespace op
 
 	}
 
+	//RBL: Fix LJForce
 	__global__ void FixLJRBLForce(
 		const rbmd::Id num_atoms,
 		const rbmd::Real corr_value_x,
@@ -382,7 +392,75 @@ namespace op
 		}
 	}
 
+	//verlet-list: LJEnergy
+	__global__ void ComputeLJEnergy(
+		Box* box,
+		const rbmd::Real cut_off,
+		const rbmd::Id num_atoms,
+		const rbmd::Id* atoms_type,
+		const rbmd::Id* molecular_type,
+		const rbmd::Real* sigma,
+		const rbmd::Real* eps,
+		const rbmd::Id* start_id,
+		const rbmd::Id* end_id,
+		const rbmd::Id* id_verletlist,
+		const rbmd::Real* px,
+		const rbmd::Real* py,
+		const rbmd::Real* pz,
+		rbmd::Real* total_evdwl)
+	{
+		rbmd::Real sum_eij = 0;
 
+		unsigned int tid1 = blockIdx.x * blockDim.x + threadIdx.x;
+		if (tid1 < num_atoms)
+		{
+			rbmd::Id typei = atoms_type[tid1];
+			rbmd::Id molecular_id_i = molecular_type[tid1];
+			rbmd::Real eps_i = eps[typei];
+			rbmd::Real sigma_i = sigma[typei];
+
+			rbmd::Real x1 = px[tid1];
+			rbmd::Real y1 = py[tid1];
+			rbmd::Real z1 = pz[tid1];
+
+			for (int j = start_id[tid1]; j < end_id[tid1]; ++j)
+			{
+
+				rbmd::Id tid2 = id_verletlist[j];
+				rbmd::Id typej = atoms_type[tid2];
+				rbmd::Id molecular_id_j = molecular_type[tid2];
+				rbmd::Real eps_j = eps[typej];
+				rbmd::Real sigma_j = sigma[typej];
+
+				//mix
+				rbmd::Real eps_ij = sqrt(eps_i * eps_j);
+				rbmd::Real sigma_ij = (sigma_i + sigma_j) / 2;
+
+				rbmd::Real x2 = px[tid2];
+				rbmd::Real y2 = py[tid2];
+				rbmd::Real z2 = pz[tid2];
+				rbmd::Real px12 = x2 - x1;
+				rbmd::Real py12 = y2 - y1;
+				rbmd::Real pz12 = z2 - z1;
+				//if (molecular_id_i == molecular_id_j)
+					//continue; 
+
+				MinImageDistance(box, px12, py12, pz12);
+
+				rbmd::Real f_ij;
+				rbmd::Real e_ij;
+
+				lj126(cut_off, px12, py12, pz12, eps_ij, sigma_ij, f_ij, e_ij);
+				sum_eij += e_ij;
+			}
+
+			atomicAdd(total_evdwl, sum_eij);
+			//printf("--------test---evdwl[tid1]:%f---\n",evdwl[tid1]);
+		}
+
+	}
+
+	//StructureFactor
 	__global__ void ComputeChargeStructureFactorComponent(
 		const rbmd::Id num_atoms,
 		Real3 K,
@@ -404,6 +482,7 @@ namespace op
 		}
 	}
 
+	//EwaldForce
 	__global__ void ComputeEwaldForce(
 		Box* box,
 		const rbmd::Id num_atoms,
@@ -419,6 +498,10 @@ namespace op
 		rbmd::Real* ewald_force_y,
 		rbmd::Real* ewald_force_z)
 	{
+		rbmd::Real sum_fx = 0;
+		rbmd::Real sum_fy = 0;
+		rbmd::Real sum_fz = 0;
+
 		unsigned int tid1 = blockIdx.x * blockDim.x + threadIdx.x;
 
 		if (tid1 < num_atoms)
@@ -427,32 +510,38 @@ namespace op
 			rbmd::Real p_y = py[tid1];
 			rbmd::Real p_z = pz[tid1];
 			rbmd::Real charge_i = charge[tid1];
-			rbmd::Real force_x, force_y, force_z;
 
+
+			rbmd::Id indexEwald = 0;
 			for (rbmd::Id i = -Kmax; i <= Kmax; ++i)
 			{
 				for (rbmd::Id j = -Kmax; j <= Kmax; ++j)
 				{
 					for (rbmd::Id k = -Kmax; k <= Kmax; ++k)
 					{
-						if (!(i == 0 && j == 0 && k == 0)) 
+						if (i != 0 || j != 0 || k != 0)
 						{
+							indexEwald++;            //   total = (2*Kmax+1) * (2*Kmax+1)* (2*Kmax+1) -1
 							Real3 M = { (rbmd::Real)i, (rbmd::Real)j, (rbmd::Real)k };
-							rbmd::Id indexEwald = (i + Kmax) * (2 * Kmax + 1) * 
-												  (2 * Kmax + 1) + (j + Kmax) *
-												  (2 * Kmax + 1) + (k + Kmax);
-							rbmd::Real rhok_real_i = real_array[indexEwald];
-							rbmd::Real rhok_imag_i = imag_array[indexEwald];
 
+							rbmd::Real rhok_real_i = real_array[indexEwald -1];
+							rbmd::Real rhok_imag_i = imag_array[indexEwald -1];
+
+							 rbmd::Real force_x, force_y, force_z;
 							 EwaldForce(box, alpha,M, rhok_real_i, rhok_imag_i,charge_i, p_x, p_y, p_z,
 										force_x, force_y, force_z);
+
+							 sum_fx += force_x;
+							 sum_fy += force_y;
+							 sum_fz += force_z;
 						}
 					}
 				}
 			}
-			ewald_force_x[tid1] = force_x;
-			ewald_force_y[tid1] = force_y;
-			ewald_force_z[tid1] = force_z;
+
+			ewald_force_x[tid1] = sum_fx;
+			ewald_force_y[tid1] = sum_fy;
+			ewald_force_z[tid1] = sum_fz;
 	    }
 	}
 
@@ -577,7 +666,10 @@ namespace op
 	//}
 
 
-	//
+
+
+
+    //verlet-list: LJForce
 	void LJForceOp<device::DEVICE_GPU>::operator()(
 						Box* box,
 			            const rbmd::Real cut_off,
@@ -604,12 +696,13 @@ namespace op
 				sigma, eps, start_id, end_id, id_verletlist, px, py, pz, force_x, force_y, force_z, evdwl,total_evdwl));
 		}
 
-	//RBL
+	//RBL:  LJLForce
 	void LJRBLForceOp<device::DEVICE_GPU>::operator()(
 		Box* box,
 		const rbmd::Real rs,
 		const rbmd::Real rc,
 		const rbmd::Id num_atoms,
+		const rbmd::Id neighbor_sample_num,
 		const rbmd::Id pice_num,
 		const rbmd::Id* atoms_type,
 		const rbmd::Id* molecular_type,
@@ -630,12 +723,13 @@ namespace op
 		unsigned int blocks_per_grid = (num_atoms + BLOCK_SIZE - 1) / BLOCK_SIZE;
 
 		CHECK_KERNEL(ComputeLJRBLForce <<<blocks_per_grid, BLOCK_SIZE, 0, 0 >>> 
-			(box, rs, rc, num_atoms, pice_num, 
+			(box, rs, rc, num_atoms, neighbor_sample_num,pice_num,
 			atoms_type, molecular_type,sigma, eps, 
 			start_id, end_id, id_verletlist, id_random_neighbor, random_neighbor_num,
 			px, py, pz, corr_force_x, corr_force_y, corr_force_z));
 	}
 
+	//RBL: Fix LJForce
 	void FixLJRBLForceOp<device::DEVICE_GPU>::operator()(
 		const rbmd::Id num_atoms,
 		const rbmd::Real corr_value_x,
@@ -651,7 +745,30 @@ namespace op
 			(num_atoms, corr_value_x, corr_value_y, corr_value_z,corr_force_x, corr_force_y, corr_force_z));
 	}
 
+	//verlet-list: LJEnergy
+	void LJEnergyOp<device::DEVICE_GPU>::operator()(
+		Box* box,
+		const rbmd::Real cut_off,
+		const rbmd::Id num_atoms,
+		const rbmd::Id* atoms_type,
+		const rbmd::Id* molecular_type,
+		const rbmd::Real* sigma,
+		const rbmd::Real* eps,
+		const rbmd::Id* start_id,
+		const rbmd::Id* end_id,
+		const rbmd::Id* id_verletlist,
+		const rbmd::Real* px,
+		const rbmd::Real* py,
+		const rbmd::Real* pz,
+		rbmd::Real* total_evdwl)
+	{
+		unsigned int blocks_per_grid = (num_atoms + BLOCK_SIZE - 1) / BLOCK_SIZE;
 
+		CHECK_KERNEL(ComputeLJEnergy <<<blocks_per_grid, BLOCK_SIZE, 0, 0 >>> (box, cut_off, num_atoms, atoms_type, molecular_type,
+			sigma, eps, start_id, end_id, id_verletlist, px, py, pz, total_evdwl));
+	}
+
+	//StructureFactor
 	void ComputeChargeStructureFactorComponentOp<device::DEVICE_GPU>::operator()(
 		const rbmd::Id num_atoms,
 		const Real3 K,
@@ -669,6 +786,7 @@ namespace op
 
 	}
 
+	//EwaldForce
 	void ComputeEwaldForceOp<device::DEVICE_GPU>::operator()(
 		Box* box,
 		const rbmd::Id num_atoms,
