@@ -24,14 +24,14 @@ public:
 private:
 	rbmd::Id _num_atoms;
 	std::shared_ptr<BaseNeighborListBuilder> _rbl_neighbor_list_builder;
-	//std::shared_ptr<BaseNeighborListBuilder> _neighbor_list_builder;
+	std::shared_ptr<BaseNeighborListBuilder> _neighbor_list_builder;
 	std::shared_ptr<NeighborList> rbl_list;
-	//std::shared_ptr<NeighborList> list;
+	std::shared_ptr<NeighborList> list;
 	Box box;
 
-	rbmd::Real _h_corr_value_x;
-	rbmd::Real _h_corr_value_y;
-	rbmd::Real _h_corr_value_z;
+	rbmd::Real _corr_value_x;
+	rbmd::Real _corr_value_y;
+	rbmd::Real _corr_value_z;
 	rbmd::Real* _d_total_evdwl;
 
 };

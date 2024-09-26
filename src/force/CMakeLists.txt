@@ -19,7 +19,7 @@ foreach(header_file ${all_include_dirs})
 endforeach()
 list(REMOVE_DUPLICATES include_dirs)
 
-# Ñ­»·Á´½Ó¿â
+# Ñ­ï¿½ï¿½ï¿½ï¿½ï¿½Ó¿ï¿½
 file(GLOB tools_path ${CMAKE_CURRENT_LIST_DIR}/../../tools/*.tar.gz)
 
 foreach(tool_path ${tools_path})
@@ -44,3 +44,5 @@ depends_include ${inclue_files}
 depends_link_dir ${link_dirs}
 depends_name ${depend_names}
 )
+set(LIB_DIR ${CMAKE_CURRENT_LIST_DIR}/../lib)
+target_link_libraries(${PROJECT_NAME} neighbor_list data_manager)

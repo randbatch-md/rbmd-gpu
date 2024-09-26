@@ -45,12 +45,16 @@ RblFullNeighborListBuilder::RblFullNeighborListBuilder() {
 void RblFullNeighborListBuilder::GetRblParams(){
 #pragma region rbl prarms
   _system_rho = _linked_cell->_total_atoms_num / CalculateVolume(DataManager::getInstance().getMDData()->_h_box.get());
-  rbmd::Id rs_num = std::ceil(_system_rho * (4.0/3.0 * M_PI * std::pow(_r_core, 3)));
-  rbmd::Id rc_num = std::ceil(
-      _system_rho * (4.0 / 3.0 * M_PI * std::pow(_linked_cell->_cutoff,3)));
+
+  rbmd::Real coeff_rcs = 1.0 + (0.05 / _system_rho - 0.05);
+  rbmd::Id   Id_coeff_rcs =  std::round(coeff_rcs);
+  rbmd::Id rs_num = Id_coeff_rcs * _system_rho * std::ceil(4.0 /3.0 * M_PI * std::pow(_r_core, 3)) + 1 ;
+  rbmd::Id rc_num = Id_coeff_rcs * _system_rho * std::ceil(4.0 / 3.0 * M_PI * std::pow(_linked_cell->_cutoff,3)) + 1 ;
+
+
   auto random_rate  = static_cast<rbmd::Real>(_neighbor_sample_num)/static_cast<rbmd::Real>(rc_num-rs_num);
   _selection_frequency =
-      std::floor(1.0 / random_rate);   // note：The ceil function rarely samples the desired number of neighbor_sample_num, while the floor function may to some extent affect performance.
+      std::ceil(1.0 / random_rate);   // note：The ceil function rarely samples the desired number of neighbor_sample_num, while the floor function may to some extent affect performance.
   _neighbor_list->_selection_frequency = this->_selection_frequency;
 #pragma endregion
 }

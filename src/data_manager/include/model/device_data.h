@@ -90,10 +90,7 @@ class DeviceData {
 
   thrust::device_vector<rbmd::Real> _d_charge;
   
-  //
-  //thrust::device_vector<rbmd::Real> _d_corr_value_x;
-  //thrust::device_vector<rbmd::Real> _d_corr_value_y;
-  //thrust::device_vector<rbmd::Real> _d_corr_value_z;
+
   // box in device
   Box* _d_box;
   ~DeviceData() {
