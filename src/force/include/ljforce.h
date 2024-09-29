@@ -34,4 +34,6 @@ private:
 	rbmd::Real _corr_value_z;
 	rbmd::Real* _d_total_evdwl;
 
+	rbmd::Real virial[6];
+
 };

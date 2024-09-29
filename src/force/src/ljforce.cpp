@@ -157,9 +157,20 @@ void LJForce::Execute()
                   thrust::raw_pointer_cast(_device_data->_d_fx.data()),
                   thrust::raw_pointer_cast(_device_data->_d_fy.data()),
                   thrust::raw_pointer_cast(_device_data->_d_fz.data()),
-                  thrust::raw_pointer_cast(_device_data->_d_evdwl.data()),
+                  thrust::raw_pointer_cast(_device_data->_d_virial_xx.data()),
+                  thrust::raw_pointer_cast(_device_data->_d_virial_yy.data()),
+                  thrust::raw_pointer_cast(_device_data->_d_virial_zz.data()),
+                  thrust::raw_pointer_cast(_device_data->_d_virial_xy.data()),
+                  thrust::raw_pointer_cast(_device_data->_d_virial_xz.data()),
+                  thrust::raw_pointer_cast(_device_data->_d_virial_yz.data()),                
                   _d_total_evdwl);
 
+      virial[0] = thrust::reduce(_device_data->_d_virial_xx.begin(), _device_data->_d_virial_xx.end(), 0.0f, thrust::plus<rbmd::Real>());
+      virial[1] = thrust::reduce(_device_data->_d_virial_yy.begin(), _device_data->_d_virial_yy.end(), 0.0f, thrust::plus<rbmd::Real>());
+      virial[2] = thrust::reduce(_device_data->_d_virial_zz.begin(), _device_data->_d_virial_zz.end(), 0.0f, thrust::plus<rbmd::Real>());
+      virial[3] = thrust::reduce(_device_data->_d_virial_xy.begin(), _device_data->_d_virial_xy.end(), 0.0f, thrust::plus<rbmd::Real>());
+      virial[4] = thrust::reduce(_device_data->_d_virial_xz.begin(), _device_data->_d_virial_xz.end(), 0.0f, thrust::plus<rbmd::Real>());
+      virial[5] = thrust::reduce(_device_data->_d_virial_yz.begin(), _device_data->_d_virial_yz.end(), 0.0f, thrust::plus<rbmd::Real>());
 
       CHECK_RUNTIME(MEMCPY(&h_total_evdwl,_d_total_evdwl , sizeof(rbmd::Real), D2H));
 

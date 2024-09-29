@@ -38,6 +38,8 @@ class Box {
   /// （local）盒子的右上角坐标（x,y,z）
   rbmd::Real ALIGN(ALIGN_SIZE(rbmd::Real, 3)) _coord_max[3]{};
 
+  rbmd::Real h[6];
+  rbmd::Real h_inv[6];
   /// 以单元格为单位的box的宽度（x,y,z）
   rbmd::Id ALIGN(ALIGN_SIZE(rbmd::Id, 3)) _box_width_as_cell_units[3]{};
 };
@@ -134,4 +136,45 @@ __host__ __device__ __forceinline__ rbmd::Real CalculateVolume(const Box* box) {
     return 0;
     exit(0); //todo
   }
+}
+
+__host__ __device__ __forceinline__ SetGlobalBox(Box* box)
+{
+    box->h[0] = box->_coord_max[0] - box->_coord_min[0];
+    box->h[1] = box->_coord_max[1] - box->_coord_min[1];
+    box->h[2] = box->_coord_max[2] - box->_coord_min[2];
+    box->h[3] = 0;
+    box->h[4] = 0;
+    box->h[5] = 0;
+
+    auto orthogonal = 1;
+    if (orthogonal)
+    {
+        box->h_inv[0] = 1.0 / box->h[0];
+        box->h_inv[1] = 1.0 / box->h[1];
+        box->h_inv[2] = 1.0 / box->h[2];
+        box->h_inv[3] = 0;
+        box->h_inv[4] = 0;
+        box->h_inv[5] = 0;
+    }
+
+}
+
+__host__ __device__ __forceinline__ X2Lamda(Box* box, 
+    rbmd::Real& px, 
+    rbmd::Real& py,
+    rbmd::Real& pz)
+{
+    rbmd::Real delta_x, delta_y, delta_z;
+    delta_x = px - box->_coord_min[0];
+    delta_y = py - box->_coord_min[1];
+    delta_z = pz - box->_coord_min[2];
+
+    px = box->h_inv[0] * delta_x + _h_inv[5] * delta_y + _h_inv[4] * delta_z;
+    py = box->h_inv[1] * delta_y + _h_inv[3] * delta_z;
+    pz = box->h_inv[2] * delta_z;
+
+
+
+
 }
