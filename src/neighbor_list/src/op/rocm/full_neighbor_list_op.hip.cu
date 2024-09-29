@@ -116,7 +116,7 @@ __global__ void EstimateFullNeighborList(
       neighbour_num[atom_idx] = atom_neighbor_num;
       // 线程束对齐
       max_neighbour_num[atom_idx] =
-          MAX(((rbmd::Id)ceil(atom_neighbor_num * SAFE_ZONE) + warpSize - 1) /
+          MAX(((rbmd::Id)CEIL(atom_neighbor_num * SAFE_ZONE) + warpSize - 1) /
                   warpSize * warpSize,
               MIN_NBNUM);
     }
@@ -135,7 +135,7 @@ __global__ void GenerateFullNeighborList(
   const unsigned int lane_id =
       (blockIdx.x * blockDim.x + threadIdx.x) % warpSize;
 
-  __shared__ hipcub::WarpScan<int>::TempStorage temp_storage[WARP_SIZE];
+  extern __shared__ hipcub::WarpScan<int>::TempStorage temp_storage[];
 
   rbmd::Id neighbor_num = 0;
 

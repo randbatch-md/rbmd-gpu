@@ -4,7 +4,6 @@
 #include <hip/hip_runtime.h>
 #include <hip/hip_runtime_api.h>
 #include <thrust/device_vector.h>
-#define MIN_NBNUM (96)
 
 #if USE_DOUBLE
 #define EPSILON 0.0001
@@ -17,16 +16,22 @@
 #define MIN(x, y) (((x) < (y)) ? (x) : (y))
 #define BLOCK_SIZE (256)
 #define MAX_GPU_STREAMS (6)
-#define WARP_SIZE 32  /// TODO 使用宏来获取 ，目前服务器的AMD显卡的warpSize 不是64而是32
+
+#define MIN_NBNUM (96) /// CUDA AMD6800xt 96 DCU 128   TODO kernel us it  can use warpSize?
+#define WARP_SIZE 32  /// CUDA AMD6800xt 32  DCU 64   TODO
 
 #if USE_DOUBLE
 typedef double3 Real3;
 #define make_Real3 make_double3
 #define POW pow
+#define CEIL ceil
+#define FLOOR floor
 #else
 typedef float3 Real3;
 #define make_Real3 make_float3
 #define POW powf
+#define CEIL ceilf
+#define FLOOR floorf
 #endif
 
 #if USE_64BIT_IDS

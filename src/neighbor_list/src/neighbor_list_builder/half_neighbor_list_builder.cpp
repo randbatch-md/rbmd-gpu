@@ -27,8 +27,8 @@ HalfNeighborListBuilder::HalfNeighborListBuilder() {
       std::make_shared<NeighborList>(_linked_cell->_total_atoms_num, true);
   this->_device_data = DataManager::getInstance().getDeviceData();
 
-  _trunc_distance_power_2 = _linked_cell->_cutoff * _linked_cell->_cutoff - EPSILON;
-
+  _trunc_distance_power_2 =
+      _linked_cell->_cutoff * _linked_cell->_cutoff - EPSILON;
 }
 void HalfNeighborListBuilder::ComputeNeighborCells() {
   _linked_cell->_neighbor_cell.resize(
@@ -76,6 +76,10 @@ void HalfNeighborListBuilder::EstimateNeighborsList() {
       _neighbor_list->_h_total_max_neighbor_num);
   InitNeighborListIndices();
   this->should_realloc = false;
+  // std::cout << "total real neighbor  :  " << thrust::reduce(_neighbor_list->_d_neighbor_num.begin(),_neighbor_list->_d_neighbor_num.end()) << std::endl;
+  // std::cout  << "total max neighbor  :  " << _neighbor_list->_h_total_max_neighbor_num << std::endl;
+  // std::cout << "调试的atom idx 861 : " << "  real neighbor : "
+  // << _neighbor_list->_d_neighbor_num[861] <<  "  max neighbor : " <<  _neighbor_list->_d_max_neighbor_num[861] << std::endl;
 }
 
 bool HalfNeighborListBuilder::GenerateNeighborsList() {

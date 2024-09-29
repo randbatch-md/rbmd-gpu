@@ -12,8 +12,7 @@
 
 LJForce::LJForce()
 {
-  _neighbor_list_builder = std::make_shared<HalfNeighborListBuilder>();
-
+  _neighbor_list_builder = std::make_shared<FullNeighborListBuilder>();
 };
 
 void LJForce::Init() { _num_atoms = *(_structure_info_data->_num_atoms);}
@@ -33,6 +32,7 @@ void LJForce::Execute() {
       << duration.count()
 << "秒" << std::endl;
   thrust::host_vector<rbmd::Id> random_neighbor_num = list->_d_random_neighbor_num;
+  thrust::host_vector<rbmd::Id> random_neighbor = list->_d_random_neighbor;
   rbmd::Real h_total_evdwl = 0.0;
 
   CHECK_RUNTIME(MEMSET(_d_total_evdwl,0,sizeof(rbmd::Real)));

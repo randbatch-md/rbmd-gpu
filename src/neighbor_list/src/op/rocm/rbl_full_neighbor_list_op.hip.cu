@@ -1,9 +1,10 @@
 #include "full_neighbor_list_op.h"
-#include "hiprand/hiprand_kernel.h"
+// #include "hiprand/hiprand_kernel.h" TODO
 #include "rbl_full_neighbor_list_op.h"
 namespace op {
 
 // TODO warp op and optimize
+//! Note 暂时未测试Warp的
 __global__ void GenerateRBLFullNeighborList(
     rbmd::Id* per_atom_cell_id, rbmd::Id* in_atom_list_start_index,
     rbmd::Id* in_atom_list_end_index, rbmd::Real trunc_distance_power_2,

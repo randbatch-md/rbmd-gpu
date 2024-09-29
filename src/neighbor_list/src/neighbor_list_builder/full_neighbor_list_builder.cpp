@@ -33,11 +33,11 @@ std::shared_ptr<NeighborList> FullNeighborListBuilder::Build() {
   _linked_cell->ComputeCellRangesIndices();
   if (should_realloc) {
     // 好像就第一入口调用了  todo move to init?
-    this->EstimateNeighborsList();
+    EstimateNeighborsList();
   }
   // 索引没有问题
   if (GenerateNeighborsList()) {
-    this->EstimateNeighborsList();
+    EstimateNeighborsList();
   } else {
     GenerateNeighborsList();
   }

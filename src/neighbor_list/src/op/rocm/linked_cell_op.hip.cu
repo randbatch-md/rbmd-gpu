@@ -75,19 +75,19 @@ __global__ void AssignAtomsToCell(rbmd::Real* px, rbmd::Real* py,
     local_point.z -= linked_cell->_d_cell_length[2] * 0.5;
   }
 
-  cell_idx.x = MIN(MAX((int)(floor((double)(local_point.x - d_box->_coord_min[0]) *
+  cell_idx.x = MIN(MAX((int)(FLOOR((double)(local_point.x - d_box->_coord_min[0]) *
                                    linked_cell->_d_cell_length_reciprocal[0])) +
                            0,
                        0),
                    linked_cell->_d_per_dimension_cells[0] - 1);
 
-  cell_idx.y = MIN(MAX((int)(floor((double)(local_point.y - d_box->_coord_min[1]) *
+  cell_idx.y = MIN(MAX((int)(FLOOR((double)(local_point.y - d_box->_coord_min[1]) *
                                    linked_cell->_d_cell_length_reciprocal[1])) +
                            0,
                        0),
                    linked_cell->_d_per_dimension_cells[1] - 1);
 
-  cell_idx.z = MIN(MAX((int)(floor((double)(local_point.z - d_box->_coord_min[2]) *
+  cell_idx.z = MIN(MAX((int)(FLOOR((double)(local_point.z - d_box->_coord_min[2]) *
                                    linked_cell->_d_cell_length_reciprocal[2])) +
                            0,
                        0),

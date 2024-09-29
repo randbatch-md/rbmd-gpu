@@ -42,7 +42,7 @@ class Box {
   rbmd::Id ALIGN(ALIGN_SIZE(rbmd::Id, 3)) _box_width_as_cell_units[3]{};
 };
 
-__host__ __device__ __forceinline__ void MinImageDistance(Box* box,
+static __host__ __device__ __forceinline__ void MinImageDistance(Box* box,
                                                           rbmd::Real& dx,
                                                           rbmd::Real& dy,
                                                           rbmd::Real& dz) {
@@ -68,7 +68,7 @@ __host__ __device__ __forceinline__ void MinImageDistance(Box* box,
 
 //
 
-__host__ __device__ __forceinline__ void ApplyPBC(Box* box,
+static __host__ __device__ __forceinline__ void ApplyPBC(Box* box,
     rbmd::Real& px,
     rbmd::Real& py,
     rbmd::Real& pz,
@@ -127,7 +127,7 @@ __host__ __device__ __forceinline__ void ApplyPBC(Box* box,
 }
 
 
-__host__ __device__ __forceinline__ rbmd::Real CalculateVolume(const Box* box) {
+static __host__ __device__ __forceinline__ rbmd::Real CalculateVolume(const Box* box) {
   if (box->_type == Box::BoxType::ORTHOGONAL) {
     return box->_length[0]*box->_length[1]*box->_length[2];
   }else {
