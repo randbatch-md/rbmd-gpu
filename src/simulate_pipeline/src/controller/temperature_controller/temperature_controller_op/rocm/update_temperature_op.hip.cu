@@ -100,9 +100,9 @@ namespace op
 
 		if (tid < num_atoms)
 		{
-			vx[tid] = vx[tid] * coeff_Berendsen;
-			vy[tid] = vy[tid] * coeff_Berendsen;
-			vz[tid] = vz[tid] * coeff_Berendsen;
+			vx[tid] *= coeff_Berendsen;
+			vy[tid] *= coeff_Berendsen;
+			vz[tid] *= coeff_Berendsen;
 		}
 	}
 

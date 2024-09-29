@@ -5,7 +5,7 @@ class BerendsenController : public TemperatureController
 {
 public:
 	BerendsenController();
-	virtual ~BerendsenController()=default;
+	virtual ~BerendsenController();
 
 	void Init() override;
 	void Update() override;
@@ -28,4 +28,6 @@ private:
 	rbmd::Real _temp;
 
 	rbmd::Real _Tdamp;
+	rbmd::Real* _d_temp_contrib;
+
 };

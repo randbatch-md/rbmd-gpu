@@ -5,7 +5,7 @@ class NoseHooverController : public TemperatureController
 {
 public:
 	NoseHooverController();
-	virtual ~NoseHooverController()=default;
+	virtual ~NoseHooverController();
 
 	void Init() override;
 	void Update() override;
@@ -29,5 +29,6 @@ private:
 
 	rbmd::Real _nosehooverxi;
 	rbmd::Real _fmt2v;
+	rbmd::Real* _d_temp_contrib;
 
 };

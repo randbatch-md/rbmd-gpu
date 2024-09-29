@@ -66,9 +66,12 @@ void RescaleController::ComputeTemp()
   if (available_shake)  // H2O / NACl / EAM ...
   {
     bool shake = true;
-    if (shake) {
+    if (shake) 
+    {
       _temp = 0.5 * _temp_sum / ((3 * _num_atoms - _num_atoms - 3) * _kB / 2.0);
-    } else {
+    } 
+    else 
+    {
       _temp = 0.5 * _temp_sum / ((3 * _num_atoms - 3) * _kB / 2.0);
     }
   } else  // PEO
