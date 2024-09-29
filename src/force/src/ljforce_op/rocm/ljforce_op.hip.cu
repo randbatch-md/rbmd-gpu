@@ -155,7 +155,90 @@ namespace op
 
 	//------global---------//
 	//verlet-list: LJForce
-	__global__ void ComputeLJForce(
+        __global__ void ComputeLJForce(
+            Box* box,
+            const rbmd::Real cut_off,
+            const rbmd::Id num_atoms,
+            const rbmd::Id* atoms_type,
+            const rbmd::Id* molecular_type,
+            const rbmd::Real* sigma,
+            const rbmd::Real* eps,
+            const rbmd::Id* start_id,
+            const rbmd::Id* end_id,
+            const rbmd::Id* id_verletlist,
+            const rbmd::Real* px,
+            const rbmd::Real* py,
+            const rbmd::Real* pz,
+            rbmd::Real* force_x,
+            rbmd::Real* force_y,
+            rbmd::Real* force_z,
+            rbmd::Real* total_evdwl)
+        {
+          rbmd::Real sum_fx = 0;
+          rbmd::Real sum_fy = 0;
+          rbmd::Real sum_fz = 0;
+
+          rbmd::Real sum_eij = 0;
+
+          unsigned int tid1 = blockIdx.x * blockDim.x + threadIdx.x;
+          if (tid1 < num_atoms)
+          {
+            rbmd::Id typei = atoms_type[tid1];
+            rbmd::Id molecular_id_i =  molecular_type[tid1];
+            rbmd::Real eps_i = eps[typei];
+            rbmd::Real sigma_i = sigma[typei];
+
+            rbmd::Real x1 = px[tid1];
+            rbmd::Real y1 = py[tid1];
+            rbmd::Real z1 = pz[tid1];
+
+
+            for (int j = start_id[tid1]; j < end_id[tid1]; ++j)
+            {
+
+              rbmd::Id tid2 = id_verletlist[j];
+              rbmd::Id typej = atoms_type[tid2];
+              rbmd::Id molecular_id_j = molecular_type[tid2];
+              rbmd::Real eps_j = eps[typej];
+              rbmd::Real sigma_j = sigma[typej];
+
+              //mix
+              rbmd::Real eps_ij = sqrt(eps_i * eps_j);
+              rbmd::Real sigma_ij = (sigma_i + sigma_j) / 2;
+
+              rbmd::Real x2 = px[tid2];
+              rbmd::Real y2 = py[tid2];
+              rbmd::Real z2 = pz[tid2];
+              rbmd::Real px12 = x2 - x1;
+              rbmd::Real py12 = y2 - y1;
+              rbmd::Real pz12 = z2 - z1;
+              //if (molecular_id_i == molecular_id_j)
+              //continue;
+
+              MinImageDistance(box, px12, py12, pz12);
+
+              rbmd::Real f_ij,fpair;
+              rbmd::Real e_ij;
+
+              lj126(cut_off, px12, py12, pz12, eps_ij, sigma_ij,f_ij,e_ij);
+              sum_fx += f_ij * px12;
+              sum_fy += f_ij * py12;
+              sum_fz += f_ij * pz12;
+
+              sum_eij += e_ij;
+            }
+
+            force_x[tid1] = sum_fx;
+            force_y[tid1] = sum_fy;
+            force_z[tid1] = sum_fz;
+
+            atomicAdd(total_evdwl, sum_eij);
+            //printf("--------test---evdwl[tid1]:%f---\n",evdwl[tid1]);
+          }
+        }
+
+
+        __global__ void ComputeLJForceViral(
 						Box* box,
 			            const rbmd::Real cut_off,
 			            const rbmd::Id num_atoms,
@@ -164,25 +247,25 @@ namespace op
 			            const rbmd::Real* sigma,
 			            const rbmd::Real* eps,
 			            const rbmd::Id* start_id,
-		                const rbmd::Id* end_id,
-		                const rbmd::Id* id_verletlist,
+		                    const rbmd::Id* end_id,
+		                    const rbmd::Id* id_verletlist,
 			            const rbmd::Real* px,
 			            const rbmd::Real* py,
 			            const rbmd::Real* pz,
 			            rbmd::Real* force_x,
 			            rbmd::Real* force_y,
 			            rbmd::Real* force_z,
-						rbmd::Real* virial_xx,
-		                rbmd::Real* virial_yy,
-		                rbmd::Real* virial_zz,
-		                rbmd::Real* virial_xy,
-		                rbmd::Real* virial_xz,
-						rbmd::Real* virial_yz,
-					    rbmd::Real* total_evdwl)
+				    rbmd::Real* virial_xx,
+		                    rbmd::Real* virial_yy,
+		                    rbmd::Real* virial_zz,
+		                    rbmd::Real* virial_xy,
+		                    rbmd::Real* virial_xz,
+                                    rbmd::Real* virial_yz,
+				    rbmd::Real* total_evdwl)
 	{
 		rbmd::Real sum_fx = 0;
 		rbmd::Real sum_fy = 0;
-	    rbmd::Real sum_fz = 0;
+	        rbmd::Real sum_fz = 0;
 
 		rbmd::Real sum_virial_xx = 0;
 		rbmd::Real sum_virial_yy = 0;
@@ -197,13 +280,14 @@ namespace op
 		if (tid1 < num_atoms)
 		{
 			rbmd::Id typei = atoms_type[tid1]; 
-			rbmd::Id molecular_id_i=  molecular_type[tid1];
+			rbmd::Id molecular_id_i =  molecular_type[tid1];
 			rbmd::Real eps_i = eps[typei];
 			rbmd::Real sigma_i = sigma[typei];
 
 			rbmd::Real x1 = px[tid1];
 			rbmd::Real y1 = py[tid1];
 			rbmd::Real z1 = pz[tid1];
+
 
 			for (int j = start_id[tid1]; j < end_id[tid1]; ++j)
 			{
@@ -259,7 +343,7 @@ namespace op
 			virial_xz[tid1] = sum_virial_xz;
 			virial_yz[tid1] = sum_virial_yz;
 
-			atomicAdd(total_evdwl, sum_eij);
+                        atomicAdd(total_evdwl, sum_eij);
 			//printf("--------test---evdwl[tid1]:%f---\n",evdwl[tid1]);
 		}
 		
@@ -766,36 +850,62 @@ namespace op
 
 
     //verlet-list: LJForce
-	void LJForceOp<device::DEVICE_GPU>::operator()(
+        void LJForceOp<device::DEVICE_GPU>::operator()(
+            Box* box,
+            const rbmd::Real cut_off,
+            const rbmd::Id num_atoms,
+            const rbmd::Id* atoms_type,
+            const rbmd::Id* molecular_type,
+            const rbmd::Real* sigma,
+            const rbmd::Real* eps,
+            const rbmd::Id* start_id,
+            const rbmd::Id* end_id,
+            const rbmd::Id* id_verletlist,
+            const rbmd::Real* px,
+            const rbmd::Real* py,
+            const rbmd::Real* pz,
+            rbmd::Real* force_x,
+            rbmd::Real* force_y,
+            rbmd::Real* force_z,
+            rbmd::Real* total_evdwl)
+        {
+          unsigned int blocks_per_grid = (num_atoms + BLOCK_SIZE - 1) / BLOCK_SIZE;
+
+          CHECK_KERNEL(ComputeLJForce <<<blocks_per_grid, BLOCK_SIZE, 0, 0 >>> (box, cut_off, num_atoms, atoms_type, molecular_type,
+                                                                             sigma, eps, start_id, end_id, id_verletlist, px, py, pz,
+                                                                             force_x, force_y, force_z,total_evdwl));
+        }
+
+	void LJForceVirialOp<device::DEVICE_GPU>::operator()(
 						Box* box,
 			            const rbmd::Real cut_off,
 			            const rbmd::Id num_atoms,
-		                const rbmd::Id* atoms_type,
+		                    const rbmd::Id* atoms_type,
 			            const rbmd::Id* molecular_type,
 			            const rbmd::Real* sigma,
 			            const rbmd::Real* eps,
 			            const rbmd::Id* start_id,
-		                const rbmd::Id* end_id,
-		                const rbmd::Id* id_verletlist,
+		                    const rbmd::Id* end_id,
+		                    const rbmd::Id* id_verletlist,
 			            const rbmd::Real* px,
 			            const rbmd::Real* py,
 			            const rbmd::Real* pz,
 			            rbmd::Real* force_x,
 			            rbmd::Real* force_y,
 			            rbmd::Real* force_z,
-		                rbmd::Real* virial_xx,
-		                rbmd::Real* virial_yy,
-		                rbmd::Real* virial_zz,
-		                rbmd::Real* virial_xy,
-		                rbmd::Real* virial_xz,
-		                rbmd::Real* virial_yz,
-						rbmd::Real* total_evdwl)
+		                    rbmd::Real* virial_xx,
+		                    rbmd::Real* virial_yy,
+		                    rbmd::Real* virial_zz,
+		                    rbmd::Real* virial_xy,
+		                    rbmd::Real* virial_xz,
+		                    rbmd::Real* virial_yz,
+				    rbmd::Real* total_evdwl)
 		{
 		    unsigned int blocks_per_grid = (num_atoms + BLOCK_SIZE - 1) / BLOCK_SIZE;
 
-		    CHECK_KERNEL(ComputeLJForce <<<blocks_per_grid, BLOCK_SIZE, 0, 0 >>> (box, cut_off, num_atoms, atoms_type, molecular_type,
+		    CHECK_KERNEL(ComputeLJForceViral <<<blocks_per_grid, BLOCK_SIZE, 0, 0 >>> (box, cut_off, num_atoms, atoms_type, molecular_type,
 				sigma, eps, start_id, end_id, id_verletlist, px, py, pz,
-				force_x, force_y, force_z,, virial_xx,virial_yy, virial_zz, virial_xy, virial_xz, virial_yz,total_evdwl));
+				force_x, force_y, force_z, virial_xx,virial_yy, virial_zz, virial_xy, virial_xz, virial_yz,total_evdwl));
 		}
 
 	//RBL:  LJLForce

@@ -90,7 +90,7 @@ class DeviceData {
   thrust::device_vector<rbmd::Real> _d_virial_yy;
   thrust::device_vector<rbmd::Real> _d_virial_zz;
   thrust::device_vector<rbmd::Real> _d_virial_xy;
-  thrust::device_vector<rbmd::Real> _d_virial_xy;
+  thrust::device_vector<rbmd::Real> _d_virial_xz;
   thrust::device_vector<rbmd::Real> _d_virial_yz;
   //	
   thrust::device_vector<rbmd::Real> _d_evdwl;

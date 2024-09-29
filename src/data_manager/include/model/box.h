@@ -31,15 +31,16 @@ class Box {
   /// 在z维度使用周期性边界条件
   bool _pbc_z = true;
 
-  rbmd::Real ALIGN(ALIGN_SIZE(rbmd::Real, 3)) _length[3]{};
+  rbmd::Real ALIGN(ALIGN_SIZE(rbmd::Real, 6)) _length[6]{};
+  rbmd::Real ALIGN(ALIGN_SIZE(rbmd::Real, 6)) _length_inv[6]{};
 
   /// （local）盒子的左下角坐标（x,y,z）
   rbmd::Real ALIGN(ALIGN_SIZE(rbmd::Real, 3)) _coord_min[3]{};
   /// （local）盒子的右上角坐标（x,y,z）
   rbmd::Real ALIGN(ALIGN_SIZE(rbmd::Real, 3)) _coord_max[3]{};
 
-  rbmd::Real h[6];
-  rbmd::Real h_inv[6];
+
+
   /// 以单元格为单位的box的宽度（x,y,z）
   rbmd::Id ALIGN(ALIGN_SIZE(rbmd::Id, 3)) _box_width_as_cell_units[3]{};
 };
@@ -138,43 +139,50 @@ __host__ __device__ __forceinline__ rbmd::Real CalculateVolume(const Box* box) {
   }
 }
 
-__host__ __device__ __forceinline__ SetGlobalBox(Box* box)
+__host__ __device__ __forceinline__ void SetGlobalBox(Box* box)
 {
-    box->h[0] = box->_coord_max[0] - box->_coord_min[0];
-    box->h[1] = box->_coord_max[1] - box->_coord_min[1];
-    box->h[2] = box->_coord_max[2] - box->_coord_min[2];
-    box->h[3] = 0;
-    box->h[4] = 0;
-    box->h[5] = 0;
+    box->_length[0] = box->_coord_max[0] - box->_coord_min[0];
+    box->_length[1] = box->_coord_max[1] - box->_coord_min[1];
+    box->_length[2] = box->_coord_max[2] - box->_coord_min[2];
+    box->_length_inv[0] = 1 / box->_length[0];
+    box->_length_inv[1] = 1 / box->_length[1];
+    box->_length_inv[2] = 1 / box->_length[2];
 
-    auto orthogonal = 1;
-    if (orthogonal)
+    rbmd::Id triclinic = 1;
+
+    if (triclinic)
     {
-        box->h_inv[0] = 1.0 / box->h[0];
-        box->h_inv[1] = 1.0 / box->h[1];
-        box->h_inv[2] = 1.0 / box->h[2];
-        box->h_inv[3] = 0;
-        box->h_inv[4] = 0;
-        box->h_inv[5] = 0;
+        box->_length_inv[3] = -box->_length[3] / (box->_length[1] * box->_length[2]);
+        box->_length_inv[4] = (box->_length[3] * box->_length[5] - box->_length[1] * box->_length[4]) / (box->_length[0] * box->_length[1] * box->_length[2]);
+        box->_length_inv[5] = -box->_length[5]  / (box->_length[0] * box->_length[1]);
     }
 
 }
 
-__host__ __device__ __forceinline__ X2Lamda(Box* box, 
+__host__ __device__ __forceinline__ void X2Lamda(Box* box,
     rbmd::Real& px, 
     rbmd::Real& py,
     rbmd::Real& pz)
 {
-    rbmd::Real delta_x, delta_y, delta_z;
+    rbmd::Real delta_x;
+    rbmd::Real delta_y;
+    rbmd::Real delta_z;
     delta_x = px - box->_coord_min[0];
     delta_y = py - box->_coord_min[1];
     delta_z = pz - box->_coord_min[2];
 
-    px = box->h_inv[0] * delta_x + _h_inv[5] * delta_y + _h_inv[4] * delta_z;
-    py = box->h_inv[1] * delta_y + _h_inv[3] * delta_z;
-    pz = box->h_inv[2] * delta_z;
+    px = box->_length_inv[0] * delta_x + box->_length_inv[5] * delta_y + box->_length_inv[4] * delta_z;
+    py = box->_length_inv[1] * delta_y + box->_length_inv[3] * delta_z;
+    pz = box->_length_inv[2] * delta_z;
+}
 
 
-
-
+__host__ __device__ __forceinline__ void Lamda2X(Box* box,
+    rbmd::Real& px,
+    rbmd::Real& py,
+    rbmd::Real& pz)
+{
+    px = box->_length[0] * px + box->_length[5] * py + box->_length[4] * pz  + box->_coord_min[0];
+    py = box->_length[1] * py + box->_length[3] * pz+ box->_coord_min[1];
+    pz = box->_length[2] * pz+ box->_coord_min[2];
 }
