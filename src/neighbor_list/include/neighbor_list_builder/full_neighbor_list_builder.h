@@ -1,7 +1,8 @@
 #pragma once
-#include "neighbor_list_builder.h"
+#include "base_neighbor_list_builder.h"
+#include "../neighbor_list/neighbor_list.h"
 
-class FullNeighborListBuilder : public NeighborListBuilder {
+class FullNeighborListBuilder : public BaseNeighborListBuilder {
 public:
   explicit FullNeighborListBuilder();
 

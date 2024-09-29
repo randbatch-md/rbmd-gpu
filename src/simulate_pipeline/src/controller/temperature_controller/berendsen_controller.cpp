@@ -5,6 +5,8 @@
 #include <thrust/device_ptr.h>
 #include <cmath>
 
+
+rbmd::Real _test_temperature;
 BerendsenController::BerendsenController() 
 {
     CHECK_RUNTIME(MALLOC(&_d_temp_contrib, sizeof(rbmd::Real)));
@@ -87,6 +89,7 @@ void BerendsenController::ComputeTemp()
         _temp = 0.5 * _temp_sum / ((3 * _num_atoms - 3) * _kB / 2.0);
 
     }
+    _test_temperature = _temp;
 
     std::cout << "_temp=" << _temp << std::endl;
 

@@ -27,11 +27,13 @@ LinkedCell::~LinkedCell() {
   CHECK_RUNTIME(FREE(this->_linked_cell_device_data_ptr));
 }
 
-__host__ void LinkedCell::Rebuild(Box* box) {
+__host__ void LinkedCell::Build(Box* box) {
   rbmd::Id _cells_number = 1;
+  auto per_cell_length = _cutoff / _cell_count_within_cutoff;
   for (int dim = 0; dim < 3; dim++) {
     box->_box_width_as_cell_units[dim] = static_cast<rbmd::Id>(
-        floor(static_cast<double>(box->_coord_max[dim] - box->_coord_min[dim]) / _cutoff));
+        floor(static_cast<double>(box->_coord_max[dim] - box->_coord_min[dim]) /
+              per_cell_length));
     _per_dimension_cells[dim] = box->_box_width_as_cell_units[dim];
     _cells_number *= _per_dimension_cells[dim];
 
@@ -46,6 +48,10 @@ __host__ void LinkedCell::Rebuild(Box* box) {
   this->_in_atom_list_start_index.resize(_cells_number);
   this->_in_atom_list_end_index.resize(_cells_number);
   this->_cells.resize(_cells_number);
+  // update device box
+  CHECK_RUNTIME(MEMCPY(DataManager::getInstance().getDeviceData()->_d_box,
+                      DataManager::getInstance().getMDData()->_h_box.get(),
+                      sizeof(Box), H2D));
 }
 
 LinkedCellDeviceDataPtr* LinkedCell::GetDataPtr() {
@@ -130,10 +136,9 @@ void LinkedCell::SortAtomsByCellKey() {
       thrust::raw_pointer_cast(_device_data->_d_atoms_id.data()),
       _device_data->_d_atoms_id.size()));
 
-
   op::MapAtomidToIdxOp<device::DEVICE_GPU> map_atomid_to_idx_op;
-  map_atomid_to_idx_op(thrust::raw_pointer_cast(_atom_id_to_idx.data()),raw_ptr(_device_data->_d_atoms_id),_total_atoms_num);
-
+  map_atomid_to_idx_op(thrust::raw_pointer_cast(_atom_id_to_idx.data()),
+                       raw_ptr(_device_data->_d_atoms_id), _total_atoms_num);
 
   CHECK_RUNTIME(hipcub::DeviceRadixSort::SortPairs(
       d_temp_storage, temp_storage_bytes,

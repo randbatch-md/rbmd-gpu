@@ -85,6 +85,7 @@ struct UnitFactor<UNIT::LJ> {
 	static const rbmd::Real _fmt2v;
 	static const rbmd::Real _mvv2e;
 	static const rbmd::Real _qqr2e;
+	static const rbmd::Real _nktv2p;
 };
 
 /// REAL
@@ -94,6 +95,7 @@ struct UnitFactor<UNIT::REAL> {
 	static const rbmd::Real _fmt2v;
 	static const rbmd::Real _mvv2e;
 	static const rbmd::Real _qqr2e;
+	static const rbmd::Real _nktv2p;
 };
 
 /// METAL
@@ -103,4 +105,5 @@ struct UnitFactor<UNIT::METAL> {
 	static const rbmd::Real _fmt2v;
 	static const rbmd::Real _mvv2e;
 	static const rbmd::Real _qqr2e;
+	static const rbmd::Real _nktv2p;
 };

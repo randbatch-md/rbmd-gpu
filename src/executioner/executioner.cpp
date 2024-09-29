@@ -1,7 +1,7 @@
 #include "executioner.h"
 
 int test_current_step = 0;
-
+int test_num_steps;
 Executioner::Executioner(/*const Json::Value& node, */std::shared_ptr<Ensemble>& simulate_pipeline) :
 	_simulate_pipeline(simulate_pipeline)
 	//_exec_node(node),
@@ -10,7 +10,7 @@ Executioner::Executioner(/*const Json::Value& node, */std::shared_ptr<Ensemble>&
 {
 	_time_step = 0.001;
 	_num_steps = 10000;
-	_current_step = 0;
+	test_num_steps = _num_steps;
 	_current_time = 0;
 }
 

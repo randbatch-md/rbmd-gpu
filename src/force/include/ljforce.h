@@ -1,22 +1,39 @@
 #pragma once
-#include "force.h"
 #include "../../common/types.h"
-#include "../neighbor_list/include/neighbor_list.h"
-#include "../neighbor_list/include/neighbor_list_builder/full_neighbor_list_builder.h"
+#include "force.h"
 #include "model/box.h"
+#include "neighbor_list/include/neighbor_list/neighbor_list.h"
+#include "neighbor_list/include/neighbor_list_builder/full_neighbor_list_builder.h"
 class LJForce : public Force
 {
 public:
 	LJForce();
-	virtual ~LJForce() = default;
+	virtual ~LJForce();
 
 	void Init() override;
 	void  Execute() override;
+	void  ComputeChargeStructureFactorEwald(
+		Box* box, 
+		rbmd::Id _num_atoms,
+		rbmd::Id Kmax, 
+		rbmd::Real* value_Re_array,
+		rbmd::Real* value_Im_array);
+
+	void ComputeEwladForce();
 
 private:
 	rbmd::Id _num_atoms;
-	std::shared_ptr<FullNeighborListBuilder> full_list_builder;
+	std::shared_ptr<BaseNeighborListBuilder> _rbl_neighbor_list_builder;
+	std::shared_ptr<BaseNeighborListBuilder> _neighbor_list_builder;
+	std::shared_ptr<NeighborList> rbl_list;
 	std::shared_ptr<NeighborList> list;
 	Box box;
+
+	rbmd::Real _corr_value_x;
+	rbmd::Real _corr_value_y;
+	rbmd::Real _corr_value_z;
+	rbmd::Real* _d_total_evdwl;
+
+	rbmd::Real virial[6];
 
 };

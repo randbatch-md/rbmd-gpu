@@ -1,10 +1,11 @@
 #pragma once
-#include <hipcub/hipcub.hpp>
-#include "types.h"
 #include <hip/hip_runtime.h>
 #include <hip/hip_runtime_api.h>
 #include <thrust/device_vector.h>
-#define MIN_NBNUM (96)
+
+#include <hipcub/hipcub.hpp>
+
+#include "types.h"
 
 #if USE_DOUBLE
 #define EPSILON 0.0001
@@ -17,15 +18,21 @@
 #define MIN(x, y) (((x) < (y)) ? (x) : (y))
 #define BLOCK_SIZE (256)
 #define MAX_GPU_STREAMS (6)
-#define WARP_SIZE 32  /// TODO 使用宏来获取 ，目前服务器的AMD显卡的warpSize 不是64而是32
+
+#define MIN_NBNUM (128)  /// CUDA AMD6800xt 96 DCU 128   TODO
+#define WARP_SIZE 64     /// CUDA AMD6800xt 32  DCU 64   TODO
 
 #if USE_DOUBLE
 typedef double3 Real3;
+typedef double2 Real2;
 #define make_Real3 make_double3
+#define make_Real2 make_double2
 #define POW pow
 #else
 typedef float3 Real3;
+typedef float2 Real2;
 #define make_Real3 make_float3
+#define make_Real2 make_float2
 #define POW powf
 #endif
 
@@ -82,7 +89,7 @@ typedef int3 Int3;
 #define FREE hipFree
 #define MEMSET hipMemset
 
-template<typename T>
+template <typename T>
 static T *raw_ptr(thrust::device_vector<T> &vec) {
   return thrust::raw_pointer_cast(vec.data());
 }
@@ -110,16 +117,15 @@ static bool CheckHipRuntime(hipError_t e, const char *call, int line,
     }                                                                   \
   } while (0);
 
-
-template<typename T>
+template <typename T>
 // d_src_array input array  d_dst outputnum size：input array size
-static void ReductionSum(T* d_src_array, T* d_dst, rbmd::Id size) {
-  void* temp = nullptr;
+static void ReductionSum(T *d_src_array, T *d_dst, rbmd::Id size) {
+  void *temp = nullptr;
   size_t temp_bytes = 0;
   CHECK_RUNTIME(hipcub::DeviceReduce::Sum(temp, temp_bytes, d_src_array, d_dst,
-    static_cast<int>(size)));
+                                          static_cast<int>(size)));
   CHECK_RUNTIME(MALLOC(&temp, temp_bytes));
   CHECK_RUNTIME(hipcub::DeviceReduce::Sum(temp, temp_bytes, d_src_array, d_dst,
-    static_cast<int>(size)));
+                                          static_cast<int>(size)));
   CHECK_RUNTIME(FREE(temp));
 }
