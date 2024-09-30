@@ -2,7 +2,7 @@
 
 #include <hipcub/backend/rocprim/device/device_radix_sort.hpp>
 #include <hipcub/backend/rocprim/iterator/counting_input_iterator.hpp>
-
+#include <thrust/sort.h>
 #include "../common/device_types.h"
 #include "../common/types.h"
 #include "data_manager.h"
@@ -107,126 +107,24 @@ void LinkedCell::SyncHToD() {
 }
 
 void LinkedCell::SortAtomsByCellKey() {
-  // 创建临时存储变量
-  size_t temp_storage_bytes = 0;
-  void* d_temp_storage = nullptr;
-  // 计算临时存储空间
-  CHECK_RUNTIME(hipcub::DeviceRadixSort::SortPairs(
-      d_temp_storage, temp_storage_bytes,
-      thrust::raw_pointer_cast(_per_atom_cell_id.data()),
-      thrust::raw_pointer_cast(_per_atom_cell_id.data()),
-      thrust::raw_pointer_cast(_device_data->_d_atoms_id.data()),
-      thrust::raw_pointer_cast(_device_data->_d_atoms_id.data()),
-      _device_data->_d_atoms_id.size()));
-
-  CHECK_RUNTIME(MALLOC(&d_temp_storage, temp_storage_bytes));
-  // 对每个数组进行排序
-  thrust::device_vector<rbmd::Id> per_atom_cell_id_copy = _per_atom_cell_id;
-  CHECK_RUNTIME(hipcub::DeviceRadixSort::SortPairs(
-      d_temp_storage, temp_storage_bytes,
-      thrust::raw_pointer_cast(_per_atom_cell_id.data()),
-      thrust::raw_pointer_cast(per_atom_cell_id_copy.data()),
-      thrust::raw_pointer_cast(_device_data->_d_atoms_id.data()),
-      thrust::raw_pointer_cast(_device_data->_d_atoms_id.data()),
-      _device_data->_d_atoms_id.size()));
-
-
+  thrust::device_vector<rbmd::Id> per_atom_cell_id_copy{};
+  per_atom_cell_id_copy = _per_atom_cell_id;
+  thrust::stable_sort_by_key(per_atom_cell_id_copy.begin(),per_atom_cell_id_copy.end(),_device_data->_d_atoms_id.begin());
   op::MapAtomidToIdxOp<device::DEVICE_GPU> map_atomid_to_idx_op;
   map_atomid_to_idx_op(thrust::raw_pointer_cast(_atom_id_to_idx.data()),raw_ptr(_device_data->_d_atoms_id),_total_atoms_num);
-
-
-  CHECK_RUNTIME(hipcub::DeviceRadixSort::SortPairs(
-      d_temp_storage, temp_storage_bytes,
-      thrust::raw_pointer_cast(_per_atom_cell_id.data()),
-      thrust::raw_pointer_cast(per_atom_cell_id_copy.data()),
-      thrust::raw_pointer_cast(_device_data->_d_atoms_type.data()),
-      thrust::raw_pointer_cast(_device_data->_d_atoms_type.data()),
-      _device_data->_d_atoms_type.size()));
-
-  /// TODO
-  // hipcub::DeviceRadixSort::SortPairs(
-  //     d_temp_storage, temp_storage_bytes,
-  //     thrust::raw_pointer_cast(_per_atom_cell_id.data()),
-  //     thrust::raw_pointer_cast(d_atoms_belong_cell_copy.data()),
-  //     thrust::raw_pointer_cast(_d_mass.data()),
-  //     thrust::raw_pointer_cast(_d_mass.data()), _d_mass.size());
-
-  CHECK_RUNTIME(hipcub::DeviceRadixSort::SortPairs(
-      d_temp_storage, temp_storage_bytes,
-      thrust::raw_pointer_cast(_per_atom_cell_id.data()),
-      thrust::raw_pointer_cast(per_atom_cell_id_copy.data()),
-      thrust::raw_pointer_cast(_device_data->_d_px.data()),
-      thrust::raw_pointer_cast(_device_data->_d_px.data()),
-      _device_data->_d_px.size()));
-
-  CHECK_RUNTIME(hipcub::DeviceRadixSort::SortPairs(
-      d_temp_storage, temp_storage_bytes,
-      thrust::raw_pointer_cast(_per_atom_cell_id.data()),
-      thrust::raw_pointer_cast(per_atom_cell_id_copy.data()),
-      thrust::raw_pointer_cast(_device_data->_d_py.data()),
-      thrust::raw_pointer_cast(_device_data->_d_py.data()),
-      _device_data->_d_py.size()));
-  //   thrust::raw_pointer_cast(  _per_atom_cell_id.data()), // note
-  //   最后一次修改这个
-
-  CHECK_RUNTIME(hipcub::DeviceRadixSort::SortPairs(
-      d_temp_storage, temp_storage_bytes,
-      thrust::raw_pointer_cast(_per_atom_cell_id.data()),
-      thrust::raw_pointer_cast(per_atom_cell_id_copy.data()),
-      thrust::raw_pointer_cast(_device_data->_d_pz.data()),
-      thrust::raw_pointer_cast(_device_data->_d_pz.data()),
-      _device_data->_d_pz.size()));
-
-  CHECK_RUNTIME(hipcub::DeviceRadixSort::SortPairs(
-      d_temp_storage, temp_storage_bytes,
-      thrust::raw_pointer_cast(_per_atom_cell_id.data()),
-      thrust::raw_pointer_cast(per_atom_cell_id_copy.data()),
-      thrust::raw_pointer_cast(_device_data->_d_vx.data()),
-      thrust::raw_pointer_cast(_device_data->_d_vx.data()),
-      _device_data->_d_vx.size()));
-
-  CHECK_RUNTIME(hipcub::DeviceRadixSort::SortPairs(
-      d_temp_storage, temp_storage_bytes,
-      thrust::raw_pointer_cast(_per_atom_cell_id.data()),
-      thrust::raw_pointer_cast(per_atom_cell_id_copy.data()),
-      thrust::raw_pointer_cast(_device_data->_d_vy.data()),
-      thrust::raw_pointer_cast(_device_data->_d_vy.data()),
-      _device_data->_d_vy.size()));
-
-  CHECK_RUNTIME(hipcub::DeviceRadixSort::SortPairs(
-      d_temp_storage, temp_storage_bytes,
-      thrust::raw_pointer_cast(_per_atom_cell_id.data()),
-      thrust::raw_pointer_cast(per_atom_cell_id_copy.data()),
-      thrust::raw_pointer_cast(_device_data->_d_vz.data()),
-      thrust::raw_pointer_cast(_device_data->_d_vz.data()),
-      _device_data->_d_vz.size()));
-
-  CHECK_RUNTIME(hipcub::DeviceRadixSort::SortPairs(
-      d_temp_storage, temp_storage_bytes,
-      thrust::raw_pointer_cast(_per_atom_cell_id.data()),
-      thrust::raw_pointer_cast(per_atom_cell_id_copy.data()),
-      thrust::raw_pointer_cast(_device_data->_d_fx.data()),
-      thrust::raw_pointer_cast(_device_data->_d_fx.data()),
-      _device_data->_d_fx.size()));
-
-  CHECK_RUNTIME(hipcub::DeviceRadixSort::SortPairs(
-      d_temp_storage, temp_storage_bytes,
-      thrust::raw_pointer_cast(_per_atom_cell_id.data()),
-      thrust::raw_pointer_cast(per_atom_cell_id_copy.data()),
-      thrust::raw_pointer_cast(_device_data->_d_fy.data()),
-      thrust::raw_pointer_cast(_device_data->_d_fy.data()),
-      _device_data->_d_fy.size()));
-
-  CHECK_RUNTIME(hipcub::DeviceRadixSort::SortPairs(
-      d_temp_storage, temp_storage_bytes,
-      thrust::raw_pointer_cast(_per_atom_cell_id.data()),
-      thrust::raw_pointer_cast(_per_atom_cell_id.data()),
-      thrust::raw_pointer_cast(_device_data->_d_fz.data()),
-      thrust::raw_pointer_cast(_device_data->_d_fz.data()),
-      _device_data->_d_fz.size()));
-
-  // 释放临时存储空间
-  CHECK_RUNTIME(FREE(d_temp_storage));
+  per_atom_cell_id_copy = _per_atom_cell_id;
+  thrust::stable_sort_by_key(per_atom_cell_id_copy.begin(),per_atom_cell_id_copy.end(),_device_data->_d_atoms_type.begin());
+  per_atom_cell_id_copy = _per_atom_cell_id;
+  thrust::stable_sort_by_key(per_atom_cell_id_copy.begin(),per_atom_cell_id_copy.end(),_device_data->_d_px.begin());
+  per_atom_cell_id_copy = _per_atom_cell_id;
+  thrust::stable_sort_by_key(per_atom_cell_id_copy.begin(),per_atom_cell_id_copy.end(),_device_data->_d_py.begin());
+  per_atom_cell_id_copy = _per_atom_cell_id;
+  thrust::stable_sort_by_key(per_atom_cell_id_copy.begin(),per_atom_cell_id_copy.end(),_device_data->_d_pz.begin());
+  per_atom_cell_id_copy = _per_atom_cell_id;
+  thrust::stable_sort_by_key(per_atom_cell_id_copy.begin(),per_atom_cell_id_copy.end(),_device_data->_d_vx.begin());
+  per_atom_cell_id_copy = _per_atom_cell_id;
+  thrust::stable_sort_by_key(per_atom_cell_id_copy.begin(),per_atom_cell_id_copy.end(),_device_data->_d_vy.begin());
+  thrust::stable_sort_by_key(_per_atom_cell_id.begin(),_per_atom_cell_id.end(),_device_data->_d_vz.begin());
 }
 
 void LinkedCell::AllocDeviceMemory() {

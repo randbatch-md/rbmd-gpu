@@ -53,19 +53,20 @@ __global__ void ComputeFullNeighbors(rbmd::Id* per_dimension_cells,
 }
 
 // use while total_cell < computed neighbor_num
-__global__ void ComputeFullNeighborsWithoutPBC(rbmd::Id* neighbor_cell, rbmd::Id neighbor_num,
-                                         rbmd::Id total_cell) {
+__global__ void ComputeFullNeighborsWithoutPBC(rbmd::Id* neighbor_cell,
+                                               rbmd::Id neighbor_num,
+                                               rbmd::Id total_cell) {
   const unsigned int cell_idx = blockIdx.x * blockDim.x + threadIdx.x;
   if (cell_idx < total_cell) {
     int neighbor_count = 0;
-    for (int neighbor_cell_idx = 0; neighbor_cell_idx < neighbor_num; ++neighbor_cell_idx) {
+    for (int neighbor_cell_idx = 0; neighbor_cell_idx < neighbor_num;
+         ++neighbor_cell_idx) {
       neighbor_cell[cell_idx * neighbor_num + neighbor_count] =
-        neighbor_cell_idx;
+          neighbor_cell_idx;
       ++neighbor_count;
     }
   }
 }
-
 
 __host__ __device__ __forceinline__ rbmd::Real CaculateDistance(
     Box* box, rbmd::Real i_x, rbmd::Real i_y, rbmd::Real i_z, rbmd::Real j_x,
@@ -125,7 +126,7 @@ __global__ void EstimateFullNeighborList(
       neighbour_num[atom_idx] = atom_neighbor_num;
       // 线程束对齐
       max_neighbour_num[atom_idx] =
-          MAX(((rbmd::Id)ceil(atom_neighbor_num * SAFE_ZONE) + warpSize - 1) /
+          MAX(((rbmd::Id)CEIL(atom_neighbor_num * SAFE_ZONE) + warpSize - 1) /
                   warpSize * warpSize,
               MIN_NBNUM);
     }
@@ -208,9 +209,12 @@ void ComputeFullNeighborsOp<device::DEVICE_GPU>::operator()(
       cell_count_within_cutoff));
 }
 
-void ComputeFullNeighborsWithoutPBCOp<device::DEVICE_GPU>::operator()(rbmd::Id* neighbor_cell, rbmd::Id neighbor_num, rbmd::Id total_cell){
+void ComputeFullNeighborsWithoutPBCOp<device::DEVICE_GPU>::operator()(
+    rbmd::Id* neighbor_cell, rbmd::Id neighbor_num, rbmd::Id total_cell) {
   unsigned int blocks_per_grid = (total_cell + BLOCK_SIZE - 1) / BLOCK_SIZE;
-  CHECK_KERNEL(ComputeFullNeighborsWithoutPBC<<<blocks_per_grid, BLOCK_SIZE, 0, 0>>>(neighbor_cell, neighbor_num, total_cell));
+  CHECK_KERNEL(
+      ComputeFullNeighborsWithoutPBC<<<blocks_per_grid, BLOCK_SIZE, 0, 0>>>(
+          neighbor_cell, neighbor_num, total_cell));
 }
 
 void EstimateFullNeighborListOp<device::DEVICE_GPU>::operator()(
@@ -253,7 +257,6 @@ void GenerateFullNeighborListOp<device::DEVICE_GPU>::operator()(
           cutoff_2, total_atom_num, px, py, pz, max_neighbor_num,
           neighbor_start, neighbor_end, neighbors, d_box, should_realloc,
           neighbor_cell, neighbor_cell_num));
+}
 
-  }
-
-} // namespace op
+}  // namespace op
