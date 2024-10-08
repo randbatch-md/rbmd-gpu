@@ -70,6 +70,10 @@ bool MemoryScheduler::asyncMemoryH2D() {
    // thrust::copy(h_fy, h_fy + num_atoms, _device_data->_d_fy.begin());
    // thrust::copy(h_fz, h_fz + num_atoms, _device_data->_d_fz.begin());
 
+  _device_data->_d_force_ewald_x.resize(num_atoms);
+  _device_data->_d_force_ewald_y.resize(num_atoms);
+  _device_data->_d_force_ewald_z.resize(num_atoms);
+
   _device_data->_d_virial_xx.resize(num_atoms);
   _device_data->_d_virial_yy.resize(num_atoms);
   _device_data->_d_virial_zz.resize(num_atoms);

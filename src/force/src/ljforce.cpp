@@ -247,9 +247,9 @@ void LJForce::ComputeEwladForce()
         thrust::raw_pointer_cast(_device_data->_d_px.data()),
         thrust::raw_pointer_cast(_device_data->_d_py.data()),
         thrust::raw_pointer_cast(_device_data->_d_pz.data()),
-        thrust::raw_pointer_cast(_device_data->_d_fx.data()),
-        thrust::raw_pointer_cast(_device_data->_d_fy.data()),
-        thrust::raw_pointer_cast(_device_data->_d_fz.data()));
+        thrust::raw_pointer_cast(_device_data->_d_force_ewald_x.data()),
+        thrust::raw_pointer_cast(_device_data->_d_force_ewald_y.data()),
+        thrust::raw_pointer_cast(_device_data->_d_force_ewald_z.data()));
 
     CHECK_RUNTIME(FREE(value_Re_array));
     CHECK_RUNTIME(FREE(value_Im_array));
