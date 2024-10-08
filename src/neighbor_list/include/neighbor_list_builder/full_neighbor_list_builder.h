@@ -15,7 +15,7 @@ protected:
 
   void EstimateNeighborsList() override;
 
-  bool GenerateNeighborsList() override;
+  rbmd::Id GenerateNeighborsList() override;
 
   std::shared_ptr<DeviceData> _device_data;
 };

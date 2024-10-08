@@ -36,7 +36,7 @@ struct GenerateFullNeighborListOp {
                   rbmd::Id total_atom_num, rbmd::Real* px, rbmd::Real* py,
                   rbmd::Real* pz, rbmd::Id* max_neighbor_num,
                   rbmd::Id* neighbor_start, rbmd::Id* neighbor_end,
-                  rbmd::Id* neighbors, Box* d_box, bool* should_realloc,
+                  rbmd::Id* neighbors, Box* d_box, rbmd::Id* should_realloc,
                   rbmd::Id* neighbor_cell, rbmd::Id neighbor_cell_num);
 };
 
@@ -74,7 +74,7 @@ struct GenerateFullNeighborListOp<device::DEVICE_GPU> {
                   rbmd::Id total_atom_num, rbmd::Real* px, rbmd::Real* py,
                   rbmd::Real* pz, rbmd::Id* max_neighbor_num,
                   rbmd::Id* neighbor_start, rbmd::Id* neighbor_end,
-                  rbmd::Id* neighbors, Box* d_box, bool* should_realloc,
+                  rbmd::Id* neighbors, Box* d_box, rbmd::Id* should_realloc,
                   rbmd::Id* neighbor_cell, rbmd::Id neighbor_cell_num);
 };
 

@@ -1,11 +1,12 @@
 #include "full_neighbor_list_op.h"
-// #include "hiprand/hiprand_kernel.h" TODO
-#include "rbl_full_neighbor_list_op.h"
+#include "rbl_half_neighbor_list_op.h"
+#include "src/op/rbl_half_neighbor_list_op.h"
 namespace op {
 
 // TODO warp op and optimize
 //! Note 暂时未测试Warp的
-__global__ void GenerateRBLFullNeighborList(
+//! 因为是用全部邻居算，所以和半邻居的不一样  大部分代码重复 需要重构
+__global__ void GenerateRBLHalfNeighborList(
     rbmd::Id* per_atom_cell_id, rbmd::Id* in_atom_list_start_index,
     rbmd::Id* in_atom_list_end_index, rbmd::Real trunc_distance_power_2,
     rbmd::Real cutoff_2, rbmd::Id total_atom_num, rbmd::Real* px,
@@ -37,12 +38,16 @@ __global__ void GenerateRBLFullNeighborList(
               CaculateDistance(d_box, px[atom_idx], py[atom_idx], pz[atom_idx],
                                px[neighbor_atom_idx], py[neighbor_atom_idx],
                                pz[neighbor_atom_idx]);
-          if (distance < trunc_distance_power_2) {
+          if (distance < trunc_distance_power_2 &&
+              atom_idx < neighbor_atom_idx) {
             neighbors[neighbor_num] = neighbor_atom_idx;
             ++neighbor_num;
           } else if (distance >= trunc_distance_power_2 &&
                      distance < cutoff_2) {
-            if (index_shell % selection_frequency == 0 && random_neighbor_num < neighbor_sample_num) {   // random_neighbor_num < neighbor_sample_num
+            if (index_shell % selection_frequency == 0 &&
+                random_neighbor_num <
+                    neighbor_sample_num) {  // random_neighbor_num <
+                                            // neighbor_sample_num
               random_neighbors[random_neighbor_start] = neighbor_atom_idx;
               random_neighbor_start++;
               random_neighbor_num++;
@@ -61,7 +66,7 @@ __global__ void GenerateRBLFullNeighborList(
   }
 }
 
-void GenerateRblFullNeighborListOp<device::DEVICE_GPU>::operator()(
+void GenerateRblHalfNeighborListOp<device::DEVICE_GPU>::operator()(
     rbmd::Id* per_atom_cell_id, rbmd::Id* in_atom_list_start_index,
     rbmd::Id* in_atom_list_end_index, rbmd::Real trunc_distance_power_2,
     rbmd::Real cutoff_2, rbmd::Id total_atom_num, rbmd::Real* px,
@@ -73,7 +78,7 @@ void GenerateRblFullNeighborListOp<device::DEVICE_GPU>::operator()(
     rbmd::Id selection_frequency) {
   unsigned int blocks_per_grid = (total_atom_num + BLOCK_SIZE - 1) / BLOCK_SIZE;
   CHECK_KERNEL(
-      GenerateRBLFullNeighborList<<<blocks_per_grid, BLOCK_SIZE, 0, 0>>>(
+      GenerateRBLHalfNeighborList<<<blocks_per_grid, BLOCK_SIZE, 0, 0>>>(
           per_atom_cell_id, in_atom_list_start_index, in_atom_list_end_index,
           trunc_distance_power_2, cutoff_2, total_atom_num, px, py, pz,
           max_neighbor_num, neighbor_start, neighbor_end, neighbors,

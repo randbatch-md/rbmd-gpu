@@ -68,9 +68,9 @@ void LJForce::Execute() {
 
 
   //out
-  std::ofstream outfile("ave_evdwl.txt", std::ios::app);
-  outfile << test_current_step << " " << ave_evdwl << std::endl;
-  outfile.close();
+  // std::ofstream outfile("ave_evdwl.txt", std::ios::app);
+  // outfile << test_current_step << " " << ave_evdwl << std::endl;
+  // outfile.close();
              
 }
 

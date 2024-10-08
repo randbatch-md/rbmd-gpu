@@ -16,6 +16,8 @@
 #define MIN(x, y) (((x) < (y)) ? (x) : (y))
 #define BLOCK_SIZE (256)
 #define MAX_GPU_STREAMS (6)
+#define RBMD_TRUE (1)
+#define RBMD_FALSE (0)
 
 #ifndef TARGET_DCU
 #define MIN_NBNUM \
@@ -32,12 +34,18 @@ typedef double3 Real3;
 #define POW pow
 #define CEIL ceil
 #define FLOOR floor
+#define SQRT sqrt
+#define ERF erf
+#define EXP exp
 #else
 typedef float3 Real3;
 #define make_Real3 make_float3
 #define POW powf
 #define CEIL ceilf
 #define FLOOR floorf
+#define SQRT sqrtf
+#define ERF erff
+#define EXP expf
 #endif
 
 #if USE_64BIT_IDS

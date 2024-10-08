@@ -126,7 +126,7 @@ __global__ void EstimateHalfNeighborList(
 //     rbmd::Id total_atom_num, rbmd::Real* px, rbmd::Real* py, rbmd::Real* pz,
 //     rbmd::Id* max_neighbor_num, rbmd::Id* neighbor_start,
 //     rbmd::Id* neighbor_end, rbmd::Id* neighbors, Box* d_box,
-//     bool* should_realloc, rbmd::Id* neighbor_cell, rbmd::Id neighbor_cell_num,
+//     rbmd::Id* should_realloc, rbmd::Id* neighbor_cell, rbmd::Id neighbor_cell_num,
 //     bool without_pbc) {
 //   const unsigned int atom_idx =
 //       (blockIdx.x * blockDim.x + threadIdx.x) / warpSize;
@@ -189,7 +189,7 @@ __global__ void EstimateHalfNeighborList(
 //       rbmd::Id my_total_neighbor_num = neighbor_num - neighbor_start[atom_idx];
 //       if (my_total_neighbor_num > max_neighbor_num[atom_idx] &&
 //           atom_idx == 816) {
-//         *should_realloc = true;  // TODO atomicOr
+//         atomicOr(should_realloc,RBMD_TRUE);  // TODO atomicOr
 //       }
 //     }
 //   }
@@ -201,7 +201,7 @@ __global__ void GenerateHalfNeighborListNoWarp(
     rbmd::Id total_atom_num, rbmd::Real* px, rbmd::Real* py, rbmd::Real* pz,
     rbmd::Id* max_neighbor_num, rbmd::Id* neighbor_start,
     rbmd::Id* neighbor_end, rbmd::Id* neighbors, Box* d_box,
-    bool* should_realloc, rbmd::Id* neighbor_cell, rbmd::Id neighbor_cell_num,
+    rbmd::Id* should_realloc, rbmd::Id* neighbor_cell, rbmd::Id neighbor_cell_num,
     bool without_pbc) {
   // cutoff2是平方
 
@@ -244,7 +244,7 @@ __global__ void GenerateHalfNeighborListNoWarp(
     neighbor_end[atom_idx] = neighbor_num;
     rbmd::Id my_total_neighbor_num = neighbor_num - neighbor_start[atom_idx];
     if (my_total_neighbor_num > max_neighbor_num[atom_idx]) {
-      *should_realloc = true;
+      atomicOr(should_realloc,RBMD_TRUE);
     }
   }
 }
@@ -286,7 +286,7 @@ void GenerateHalfNeighborListOp<device::DEVICE_GPU>::operator()(
     rbmd::Id total_atom_num, rbmd::Real* px, rbmd::Real* py, rbmd::Real* pz,
     rbmd::Id* max_neighbor_num, rbmd::Id* neighbor_start,
     rbmd::Id* neighbor_end, rbmd::Id* neighbors, Box* d_box,
-    bool* should_realloc, rbmd::Id* neighbor_cell, rbmd::Id neighbor_cell_num,
+    rbmd::Id* should_realloc, rbmd::Id* neighbor_cell, rbmd::Id neighbor_cell_num,
     bool without_pbc) {
   // unsigned int threads_per_block = BLOCK_SIZE;
   // unsigned int warps_per_block = threads_per_block / WARP_SIZE;

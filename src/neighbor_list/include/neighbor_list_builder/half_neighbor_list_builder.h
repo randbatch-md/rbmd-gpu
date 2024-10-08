@@ -10,7 +10,7 @@ protected:
 
   void EstimateNeighborsList() override;
 
-  bool GenerateNeighborsList() override;
+  rbmd::Id GenerateNeighborsList() override;
 
   bool _without_pbc = false;
 

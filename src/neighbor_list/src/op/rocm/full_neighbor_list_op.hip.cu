@@ -129,7 +129,7 @@ __global__ void GenerateFullNeighborList(
     rbmd::Id total_atom_num, rbmd::Real* px, rbmd::Real* py, rbmd::Real* pz,
     rbmd::Id* max_neighbor_num, rbmd::Id* neighbor_start,
     rbmd::Id* neighbor_end, rbmd::Id* neighbors, Box* d_box,
-    bool* should_realloc, rbmd::Id* neighbor_cell, rbmd::Id neighbor_cell_num) {
+    rbmd::Id* should_realloc, rbmd::Id* neighbor_cell, rbmd::Id neighbor_cell_num) {
   const unsigned int atom_idx =
       (blockIdx.x * blockDim.x + threadIdx.x) / warpSize;
   const unsigned int lane_id =
@@ -181,7 +181,7 @@ __global__ void GenerateFullNeighborList(
       neighbor_end[atom_idx] = neighbor_num;
       rbmd::Id my_total_neighbor_num = neighbor_num - neighbor_start[atom_idx];
       if (my_total_neighbor_num > max_neighbor_num[atom_idx]) {
-        *should_realloc = true;
+        atomicOr(should_realloc,RBMD_TRUE);
       }
     }
   }
@@ -232,7 +232,7 @@ void GenerateFullNeighborListOp<device::DEVICE_GPU>::operator()(
     rbmd::Id total_atom_num, rbmd::Real* px, rbmd::Real* py, rbmd::Real* pz,
     rbmd::Id* max_neighbor_num, rbmd::Id* neighbor_start,
     rbmd::Id* neighbor_end, rbmd::Id* neighbors, Box* d_box,
-    bool* should_realloc, rbmd::Id* neighbor_cell, rbmd::Id neighbor_cell_num) {
+    rbmd::Id* should_realloc, rbmd::Id* neighbor_cell, rbmd::Id neighbor_cell_num) {
   unsigned int threads_per_block = BLOCK_SIZE;
   unsigned int warps_per_block = threads_per_block / WARP_SIZE;
   unsigned int blocks_per_grid =

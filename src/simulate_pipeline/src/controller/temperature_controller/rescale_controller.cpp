@@ -79,9 +79,9 @@ void RescaleController::ComputeTemp()
   std::cout << "_temp=" << _temp << std::endl;
 
   //out
-  std::ofstream outfile("temp.txt", std::ios::app);
-  outfile << test_current_step << " " << _temp << std::endl;
-  outfile.close();
+  // std::ofstream outfile("temp.txt", std::ios::app);
+  // outfile << test_current_step << " " << _temp << std::endl;
+  // outfile.close();
 }
 
 void RescaleController::UpdataVelocity() {

@@ -23,16 +23,16 @@ class BaseNeighborListBuilder : public Object {
 
   virtual void EstimateNeighborsList() = 0;
 
-  virtual bool GenerateNeighborsList() = 0;
+  virtual rbmd::Id GenerateNeighborsList() = 0;
 
   void ReductionSum(rbmd::Id* d_src_array, rbmd::Id* d_dst, rbmd::Id size);
 
   void InitNeighborListIndices();
 
   rbmd::Id _neighbor_cell_num = 0;
-  bool should_realloc = true;
+  rbmd::Id should_realloc = RBMD_TRUE;
   Box* _d_box;   // TODO 可能不太适合 待重构
-  bool* _d_should_realloc;
+  rbmd::Id* _d_should_realloc;
   rbmd::Real _trunc_distance_power_2 = 0;  //生成邻居的截断距离平方 通常为cutoff平方，rbl时为rcore平方
 
 };
