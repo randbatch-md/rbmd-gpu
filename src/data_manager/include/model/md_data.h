@@ -10,6 +10,7 @@
 #include "structure_data/atoms_structure_data.h"
 #include "structure_data/charge_structure_data.h"
 #include "structure_data/full_structure_data.h"
+#include "structure_data/basic_structure_data.h"
 #include "structure_data/structure_data.h"
 #include "structure_info_data.h"
 
@@ -19,7 +20,7 @@ class MDData : public Object {
    * @brief constructor
    */
   MDData() {
-    _structure_data = std::make_shared<AtomsStructureData>();
+    _structure_data = std::make_shared<ChargeStructureData>();
     _structure_info_data = std::make_shared<StructureInfoData>();
     _force_field_data = std::make_shared<LJForceFieldData>();
     _h_box = std::make_shared<Box>();

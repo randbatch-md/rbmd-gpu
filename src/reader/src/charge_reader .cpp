@@ -24,7 +24,7 @@
 //	try
 //	{
 //		auto& num_atoms = _md_data._structure_info_data->_num_atoms;
-//		//read position
+//		read position
 //		for (; _locate < _file_size; ++_locate)
 //		{
 //			if (_mapped_memory[_locate] == '\n')
@@ -47,7 +47,7 @@
 //	}
 //	catch (const std::exception& e)
 //	{
-//		//log
+//		log
 //		return -1;
 //	}
 //
@@ -100,7 +100,7 @@
 //	}
 //	catch (const std::exception& e)
 //	{
-//		//log
+//		log
 //		return -1;
 //	}
 //
@@ -134,7 +134,7 @@
 //	}
 //	catch (const std::exception& e)
 //	{
-//		//log
+//		log
 //		return -1;
 //	}
 //
