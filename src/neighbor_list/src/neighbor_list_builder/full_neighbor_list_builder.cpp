@@ -37,7 +37,6 @@ std::shared_ptr<NeighborList> FullNeighborListBuilder::Build() {
   // 索引没有问题
   if (GenerateNeighborsList()) {
     this->EstimateNeighborsList();
-  } else {
     GenerateNeighborsList();
   }
   return _neighbor_list;

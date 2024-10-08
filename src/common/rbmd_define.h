@@ -18,10 +18,11 @@
 #define BLOCK_SIZE (256)
 #define MAX_GPU_STREAMS (6)
 #ifdef AMD_CUDA
-#define MIN_NBNUM   (96)  /// CUDA AMD6800xt 96 DCU 128   TODO kernel us it  can use warpSize?
-#define WARP_SIZE (32) /// CUDA AMD6800xt 32  DCU 64   TODO
+#define MIN_NBNUM \
+  (96)  /// CUDA AMD6800xt 96 DCU 128   TODO kernel us it  can use warpSize?
+#define WARP_SIZE (32)  /// CUDA AMD6800xt 32  DCU 64   TODO
 #else
-#define MIN_NBNUM   (128)
+#define MIN_NBNUM (128)
 #define WARP_SIZE (64)
 #endif
 #if USE_DOUBLE
@@ -30,12 +31,18 @@ typedef double3 Real3;
 #define POW pow
 #define CEIL ceil
 #define FLOOR floor
+#define SQRT sqrt
+#define ERF erf
+#define EXP exp
 #else
 typedef float3 Real3;
 #define make_Real3 make_float3
 #define POW powf
 #define CEIL ceilf
 #define FLOOR floorf
+#define SQRT sqrtf
+#define ERF erff
+#define EXP expf
 #endif
 
 #if USE_64BIT_IDS
