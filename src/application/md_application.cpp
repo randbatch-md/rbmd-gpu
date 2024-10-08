@@ -6,7 +6,7 @@
 #include <memory>
 
 #include "../simulate_pipeline/include/nve_ensemble.h"
-#include "../simulate_pipeline/include/nvp_ensemble.h"
+#include "../simulate_pipeline/include/npt_ensemble.h"
 #include "../simulate_pipeline/include/nvt_ensemble.h"
 #include "executioner.h"
 #include "lj_memory_scheduler.h"
@@ -87,7 +87,7 @@ void MDApplication::AddSimulate()
 		}
 		else if ("NVP" == type)
 		{
-			ensemble = std::make_shared<NVPensemble>();
+			ensemble = std::make_shared<NPTensemble>();
 		}
 		else if ("NVE" == type)
 		{

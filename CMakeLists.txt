@@ -112,7 +112,7 @@ target_link_libraries(${PROJECT_NAME} PUBLIC ${LIBRARY_NAMES} PkgConfig::JSONCPP
 
 #./src/ensemble/MDensemble.cpp
 #./src/ensemble/NVEensemble.cpp
-#./src/ensemble/NVPensemble.cpp
+#./src/ensemble/NPTensemble.cpp
 #./src/ensemble/NVTensemble.cpp
 #./src/controller/position_controller/default_position_controller.cpp
 #./src/controller/velocity_controller/default_velocity_controller.cpp
