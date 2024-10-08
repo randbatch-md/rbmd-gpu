@@ -17,8 +17,14 @@
 #define BLOCK_SIZE (256)
 #define MAX_GPU_STREAMS (6)
 
-#define MIN_NBNUM (96) /// CUDA AMD6800xt 96 DCU 128   TODO kernel us it  can use warpSize?
-#define WARP_SIZE 32  /// CUDA AMD6800xt 32  DCU 64   TODO
+#ifndef TARGET_DCU
+#define MIN_NBNUM \
+(96)  /// CUDA AMD6800xt 96 DCU 128   TODO kernel us it  can use warpSize?
+#define WARP_SIZE (32)  /// CUDA AMD6800xt 32  DCU 64   TODO
+#else
+#define MIN_NBNUM (128)
+#define WARP_SIZE (64)
+#endif
 
 #if USE_DOUBLE
 typedef double3 Real3;
