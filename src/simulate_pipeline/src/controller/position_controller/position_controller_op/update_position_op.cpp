@@ -1,9 +1,9 @@
-//#include "update_velocity_op.h"
-//#include "device_types.h"
-//#include<iostream>
+// #include "update_velocity_op.h"
+// #include "device_types.h"
+// #include<iostream>
 //
-//namespace op
-//{		
+// namespace op
+//{
 //	struct UpdateVelocityOp<device::DEVICE_CPU>
 //	{
 //		void operator()(const rbmd::Real& dt,
@@ -25,7 +25,7 @@
 //			}
 //		}
 //	};
-//	
+//
 //	template struct UpdateVelocityOp<device::DEVICE_CPU>;
 //	template struct UpdateVelocityOp<device::DEVICE_CPU>;
-//}
+// }

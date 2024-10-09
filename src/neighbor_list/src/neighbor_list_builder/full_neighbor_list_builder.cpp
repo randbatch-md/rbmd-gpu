@@ -24,7 +24,8 @@ FullNeighborListBuilder::FullNeighborListBuilder() {
   } else {
     this->FullNeighborListBuilder::ComputeNeighborCells();
   }
-  _trunc_distance_power_2 = _linked_cell->_cutoff * _linked_cell->_cutoff - EPSILON;
+  _trunc_distance_power_2 =
+      _linked_cell->_cutoff * _linked_cell->_cutoff - EPSILON;
 }
 
 std::shared_ptr<NeighborList> FullNeighborListBuilder::Build() {
@@ -38,7 +39,6 @@ std::shared_ptr<NeighborList> FullNeighborListBuilder::Build() {
   // 索引没有问题
   if (GenerateNeighborsList()) {
     this->EstimateNeighborsList();
-  } else {
     GenerateNeighborsList();
   }
   return _neighbor_list;
@@ -108,8 +108,7 @@ bool FullNeighborListBuilder::GenerateNeighborsList() {
       thrust::raw_pointer_cast(_linked_cell->_per_atom_cell_id.data()),
       thrust::raw_pointer_cast(_linked_cell->_in_atom_list_start_index.data()),
       thrust::raw_pointer_cast(_linked_cell->_in_atom_list_end_index.data()),
-      _trunc_distance_power_2,
-      _linked_cell->_total_atoms_num,
+      _trunc_distance_power_2, _linked_cell->_total_atoms_num,
       thrust::raw_pointer_cast(_device_data->_d_px.data()),
       thrust::raw_pointer_cast(_device_data->_d_py.data()),
       thrust::raw_pointer_cast(_device_data->_d_pz.data()),

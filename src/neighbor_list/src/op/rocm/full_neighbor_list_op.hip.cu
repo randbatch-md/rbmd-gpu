@@ -116,7 +116,7 @@ __global__ void EstimateFullNeighborList(
       neighbour_num[atom_idx] = atom_neighbor_num;
       // 线程束对齐
       max_neighbour_num[atom_idx] =
-          MAX(((rbmd::Id)ceil(atom_neighbor_num * SAFE_ZONE) + warpSize - 1) /
+          MAX(((rbmd::Id)CEIL(atom_neighbor_num * SAFE_ZONE) + warpSize - 1) /
                   warpSize * warpSize,
               MIN_NBNUM);
     }
@@ -187,7 +187,6 @@ __global__ void GenerateFullNeighborList(
   }
 }
 
-
 void ComputeFullNeighborsOp<device::DEVICE_GPU>::operator()(
     rbmd::Id* per_dimension_cells, rbmd::Id* neighbor_cell,
     rbmd::Id neighbor_num, rbmd::Id total_cell,
@@ -246,7 +245,6 @@ void GenerateFullNeighborListOp<device::DEVICE_GPU>::operator()(
           cutoff_2, total_atom_num, px, py, pz, max_neighbor_num,
           neighbor_start, neighbor_end, neighbors, d_box, should_realloc,
           neighbor_cell, neighbor_cell_num));
+}
 
-  }
-
-} // namespace op
+}  // namespace op

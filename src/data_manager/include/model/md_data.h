@@ -8,9 +8,9 @@
 #include "force_field/force_field_data.h"
 #include "force_field/lj_force_field_data.h"
 #include "structure_data/atoms_structure_data.h"
+#include "structure_data/basic_structure_data.h"
 #include "structure_data/charge_structure_data.h"
 #include "structure_data/full_structure_data.h"
-#include "structure_data/basic_structure_data.h"
 #include "structure_data/structure_data.h"
 #include "structure_info_data.h"
 

@@ -1,8 +1,8 @@
 ﻿#pragma once
 #include <thrust/device_vector.h>
 
-#include "box.h"
 #include "../common/types.h"
+#include "box.h"
 
 class DeviceData {
  public:
@@ -92,15 +92,12 @@ class DeviceData {
   thrust::device_vector<rbmd::Real> _d_virial_xy;
   thrust::device_vector<rbmd::Real> _d_virial_xz;
   thrust::device_vector<rbmd::Real> _d_virial_yz;
-  //	
+  //
   thrust::device_vector<rbmd::Real> _d_evdwl;
 
   thrust::device_vector<rbmd::Real> _d_charge;
-  
 
   // box in device
   Box* _d_box;
-  ~DeviceData() {
-    CHECK_RUNTIME(FREE(_d_box));
-  }
+  ~DeviceData() { CHECK_RUNTIME(FREE(_d_box)); }
 };

@@ -5,22 +5,20 @@
 #include "linked_cell.h"
 
 class LinkedCellLocator {
-public:
+ public:
   LinkedCellLocator(const LinkedCellLocator &) = delete;
 
   LinkedCellLocator &operator=(const LinkedCellLocator &) = delete;
-private:
-  LinkedCellLocator() {
-  }
+
+ private:
+  LinkedCellLocator() {}
 
   ~LinkedCellLocator() = default;
 
-
   std::shared_ptr<LinkedCell> _linked_cell = nullptr;
-public:
+
+ public:
   static LinkedCellLocator &GetInstance();
 
   std::shared_ptr<LinkedCell> GetLinkedCell();
-
 };
-

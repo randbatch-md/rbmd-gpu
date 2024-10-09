@@ -1,11 +1,10 @@
 #pragma once
 #include <vector>
-#include "../common/types.h"
+
 #include "../common/object.h"
+#include "../common/types.h"
 
-class ForceFieldData : public Object
-{
-public:
-	virtual bool checkForceField() const = 0;
-
+class ForceFieldData : public Object {
+ public:
+  virtual bool checkForceField() const = 0;
 };

@@ -12,7 +12,7 @@
 
 NeighborList::NeighborList(rbmd::Id total_atoms_num, bool is_half) {
   CHECK_RUNTIME(
-      MALLOCHOST(reinterpret_cast<void **>(&(this->_h_is_half)), sizeof(bool)));
+      MALLOCHOST(reinterpret_cast<void**>(&(this->_h_is_half)), sizeof(bool)));
   *(this->_h_is_half) = is_half;
   this->_d_neighbor_num.resize(total_atoms_num);
   this->_d_max_neighbor_num.resize(total_atoms_num);
@@ -24,8 +24,10 @@ NeighborList::NeighborList(rbmd::Id total_atoms_num, bool is_half) {
 
 void NeighborList::print(const std::string& filename) {
   // 准备需要的数据，假设这些是你已经准备好的数据
-  thrust::host_vector<rbmd::Id> atomid2idx = LinkedCellLocator::GetInstance().GetLinkedCell()->_atom_id_to_idx;
-  thrust::host_vector<rbmd::Id> atoms_id = DataManager::getInstance().getDeviceData()->_d_atoms_id;
+  thrust::host_vector<rbmd::Id> atomid2idx =
+      LinkedCellLocator::GetInstance().GetLinkedCell()->_atom_id_to_idx;
+  thrust::host_vector<rbmd::Id> atoms_id =
+      DataManager::getInstance().getDeviceData()->_d_atoms_id;
   thrust::host_vector<rbmd::Id> start_idx = _start_idx;
   thrust::host_vector<rbmd::Id> end_idx = _end_idx;
   thrust::host_vector<rbmd::Id> _neighbors = _d_neighbors;
@@ -70,10 +72,10 @@ void NeighborList::print(const std::string& filename) {
       }
 
       if (i != atomid2idx.size() - 1) {
-        outFile << ","; // 逗号分隔符
+        outFile << ",";  // 逗号分隔符
       }
     }
-    outFile << std::endl; // 行结束
+    outFile << std::endl;  // 行结束
   }
 
   // 关闭文件流
