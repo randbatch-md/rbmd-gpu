@@ -1,9 +1,11 @@
 #pragma once
 
-#ifdef (__CUDACC__)
+#ifdef __CUDACC__
     #include <cuda_runtime.h>
     #include <cuda_runtime_api.h>
-#elif defined (__HIPCC__)
+    #include <thrust/device_vector.h>
+    #include <cub/cub.cuh>
+#elif defined __HIPCC__
     #include <hip/hip_runtime.h>
     #include <hip/hip_runtime_api.h>
     #include <thrust/device_vector.h>
