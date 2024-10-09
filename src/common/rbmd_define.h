@@ -1,12 +1,12 @@
 #pragma once
 
-#if defined(__CUDACC__)
+#if defined(__CUDA)
     #include <cuda_runtime.h>
     #include <cuda_runtime_api.h>
     #include <thrust/device_vector.h>
     #include <cub/cub.cuh>
     #error "test cuda"
-#elif defined (__HIPCC__)
+#elif defined (__ROCM)
     #include <hip/hip_runtime.h>
     #include <hip/hip_runtime_api.h>
     #include <thrust/device_vector.h>

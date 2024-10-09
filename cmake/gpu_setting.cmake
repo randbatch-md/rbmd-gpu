@@ -5,6 +5,8 @@ if(USE_CUDA)
 	else()
 		message(FATAL_ERROR "CUDA is not available. Please install a CUDA toolkit.")
 	endif()
+
+	add_compile_definitions(__CUDA)
 endif()
 
 
@@ -34,6 +36,7 @@ if(USE_ROCM)
 	else()
 	  message(FATAL_ERROR "Could not find HIP.")
 	endif()
+	add_compile_definitions(__ROCM)
 
 	include_directories(${HIP_INCLUDE_DIRS})
 	link_directories(${HIP_LIBRARIES})
