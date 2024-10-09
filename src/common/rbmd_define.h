@@ -1,9 +1,17 @@
 #pragma once
-#include <hip/hip_runtime.h>
-#include <hip/hip_runtime_api.h>
-#include <thrust/device_vector.h>
 
-#include <hipcub/hipcub.hpp>
+#ifdef (__CUDACC__)
+    #include <cuda_runtime.h>
+    #include <cuda_runtime_api.h>
+#elif defined (__HIPCC__)
+    #include <hip/hip_runtime.h>
+    #include <hip/hip_runtime_api.h>
+    #include <thrust/device_vector.h>
+    #include <hipcub/hipcub.hpp>
+#else
+     #error "This code must be compiled with either HIP or CUDA."
+#endif
+
 
 #include "types.h"
 #if USE_DOUBLE
