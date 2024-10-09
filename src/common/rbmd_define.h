@@ -100,15 +100,28 @@ typedef int3 Int3;
 #error "Please provide a definition for ALIGN macro for your host compiler!"
 #endif
 
-#define MALLOC hipMalloc
-#define MALLOCHOST hipHostMalloc
-#define MEMCPY hipMemcpy
-#define H2D hipMemcpyHostToDevice
-#define H2H hipMemcpyHostToHost
-#define D2H hipMemcpyDeviceToHost
-#define D2D hipMemcpyDeviceToDevice
-#define FREE hipFree
-#define MEMSET hipMemset
+#ifdef (__CUDACC__)
+    #define MALLOC cudaMalloc
+    #define MALLOCHOST cudaHostMalloc
+    #define MEMCPY cudaMemcpy
+    #define H2D cudaMemcpyHostToDevice
+    #define H2H cudaMemcpyHostToHost
+    #define D2H cudaMemcpyDeviceToHost
+    #define D2D cudaMemcpyDeviceToDevice
+    #define FREE cudaFree
+    #define MEMSET cudaMemset
+#elif defined (__HIPCC__)
+    #define MALLOC hipMalloc
+    #define MALLOCHOST hipHostMalloc
+    #define MEMCPY hipMemcpy
+    #define H2D hipMemcpyHostToDevice
+    #define H2H hipMemcpyHostToHost
+    #define D2H hipMemcpyDeviceToHost
+    #define D2D hipMemcpyDeviceToDevice
+    #define FREE hipFree
+    #define MEMSET hipMemset
+#endif
+
 
 template <typename T>
 static T *raw_ptr(thrust::device_vector<T> &vec) {
