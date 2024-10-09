@@ -1,11 +1,9 @@
 if(USE_CUDA)
-	find_package(CUDA REQUIRED)
-	if(CUDA_FOUND)
-		message("CUDA verson: ${CUDA_VERSION}")
-		message("CUDA include directories: ${CUDA_INCLUDE_DIRS}")
-		message("CUDA libraries: ${CUDA_LIBRARIES}")
-
-		enable_language(CUDA)
+	enable_language(CUDA)
+	if(CMAKE_CUDA_COMPILER)
+		message(STATUS "CUDA is enabled. CUDA compiler is: ${CMAKE_CUDA_COMPILER}")
+	else()
+		message(FATAL_ERROR "CUDA is not available. Please install a CUDA toolkit.")
 	endif()
 endif()
 
