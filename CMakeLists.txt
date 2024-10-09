@@ -33,7 +33,9 @@ set(src
 ./src/application/application.cpp
 ./src/application/md_application.cpp
 ./src/parser/command_line.cpp
-./src/common/unit_factor.cpp)
+./src/common/unit_factor.cpp
+		src/force/include/lj_coul_ewald_force.h
+		src/force/src/lj_coul_ewald_force.cpp)
 
 include_directories("${CMAKE_CURRENT_LIST_DIR}/src")
 include_directories("${CMAKE_CURRENT_LIST_DIR}/src/Utilities")

@@ -23,7 +23,7 @@ LJForce::LJForce()
 
 LJForce::~LJForce()
 {
-    CHECK_RUNTIME(FREE(_d_total_evdwl));
+  CHECK_RUNTIME(FREE(_d_total_evdwl));
 }
 
 void LJForce::Init() 
@@ -176,83 +176,4 @@ void LJForce::Execute()
   }
 }
 
-void LJForce::ComputeChargeStructureFactorEwald(
-    Box* box,
-    rbmd::Id num_atoms,
-    rbmd::Id Kmax, 
-    rbmd::Real* value_Re_array,
-    rbmd::Real* value_Im_array)
-{
-    thrust::device_vector<rbmd::Real> density_real(num_atoms);
-    thrust::device_vector<rbmd::Real> density_imag(num_atoms);
-  
-    thrust::fill(density_real.begin(), density_real.end(), 0.0f);
-    thrust::fill(density_imag.begin(), density_imag.end(), 0.0f);
-    
-    rbmd::Id total_elements = (2 * Kmax + 1) * (2 * Kmax + 1) * (2 * Kmax + 1) - 1;
-
-    rbmd::Id index = 0;
-    for (rbmd::Id i = -Kmax; i <= Kmax; i++)
-    {
-        for (rbmd::Id j = -Kmax; j <= Kmax; j++)
-        {
-            for (rbmd::Id k = -Kmax; k <= Kmax; k++)
-            {
-                if (!(i == 0 && j == 0 && k == 0))
-                {
-                    float3 K = make_float3(2.0 * M_PI * i / box->_length[0],
-                                           2.0 * M_PI * j / box->_length[1],
-                                           2.0 * M_PI * k / box->_length[2]);
-
-                    op::ComputeChargeStructureFactorComponentOp<device::DEVICE_GPU> charge_structure_factor_op;
-                    charge_structure_factor_op(num_atoms, K,
-                        thrust::raw_pointer_cast(_device_data->_d_px.data()),
-                        thrust::raw_pointer_cast(_device_data->_d_py.data()),
-                        thrust::raw_pointer_cast(_device_data->_d_pz.data()),
-                        thrust::raw_pointer_cast(_device_data->_d_charge.data()),
-                        thrust::raw_pointer_cast(density_real.data()),
-                        thrust::raw_pointer_cast(density_imag.data()));
-
-                    rbmd::Real value_Re = thrust::reduce(density_real.begin(), density_real.end(), 0.0f, thrust::plus<rbmd::Real>());
-                    rbmd::Real value_Im = thrust::reduce(density_imag.begin(), density_imag.end(), 0.0f, thrust::plus<rbmd::Real>());
-
-                    value_Re_array[index] = value_Re;
-                    value_Im_array[index] = value_Im;
-                    index++; // 增加索引
-                }
-            }
-        }
-    }
-}
-
-void LJForce::ComputeEwladForce() 
-{
-    rbmd::Id  Kmax = 2;
-    rbmd::Real  alpha = 0.01;
-    rbmd::Real* value_Re_array;
-    rbmd::Real* value_Im_array;
-    rbmd::Id total_K_elements = (2 * Kmax + 1) * (2 * Kmax + 1) * (2 * Kmax + 1) - 1;
-
-    CHECK_RUNTIME(MALLOC(&value_Re_array, total_K_elements * sizeof(rbmd::Real)));
-    CHECK_RUNTIME(MALLOC(&value_Im_array, total_K_elements * sizeof(rbmd::Real)));
-
-
-    ComputeChargeStructureFactorEwald(_device_data->_d_box, _num_atoms, Kmax, value_Re_array, value_Im_array);
-
-    op::ComputeEwaldForceOp<device::DEVICE_GPU> ewlad_force_op;
-    ewlad_force_op(_device_data->_d_box,_num_atoms, Kmax, alpha,
-        value_Re_array,
-        value_Im_array,
-        thrust::raw_pointer_cast(_device_data->_d_charge.data()),
-        thrust::raw_pointer_cast(_device_data->_d_px.data()),
-        thrust::raw_pointer_cast(_device_data->_d_py.data()),
-        thrust::raw_pointer_cast(_device_data->_d_pz.data()),
-        thrust::raw_pointer_cast(_device_data->_d_force_ewald_x.data()),
-        thrust::raw_pointer_cast(_device_data->_d_force_ewald_y.data()),
-        thrust::raw_pointer_cast(_device_data->_d_force_ewald_z.data()));
-
-    CHECK_RUNTIME(FREE(value_Re_array));
-    CHECK_RUNTIME(FREE(value_Im_array));
-
-}
 

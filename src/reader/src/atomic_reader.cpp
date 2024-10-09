@@ -116,7 +116,7 @@ int AtomicReader::ReadAtoms(const rbmd::Id& atoms_num)
 					auto index = atom_id - 1;
 					ids[index] = atom_id - 1;
 					iss >> atom_type;
-				    types[index]= atom_type-1;
+				        types[index]= atom_type-1;
 					iss >> _md_data._structure_data->_h_px[index] >> _md_data._structure_data->_h_py[index] >>_md_data._structure_data->_h_pz[index];
 					++num;
 					//std::cout << atom_id << " " << types[index] << " " << _md_data._structure_data->_h_px[index] << " " << _md_data._structure_data->_h_py[index] << " " << _md_data._structure_data->_h_pz[index] << std::endl;
@@ -137,11 +137,12 @@ int AtomicReader::ReadAtoms(const rbmd::Id& atoms_num)
 				std::istringstream iss(line);
 				if (rbmd::IsLegalLine(line))
 				{
-					iss >> atom_id;
-					auto index = atom_id - 1;
-					ids[index] = atom_id;
-					iss >> types[index] >> data->_h_charge[index];
-					iss >> data->_h_px[index] >> data->_h_py[index] >> data->_h_pz[index];
+				        iss >> atom_id;
+				        auto index = atom_id - 1;
+				        ids[index] = atom_id - 1;
+				        iss >> atom_type;
+				        types[index]= atom_type-1;
+					iss >> data->_h_charge[index] >> data->_h_px[index] >> data->_h_py[index] >> data->_h_pz[index];
 					++num;
 					//std::cout << atom_id << " " << types[index] << " " << data->_h_charge[index]  << " " << data->_h_px[index] << " " << data->_h_py[index] << " " << data->_h_pz[index] << std::endl;
 				}

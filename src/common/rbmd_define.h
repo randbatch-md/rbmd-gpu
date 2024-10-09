@@ -19,6 +19,10 @@
 #define BLOCK_SIZE (256)
 #define MAX_GPU_STREAMS (6)
 
+//math
+#define SMALL_VALUE (0.0001)
+#define MY_SQRT_PI 1.77245385090551602729   //sqrt(pi)
+
 #define MIN_NBNUM (128)  /// CUDA AMD6800xt 96 DCU 128   TODO
 #define WARP_SIZE 64     /// CUDA AMD6800xt 32  DCU 64   TODO
 

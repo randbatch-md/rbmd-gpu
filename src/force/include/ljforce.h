@@ -12,14 +12,6 @@ public:
 
 	void Init() override;
 	void  Execute() override;
-	void  ComputeChargeStructureFactorEwald(
-		Box* box, 
-		rbmd::Id _num_atoms,
-		rbmd::Id Kmax, 
-		rbmd::Real* value_Re_array,
-		rbmd::Real* value_Im_array);
-
-	void ComputeEwladForce();
 
 private:
 	rbmd::Id _num_atoms;

@@ -36,6 +36,9 @@ public:
 	rbmd::Real* _h_fy;
 	rbmd::Real* _h_fz;
 
-		//
-   rbmd::Real* _h_evdwl;
+        //
+        //rbmd::Real* _h_charge;
+	//
+        rbmd::Real* _h_evdwl;
+
 };

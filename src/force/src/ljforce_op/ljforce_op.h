@@ -115,33 +115,33 @@ namespace op
 	};
 
         template <typename DEVICE>
-        struct LJCoulCutForceOp
+        struct LJCutCoulForceOp
         {
           void operator()(Box* box,
-                          const rbmd::Real cut_off,
-                          const rbmd::Id num_atoms,
-                          const rbmd::Real alpha,
-                          const rbmd::Real qqr2e,
-                          const rbmd::Id* atoms_type,
-                          const rbmd::Id* molecular_type,
-                          const rbmd::Real* sigma,
-                          const rbmd::Real* eps,
-                          const rbmd::Id* start_id,
-                          const rbmd::Id* end_id,
-                          const rbmd::Id* id_verletlist,
-                          const rbmd::Real* charge,
-                          const rbmd::Real* px,
-                          const rbmd::Real* py,
-                          const rbmd::Real* pz,
-                          rbmd::Real* fx,
-                          rbmd::Real* fy,
-                          rbmd::Real* fz,
-                          rbmd::Real* total_evdwl,
-                          rbmd::Real* total_ecoul);
+            const rbmd::Real cut_off,
+            const rbmd::Id num_atoms,
+            const rbmd::Real alpha,
+            const rbmd::Real qqr2e,
+            const rbmd::Id* atoms_type,
+            const rbmd::Id* molecular_type,
+            const rbmd::Real* sigma,
+            const rbmd::Real* eps,
+            const rbmd::Id* start_id,
+            const rbmd::Id* end_id,
+            const rbmd::Id* id_verletlist,
+            const rbmd::Real* charge,
+            const rbmd::Real* px,
+            const rbmd::Real* py,
+            const rbmd::Real* pz,
+            rbmd::Real* fx,
+            rbmd::Real* fy,
+            rbmd::Real* fz,
+            rbmd::Real* total_evdwl,
+            rbmd::Real* total_ecoul);
         };
 
 	template <typename DEVICE>
-	struct ComputeChargeStructureFactorComponentOp
+	struct ComputeChargeStructureFactorOp
 	{
 		void operator()(
 			const rbmd::Id num_atoms,
@@ -173,6 +173,22 @@ namespace op
                         rbmd::Real* fz);
 	};
 
+       template<typename DEVICE>
+       struct SqchargeOp
+        {
+         void operator()(
+           const rbmd::Id num_atoms,
+           const rbmd::Real* charge,
+           rbmd::Real* sq_charge);
+       };
+
+
+
+
+
+
+
+        // // // // // // // // // // // // // // // // // // //
         template <>
         struct LJForceOp<device::DEVICE_GPU>
         {
@@ -282,34 +298,34 @@ namespace op
 	};
 
         template <>
-        struct LJCoulCutForceOp<device::DEVICE_GPU>
+        struct LJCutCoulForceOp<device::DEVICE_GPU>
         {
           void operator()(Box* box,
-                          const rbmd::Real cut_off,
-                          const rbmd::Id num_atoms,
-                          const rbmd::Real alpha,
-                          const rbmd::Real qqr2e,
-                          const rbmd::Id* atoms_type,
-                          const rbmd::Id* molecular_type,
-                          const rbmd::Real* sigma,
-                          const rbmd::Real* eps,
-                          const rbmd::Id* start_id,
-                          const rbmd::Id* end_id,
-                          const rbmd::Id* id_verletlist,
-                          const rbmd::Real* charge,
-                          const rbmd::Real* px,
-                          const rbmd::Real* py,
-                          const rbmd::Real* pz,
-                          rbmd::Real* fx,
-                          rbmd::Real* fy,
-                          rbmd::Real* fz,
-                          rbmd::Real* total_evdwl,
-                          rbmd::Real* total_ecoul);
+            const rbmd::Real cut_off,
+            const rbmd::Id num_atoms,
+            const rbmd::Real alpha,
+            const rbmd::Real qqr2e,
+            const rbmd::Id* atoms_type,
+            const rbmd::Id* molecular_type,
+            const rbmd::Real* sigma,
+            const rbmd::Real* eps,
+            const rbmd::Id* start_id,
+            const rbmd::Id* end_id,
+            const rbmd::Id* id_verletlist,
+            const rbmd::Real* charge,
+            const rbmd::Real* px,
+            const rbmd::Real* py,
+            const rbmd::Real* pz,
+            rbmd::Real* fx,
+            rbmd::Real* fy,
+            rbmd::Real* fz,
+            rbmd::Real* total_evdwl,
+            rbmd::Real* total_ecoul);
         };
 
 
 	template <>
-	struct ComputeChargeStructureFactorComponentOp<device::DEVICE_GPU>
+	struct ComputeChargeStructureFactorOp<device::DEVICE_GPU>
 	{
 		void operator()(
 			const rbmd::Id num_atoms,
@@ -340,6 +356,15 @@ namespace op
                         rbmd::Real* fy,
                         rbmd::Real* fz);
 	};
+
+        template<>
+        struct SqchargeOp<device::DEVICE_GPU>
+        {
+          void operator()(
+            const rbmd::Id num_atoms,
+            const rbmd::Real* charge,
+            rbmd::Real* sq_charge);
+        };
 
 
 

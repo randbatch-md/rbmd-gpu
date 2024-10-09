@@ -3,6 +3,7 @@
 #include "default_velocity_controller.h"
 #include "shake_controller.h"
 #include "ljforce.h"
+#include "lj_coul_ewald_force.h"
 #include "rescale_controller.h"
 #include "berendsen_controller.h"
 #include "nose_hoover_controller.h"
@@ -12,7 +13,7 @@ NVTensemble::NVTensemble()
 {
 	_position_controller = std::make_shared<DefaultPositionController>(); 
 	_velocity_controller = std::make_shared<DefaultVelocityController>(); 
-	_force_controller = std::make_shared<LJForce>(); // todo �Զ���forcetype =
+	_force_controller = std::make_shared<LJCoulEwaldForce>(); // todo �Զ���forcetype =
 	_temperature_controller = std::make_shared<RescaleController>();
 }
 
@@ -39,17 +40,17 @@ void NVTensemble::Solve()
 	_velocity_controller->Update();
 
 	_position_controller->Update();
-	
+
 	bool use_shake;
 	if (true == use_shake)
 	{
 		_shake_controller->ShakeA();
 	}
-	
+
 	_force_controller->Execute();
-	
+
 	_velocity_controller->Update();
-	
+
 	if (true == use_shake)
 	{
 		_shake_controller->ShakeB();

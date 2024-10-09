@@ -30,7 +30,10 @@ bool MemoryScheduler::asyncMemoryH2D() {
   auto& h_fy = _structure_data->_h_fy;
   auto& h_fz = _structure_data->_h_fz;
 
-  	//
+  //
+  ChargeStructureData* charge_data = dynamic_cast<ChargeStructureData*>(_structure_data.get());
+  auto& h_charge = charge_data->_h_charge;
+
   auto& h_evdwl= _structure_data->_h_evdwl;
 
   auto& h_atoms_id = _structure_data->_h_atoms_id;
@@ -62,6 +65,12 @@ bool MemoryScheduler::asyncMemoryH2D() {
   thrust::copy(h_vy, h_vy + num_atoms, _device_data->_d_vy.begin());
   thrust::copy(h_vz, h_vz + num_atoms, _device_data->_d_vz.begin());
 
+
+
+  // cpoy charge
+  _device_data->_d_charge.resize(num_atoms);
+  thrust::copy(h_charge, h_charge + num_atoms, _device_data->_d_charge.begin());
+
   /// cpoy force
   _device_data->_d_fx.resize(num_atoms);
   _device_data->_d_fy.resize(num_atoms);
@@ -69,6 +78,10 @@ bool MemoryScheduler::asyncMemoryH2D() {
    // thrust::copy(h_fx, h_fx + num_atoms, _device_data->_d_fx.begin());
    // thrust::copy(h_fy, h_fy + num_atoms, _device_data->_d_fy.begin());
    // thrust::copy(h_fz, h_fz + num_atoms, _device_data->_d_fz.begin());
+
+  _device_data->_d_force_ljcoul_x.resize(num_atoms);
+  _device_data->_d_force_ljcoul_y.resize(num_atoms);
+  _device_data->_d_force_ljcoul_z.resize(num_atoms);
 
   _device_data->_d_force_ewald_x.resize(num_atoms);
   _device_data->_d_force_ewald_y.resize(num_atoms);

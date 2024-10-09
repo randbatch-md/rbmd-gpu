@@ -86,6 +86,10 @@ class DeviceData {
   thrust::device_vector<rbmd::Real> _d_fy;
   thrust::device_vector<rbmd::Real> _d_fz;
 
+  thrust::device_vector<rbmd::Real> _d_force_ljcoul_x;
+  thrust::device_vector<rbmd::Real> _d_force_ljcoul_y;
+  thrust::device_vector<rbmd::Real> _d_force_ljcoul_z;
+
   thrust::device_vector<rbmd::Real> _d_force_ewald_x;
   thrust::device_vector<rbmd::Real> _d_force_ewald_y;
   thrust::device_vector<rbmd::Real> _d_force_ewald_z;
