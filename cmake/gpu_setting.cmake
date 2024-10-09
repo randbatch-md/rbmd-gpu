@@ -1,8 +1,12 @@
 if(USE_CUDA)
 	find_package(CUDA REQUIRED)
-	message("CUDA verson: ${CUDA_VERSION}")
-	message("CUDA include directories: ${CUDA_INCLUDE_DIRS}")
-	message("CUDA libraries: ${CUDA_LIBRARIES}")
+	if(CUDA_FOUND)
+		message("CUDA verson: ${CUDA_VERSION}")
+		message("CUDA include directories: ${CUDA_INCLUDE_DIRS}")
+		message("CUDA libraries: ${CUDA_LIBRARIES}")
+
+		enable_language(CUDA)
+	endif()
 endif()
 
 
