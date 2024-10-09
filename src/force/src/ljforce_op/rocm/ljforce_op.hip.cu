@@ -1,5 +1,3 @@
-#include <hip/hip_runtime.h>
-
 #include "../common/rbmd_define.h"
 #include "ljforce_op.h"
 #include "model/box.h"
