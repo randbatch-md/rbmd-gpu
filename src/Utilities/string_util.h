@@ -3,5 +3,5 @@
 #include <string>
 
 namespace rbmd {
-	bool IsLegalLine(const std::string &line);
+bool IsLegalLine(const std::string &line);
 }

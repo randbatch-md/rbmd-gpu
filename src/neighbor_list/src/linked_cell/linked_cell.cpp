@@ -51,8 +51,8 @@ __host__ void LinkedCell::Build(Box* box) {
   this->_cells.resize(_cells_number);
   // update device box
   CHECK_RUNTIME(MEMCPY(DataManager::getInstance().getDeviceData()->_d_box,
-                      DataManager::getInstance().getMDData()->_h_box.get(),
-                      sizeof(Box), H2D));
+                       DataManager::getInstance().getMDData()->_h_box.get(),
+                       sizeof(Box), H2D));
 }
 
 LinkedCellDeviceDataPtr* LinkedCell::GetDataPtr() {
@@ -159,6 +159,6 @@ void LinkedCell::SortAtomsByCellKey() {
 void LinkedCell::AllocDeviceMemory() {
   if (nullptr == this->_linked_cell_device_data_ptr) {
     CHECK_RUNTIME(MALLOC(&(this->_linked_cell_device_data_ptr),
-      sizeof(LinkedCellDeviceDataPtr)));
+                         sizeof(LinkedCellDeviceDataPtr)));
   }
 }

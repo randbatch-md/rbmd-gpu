@@ -31,8 +31,8 @@ class BaseNeighborListBuilder : public Object {
 
   rbmd::Id _neighbor_cell_num = 0;
   bool should_realloc = true;
-  Box* _d_box;   // TODO 可能不太适合 待重构
+  Box* _d_box;  // TODO 可能不太适合 待重构
   bool* _d_should_realloc;
-  rbmd::Real _trunc_distance_power_2 = 0;  //生成邻居的截断距离平方 通常为cutoff平方，rbl时为rcore平方
-
+  rbmd::Real _trunc_distance_power_2 =
+      0;  // 生成邻居的截断距离平方 通常为cutoff平方，rbl时为rcore平方
 };

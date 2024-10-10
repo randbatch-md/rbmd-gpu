@@ -1,10 +1,10 @@
 #pragma once
 #include "ensemble.h"
 
-class NVEensemble : public Ensemble {
+class NPTensemble : public Ensemble {
  public:
-  NVEensemble();
-  virtual ~NVEensemble() = default;
+  NPTensemble();
+  virtual ~NPTensemble() = default;
 
  protected:
   void Init() override;

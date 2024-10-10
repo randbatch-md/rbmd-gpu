@@ -9,9 +9,9 @@ void Box::Init(BoxType box_type, const rbmd::Real coord_min[3],
     this->_length[i] = coord_max[i] - coord_min[i];
     this->_length_inv[i] = 1 / _length[i];
   }
-  this->_length[3] = 0;  //yz
-  this->_length[4] = 0;  //xz
-  this->_length[5] = 0;  //xy
+  this->_length[3] = 0;  // yz
+  this->_length[4] = 0;  // xz
+  this->_length[5] = 0;  // xy
 
   this->_pbc_x = pbc[0];
   this->_pbc_y = pbc[1];

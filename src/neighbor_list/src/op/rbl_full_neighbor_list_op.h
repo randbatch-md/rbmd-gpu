@@ -15,7 +15,7 @@ struct GenerateRblFullNeighborListOp {
                   rbmd::Id* neighbors, rbmd::Id neighbor_sample_num,
                   rbmd::Id* random_neighbors, rbmd::Id* random_neighbors_num,
                   Box* d_box, bool* should_realloc, rbmd::Id* neighbor_cell,
-                  rbmd::Id neighbor_cell_num,rbmd::Id selection_frequency);
+                  rbmd::Id neighbor_cell_num, rbmd::Id selection_frequency);
 };
 
 template <>
@@ -30,7 +30,7 @@ struct GenerateRblFullNeighborListOp<device::DEVICE_GPU> {
                   rbmd::Id* neighbors, rbmd::Id neighbor_sample_num,
                   rbmd::Id* random_neighbors, rbmd::Id* random_neighbors_num,
                   Box* d_box, bool* should_realloc, rbmd::Id* neighbor_cell,
-                  rbmd::Id neighbor_cell_num,rbmd::Id selection_frequency);
+                  rbmd::Id neighbor_cell_num, rbmd::Id selection_frequency);
 };
 
 }  // namespace op

@@ -38,6 +38,9 @@ typedef double2 Real2;
 #define EXP exp
 #define COS cos
 #define SIN sin
+#define ROUND round
+#define LOG log
+#define ABS fabs
 #else
 typedef float3 Real3;
 typedef float2 Real2;
@@ -51,6 +54,10 @@ typedef float2 Real2;
 #define EXP expf
 #define COS cosf
 #define SIN sinf
+#define ROUND roundf
+#define LOG logf
+#define ABS fabsf
+
 #endif
 
 #if USE_64BIT_IDS

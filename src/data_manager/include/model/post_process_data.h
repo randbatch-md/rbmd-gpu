@@ -2,7 +2,4 @@
 
 #include "common/object.h"
 
-class PostProcessData : public Object
-{
-
-};
+class PostProcessData : public Object {};

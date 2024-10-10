@@ -6,6 +6,7 @@
 #include "../../common/rbmd_define.h"
 #include "../../common/types.h"
 #include "ljforce_op/ljforce_op.h"
+#include "../common/RBEPSample.h"
 #include "neighbor_list/include/neighbor_list_builder/half_neighbor_list_builder.h"
 #include "neighbor_list/include/neighbor_list_builder/full_neighbor_list_builder.h"
 #include "neighbor_list/include/neighbor_list_builder/rbl_full_neighbor_list_builder.h"
@@ -17,8 +18,14 @@ LJCoulEwaldForce::LJCoulEwaldForce()
   _rbl_neighbor_list_builder = std::make_shared<RblFullNeighborListBuilder>();
   _neighbor_list_builder = std::make_shared<FullNeighborListBuilder>();
 
+  _RBE_P = 100;
+
   CHECK_RUNTIME(MALLOC(&_d_total_evdwl, sizeof(rbmd::Real)));
   CHECK_RUNTIME(MALLOC(&_d_total_ecoul, sizeof(rbmd::Real)));
+  CHECK_RUNTIME(MALLOC(&_P_Sample_x, _RBE_P * sizeof(rbmd::Real)));
+  CHECK_RUNTIME(MALLOC(&_P_Sample_y, _RBE_P * sizeof(rbmd::Real)));
+  CHECK_RUNTIME(MALLOC(&_P_Sample_z, _RBE_P * sizeof(rbmd::Real)));
+
 
 }
 
@@ -26,6 +33,9 @@ LJCoulEwaldForce::~LJCoulEwaldForce()
 {
   CHECK_RUNTIME(FREE(_d_total_evdwl));
   CHECK_RUNTIME(FREE(_d_total_ecoul));
+  CHECK_RUNTIME(FREE(_P_Sample_x));
+  CHECK_RUNTIME(FREE(_P_Sample_y));
+  CHECK_RUNTIME(FREE(_P_Sample_z));
 
 }
 
@@ -35,6 +45,7 @@ void LJCoulEwaldForce::Init()
     _corr_value_x = 0;
     _corr_value_y = 0;
     _corr_value_z = 0;
+
   //_d_density_real_k.resize(_num_k);
   //_d_density_imag_k.resize(_num_k);
 }
@@ -43,6 +54,7 @@ void LJCoulEwaldForce::Execute()
 {
   ComputeLJCutCoulForce();
   ComputeEwladForce();
+  ComputeRBEForce();
   SumForces();
 }
 
@@ -105,9 +117,9 @@ void LJCoulEwaldForce::ComputeLJCutCoulForce()
   << "average_vdwl_energy:" << ave_evdwl << " ," <<  "average_coul_energy:" << ave_ecoul << std::endl;
 
   //out
-  // std::ofstream outfile("ave_ljcoul.txt", std::ios::app);
-  // outfile << test_current_step << " " << ave_evdwl  << " "<< ave_ecoul << std::endl;
-  // outfile.close();
+  std::ofstream outfile("ave_ljcoul.txt", std::ios::app);
+  outfile << test_current_step << " " << ave_evdwl  << " "<< ave_ecoul << std::endl;
+  outfile.close();
 }
 
 void LJCoulEwaldForce::ComputeChargeStructureFactorEwald(
@@ -187,9 +199,9 @@ void LJCoulEwaldForce::ComputeChargeStructureFactorEwald(
    std::cout << "test_current_step:" << test_current_step <<  " ,"
    << "ave_eewald:" << _ave_eewald << std::endl;
 
-  // std::ofstream outfile("ave_ewald.txt", std::ios::app);
-  // outfile << test_current_step << " "<< _ave_eewald << std::endl;
-  // outfile.close();
+  std::ofstream outfile("ave_ewald.txt", std::ios::app);
+  outfile << test_current_step << " "<< _ave_eewald << std::endl;
+  outfile.close();
 
 }
 
@@ -225,6 +237,35 @@ void LJCoulEwaldForce::ComputeEwladForce()
 
     CHECK_RUNTIME(FREE(value_Re_array));
     CHECK_RUNTIME(FREE(value_Im_array));
+
+}
+
+void LJCoulEwaldForce::RBEInit(rbmd::Real alpha,Box* box)
+{
+  CHECK_RUNTIME(MEMSET(_P_Sample_x, 0, _RBE_P*sizeof(rbmd::Real)));
+  CHECK_RUNTIME(MEMSET(_P_Sample_y, 0, _RBE_P*sizeof(rbmd::Real)));
+  CHECK_RUNTIME(MEMSET(_P_Sample_z, 0, _RBE_P*sizeof(rbmd::Real)));
+
+  Real3 sigma = { rbmd::Real((SQRT(alpha / 2.0) * box->_length[0]/M_PI)),
+                  rbmd::Real((SQRT(alpha / 2.0) * box->_length[1]/M_PI)),
+                  rbmd::Real((SQRT(alpha / 2.0) * box->_length[2]/M_PI))};
+  auto random = true;
+  RBEPSAMPLE rbe_presolve_psample = { alpha, box, _RBE_P, random};
+
+  rbe_presolve_psample.Fetch_P_Sample(0.0, sigma,
+    _P_Sample_x,_P_Sample_y,_P_Sample_z);
+  //
+  // for(int i =0; i<_RBE_P;++i)
+  // {
+  //   std::cout<< i<< " " << _P_Sample_x[i] << " "<<
+  //     _P_Sample_y[i]  << " "<<_P_Sample_z[i] << std::endl;
+  // }
+}
+
+void LJCoulEwaldForce::ComputeRBEForce()
+{
+  rbmd::Real alpha = 0.1;
+  RBEInit(alpha,_device_data->_d_box);
 
 }
 

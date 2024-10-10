@@ -19,8 +19,9 @@ RblFullNeighborListBuilder::RblFullNeighborListBuilder() {
       DataManager::getInstance().getConfigData()->Get<rbmd::Id>(
           "neighbor_sample_num", "hyper_parameters", "neighbor");
   if (_neighbor_sample_num <= 0) {
-    std::cout << "\033[31mError neighbor_sample_num must be large than 0.\033[0m"
-                << std::endl;
+    std::cout
+        << "\033[31mError neighbor_sample_num must be large than 0.\033[0m"
+        << std::endl;
     exit(0);
   }
   _trunc_distance_power_2 = _r_core * _r_core - EPSILON;  // for estimate
@@ -42,23 +43,31 @@ RblFullNeighborListBuilder::RblFullNeighborListBuilder() {
   }
 }
 
-void RblFullNeighborListBuilder::GetRblParams(){
+void RblFullNeighborListBuilder::GetRblParams() {
 #pragma region rbl prarms
-  _system_rho = _linked_cell->_total_atoms_num / CalculateVolume(DataManager::getInstance().getMDData()->_h_box.get());
+  _system_rho =
+      _linked_cell->_total_atoms_num /
+      CalculateVolume(DataManager::getInstance().getMDData()->_h_box.get());
 
   rbmd::Real coeff_rcs = 1.0 + (0.05 / _system_rho - 0.05);
-  rbmd::Id   Id_coeff_rcs =  std::round(coeff_rcs);
-  rbmd::Id rs_num = Id_coeff_rcs * _system_rho * std::ceil(4.0 /3.0 * M_PI * std::pow(_r_core, 3)) + 1 ;
-  rbmd::Id rc_num = Id_coeff_rcs * _system_rho * std::ceil(4.0 / 3.0 * M_PI * std::pow(_linked_cell->_cutoff,3)) + 1 ;
+  rbmd::Id Id_coeff_rcs = std::round(static_cast<double>(coeff_rcs));
+  rbmd::Id rs_num = Id_coeff_rcs * _system_rho *
+                        std::ceil(4.0 / 3.0 * M_PI * std::pow(_r_core, 3)) +
+                    1;
+  rbmd::Id rc_num =
+      Id_coeff_rcs * _system_rho *
+          std::ceil(4.0 / 3.0 * M_PI * std::pow(_linked_cell->_cutoff, 3)) +
+      1;
 
-
-  auto random_rate  = static_cast<rbmd::Real>(_neighbor_sample_num)/static_cast<rbmd::Real>(rc_num-rs_num);
-  _selection_frequency =
-      std::ceil(1.0 / random_rate);   // note：The ceil function rarely samples the desired number of neighbor_sample_num, while the floor function may to some extent affect performance.
+  auto random_rate = static_cast<rbmd::Real>(_neighbor_sample_num) /
+                     static_cast<rbmd::Real>(rc_num - rs_num);
+  _selection_frequency = std::ceil(
+      1.0 / random_rate);  // note：The ceil function rarely samples the desired
+                           // number of neighbor_sample_num, while the floor
+                           // function may to some extent affect performance.
   _neighbor_list->_selection_frequency = this->_selection_frequency;
 #pragma endregion
 }
-
 
 bool RblFullNeighborListBuilder::GenerateNeighborsList() {
   GetRblParams();
@@ -92,4 +101,3 @@ bool RblFullNeighborListBuilder::GenerateNeighborsList() {
       MEMCPY(&(this->should_realloc), _d_should_realloc, sizeof(bool), D2H));
   return this->should_realloc;
 }
-

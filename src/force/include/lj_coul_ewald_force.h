@@ -25,6 +25,8 @@ public:
           rbmd::Real* value_Im_array);
 
   void ComputeEwladForce();
+  void RBEInit(rbmd::Real alpha,Box* box);
+  void ComputeRBEForce();
   void SumForces();
   void ComputeSelfEnergy(
     rbmd::Real alpha,
@@ -49,5 +51,11 @@ private:
   rbmd::Real _ave_self_energy;
   rbmd::Real _ave_eewald;
   rbmd::Id _num_k;
+
+  //
+  rbmd::Id _RBE_P;
+  rbmd::Real* _P_Sample_x;
+  rbmd::Real* _P_Sample_y;
+  rbmd::Real* _P_Sample_z;
 };
 

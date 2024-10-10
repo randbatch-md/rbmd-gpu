@@ -1,31 +1,33 @@
 #pragma once
-#include "model/device_data.h"
-#include "model/structure_info_data.h"
 #include <memory>
-#include "device_types.h"
-#include "model/md_data.h"
+
 #include "data_manager.h"
+#include "device_types.h"
+#include "model/device_data.h"
+#include "model/md_data.h"
+#include "model/structure_info_data.h"
 #include "types.h"
-class TemperatureController
-{
-public:
-	TemperatureController() 
-	:_device_data(DataManager::getInstance().getDeviceData())
-	,_structure_info_data(DataManager::getInstance().getMDData()->_structure_info_data){};
+class TemperatureController {
+ public:
+  TemperatureController()
+      : _device_data(DataManager::getInstance().getDeviceData()),
+        _structure_info_data(
+            DataManager::getInstance().getMDData()->_structure_info_data){};
 
-	virtual ~TemperatureController()=default;
+  virtual ~TemperatureController() = default;
 
-	/**
-	 * @brief Update Temperature
-	*/
-	virtual void Update()=0;
+  /**
+   * @brief Update Temperature
+   */
+  virtual void Update() = 0;
 
-	/**
-	 * @brief Parameters and objects required for initializing the temperature controller
-	*/
-	virtual void Init()=0;
+  /**
+   * @brief Parameters and objects required for initializing the temperature
+   * controller
+   */
+  virtual void Init() = 0;
 
-protected:
-	std::shared_ptr<StructureInfoData> _structure_info_data;
-	std::shared_ptr<DeviceData> _device_data;
+ protected:
+  std::shared_ptr<StructureInfoData> _structure_info_data;
+  std::shared_ptr<DeviceData> _device_data;
 };

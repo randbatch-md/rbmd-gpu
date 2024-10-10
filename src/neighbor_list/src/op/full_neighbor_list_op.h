@@ -1,7 +1,7 @@
 #pragma once
+#include "common/device_types.h"
 #include "common/types.h"
 #include "model/box.h"
-#include "common/device_types.h"
 
 namespace op {
 template <typename DEVICE>
@@ -13,8 +13,8 @@ struct ComputeFullNeighborsOp {
 
 template <typename DEVICE>
 struct ComputeFullNeighborsWithoutPBCOp {
-  void operator()(rbmd::Id* neighbor_cell,
-                  rbmd::Id neighbor_num, rbmd::Id total_cell);
+  void operator()(rbmd::Id* neighbor_cell, rbmd::Id neighbor_num,
+                  rbmd::Id total_cell);
 };
 
 template <typename DEVICE>
@@ -40,8 +40,6 @@ struct GenerateFullNeighborListOp {
                   rbmd::Id* neighbor_cell, rbmd::Id neighbor_cell_num);
 };
 
-
-
 template <>
 struct ComputeFullNeighborsOp<device::DEVICE_GPU> {
   void operator()(rbmd::Id* per_dimension_cells, rbmd::Id* neighbor_cell,
@@ -51,8 +49,8 @@ struct ComputeFullNeighborsOp<device::DEVICE_GPU> {
 
 template <>
 struct ComputeFullNeighborsWithoutPBCOp<device::DEVICE_GPU> {
-  void operator()(rbmd::Id* neighbor_cell,
-                  rbmd::Id neighbor_num, rbmd::Id total_cell);
+  void operator()(rbmd::Id* neighbor_cell, rbmd::Id neighbor_num,
+                  rbmd::Id total_cell);
 };
 
 template <>
@@ -79,7 +77,6 @@ struct GenerateFullNeighborListOp<device::DEVICE_GPU> {
 };
 
 }  // namespace op
-
 
 __host__ __device__ __forceinline__ rbmd::Real CaculateDistance(
     Box* box, rbmd::Real i_x, rbmd::Real i_y, rbmd::Real i_z, rbmd::Real j_x,
