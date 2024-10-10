@@ -5,7 +5,6 @@
     #include <cuda_runtime_api.h>
     #include <thrust/device_vector.h>
     #include <cub/cub.cuh>
-    #error "test cuda"
 #elif defined (__ROCM)
     #include <hip/hip_runtime.h>
     #include <hip/hip_runtime_api.h>
@@ -103,7 +102,7 @@ typedef int3 Int3;
 #error "Please provide a definition for ALIGN macro for your host compiler!"
 #endif
 
-#ifdef (__CUDA)
+#if defined (__CUDA)
     #define MALLOC cudaMalloc
     #define MALLOCHOST cudaHostMalloc
     #define MEMCPY cudaMemcpy
