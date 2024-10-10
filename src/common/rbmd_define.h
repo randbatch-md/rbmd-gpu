@@ -93,7 +93,7 @@ typedef int3 Int3;
 #error "Unsupported compiler"
 #endif
 
-#if defined(__CUDACC__)  // NVCC   //TODO   待验证
+#if defined(__CUDA)  // NVCC   //TODO   待验证
 #define ALIGN(n) __align__(n)
 #elif defined(__GNUC__)  // GCC
 #define ALIGN(n) __attribute__((aligned(n)))
@@ -103,7 +103,7 @@ typedef int3 Int3;
 #error "Please provide a definition for ALIGN macro for your host compiler!"
 #endif
 
-#ifdef (__CUDACC__)
+#ifdef (__CUDA)
     #define MALLOC cudaMalloc
     #define MALLOCHOST cudaHostMalloc
     #define MEMCPY cudaMemcpy
@@ -113,7 +113,7 @@ typedef int3 Int3;
     #define D2D cudaMemcpyDeviceToDevice
     #define FREE cudaFree
     #define MEMSET cudaMemset
-#elif defined (__HIPCC__)
+#elif defined (__ROCM)
     #define MALLOC hipMalloc
     #define MALLOCHOST hipHostMalloc
     #define MEMCPY hipMemcpy
