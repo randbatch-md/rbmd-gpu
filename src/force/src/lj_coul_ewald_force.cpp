@@ -48,6 +48,7 @@ void LJCoulEwaldForce::Init()
 
   //_d_density_real_k.resize(_num_k);
   //_d_density_imag_k.resize(_num_k);
+  _psample_key.resize(_num_atoms*_RBE_P);
 }
 
 void LJCoulEwaldForce::Execute()
@@ -260,12 +261,62 @@ void LJCoulEwaldForce::RBEInit(rbmd::Real alpha,Box* box)
   //   std::cout<< i<< " " << _P_Sample_x[i] << " "<<
   //     _P_Sample_y[i]  << " "<<_P_Sample_z[i] << std::endl;
   // }
+
+  //
+
+  op::GenerateIndexArrayOp<device::DEVICE_GPU> generate_index_array_op;
+  generate_index_array_op(_num_atoms,_RBE_P,
+    thrust::raw_pointer_cast(_psample_key.data()));
+
+
+
 }
 
 void LJCoulEwaldForce::ComputeRBEForce()
 {
   rbmd::Real alpha = 0.1;
+  rbmd::Real  qqr2e=1.0;
   RBEInit(alpha,_device_data->_d_box);
+
+  _rhok_real.resize(_num_atoms*_RBE_P);
+  _rhok_image.resize(_num_atoms*_RBE_P);
+  auto p_number= _RBE_P;
+
+  op::ComputePnumberChargeStructureFactorOp<device::DEVICE_GPU> pnumber_charge_structure_factor_op;
+  pnumber_charge_structure_factor_op(_device_data->_d_box, _num_atoms, p_number,
+      thrust::raw_pointer_cast(_device_data->_d_charge.data()),
+      _P_Sample_x,_P_Sample_y,_P_Sample_z,
+      thrust::raw_pointer_cast(_device_data->_d_px.data()),
+      thrust::raw_pointer_cast(_device_data->_d_py.data()),
+      thrust::raw_pointer_cast(_device_data->_d_pz.data()),
+      thrust::raw_pointer_cast(_rhok_real.data()),
+      thrust::raw_pointer_cast(_rhok_image.data()));
+
+
+
+  // 定义输出向量
+  // thrust::device_vector<rbmd::Id>  psamplekey_out;
+  // thrust::device_vector<rbmd::Real> rhok_real_redue;
+  // thrust::device_vector<rbmd::Real> rhok_image_redue;
+  //
+  // reduce_by_key(_psample_key, _rhok_real, reduced_keys, rhok_real_redue,
+  //   thrust::plus<rbmd::Real>());
+  // reduce_by_key(_psample_key, _rhok_image, reduced_keys, rhok_image_redue,
+  // thrust::plus<rbmd::Real>());
+  //
+  //  //
+  // op::ComputeRBEForceOp<device::DEVICE_GPU> rbe_force_op;
+  // rbe_force_op(_device_data->_d_box,_num_atoms, _RBE_P,alpha,qqr2e,
+  //       thrust::raw_pointer_cast(_rhok_real.data()),
+  //       thrust::raw_pointer_cast(_rhok_image.data()),
+  //       thrust::raw_pointer_cast(_device_data->_d_charge.data()),
+  //       _P_Sample_x,_P_Sample_y,_P_Sample_z,
+  //       thrust::raw_pointer_cast(_device_data->_d_px.data()),
+  //       thrust::raw_pointer_cast(_device_data->_d_py.data()),
+  //       thrust::raw_pointer_cast(_device_data->_d_pz.data()),
+  //       thrust::raw_pointer_cast(_device_data->_d_force_ewald_x.data()),
+  //       thrust::raw_pointer_cast(_device_data->_d_force_ewald_y.data()),
+  //       thrust::raw_pointer_cast(_device_data->_d_force_ewald_z.data()));
 
 }
 

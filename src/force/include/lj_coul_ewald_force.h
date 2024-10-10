@@ -57,5 +57,10 @@ private:
   rbmd::Real* _P_Sample_x;
   rbmd::Real* _P_Sample_y;
   rbmd::Real* _P_Sample_z;
+
+  //
+  thrust::device_vector<rbmd::Id>  _psample_key;
+  thrust::device_vector<rbmd::Real>  _rhok_real;
+  thrust::device_vector<rbmd::Real>  _rhok_image;
 };
 

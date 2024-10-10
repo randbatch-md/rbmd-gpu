@@ -152,6 +152,66 @@ namespace op
 		force_ewald_z = force_ewald * K.z;
 	}
 
+       //RBEForce
+       __device__ void RBEForce(
+           Box* box,
+           const Real3 M,
+           const rbmd::Real qqr2e,
+           const rbmd::Real rhok_real_i,
+           const rbmd::Real rhok_imag_i,
+           const rbmd::Real charge,
+           const rbmd::Real px,
+           const rbmd::Real py,
+           const rbmd::Real pz,
+           rbmd::Real& force_rbe_x,
+           rbmd::Real& force_rbe_y,
+           rbmd::Real& force_rbe_z)
+	{
+	  rbmd::Real force_rbe;
+	  rbmd::Real volume = box->_length[0] * box->_length[1] * box->_length[2];
+	  Real3 K = make_Real3(2 * M_PI * M.x / box->_length[0],
+                  2 * M_PI * M.y / box->_length[1],
+                  2 * M_PI * M.z / box->_length[2]);
+
+
+	  rbmd::Real range_K_2 = K.x * K.x + K.y * K.y + K.z * K.z;
+	  rbmd::Real dot_product = K.x * px + K.y * py + K.z * pz;
+
+	  rbmd::Real factor_a = -4 * M_PI * charge;
+	  rbmd::Real factor_b = COS(dot_product) * rhok_imag_i;
+	  rbmd::Real factor_c = SIN(dot_product) * rhok_real_i;
+
+	  force_rbe= factor_a / (volume * range_K_2) * (factor_b- factor_c);
+	  force_rbe *= qqr2e;
+
+	  force_rbe_x = force_rbe * K.x;
+	  force_rbe_y = force_rbe * K.y;
+	  force_rbe_z = force_rbe * K.z;
+	}
+
+        __device__  void ComputeS(
+            Box* box,
+            const rbmd::Real alpha,
+            rbmd::Real S)
+	{
+	  Real3 H{0.0,0.0,0.0};
+
+	  for (rbmd::Id i = 0; i < 3; ++i)
+	  {
+	    const rbmd::Real factor = -(alpha * box->_length[i] * box->_length[i]);
+
+	    for (rbmd::Id m = -10; m <= 10; m++)
+	    {
+	      rbmd::Real expx = m * m * factor;
+	      H.data[i] += EXP(expx);
+	    }
+	    H.data[i] *= SQRT(-(factor) / M_PI);
+	  }
+
+	  const rbmd::Real factor_3 = H.data[0] * H.data[1] * H.data[2];
+	  S = factor_3 - 1;
+	}
+
 	template<typename Func>
 	__device__ void ExecuteOnKmax(const rbmd::Id& k_maxconst, Func& function)
 	{
@@ -738,6 +798,10 @@ namespace op
 	  if (tid1 < num_atoms)
 	  {
 	    rbmd::Real chargei = charge[tid1];
+	    rbmd::Real p_x = px[tid1];
+	    rbmd::Real p_y = py[tid1];
+	    rbmd::Real p_z = pz[tid1];
+
 	    for (rbmd::Id i = 0; i < p_number; i++)
 	    {
 	      rbmd::Real  k_x = p_sample_x[i];
@@ -748,8 +812,9 @@ namespace op
 	      k_z = 2 * M_PI * k_z  / box->_length[2];
 
 	      rbmd::Id index = tid1 + i * num_atoms;
-	      rbmd::Real dot_potduct = k_x*px+k_x*py + k_z*pz;
-	      density_real[index] = chargei * COS(dot_potduct);
+	      rbmd::Real dot_product = k_x*p_x + k_y*p_y + k_z*p_z;
+	      density_real[index] = chargei * COS(dot_product);
+	      density_imag[index] = chargei * SIN(dot_product);
 	    }
 	  }
 
@@ -877,9 +942,87 @@ namespace op
 
 	}
 
+           //index
+         __global__ void GenerateIndexArray(
+           const rbmd::Id num_atoms,
+           const rbmd::Id RBE_P,
+           rbmd::Id* psample_key)
+	{
+	  unsigned int tid1 = blockIdx.x * blockDim.x + threadIdx.x;
+	  if (tid1 < num_atoms * RBE_P)
+	  {
+	    psample_key[tid1] = tid1 / RBE_P; // 计算对应的索引
+	  }
+	}
+
+        //RBEForce
+        __global__ void ComputeRBEForce(
+        Box* box,
+        const rbmd::Id num_atoms,
+        const rbmd::Id  p_number,
+        const rbmd::Real alpha,
+        const rbmd::Real qqr2e,
+        const rbmd::Real* real_array,
+        const rbmd::Real* imag_array,
+        const rbmd::Real* charge,
+        const rbmd::Real* p_sample_x,
+        const rbmd::Real* p_sample_y,
+        const rbmd::Real* p_sample_z,
+        const rbmd::Real* px,
+        const rbmd::Real* py,
+        const rbmd::Real* pz,
+        rbmd::Real* fx,
+        rbmd::Real* fy,
+        rbmd::Real* fz)
+	{
+	  rbmd::Real sum_fx = 0;
+	  rbmd::Real sum_fy = 0;
+	  rbmd::Real sum_fz = 0;
+
+	  unsigned int tid1 = blockIdx.x * blockDim.x + threadIdx.x;
+
+	  if (tid1 < num_atoms)
+	  {
+	    rbmd::Real p_x = px[tid1];
+	    rbmd::Real p_y = py[tid1];
+	    rbmd::Real p_z = pz[tid1];
+	    rbmd::Real charge_i = charge[tid1];
+	    //
+	    for (rbmd::Id i = 0; i < p_number; i++)
+	    {
+	      const Real3 M = make_Real3(p_sample_x[i],
+	                          p_sample_y[i],
+	                           p_sample_z[i]);
+
+	      const rbmd::Real rhok_real_i = real_array[i];
+	      const rbmd::Real rhok_imag_i = imag_array[i];
+
+	      rbmd::Real force_rbe_x, force_rbe_y, force_rbe_z;
+	      RBEForce(box, M, qqr2e, rhok_real_i, rhok_imag_i, charge_i,
+                      p_x, p_y, p_z, force_rbe_x, force_rbe_y, force_rbe_z);
+
+	      sum_fx += force_rbe_x;
+	      sum_fy += force_rbe_y;
+	      sum_fz += force_rbe_z;
+	    }
+            //
+            rbmd::Real sum_gauss;
+	    ComputeS(box,alpha,sum_gauss);
+
+	    sum_fx = sum_fx * sum_gauss / p_number;
+	    sum_fy = sum_fy * sum_gauss / p_number;
+	    sum_fz = sum_fz * sum_gauss / p_number;
+
+	    fx[tid1] = sum_fx;
+	    fy[tid1] = sum_fy;
+	    fz[tid1] = sum_fz;
+	    //printf("--------test---force0:%f---,force1:%f---force2:%f\n",fx[tid1],fy[tid1],fz[tid1]);
+	  }
+	}
 
 
 
+        /////////////////////
 	//verlet-list: LJForce
 	void LJForceOp<device::DEVICE_GPU>::operator()(
 		Box* box,
@@ -1093,6 +1236,69 @@ namespace op
 
 		CHECK_KERNEL(ComputeSqCharge <<<blocks_per_grid, BLOCK_SIZE, 0, 0 >>>
 			(num_atoms, charge, sq_charge));
+	}
+
+        //
+        void GenerateIndexArrayOp<device::DEVICE_GPU>::operator()(
+                const rbmd::Id num_atoms,
+                const rbmd::Id RBE_P,
+                rbmd::Id* psample_key)
+	{
+	  unsigned int blocks_per_grid = ((num_atoms* RBE_P)+ BLOCK_SIZE - 1) / BLOCK_SIZE;
+
+	  CHECK_KERNEL(GenerateIndexArray <<<blocks_per_grid, BLOCK_SIZE, 0, 0 >>>
+                  (num_atoms, RBE_P,psample_key));
+	}
+
+     //RBE
+       void ComputePnumberChargeStructureFactorOp<device::DEVICE_GPU>::operator()(
+                Box* box,
+                const rbmd::Id num_atoms,
+                const rbmd::Id p_number,
+                const rbmd::Real* charge,
+                const rbmd::Real* p_sample_x,
+                const rbmd::Real* p_sample_y,
+                const rbmd::Real* p_sample_z,
+                const rbmd::Real* px,
+                const rbmd::Real* py,
+                const rbmd::Real* pz,
+                rbmd::Real* density_real,
+                rbmd::Real* density_imag)
+	{
+	  unsigned int blocks_per_grid = (num_atoms + BLOCK_SIZE - 1) / BLOCK_SIZE;
+
+	  CHECK_KERNEL(ComputePnumberChargeStructureFactor <<<blocks_per_grid, BLOCK_SIZE, 0, 0 >>>
+                  (box,num_atoms, p_number, charge, p_sample_x,p_sample_y,p_sample_z,
+                    px, py, pz, density_real, density_imag));
+
+	}
+
+
+        void ComputeRBEForceOp<device::DEVICE_GPU>::operator()(
+           Box* box,
+           const rbmd::Id num_atoms,
+           const rbmd::Id  p_number,
+           const rbmd::Real alpha,
+           const rbmd::Real qqr2e,
+           const rbmd::Real* real_array,
+           const rbmd::Real* imag_array,
+           const rbmd::Real* charge,
+           const rbmd::Real* p_sample_x,
+           const rbmd::Real* p_sample_y,
+           const rbmd::Real* p_sample_z,
+           const rbmd::Real* px,
+           const rbmd::Real* py,
+           const rbmd::Real* pz,
+           rbmd::Real* fx,
+           rbmd::Real* fy,
+           rbmd::Real* fz)
+	{
+	  unsigned int blocks_per_grid = (num_atoms + BLOCK_SIZE - 1) / BLOCK_SIZE;
+
+	  CHECK_KERNEL(ComputeRBEForce <<<blocks_per_grid, BLOCK_SIZE, 0, 0 >>>
+                  (box, num_atoms, p_number, alpha,qqr2e, real_array, imag_array, charge,
+                         p_sample_x,p_sample_y,p_sample_z, px, py, pz, fx, fy, fz));
+
 	}
 
 }

@@ -184,9 +184,56 @@ namespace op
        };
 
 
+        template<typename DEVICE>
+        struct GenerateIndexArrayOp
+        {
+          void operator()(
+          const rbmd::Id  num_atoms,
+          const rbmd::Id  RBE_P,
+          rbmd::Id* psample_key);
+        };
 
+       //RBE
+       template <typename DEVICE>
+       struct ComputePnumberChargeStructureFactorOp
+       {
+         void operator()(
+            Box* box,
+            const rbmd::Id num_atoms,
+            const rbmd::Id p_number,
+            const rbmd::Real* charge,
+            const rbmd::Real* p_sample_x,
+            const rbmd::Real* p_sample_y,
+            const rbmd::Real* p_sample_z,
+            const rbmd::Real* px,
+            const rbmd::Real* py,
+            const rbmd::Real* pz,
+            rbmd::Real* density_real,
+            rbmd::Real* density_imag);
+       };
 
-
+      template <typename DEVICE>
+      struct ComputeRBEForceOp
+      {
+        void operator()(
+           Box* box,
+           const rbmd::Id num_atoms,
+           const rbmd::Id  p_number,
+           const rbmd::Real alpha,
+           const rbmd::Real qqr2e,
+           const rbmd::Real* real_array,
+           const rbmd::Real* imag_array,
+           const rbmd::Real* charge,
+           const rbmd::Real* p_sample_x,
+           const rbmd::Real* p_sample_y,
+           const rbmd::Real* p_sample_z,
+           const rbmd::Real* px,
+           const rbmd::Real* py,
+           const rbmd::Real* pz,
+           rbmd::Real* fx,
+           rbmd::Real* fy,
+           rbmd::Real* fz);
+      };
 
 
         // // // // // // // // // // // // // // // // // // //
@@ -369,5 +416,56 @@ namespace op
         };
 
 
+        //
+       template<>
+       struct GenerateIndexArrayOp<device::DEVICE_GPU>
+       {
+         void operator()(
+         const rbmd::Id  num_atoms,
+         const rbmd::Id  RBE_P,
+         rbmd::Id* psample_key);
+       };
+
+        //RBE
+       template <>
+       struct ComputePnumberChargeStructureFactorOp<device::DEVICE_GPU>
+       {
+         void operator()(
+            Box* box,
+            const rbmd::Id num_atoms,
+            const rbmd::Id p_number,
+            const rbmd::Real* charge,
+            const rbmd::Real* p_sample_x,
+            const rbmd::Real* p_sample_y,
+            const rbmd::Real* p_sample_z,
+            const rbmd::Real* px,
+            const rbmd::Real* py,
+            const rbmd::Real* pz,
+            rbmd::Real* density_real,
+            rbmd::Real* density_imag);
+       };
+
+      template <>
+      struct ComputeRBEForceOp<device::DEVICE_GPU>
+      {
+        void operator()(
+           Box* box,
+           const rbmd::Id num_atoms,
+           const rbmd::Id  p_number,
+           const rbmd::Real alpha,
+           const rbmd::Real qqr2e,
+           const rbmd::Real* real_array,
+           const rbmd::Real* imag_array,
+           const rbmd::Real* charge,
+           const rbmd::Real* p_sample_x,
+           const rbmd::Real* p_sample_y,
+           const rbmd::Real* p_sample_z,
+           const rbmd::Real* px,
+           const rbmd::Real* py,
+           const rbmd::Real* pz,
+           rbmd::Real* fx,
+           rbmd::Real* fy,
+           rbmd::Real* fz);
+      };
 
 }// namespace op
