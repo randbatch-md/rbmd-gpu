@@ -9,7 +9,7 @@ Executioner::Executioner(/*const Json::Value& node, */std::shared_ptr<Ensemble>&
 	//_num_steps(_exec_node["num_steps"].asInt())
 {
 	_time_step = 0.001;
-	_num_steps = 1;
+	_num_steps = 10000;
 	test_num_steps = _num_steps;
 	_current_time = 0;
 }
