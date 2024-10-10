@@ -56,8 +56,9 @@ if(USE_ROCM)
 endif()
 
 if(USE_CUDA)
-	set(include_dir ${include_dirs} ${TOOLS_INCLUDE_PATH} ${SPDLOG_INCLUDE_DIRS} ${JSONCPP_INCLUDE_DIRS} "../common")  # ${jsoncpp_INCLUDE_DIRS}
-	set(link_dir  ${CMAKE_CUDA_TOOLKIT_INCLUDE_DIRECTORIES} ${TOOLS_LINK_PATH} ${SPDLOG_LIBRARY_DIRS} ${JSONCPP_LIBRARY_DIRS})  # ${jsoncpp_LIBRARIES}
+	message("cuda include: ${CMAKE_CUDA_TOOLKIT_INCLUDE_DIRECTORIES}")
+	set(include_dir ${CMAKE_CUDA_TOOLKIT_INCLUDE_DIRECTORIES} ${include_dirs} ${TOOLS_INCLUDE_PATH} ${SPDLOG_INCLUDE_DIRS} ${JSONCPP_INCLUDE_DIRS} "../common")  # ${jsoncpp_INCLUDE_DIRS}
+	set(link_dir  ${TOOLS_LINK_PATH} ${SPDLOG_LIBRARY_DIRS} ${JSONCPP_LIBRARY_DIRS})  # ${jsoncpp_LIBRARIES}
 	set(depends_name  PkgConfig::JSONCPP PkgConfig::SPDLOG)
 
 	cpp_library(
