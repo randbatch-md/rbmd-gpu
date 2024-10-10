@@ -54,6 +54,25 @@ namespace op
 			            rbmd::Real* vz);
 	};
 
+	template <typename DEVICE>
+	struct UpdataForceLangevinOp
+	{
+		void operator()(const rbmd::Id num_atoms,
+			            const rbmd::Real gaussian_x, 
+			            const rbmd::Real gaussian_y, 
+			            const rbmd::Real gaussian_z, 
+			            const rbmd::Real kbT, 
+			            const rbmd::Real gamma, 
+			            const rbmd::Real dt,
+			            const rbmd::Real* mass,
+			            const rbmd::Real* vx,
+			            const rbmd::Real* vy,
+			            const rbmd::Real* vz,
+			            rbmd::Real* fx,
+			            rbmd::Real* fy,
+			            rbmd::Real* fz);
+	};
+
 	template <>
 	struct ComputeTemperatureOp<device::DEVICE_GPU>
 	{
@@ -104,4 +123,22 @@ namespace op
 						rbmd::Real* vz);
 	};
 
+	template <>
+	struct UpdataForceLangevinOp<device::DEVICE_GPU>
+	{
+		void operator()(const rbmd::Id num_atoms,
+			            const rbmd::Real gaussian_x,
+			            const rbmd::Real gaussian_y,
+			            const rbmd::Real gaussian_z,
+			            const rbmd::Real kbT,
+			            const rbmd::Real gamma,
+			            const rbmd::Real dt,
+			            const rbmd::Real* mass,
+			            const rbmd::Real* vx,
+			            const rbmd::Real* vy,
+			            const rbmd::Real* vz,
+			            rbmd::Real* fx,
+			            rbmd::Real* fy,
+			            rbmd::Real* fz);
+	};
 }
