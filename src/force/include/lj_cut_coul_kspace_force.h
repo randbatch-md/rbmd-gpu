@@ -72,7 +72,13 @@ private:
   rbmd::Real _ave_self_energy;
   rbmd::Real _ave_ekspace;
 
-  //
+
+  //RBL
+  std::string _neighbor_type;
+  rbmd::Real _cut_off;
+
+  //RBE
+  std::string _coulomb_type;
   rbmd::Id _RBE_P;
   rbmd::Real _alpha;
   rbmd::Id _Kmax;

@@ -68,8 +68,14 @@ bool MemoryScheduler::asyncMemoryH2D() {
 
 
   // cpoy charge
-  _device_data->_d_charge.resize(num_atoms);
-  thrust::copy(h_charge, h_charge + num_atoms, _device_data->_d_charge.begin());
+  if (charge_data && charge_data->_h_charge)
+  {
+    _device_data->_d_charge.resize(num_atoms);
+    thrust::copy(charge_data->_h_charge, charge_data->_h_charge + num_atoms,
+      _device_data->_d_charge.begin());
+  }
+  else{_device_data->_d_charge.resize(num_atoms);}
+
 
   /// cpoy force
   _device_data->_d_fx.resize(num_atoms);

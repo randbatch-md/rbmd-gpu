@@ -29,18 +29,19 @@ void LJForce::Init() {
   _corr_value_x = 0;
   _corr_value_y = 0;
   _corr_value_z = 0;
+
+  _cut_off = DataManager::getInstance().getConfigData()->Get
+ <rbmd::Real>("cut_off", "hyper_parameters", "neighbor");
+
+  _neighbor_type =
+    DataManager::getInstance().getConfigData()->Get<std::string>(
+        "type", "hyper_parameters", "neighbor");
 }
 
 void LJForce::Execute() {
   extern int test_current_step;
-  const auto cut_off =
-      DataManager::getInstance().getConfigData()->Get<rbmd::Real>(
-          "cut_off", "hyper_parameters", "neighbor");
 
-  auto neighbor_type =
-      DataManager::getInstance().getConfigData()->Get<std::string>(
-          "type", "hyper_parameters", "neighbor");
-  if (neighbor_type == "RBL")  // RBL
+  if (_neighbor_type == "RBL")  // RBL
   {
     // rbl_neighbor_list_build
     auto start = std::chrono::high_resolution_clock::now();
@@ -62,7 +63,7 @@ void LJForce::Execute() {
 
     op::LJRBLForceOp<device::DEVICE_GPU> lj_rbl_force_op;
     lj_rbl_force_op(
-        _device_data->_d_box, r_core, cut_off, _num_atoms, neighbor_sample_num,
+        _device_data->_d_box, r_core, _cut_off, _num_atoms, neighbor_sample_num,
         rbl_list->_selection_frequency,
         thrust::raw_pointer_cast(_device_data->_d_atoms_type.data()),
         thrust::raw_pointer_cast(_device_data->_d_molecular_id.data()),
@@ -82,20 +83,17 @@ void LJForce::Execute() {
 
     _corr_value_x =
         thrust::reduce(_device_data->_d_fx.begin(), _device_data->_d_fx.end(),
-                       0.0f, thrust::plus<rbmd::Real>()) /
-        _num_atoms;
+                       0.0f, thrust::plus<rbmd::Real>()) /_num_atoms;
     _corr_value_y =
         thrust::reduce(_device_data->_d_fy.begin(), _device_data->_d_fy.end(),
-                       0.0f, thrust::plus<rbmd::Real>()) /
-        _num_atoms;
+                       0.0f, thrust::plus<rbmd::Real>()) /_num_atoms;
     _corr_value_z =
         thrust::reduce(_device_data->_d_fz.begin(), _device_data->_d_fz.end(),
-                       0.0f, thrust::plus<rbmd::Real>()) /
-        _num_atoms;
+                       0.0f, thrust::plus<rbmd::Real>()) /_num_atoms;
 
     // fix RBL:   rbl_force = f - corr_value
-    op::FixLJRBLForceOp<device::DEVICE_GPU> fix_lj_rbl_force_op;
-    fix_lj_rbl_force_op(_num_atoms, _corr_value_x, _corr_value_y, _corr_value_z,
+    op::FixRBLForceOp<device::DEVICE_GPU> fix_rbl_force_op;
+    fix_rbl_force_op(_num_atoms, _corr_value_x, _corr_value_y, _corr_value_z,
                         thrust::raw_pointer_cast(_device_data->_d_fx.data()),
                         thrust::raw_pointer_cast(_device_data->_d_fy.data()),
                         thrust::raw_pointer_cast(_device_data->_d_fz.data()));
@@ -108,7 +106,7 @@ void LJForce::Execute() {
     CHECK_RUNTIME(MEMSET(_d_total_evdwl, 0, sizeof(rbmd::Real)));
 
     op::LJEnergyOp<device::DEVICE_GPU> lj_energy_op;
-    lj_energy_op(_device_data->_d_box, cut_off, _num_atoms,
+    lj_energy_op(_device_data->_d_box, _cut_off, _num_atoms,
                  thrust::raw_pointer_cast(_device_data->_d_atoms_type.data()),
                  thrust::raw_pointer_cast(_device_data->_d_molecular_id.data()),
                  thrust::raw_pointer_cast(_device_data->_d_sigma.data()),
@@ -154,7 +152,7 @@ void LJForce::Execute() {
 
     // compute LJForce
     op::LJForceOp<device::DEVICE_GPU> lj_force_op;
-    lj_force_op(_device_data->_d_box, cut_off, _num_atoms,
+    lj_force_op(_device_data->_d_box, _cut_off, _num_atoms,
                 thrust::raw_pointer_cast(_device_data->_d_atoms_type.data()),
                 thrust::raw_pointer_cast(_device_data->_d_molecular_id.data()),
                 thrust::raw_pointer_cast(_device_data->_d_sigma.data()),

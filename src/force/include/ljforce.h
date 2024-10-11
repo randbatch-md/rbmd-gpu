@@ -25,5 +25,9 @@ class LJForce : public Force {
   rbmd::Real _corr_value_z;
   rbmd::Real* _d_total_evdwl;
 
+  //RBL
+  std::string _neighbor_type;
+  rbmd::Real _cut_off;
+
   rbmd::Real virial[6];
 };

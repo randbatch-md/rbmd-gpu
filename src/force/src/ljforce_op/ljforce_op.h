@@ -83,7 +83,7 @@ namespace op
 	};
 
 	template <typename DEVICE>
-	struct FixLJRBLForceOp
+	struct FixRBLForceOp
 	{
 		void operator()(
 			const rbmd::Id num_atoms,
@@ -138,6 +138,58 @@ namespace op
             rbmd::Real* fz,
             rbmd::Real* total_evdwl,
             rbmd::Real* total_ecoul);
+        };
+
+       template <typename DEVICE>
+       struct LJCutCoulRBLForceOp
+       {
+         void operator()(Box* box,
+                  const rbmd::Real rs,
+                  const rbmd::Real rc,
+                  const rbmd::Id num_atoms,
+                  const rbmd::Id neighbor_sample_num,
+                  const rbmd::Id pice_num,
+                  const rbmd::Real alpha,
+                  const rbmd::Real qqr2e,
+                  const rbmd::Id* atoms_type,
+                  const rbmd::Id* molecular_type,
+                  const rbmd::Real* sigma,
+                  const rbmd::Real* eps,
+                  const rbmd::Id* start_id,
+                  const rbmd::Id* end_id,
+                  const rbmd::Id* id_verletlist,
+                  const rbmd::Id* id_random_neighbor,
+                  const rbmd::Id* random_neighbor_num,
+                  const rbmd::Real* charge,
+                  const rbmd::Real* px,
+                  const rbmd::Real* py,
+                  const rbmd::Real* pz,
+                  rbmd::Real* fx,
+                  rbmd::Real* fy,
+                  rbmd::Real* fz);
+       };
+
+        template <typename DEVICE>
+        struct LJCutCoulEnergyOp
+        {
+          void operator()(Box* box,
+               const rbmd::Real cut_off,
+               const rbmd::Id num_atoms,
+               const rbmd::Real alpha,
+               const rbmd::Real qqr2e,
+               const rbmd::Id* atoms_type,
+               const rbmd::Id* molecular_type,
+               const rbmd::Real* sigma,
+               const rbmd::Real* eps,
+               const rbmd::Id* start_id,
+               const rbmd::Id* end_id,
+               const rbmd::Id* id_verletlist,
+               const rbmd::Real* charge,
+               const rbmd::Real* px,
+               const rbmd::Real* py,
+               const rbmd::Real* pz,
+               rbmd::Real* total_evdwl,
+               rbmd::Real* total_ecoul);
         };
 
 	template <typename DEVICE>
@@ -314,7 +366,7 @@ namespace op
 	};
 
 	template <>
-	struct FixLJRBLForceOp<device::DEVICE_GPU>
+	struct FixRBLForceOp<device::DEVICE_GPU>
 	{
 		void operator()(
 			const rbmd::Id num_atoms,
@@ -371,6 +423,57 @@ namespace op
             rbmd::Real* total_ecoul);
         };
 
+     template <>
+     struct LJCutCoulRBLForceOp<device::DEVICE_GPU>
+     {
+       void operator()(Box* box,
+                const rbmd::Real rs,
+                const rbmd::Real rc,
+                const rbmd::Id num_atoms,
+                const rbmd::Id neighbor_sample_num,
+                const rbmd::Id pice_num,
+                const rbmd::Real alpha,
+                const rbmd::Real qqr2e,
+                const rbmd::Id* atoms_type,
+                const rbmd::Id* molecular_type,
+                const rbmd::Real* sigma,
+                const rbmd::Real* eps,
+                const rbmd::Id* start_id,
+                const rbmd::Id* end_id,
+                const rbmd::Id* id_verletlist,
+                const rbmd::Id* id_random_neighbor,
+                const rbmd::Id* random_neighbor_num,
+                const rbmd::Real* charge,
+                const rbmd::Real* px,
+                const rbmd::Real* py,
+                const rbmd::Real* pz,
+                rbmd::Real* fx,
+                rbmd::Real* fy,
+                rbmd::Real* fz);
+     };
+
+       template <>
+       struct LJCutCoulEnergyOp<device::DEVICE_GPU>
+       {
+         void operator()(Box* box,
+              const rbmd::Real cut_off,
+              const rbmd::Id num_atoms,
+              const rbmd::Real alpha,
+              const rbmd::Real qqr2e,
+              const rbmd::Id* atoms_type,
+              const rbmd::Id* molecular_type,
+              const rbmd::Real* sigma,
+              const rbmd::Real* eps,
+              const rbmd::Id* start_id,
+              const rbmd::Id* end_id,
+              const rbmd::Id* id_verletlist,
+              const rbmd::Real* charge,
+              const rbmd::Real* px,
+              const rbmd::Real* py,
+              const rbmd::Real* pz,
+              rbmd::Real* total_evdwl,
+              rbmd::Real* total_ecoul);
+       };
 
 	template <>
 	struct ComputeChargeStructureFactorOp<device::DEVICE_GPU>
