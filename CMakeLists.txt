@@ -34,8 +34,8 @@ set(src
 ./src/application/md_application.cpp
 ./src/parser/command_line.cpp
 ./src/common/unit_factor.cpp
-		src/force/include/lj_coul_ewald_force.h
-		src/force/src/lj_coul_ewald_force.cpp
+        src/force/include/lj_cut_coul_kspace_force.h
+		src/force/src/lj_cut_coul_kspace_force.cpp
 		src/common/RBEPSample.h)
 
 include_directories("${CMAKE_CURRENT_LIST_DIR}/src")

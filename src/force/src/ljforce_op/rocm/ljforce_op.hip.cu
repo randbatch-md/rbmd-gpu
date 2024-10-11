@@ -181,7 +181,7 @@ namespace op
 	  rbmd::Real factor_b = COS(dot_product) * rhok_imag_i;
 	  rbmd::Real factor_c = SIN(dot_product) * rhok_real_i;
 
-	  force_rbe= factor_a / (volume * range_K_2) * (factor_b- factor_c);
+	  force_rbe= (factor_a / (volume * range_K_2))* (factor_b- factor_c);
 	  force_rbe *= qqr2e;
 
 	  force_rbe_x = force_rbe * K.x;
@@ -192,10 +192,9 @@ namespace op
         __device__  void ComputeS(
             Box* box,
             const rbmd::Real alpha,
-            rbmd::Real S)
+            rbmd::Real& S)
 	{
 	  Real3 H{0.0,0.0,0.0};
-
 	  for (rbmd::Id i = 0; i < 3; ++i)
 	  {
 	    const rbmd::Real factor = -(alpha * box->_length[i] * box->_length[i]);
@@ -208,8 +207,8 @@ namespace op
 	    H.data[i] *= SQRT(-(factor) / M_PI);
 	  }
 
-	  const rbmd::Real factor_3 = H.data[0] * H.data[1] * H.data[2];
-	  S = factor_3 - 1;
+	   rbmd::Real factor_3 = H.data[0] * H.data[1] * H.data[2];
+	   S = factor_3 - 1;
 	}
 
 	template<typename Func>
@@ -804,6 +803,8 @@ namespace op
 
 	    for (rbmd::Id i = 0; i < p_number; i++)
 	    {
+	      rbmd::Id index = tid1 + i * num_atoms;
+
 	      rbmd::Real  k_x = p_sample_x[i];
 	      rbmd::Real  k_y = p_sample_y[i];
 	      rbmd::Real  k_z = p_sample_z[i];
@@ -811,13 +812,13 @@ namespace op
 	      k_y = 2 * M_PI * k_y  / box->_length[1];
 	      k_z = 2 * M_PI * k_z  / box->_length[2];
 
-	      rbmd::Id index = tid1 + i * num_atoms;
 	      rbmd::Real dot_product = k_x*p_x + k_y*p_y + k_z*p_z;
 	      density_real[index] = chargei * COS(dot_product);
 	      density_imag[index] = chargei * SIN(dot_product);
+	     // printf("-------index:%i,---density_real:%f-----density_imag:%f--\n",index,
+	       // density_real[index],density_imag[index]);
 	    }
 	  }
-
 	}
 	//EwaldForce
 	__global__ void ComputeEwaldForce(
@@ -951,7 +952,7 @@ namespace op
 	  unsigned int tid1 = blockIdx.x * blockDim.x + threadIdx.x;
 	  if (tid1 < num_atoms * RBE_P)
 	  {
-	    psample_key[tid1] = tid1 / RBE_P; // 计算对应的索引
+	    psample_key[tid1] = tid1 / num_atoms; // 计算对应的索引
 	  }
 	}
 
@@ -1008,6 +1009,7 @@ namespace op
             //
             rbmd::Real sum_gauss;
 	    ComputeS(box,alpha,sum_gauss);
+	    //printf("--------test---sum_gauss:%f\n",sum_gauss);
 
 	    sum_fx = sum_fx * sum_gauss / p_number;
 	    sum_fy = sum_fy * sum_gauss / p_number;
