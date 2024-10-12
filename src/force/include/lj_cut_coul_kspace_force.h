@@ -25,7 +25,7 @@ public:
           rbmd::Real qqr2e,
           rbmd::Real* value_Re_array,
           rbmd::Real* value_Im_array);
-  void ComputeEwladForce();//Ewald
+  void ComputeEwlad();//Ewald
 
   void RBEInit(Box* box,rbmd::Real alpha,rbmd::Id RBE_P);
   void ComputeChargeStructureFactorRBE(
@@ -37,14 +37,14 @@ public:
          rbmd::Real qqr2e,
          thrust::device_vector<rbmd::Real> rhok_real_redue,
          thrust::device_vector<rbmd::Real> rhok_image_redue);
-  void ComputeRBEForce();//RBE
+  void ComputeRBE();//RBE
 
   void ComputeSelfEnergy(
     rbmd::Real alpha,
     rbmd::Real qqr2e,
     rbmd::Real& ave_self_energy);  //self  Energy
 
-  void ComputeEwaldEnergy(
+  void ComputeKspaceEnergy(
         Box* box,
         rbmd::Id _num_atoms,
         rbmd::Id Kmax,

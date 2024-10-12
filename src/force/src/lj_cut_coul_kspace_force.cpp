@@ -229,11 +229,11 @@ void LJCutCoulKspaceForce::ComputeKspaceForce()
 {
   if("RBE" == _coulomb_type)
   {
-      ComputeRBEForce();
+      ComputeRBE();
   }
   else
   {
-     ComputeEwladForce();
+     ComputeEwlad();
   }
 }
 
@@ -275,7 +275,7 @@ void LJCutCoulKspaceForce::ComputeChargeStructureFactorEwald(
     density_real_atom.resize(_num_atoms);
     density_imag_atom.resize(_num_atoms);
 
-    rbmd::Real total_energy_ewald = 0;
+    rbmd::Real total_energy_kspace= 0;
     rbmd::Id index = 0;
     for (rbmd::Id i = -Kmax; i <= Kmax; i++)
     {
@@ -305,7 +305,7 @@ void LJCutCoulKspaceForce::ComputeChargeStructureFactorEwald(
                     rbmd::Real value_Im = thrust::reduce(density_imag_atom.begin(), density_imag_atom.end(), 0.0f, thrust::plus<rbmd::Real>());
                     rbmd::Real Range_density2 = POW(value_Re, 2.0) + POW(value_Im, 2.0);
 
-                    total_energy_ewald +=
+                    total_energy_kspace +=
                       EXP(-0.25 * Range_K2 * alpha_inv) * Range_density2 / Range_K2;
 
                     value_Re_array[index] = value_Re;
@@ -321,10 +321,10 @@ void LJCutCoulKspaceForce::ComputeChargeStructureFactorEwald(
   //charge self energy//
   ComputeSelfEnergy(alpha,qqr2e,_ave_self_energy);
 
-  //compute ewald energy//
+  //compute Kspace energy//
   rbmd::Real volume = box->_length[0] * box->_length[1]*box->_length[2];
-  total_energy_ewald = qqr2e * (2 * M_PI / volume) * total_energy_ewald;
-  _ave_ekspace = total_energy_ewald / _num_atoms;
+  total_energy_kspace = qqr2e * (2 * M_PI / volume) * total_energy_kspace;
+  _ave_ekspace = total_energy_kspace / _num_atoms;
 
   _ave_ekspace = _ave_ekspace + _ave_self_energy;
 
@@ -337,7 +337,7 @@ void LJCutCoulKspaceForce::ComputeChargeStructureFactorEwald(
   outfile.close();
 }
 
-void LJCutCoulKspaceForce::ComputeEwladForce()
+void LJCutCoulKspaceForce::ComputeEwlad()
 {
     rbmd::Real* value_Re_array;
     rbmd::Real* value_Im_array;
@@ -439,8 +439,8 @@ void LJCutCoulKspaceForce::ComputeChargeStructureFactorRBE(
   //charge self energy//
   ComputeSelfEnergy(alpha,qqr2e,_ave_self_energy);
 
-  //ave_eewald
-  ComputeEwaldEnergy(_device_data->_d_box, _num_atoms, Kmax,
+  //kspace energy
+  ComputeKspaceEnergy(_device_data->_d_box, _num_atoms, Kmax,
       alpha, qqr2e ,_ave_ekspace);
   _ave_ekspace = _ave_ekspace +_ave_self_energy;
 
@@ -453,7 +453,7 @@ void LJCutCoulKspaceForce::ComputeChargeStructureFactorRBE(
   outfile.close();
 }
 
-void LJCutCoulKspaceForce::ComputeRBEForce()
+void LJCutCoulKspaceForce::ComputeRBE()
 {
   //
   _rhok_real_redue.resize(_RBE_P);
@@ -498,7 +498,7 @@ void LJCutCoulKspaceForce::ComputeSelfEnergy(
   ave_self_energy =  total_self_energy / _num_atoms;
 }
 
-void LJCutCoulKspaceForce::ComputeEwaldEnergy(
+void LJCutCoulKspaceForce::ComputeKspaceEnergy(
     Box* box,
     rbmd::Id num_atoms,
     rbmd::Id Kmax,
