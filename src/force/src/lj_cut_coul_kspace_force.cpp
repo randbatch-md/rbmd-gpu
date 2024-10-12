@@ -13,6 +13,8 @@
 // #include <hipcub/hipcub.hpp>
 // #include <hipcub/backend/rocprim/block/block_reduce.hpp>
 
+extern int test_current_step;
+
 LJCutCoulKspaceForce::LJCutCoulKspaceForce()
 {
   _rbl_neighbor_list_builder = std::make_shared<RblFullNeighborListBuilder>();
@@ -69,7 +71,6 @@ void LJCutCoulKspaceForce::Execute()
 
 void LJCutCoulKspaceForce::ComputeLJCutCoulForce()
 {
-  extern int test_current_step;
 
   //
   if ("RBL" ==_neighbor_type)
@@ -95,7 +96,7 @@ void LJCutCoulKspaceForce::ComputeLJCutCoulForce()
     op::LJCutCoulRBLForceOp<device::DEVICE_GPU> lj_cut_coul_rbl_force_op;
     lj_cut_coul_rbl_force_op(
         _device_data->_d_box, r_core, _cut_off, _num_atoms,
-        neighbor_sample_num,_alpha,_qqr2e,rbl_list->_selection_frequency,
+        neighbor_sample_num,rbl_list->_selection_frequency,_alpha,_qqr2e,
         thrust::raw_pointer_cast(_device_data->_d_atoms_type.data()),
         thrust::raw_pointer_cast(_device_data->_d_molecular_id.data()),
         thrust::raw_pointer_cast(_device_data->_d_sigma.data()),
@@ -317,7 +318,6 @@ void LJCutCoulKspaceForce::ComputeChargeStructureFactorEwald(
 
   //charge self energy//
   ComputeSelfEnergy(alpha,qqr2e,_ave_self_energy);
-  //std::cout<< "ave_self_energy:"<<_ave_self_energy<< std::endl;
 
   //compute ewald energy//
   rbmd::Real volume = box->_length[0] * box->_length[1]*box->_length[2];
@@ -327,7 +327,6 @@ void LJCutCoulKspaceForce::ComputeChargeStructureFactorEwald(
   _ave_ekspace = _ave_ekspace + _ave_self_energy;
 
   //out
-   extern int test_current_step;
    std::cout << "test_current_step:" << test_current_step <<  " ,"
    << "ave_eewald:" << _ave_ekspace << std::endl;
 
@@ -436,14 +435,13 @@ void LJCutCoulKspaceForce::ComputeChargeStructureFactorRBE(
 
   //charge self energy//
   ComputeSelfEnergy(alpha,qqr2e,_ave_self_energy);
-  std::cout << "ave_self_energy: " << _ave_self_energy    << std::endl;
+
   //ave_eewald
   ComputeEwaldEnergy(_device_data->_d_box, _num_atoms, Kmax,
       alpha, qqr2e ,_ave_ekspace);
   _ave_ekspace = _ave_ekspace +_ave_self_energy;
 
     //out
-   extern int test_current_step;
    std::cout << "test_current_step:" << test_current_step <<  " ,"
    << "ave_ekspace:" << _ave_ekspace << std::endl;
 
@@ -495,7 +493,6 @@ void LJCutCoulKspaceForce::ComputeSelfEnergy(
   rbmd::Real total_self_energy = qqr2e * (- sqrt(alpha / M_PI) *sum_sq_charge);
 
   ave_self_energy =  total_self_energy / _num_atoms;
-  //std::cout << "ave_self_energy: " << ave_self_energy    << std::endl;
 }
 
 void LJCutCoulKspaceForce::ComputeEwaldEnergy(
@@ -550,7 +547,6 @@ void LJCutCoulKspaceForce::ComputeEwaldEnergy(
   rbmd::Real volume = box->_length[0] * box->_length[1]*box->_length[2];
   total_energy_ewald = qqr2e * (2 * M_PI / volume) * total_energy_ewald;
   ave_ekspace = total_energy_ewald / num_atoms;
-  //std::cout <<  "ave_ekspace::" << ave_ekspace << std::endl;
 }
 
 
