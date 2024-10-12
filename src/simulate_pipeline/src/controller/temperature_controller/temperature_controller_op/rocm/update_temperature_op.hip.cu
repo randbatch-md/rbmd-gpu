@@ -156,10 +156,10 @@ void UpdataVelocityNoseHooverOp<device::DEVICE_GPU>::operator()(
 void UpdataVelocityBerendsenOp<device::DEVICE_GPU>::operator()(
     const rbmd::Id num_atoms, const rbmd::Real coeff_Berendsen, rbmd::Real* vx,
     rbmd::Real* vy, rbmd::Real* vz) {
-  unsigned int blocks_per_grid = (num_atoms + BLOCK_SIZE - 1) / BLOCK_SIZE;
-  CHECK_KERNEL(UpdataVelocityBerendsen<<<blocks_per_grid, BLOCK_SIZE, 0, 0>>>(
-      num_atoms, coeff_Berendsen, vx, vy, vz));
-
+    unsigned int blocks_per_grid = (num_atoms + BLOCK_SIZE - 1) / BLOCK_SIZE;
+    CHECK_KERNEL(UpdataVelocityBerendsen <<<blocks_per_grid, BLOCK_SIZE, 0, 0 >>> (
+        num_atoms, coeff_Berendsen, vx, vy, vz));
+}
 	void UpdataForceLangevinOp<device::DEVICE_GPU>::operator()(const rbmd::Id num_atoms,
 		                                                       const rbmd::Real gaussian_x,
 		                                                       const rbmd::Real gaussian_y,
@@ -178,5 +178,5 @@ void UpdataVelocityBerendsenOp<device::DEVICE_GPU>::operator()(
 		unsigned int blocks_per_grid = (num_atoms + BLOCK_SIZE - 1) / BLOCK_SIZE;
 		CHECK_KERNEL(UpdataForceLangevin <<<blocks_per_grid, BLOCK_SIZE, 0, 0 >>> (num_atoms, gaussian_x, gaussian_y, gaussian_z, kbT, gamma, dt, mass, vx, vy, vz, fx, fy, fz));
 	}
-}
+
 }  // namespace op
