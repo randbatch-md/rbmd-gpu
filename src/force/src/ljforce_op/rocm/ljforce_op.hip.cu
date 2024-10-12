@@ -411,6 +411,9 @@ __global__ void ComputeLJEnergy(
     const rbmd::Real* sigma, const rbmd::Real* eps, const rbmd::Id* start_id,
     const rbmd::Id* end_id, const rbmd::Id* id_verletlist, const rbmd::Real* px,
     const rbmd::Real* py, const rbmd::Real* pz, rbmd::Real* total_evdwl) {
+  __shared__ typename hipcub::BlockReduce<rbmd::Real, BLOCK_SIZE>::TempStorage
+    temp_storage;
+
   rbmd::Real sum_eij = 0;
 
   unsigned int tid1 = blockIdx.x * blockDim.x + threadIdx.x;
@@ -453,7 +456,11 @@ __global__ void ComputeLJEnergy(
       sum_eij += e_ij;
     }
 
-    atomicAdd(total_evdwl, sum_eij);
+    rbmd::Real block_sum =
+    hipcub::BlockReduce<rbmd::Real, BLOCK_SIZE>(temp_storage).Sum(sum_eij);
+    if (threadIdx.x == 0) {
+      atomicAdd(total_evdwl, block_sum);
+    }
     // printf("--------test---evdwl[tid1]:%f---\n",evdwl[tid1]);
   }
 }
