@@ -45,7 +45,7 @@ void LJForce::Execute() {
   {
     // rbl_neighbor_list_build
     auto start = std::chrono::high_resolution_clock::now();
-    rbl_list = _rbl_neighbor_list_builder->Build();
+    _rbl_list = _rbl_neighbor_list_builder->Build();
 
     auto end = std::chrono::high_resolution_clock::now();
 
@@ -64,16 +64,16 @@ void LJForce::Execute() {
     op::LJRBLForceOp<device::DEVICE_GPU> lj_rbl_force_op;
     lj_rbl_force_op(
         _device_data->_d_box, r_core, _cut_off, _num_atoms, neighbor_sample_num,
-        rbl_list->_selection_frequency,
+        _rbl_list->_selection_frequency,
         thrust::raw_pointer_cast(_device_data->_d_atoms_type.data()),
         thrust::raw_pointer_cast(_device_data->_d_molecular_id.data()),
         thrust::raw_pointer_cast(_device_data->_d_sigma.data()),
         thrust::raw_pointer_cast(_device_data->_d_eps.data()),
-        thrust::raw_pointer_cast(rbl_list->_start_idx.data()),
-        thrust::raw_pointer_cast(rbl_list->_end_idx.data()),
-        thrust::raw_pointer_cast(rbl_list->_d_neighbors.data()),
-        thrust::raw_pointer_cast(rbl_list->_d_random_neighbor.data()),
-        thrust::raw_pointer_cast(rbl_list->_d_random_neighbor_num.data()),
+        thrust::raw_pointer_cast(_rbl_list->_start_idx.data()),
+        thrust::raw_pointer_cast(_rbl_list->_end_idx.data()),
+        thrust::raw_pointer_cast(_rbl_list->_d_neighbors.data()),
+        thrust::raw_pointer_cast(_rbl_list->_d_random_neighbor.data()),
+        thrust::raw_pointer_cast(_rbl_list->_d_random_neighbor_num.data()),
         thrust::raw_pointer_cast(_device_data->_d_px.data()),
         thrust::raw_pointer_cast(_device_data->_d_py.data()),
         thrust::raw_pointer_cast(_device_data->_d_pz.data()),
@@ -99,7 +99,7 @@ void LJForce::Execute() {
                         thrust::raw_pointer_cast(_device_data->_d_fz.data()));
 
     // energy
-    list = _neighbor_list_builder->Build();
+    _list = _neighbor_list_builder->Build();
 
     rbmd::Real h_total_evdwl = 0.0;
 
@@ -111,9 +111,9 @@ void LJForce::Execute() {
                  thrust::raw_pointer_cast(_device_data->_d_molecular_id.data()),
                  thrust::raw_pointer_cast(_device_data->_d_sigma.data()),
                  thrust::raw_pointer_cast(_device_data->_d_eps.data()),
-                 thrust::raw_pointer_cast(list->_start_idx.data()),
-                 thrust::raw_pointer_cast(list->_end_idx.data()),
-                 thrust::raw_pointer_cast(list->_d_neighbors.data()),
+                 thrust::raw_pointer_cast(_list->_start_idx.data()),
+                 thrust::raw_pointer_cast(_list->_end_idx.data()),
+                 thrust::raw_pointer_cast(_list->_d_neighbors.data()),
                  thrust::raw_pointer_cast(_device_data->_d_px.data()),
                  thrust::raw_pointer_cast(_device_data->_d_py.data()),
                  thrust::raw_pointer_cast(_device_data->_d_pz.data()),
@@ -137,7 +137,7 @@ void LJForce::Execute() {
   {
     // neighbor_list_build
     auto start = std::chrono::high_resolution_clock::now();
-    list = _neighbor_list_builder->Build();
+    _list = _neighbor_list_builder->Build();
 
     auto end = std::chrono::high_resolution_clock::now();
 
@@ -157,9 +157,9 @@ void LJForce::Execute() {
                 thrust::raw_pointer_cast(_device_data->_d_molecular_id.data()),
                 thrust::raw_pointer_cast(_device_data->_d_sigma.data()),
                 thrust::raw_pointer_cast(_device_data->_d_eps.data()),
-                thrust::raw_pointer_cast(list->_start_idx.data()),
-                thrust::raw_pointer_cast(list->_end_idx.data()),
-                thrust::raw_pointer_cast(list->_d_neighbors.data()),
+                thrust::raw_pointer_cast(_list->_start_idx.data()),
+                thrust::raw_pointer_cast(_list->_end_idx.data()),
+                thrust::raw_pointer_cast(_list->_d_neighbors.data()),
                 thrust::raw_pointer_cast(_device_data->_d_px.data()),
                 thrust::raw_pointer_cast(_device_data->_d_py.data()),
                 thrust::raw_pointer_cast(_device_data->_d_pz.data()),

@@ -77,7 +77,7 @@ void LJCutCoulKspaceForce::ComputeLJCutCoulForce()
   {
     // rbl_neighbor_list_build
     auto start = std::chrono::high_resolution_clock::now();
-    rbl_list = _rbl_neighbor_list_builder->Build();
+    _rbl_list = _rbl_neighbor_list_builder->Build();
 
     auto end = std::chrono::high_resolution_clock::now();
 
@@ -96,16 +96,16 @@ void LJCutCoulKspaceForce::ComputeLJCutCoulForce()
     op::LJCutCoulRBLForceOp<device::DEVICE_GPU> lj_cut_coul_rbl_force_op;
     lj_cut_coul_rbl_force_op(
         _device_data->_d_box, r_core, _cut_off, _num_atoms,
-        neighbor_sample_num,rbl_list->_selection_frequency,_alpha,_qqr2e,
+        neighbor_sample_num,_rbl_list->_selection_frequency,_alpha,_qqr2e,
         thrust::raw_pointer_cast(_device_data->_d_atoms_type.data()),
         thrust::raw_pointer_cast(_device_data->_d_molecular_id.data()),
         thrust::raw_pointer_cast(_device_data->_d_sigma.data()),
         thrust::raw_pointer_cast(_device_data->_d_eps.data()),
-        thrust::raw_pointer_cast(rbl_list->_start_idx.data()),
-        thrust::raw_pointer_cast(rbl_list->_end_idx.data()),
-        thrust::raw_pointer_cast(rbl_list->_d_neighbors.data()),
-        thrust::raw_pointer_cast(rbl_list->_d_random_neighbor.data()),
-        thrust::raw_pointer_cast(rbl_list->_d_random_neighbor_num.data()),
+        thrust::raw_pointer_cast(_rbl_list->_start_idx.data()),
+        thrust::raw_pointer_cast(_rbl_list->_end_idx.data()),
+        thrust::raw_pointer_cast(_rbl_list->_d_neighbors.data()),
+        thrust::raw_pointer_cast(_rbl_list->_d_random_neighbor.data()),
+        thrust::raw_pointer_cast(_rbl_list->_d_random_neighbor_num.data()),
         thrust::raw_pointer_cast(_device_data->_d_charge.data()),
         thrust::raw_pointer_cast(_device_data->_d_px.data()),
         thrust::raw_pointer_cast(_device_data->_d_py.data()),
@@ -132,7 +132,7 @@ void LJCutCoulKspaceForce::ComputeLJCutCoulForce()
                         thrust::raw_pointer_cast(_device_data->_d_fz.data()));
 
     // energy
-    list = _neighbor_list_builder->Build();
+    _list = _neighbor_list_builder->Build();
 
     rbmd::Real h_total_evdwl = 0.0;
     rbmd::Real h_total_ecoul = 0.0;
@@ -146,9 +146,9 @@ void LJCutCoulKspaceForce::ComputeLJCutCoulForce()
                   thrust::raw_pointer_cast(_device_data->_d_molecular_id.data()),
                   thrust::raw_pointer_cast(_device_data->_d_sigma.data()),
                   thrust::raw_pointer_cast(_device_data->_d_eps.data()),
-                  thrust::raw_pointer_cast(list->_start_idx.data()),
-                  thrust::raw_pointer_cast(list->_end_idx.data()),
-                  thrust::raw_pointer_cast(list->_d_neighbors.data()),
+                  thrust::raw_pointer_cast(_list->_start_idx.data()),
+                  thrust::raw_pointer_cast(_list->_end_idx.data()),
+                  thrust::raw_pointer_cast(_list->_d_neighbors.data()),
                   thrust::raw_pointer_cast(_device_data->_d_charge.data()),
                   thrust::raw_pointer_cast(_device_data->_d_px.data()),
                   thrust::raw_pointer_cast(_device_data->_d_py.data()),
@@ -174,7 +174,7 @@ void LJCutCoulKspaceForce::ComputeLJCutCoulForce()
   {
       //neighbor_list_build
   auto start = std::chrono::high_resolution_clock::now();
-  list = _neighbor_list_builder->Build();
+  _list = _neighbor_list_builder->Build();
 
   auto end = std::chrono::high_resolution_clock::now();
 
@@ -196,9 +196,9 @@ void LJCutCoulKspaceForce::ComputeLJCutCoulForce()
                   thrust::raw_pointer_cast(_device_data->_d_molecular_id.data()),
                   thrust::raw_pointer_cast(_device_data->_d_sigma.data()),
                   thrust::raw_pointer_cast(_device_data->_d_eps.data()),
-                  thrust::raw_pointer_cast(list->_start_idx.data()),
-                  thrust::raw_pointer_cast(list->_end_idx.data()),
-                  thrust::raw_pointer_cast(list->_d_neighbors.data()),
+                  thrust::raw_pointer_cast(_list->_start_idx.data()),
+                  thrust::raw_pointer_cast(_list->_end_idx.data()),
+                  thrust::raw_pointer_cast(_list->_d_neighbors.data()),
                   thrust::raw_pointer_cast(_device_data->_d_charge.data()),
                   thrust::raw_pointer_cast(_device_data->_d_px.data()),
                   thrust::raw_pointer_cast(_device_data->_d_py.data()),
@@ -316,6 +316,8 @@ void LJCutCoulKspaceForce::ComputeChargeStructureFactorEwald(
         }
     }
 
+  //energy
+
   //charge self energy//
   ComputeSelfEnergy(alpha,qqr2e,_ave_self_energy);
 
@@ -328,7 +330,7 @@ void LJCutCoulKspaceForce::ComputeChargeStructureFactorEwald(
 
   //out
    std::cout << "test_current_step:" << test_current_step <<  " ,"
-   << "ave_eewald:" << _ave_ekspace << std::endl;
+   << "ave_energy_ewald:" << _ave_ekspace << std::endl;
 
   std::ofstream outfile("ave_ewald.txt", std::ios::app);
   outfile << test_current_step << " "<< _ave_ekspace << std::endl;
@@ -432,6 +434,7 @@ void LJCutCoulKspaceForce::ComputeChargeStructureFactorRBE(
     rhok_image_atom.begin(),psamplekey_out.begin(), rhok_image_redue.begin(),
     thrust::equal_to<rbmd::Id>(),thrust::plus<rbmd::Real>());
 
+  //energy
 
   //charge self energy//
   ComputeSelfEnergy(alpha,qqr2e,_ave_self_energy);
@@ -443,7 +446,7 @@ void LJCutCoulKspaceForce::ComputeChargeStructureFactorRBE(
 
     //out
    std::cout << "test_current_step:" << test_current_step <<  " ,"
-   << "ave_ekspace:" << _ave_ekspace << std::endl;
+   << "ave_energy_rbe:" << _ave_ekspace << std::endl;
 
   std::ofstream outfile("ave_rbe.txt", std::ios::app);
   outfile << test_current_step << " "<< _ave_ekspace << std::endl;
