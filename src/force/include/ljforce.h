@@ -11,6 +11,7 @@ class LJForce : public Force {
 
 	void Init() override;
 	void  Execute() override;
+        void ComputeLJEnergy();
 
  private:
   rbmd::Id _num_atoms;

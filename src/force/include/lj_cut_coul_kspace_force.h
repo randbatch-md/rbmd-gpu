@@ -39,6 +39,9 @@ public:
          thrust::device_vector<rbmd::Real> rhok_image_redue);
   void ComputeRBE();//RBE
 
+
+  void ComputeLJCoulEnergy();
+
   void ComputeSelfEnergy(
     rbmd::Real alpha,
     rbmd::Real qqr2e,

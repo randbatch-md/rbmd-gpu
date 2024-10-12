@@ -131,44 +131,9 @@ void LJCutCoulKspaceForce::ComputeLJCutCoulForce()
                         thrust::raw_pointer_cast(_device_data->_d_fy.data()),
                         thrust::raw_pointer_cast(_device_data->_d_fz.data()));
 
-    // energy
-    _list = _neighbor_list_builder->Build();
+    //energy
+    ComputeLJCoulEnergy();
 
-    rbmd::Real h_total_evdwl = 0.0;
-    rbmd::Real h_total_ecoul = 0.0;
-
-    CHECK_RUNTIME(MEMSET(_d_total_evdwl, 0, sizeof(rbmd::Real)));
-    CHECK_RUNTIME(MEMSET(_d_total_ecoul, 0, sizeof(rbmd::Real)));
-
-    op::LJCutCoulEnergyOp<device::DEVICE_GPU> lj_cut_coul_energy_op;
-    lj_cut_coul_energy_op(_device_data->_d_box, _cut_off, _num_atoms,_alpha,_qqr2e,
-                  thrust::raw_pointer_cast(_device_data->_d_atoms_type.data()),
-                  thrust::raw_pointer_cast(_device_data->_d_molecular_id.data()),
-                  thrust::raw_pointer_cast(_device_data->_d_sigma.data()),
-                  thrust::raw_pointer_cast(_device_data->_d_eps.data()),
-                  thrust::raw_pointer_cast(_list->_start_idx.data()),
-                  thrust::raw_pointer_cast(_list->_end_idx.data()),
-                  thrust::raw_pointer_cast(_list->_d_neighbors.data()),
-                  thrust::raw_pointer_cast(_device_data->_d_charge.data()),
-                  thrust::raw_pointer_cast(_device_data->_d_px.data()),
-                  thrust::raw_pointer_cast(_device_data->_d_py.data()),
-                  thrust::raw_pointer_cast(_device_data->_d_pz.data()),
-                  _d_total_evdwl,_d_total_ecoul);
-
-    CHECK_RUNTIME(MEMCPY(&h_total_evdwl,_d_total_evdwl , sizeof(rbmd::Real), D2H));
-    CHECK_RUNTIME(MEMCPY(&h_total_ecoul,_d_total_ecoul , sizeof(rbmd::Real), D2H));
-
-    // 打印累加后的总能量
-    _ave_evdwl = h_total_evdwl/_num_atoms;
-    _ave_ecoul = h_total_ecoul/_num_atoms;
-
-    std::cout << "test_current_step:" << test_current_step <<  " ,"
-    << "average_vdwl_energy:" << _ave_evdwl << " ," <<  "average_coul_energy:" << _ave_ecoul << std::endl;
-
-    //out
-    std::ofstream outfile("ave_ljcoul_rbl.txt", std::ios::app);
-    outfile << test_current_step << " " << _ave_evdwl  << " "<< _ave_ecoul << std::endl;
-    outfile.close();
   }
   else
   {
@@ -476,6 +441,48 @@ void LJCutCoulKspaceForce::ComputeRBE()
         thrust::raw_pointer_cast(_device_data->_d_force_ewald_x.data()),
         thrust::raw_pointer_cast(_device_data->_d_force_ewald_y.data()),
         thrust::raw_pointer_cast(_device_data->_d_force_ewald_z.data()));
+}
+
+void LJCutCoulKspaceForce::ComputeLJCoulEnergy()
+{
+  // energy
+  _list = _neighbor_list_builder->Build();
+
+  rbmd::Real h_total_evdwl = 0.0;
+  rbmd::Real h_total_ecoul = 0.0;
+
+  CHECK_RUNTIME(MEMSET(_d_total_evdwl, 0, sizeof(rbmd::Real)));
+  CHECK_RUNTIME(MEMSET(_d_total_ecoul, 0, sizeof(rbmd::Real)));
+
+  op::LJCutCoulEnergyOp<device::DEVICE_GPU> lj_cut_coul_energy_op;
+  lj_cut_coul_energy_op(_device_data->_d_box, _cut_off, _num_atoms,_alpha,_qqr2e,
+                thrust::raw_pointer_cast(_device_data->_d_atoms_type.data()),
+                thrust::raw_pointer_cast(_device_data->_d_molecular_id.data()),
+                thrust::raw_pointer_cast(_device_data->_d_sigma.data()),
+                thrust::raw_pointer_cast(_device_data->_d_eps.data()),
+                thrust::raw_pointer_cast(_list->_start_idx.data()),
+                thrust::raw_pointer_cast(_list->_end_idx.data()),
+                thrust::raw_pointer_cast(_list->_d_neighbors.data()),
+                thrust::raw_pointer_cast(_device_data->_d_charge.data()),
+                thrust::raw_pointer_cast(_device_data->_d_px.data()),
+                thrust::raw_pointer_cast(_device_data->_d_py.data()),
+                thrust::raw_pointer_cast(_device_data->_d_pz.data()),
+                _d_total_evdwl,_d_total_ecoul);
+
+  CHECK_RUNTIME(MEMCPY(&h_total_evdwl,_d_total_evdwl , sizeof(rbmd::Real), D2H));
+  CHECK_RUNTIME(MEMCPY(&h_total_ecoul,_d_total_ecoul , sizeof(rbmd::Real), D2H));
+
+  // 打印累加后的总能量
+  _ave_evdwl = h_total_evdwl/_num_atoms;
+  _ave_ecoul = h_total_ecoul/_num_atoms;
+
+  std::cout << "test_current_step:" << test_current_step <<  " ,"
+  << "average_vdwl_energy:" << _ave_evdwl << " ," <<  "average_coul_energy:" << _ave_ecoul << std::endl;
+
+  //out
+  std::ofstream outfile("ave_ljcoul_rbl.txt", std::ios::app);
+  outfile << test_current_step << " " << _ave_evdwl  << " "<< _ave_ecoul << std::endl;
+  outfile.close();
 }
 
 void LJCutCoulKspaceForce::ComputeSelfEnergy(

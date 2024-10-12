@@ -11,6 +11,7 @@
 #include "neighbor_list/include/neighbor_list_builder/rbl_full_neighbor_list_builder.h"
 // #include <hipcub/hipcub.hpp>
 // #include <hipcub/backend/rocprim/block/block_reduce.hpp>
+extern int test_current_step;
 
 LJForce::LJForce() {
   _rbl_neighbor_list_builder = std::make_shared<RblFullNeighborListBuilder>();
@@ -39,7 +40,7 @@ void LJForce::Init() {
 }
 
 void LJForce::Execute() {
-  extern int test_current_step;
+
 
   if (_neighbor_type == "RBL")  // RBL
   {
@@ -98,39 +99,8 @@ void LJForce::Execute() {
                         thrust::raw_pointer_cast(_device_data->_d_fy.data()),
                         thrust::raw_pointer_cast(_device_data->_d_fz.data()));
 
-    // energy
-    _list = _neighbor_list_builder->Build();
-
-    rbmd::Real h_total_evdwl = 0.0;
-
-    CHECK_RUNTIME(MEMSET(_d_total_evdwl, 0, sizeof(rbmd::Real)));
-
-    op::LJEnergyOp<device::DEVICE_GPU> lj_energy_op;
-    lj_energy_op(_device_data->_d_box, _cut_off, _num_atoms,
-                 thrust::raw_pointer_cast(_device_data->_d_atoms_type.data()),
-                 thrust::raw_pointer_cast(_device_data->_d_molecular_id.data()),
-                 thrust::raw_pointer_cast(_device_data->_d_sigma.data()),
-                 thrust::raw_pointer_cast(_device_data->_d_eps.data()),
-                 thrust::raw_pointer_cast(_list->_start_idx.data()),
-                 thrust::raw_pointer_cast(_list->_end_idx.data()),
-                 thrust::raw_pointer_cast(_list->_d_neighbors.data()),
-                 thrust::raw_pointer_cast(_device_data->_d_px.data()),
-                 thrust::raw_pointer_cast(_device_data->_d_py.data()),
-                 thrust::raw_pointer_cast(_device_data->_d_pz.data()),
-                 _d_total_evdwl);
-
-    CHECK_RUNTIME(
-        MEMCPY(&h_total_evdwl, _d_total_evdwl, sizeof(rbmd::Real), D2H));
-
-    // 打印累加后的总能量
-    rbmd::Real ave_evdwl = h_total_evdwl / _num_atoms;
-    std::cout << "test_current_step:" << test_current_step << " "
-              << "average_vdwl_energy:" << ave_evdwl << std::endl;
-
-    ////out
-    std::ofstream outfile("ave_evdwl.txt", std::ios::app);
-    outfile << test_current_step << " " << ave_evdwl << std::endl;
-    outfile.close();
+    //energy
+    ComputeLJEnergy();
   }
 
   else  //
@@ -183,6 +153,43 @@ void LJForce::Execute() {
     outfile << test_current_step << " " << ave_evdwl << std::endl;
     outfile.close();
   }
+}
+
+void LJForce::ComputeLJEnergy()
+{
+  // energy
+  _list = _neighbor_list_builder->Build();
+
+  rbmd::Real h_total_evdwl = 0.0;
+
+  CHECK_RUNTIME(MEMSET(_d_total_evdwl, 0, sizeof(rbmd::Real)));
+
+  op::LJEnergyOp<device::DEVICE_GPU> lj_energy_op;
+  lj_energy_op(_device_data->_d_box, _cut_off, _num_atoms,
+               thrust::raw_pointer_cast(_device_data->_d_atoms_type.data()),
+               thrust::raw_pointer_cast(_device_data->_d_molecular_id.data()),
+               thrust::raw_pointer_cast(_device_data->_d_sigma.data()),
+               thrust::raw_pointer_cast(_device_data->_d_eps.data()),
+               thrust::raw_pointer_cast(_list->_start_idx.data()),
+               thrust::raw_pointer_cast(_list->_end_idx.data()),
+               thrust::raw_pointer_cast(_list->_d_neighbors.data()),
+               thrust::raw_pointer_cast(_device_data->_d_px.data()),
+               thrust::raw_pointer_cast(_device_data->_d_py.data()),
+               thrust::raw_pointer_cast(_device_data->_d_pz.data()),
+               _d_total_evdwl);
+
+  CHECK_RUNTIME(
+      MEMCPY(&h_total_evdwl, _d_total_evdwl, sizeof(rbmd::Real), D2H));
+
+  // 打印累加后的总能量
+  rbmd::Real ave_evdwl = h_total_evdwl / _num_atoms;
+  std::cout << "test_current_step:" << test_current_step << " "
+            << "average_vdwl_energy:" << ave_evdwl << std::endl;
+
+  ////out
+  std::ofstream outfile("ave_evdwl.txt", std::ios::app);
+  outfile << test_current_step << " " << ave_evdwl << std::endl;
+  outfile.close();
 }
 
 
