@@ -172,17 +172,17 @@ __global__ void ComputeLJForce(
       sum_fx += f_ij * px12;
       sum_fy += f_ij * py12;
       sum_fz += f_ij * pz12;
-      sum_eij += e_ij;
+      //sum_eij += e_ij;
     }
 
     force_x[tid1] = sum_fx;
     force_y[tid1] = sum_fy;
     force_z[tid1] = sum_fz;
-    rbmd::Real block_sum =
-        hipcub::BlockReduce<rbmd::Real, BLOCK_SIZE>(temp_storage).Sum(sum_eij);
-    if (threadIdx.x == 0) {
-      atomicAdd(total_evdwl, block_sum);
-    }
+    // rbmd::Real block_sum =
+    //     hipcub::BlockReduce<rbmd::Real, BLOCK_SIZE>(temp_storage).Sum(sum_eij);
+    // if (threadIdx.x == 0) {
+    //   atomicAdd(total_evdwl, block_sum);
+    // }
   }
 }
 
