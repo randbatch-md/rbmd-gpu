@@ -1,26 +1,11 @@
 #include "npt_ensemble.h"
 
-NPTensemble::NPTensemble()
-{
+NPTensemble::NPTensemble() {}
 
-}
+void NPTensemble::Init() {}
 
-void NPTensemble::Init()
-{
+void NPTensemble::Presolve() {}
 
-}
+void NPTensemble::Solve() {}
 
-void NPTensemble::Presolve()
-{
-
-}
-
-void NPTensemble::Solve()
-{
-
-}
-
-void NPTensemble::Postsolve()
-{
-
-}
+void NPTensemble::Postsolve() {}

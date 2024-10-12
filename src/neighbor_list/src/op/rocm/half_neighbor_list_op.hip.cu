@@ -194,8 +194,6 @@ __global__ void GenerateHalfNeighborList(
   }
 }
 
-
-
 void ComputeHalfNeighborsOp<device::DEVICE_GPU>::operator()(
     rbmd::Id* per_dimension_cells, rbmd::Id* neighbor_cell,
     rbmd::Id neighbor_num, rbmd::Id total_cell,
@@ -247,8 +245,7 @@ void GenerateHalfNeighborListOp<device::DEVICE_GPU>::operator()(
           per_atom_cell_id, in_atom_list_start_index, in_atom_list_end_index,
           cutoff_2, total_atom_num, px, py, pz, max_neighbor_num,
           neighbor_start, neighbor_end, neighbors, d_box, should_realloc,
-          neighbor_cell, neighbor_cell_num,without_pbc));
-
-  }
-
+          neighbor_cell, neighbor_cell_num, without_pbc));
 }
+
+}  // namespace op

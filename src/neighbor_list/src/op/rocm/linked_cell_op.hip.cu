@@ -1,10 +1,10 @@
 #include <hip/hip_runtime.h>
-#include "linked_cell_op.h"
 
 #include "common/device_types.h"
 #include "common/rbmd_define.h"
 #include "common/types.h"
 #include "linked_cell/linked_cell.h"
+#include "linked_cell_op.h"
 
 namespace op {
 __global__ void InitializeCell(LinkedCellDeviceDataPtr* linked_cell, Box* box,
@@ -75,23 +75,26 @@ __global__ void AssignAtomsToCell(rbmd::Real* px, rbmd::Real* py,
     local_point.z -= linked_cell->_d_cell_length[2] * 0.5;
   }
 
-  cell_idx.x = MIN(MAX((int)(floor((double)(local_point.x - d_box->_coord_min[0]) *
-                                   linked_cell->_d_cell_length_reciprocal[0])) +
-                           0,
-                       0),
-                   linked_cell->_d_per_dimension_cells[0] - 1);
+  cell_idx.x =
+      MIN(MAX((int)(FLOOR((double)(local_point.x - d_box->_coord_min[0]) *
+                          linked_cell->_d_cell_length_reciprocal[0])) +
+                  0,
+              0),
+          linked_cell->_d_per_dimension_cells[0] - 1);
 
-  cell_idx.y = MIN(MAX((int)(floor((double)(local_point.y - d_box->_coord_min[1]) *
-                                   linked_cell->_d_cell_length_reciprocal[1])) +
-                           0,
-                       0),
-                   linked_cell->_d_per_dimension_cells[1] - 1);
+  cell_idx.y =
+      MIN(MAX((int)(FLOOR((double)(local_point.y - d_box->_coord_min[1]) *
+                          linked_cell->_d_cell_length_reciprocal[1])) +
+                  0,
+              0),
+          linked_cell->_d_per_dimension_cells[1] - 1);
 
-  cell_idx.z = MIN(MAX((int)(floor((double)(local_point.z - d_box->_coord_min[2]) *
-                                   linked_cell->_d_cell_length_reciprocal[2])) +
-                           0,
-                       0),
-                   linked_cell->_d_per_dimension_cells[2] - 1);
+  cell_idx.z =
+      MIN(MAX((int)(FLOOR((double)(local_point.z - d_box->_coord_min[2]) *
+                          linked_cell->_d_cell_length_reciprocal[2])) +
+                  0,
+              0),
+          linked_cell->_d_per_dimension_cells[2] - 1);
 
   rbmd::Id cell_idx_1d =
       (cell_idx.z * linked_cell->_d_per_dimension_cells[1] + cell_idx.y) *
@@ -105,38 +108,40 @@ __global__ void AssignAtomsToCell(rbmd::Real* px, rbmd::Real* py,
       local_point.z < cells[cell_idx_1d].cell_coord_max[2]) {
     per_atom_cell_id[idx] = cell_idx_1d;
     // 非特殊情况不会到下面这个分支
-  } else {
-    if (local_point.x < cells[cell_idx_1d].cell_coord_min[0]) {
-      cell_idx.x--;
-    } else if (local_point.x >= cells[cell_idx_1d].cell_coord_max[0]) {
-      cell_idx.x++;
-    }
-    if (local_point.y < cells[cell_idx_1d].cell_coord_min[1]) {
-      cell_idx.y--;
-    } else if (local_point.y >= cells[cell_idx_1d].cell_coord_max[1]) {
-      cell_idx.y++;
-    }
-    if (local_point.z < cells[cell_idx_1d].cell_coord_min[2]) {
-      cell_idx.z--;
-    } else if (local_point.z >= cells[cell_idx_1d].cell_coord_max[2]) {
-      cell_idx.z++;
-    }
-    cell_idx_1d =
-        (cell_idx.z * linked_cell->_d_per_dimension_cells[1] + cell_idx.y) *
-            linked_cell->_d_per_dimension_cells[0] +
-        cell_idx.x;
-    if (cells[cell_idx_1d].cell_coord_min[0] <= local_point.x &&
-        cells[cell_idx_1d].cell_coord_min[1] <= local_point.y &&
-        cells[cell_idx_1d].cell_coord_min[2] <= local_point.z &&
-        local_point.x < cells[cell_idx_1d].cell_coord_max[0] &&
-        local_point.y < cells[cell_idx_1d].cell_coord_max[1] &&
-        local_point.z < cells[cell_idx_1d].cell_coord_max[2]) {
-      per_atom_cell_id[idx] = cell_idx_1d;
-    }
   }
+  // else {
+  //   if (local_point.x < cells[cell_idx_1d].cell_coord_min[0]) {
+  //     cell_idx.x--;
+  //   } else if (local_point.x >= cells[cell_idx_1d].cell_coord_max[0]) {
+  //     cell_idx.x++;
+  //   }
+  //   if (local_point.y < cells[cell_idx_1d].cell_coord_min[1]) {
+  //     cell_idx.y--;
+  //   } else if (local_point.y >= cells[cell_idx_1d].cell_coord_max[1]) {
+  //     cell_idx.y++;
+  //   }
+  //   if (local_point.z < cells[cell_idx_1d].cell_coord_min[2]) {
+  //     cell_idx.z--;
+  //   } else if (local_point.z >= cells[cell_idx_1d].cell_coord_max[2]) {
+  //     cell_idx.z++;
+  //   }
+  //   cell_idx_1d =
+  //       (cell_idx.z * linked_cell->_d_per_dimension_cells[1] + cell_idx.y) *
+  //           linked_cell->_d_per_dimension_cells[0] +
+  //       cell_idx.x;
+  //   if (cells[cell_idx_1d].cell_coord_min[0] <= local_point.x &&
+  //       cells[cell_idx_1d].cell_coord_min[1] <= local_point.y &&
+  //       cells[cell_idx_1d].cell_coord_min[2] <= local_point.z &&
+  //       local_point.x < cells[cell_idx_1d].cell_coord_max[0] &&
+  //       local_point.y < cells[cell_idx_1d].cell_coord_max[1] &&
+  //       local_point.z < cells[cell_idx_1d].cell_coord_max[2]) {
+  //     per_atom_cell_id[idx] = cell_idx_1d;
+  //   }
+  // }
 }
 
 // 核函数来设置每个cell的start_index和end_index
+
 __global__ void ComputeCellRangesIndices(rbmd::Id* sorted_cell_index,
                                          rbmd::Id* d_in_atom_list_start_index,
                                          rbmd::Id* d_in_atom_list_end_index,
@@ -161,29 +166,15 @@ __global__ void ComputeCellRangesIndices(rbmd::Id* sorted_cell_index,
   }
 }
 
-// __global__ void ComputeCellAtomCounts(Cell* cells,
-//                                     rbmd::Id* d_in_atom_list_start_index,
-//                                       rbmd::Id* d_in_atom_list_end_index,
-//                                       rbmd::Id num_cells) {
-//   unsigned int idx = blockIdx.x * blockDim.x + threadIdx.x;
-//
-//   if (idx < num_cells) {
-//     rbmd::Id start_index = d_in_atom_list_start_index[idx];
-//     rbmd::Id end_index = d_in_atom_list_end_index[idx];
-//
-//     // 计算该cell内的atom数量
-//     cells[idx]._atoms_count = end_index - start_index;
-//   }
-// }
-
-__global__ void MapAtomidToIdx(rbmd::Id* d_atomid2idx, rbmd::Id* d_sorted_atom_idx, rbmd::Id num_atoms) {
+__global__ void MapAtomidToIdx(rbmd::Id* d_atomid2idx,
+                               rbmd::Id* d_sorted_atom_idx,
+                               rbmd::Id num_atoms) {
   int idx = threadIdx.x + blockIdx.x * blockDim.x;
   if (idx < num_atoms) {
     // 使用排序后的索引数组来创建映射
     d_atomid2idx[d_sorted_atom_idx[idx]] = idx;
   }
 }
-
 
 void InitializeCellOp<device::DEVICE_GPU>::operator()(
     LinkedCellDeviceDataPtr* linked_cell, Box* box, Cell* cells,
@@ -211,15 +202,13 @@ void ComputeCellRangesIndicesOp<device::DEVICE_GPU>::operator()(
     rbmd::Id* d_in_atom_list_end_index, rbmd::Id num_atoms) {
   unsigned int blocks_per_grid = (num_atoms + BLOCK_SIZE - 1) / BLOCK_SIZE;
   CHECK_KERNEL(ComputeCellRangesIndices<<<blocks_per_grid, BLOCK_SIZE, 0, 0>>>(
-      sorted_cell_index, d_in_atom_list_start_index, d_in_atom_list_end_index, num_atoms));
-  }
-// void ComputeCellAtomsCountOp<device::DEVICE_GPU>::operator()(Cell* cells, rbmd::Id* d_in_atom_list_start_index, rbmd::Id* d_in_atom_list_end_index, rbmd::Id num_cells){
-//   unsigned int blocks_per_grid = (num_cells + BLOCK_SIZE - 1) / BLOCK_SIZE;
-//   CHECK_KERNEL(ComputeCellAtomCounts<<<blocks_per_grid,BLOCK_SIZE>>>(cells,d_in_atom_list_start_index,d_in_atom_list_end_index,num_cells));
-//
-// }
-void MapAtomidToIdxOp<device::DEVICE_GPU>::operator()(rbmd::Id* d_atomid2idx, rbmd::Id* d_sorted_atom_idx, rbmd::Id num_atoms){
-  unsigned int blocks_per_grid = (num_atoms + BLOCK_SIZE - 1) / BLOCK_SIZE;
-  CHECK_KERNEL(MapAtomidToIdx<<<blocks_per_grid, BLOCK_SIZE, 0, 0>>>(d_atomid2idx,d_sorted_atom_idx,num_atoms));
+      sorted_cell_index, d_in_atom_list_start_index, d_in_atom_list_end_index,
+      num_atoms));
 }
-} // namespace op
+void MapAtomidToIdxOp<device::DEVICE_GPU>::operator()(
+    rbmd::Id* d_atomid2idx, rbmd::Id* d_sorted_atom_idx, rbmd::Id num_atoms) {
+  unsigned int blocks_per_grid = (num_atoms + BLOCK_SIZE - 1) / BLOCK_SIZE;
+  CHECK_KERNEL(MapAtomidToIdx<<<blocks_per_grid, BLOCK_SIZE, 0, 0>>>(
+      d_atomid2idx, d_sorted_atom_idx, num_atoms));
+}
+}  // namespace op

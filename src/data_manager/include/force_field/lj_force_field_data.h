@@ -1,28 +1,22 @@
 #pragma once
 
-#include "force_field_data.h"
 #include "common/types.h"
+#include "force_field_data.h"
 
-class LJForceFieldData : public ForceFieldData
-{
-public:
+class LJForceFieldData : public ForceFieldData {
+ public:
+  bool checkForceField() const override { return true; }
 
-	bool checkForceField() const override
-	{
+ public:
+  /// mass
+  rbmd::Real* _h_mass;
 
-		return true;
-	}
+  /// eps
+  rbmd::Real* _h_eps;
 
-public:
-	///mass
-	rbmd::Real* _h_mass;
+  /// sigma
+  rbmd::Real* _h_sigma;
 
-	///eps
-	rbmd::Real* _h_eps;
-
-	///sigma
-	rbmd::Real* _h_sigma;
-
-	//charge
-	rbmd::Real* _h_charge;
+  // charge
+  rbmd::Real* _h_charge;
 };

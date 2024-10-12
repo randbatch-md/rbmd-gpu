@@ -15,22 +15,23 @@ bool LJMemoryScheduler::asyncMemoryH2D() {
   _device_data->_d_mass.resize(num_atoms_type);
   _device_data->_d_sigma.resize(num_atoms_type);
 
+  //_device_data->_d_charge.resize(num_atoms);
 
-   //_device_data->_d_charge.resize(num_atoms);
-
-  ///eps
-  thrust::copy(fd->_h_eps, fd->_h_eps + num_atoms_type, _device_data->_d_eps.begin());
+  /// eps
+  thrust::copy(fd->_h_eps, fd->_h_eps + num_atoms_type,
+               _device_data->_d_eps.begin());
 
   /// mass
-  thrust::copy(fd->_h_mass, fd->_h_mass + num_atoms_type, _device_data->_d_mass.begin());
+  thrust::copy(fd->_h_mass, fd->_h_mass + num_atoms_type,
+               _device_data->_d_mass.begin());
 
   /// sigma
-  thrust::copy(fd->_h_sigma, fd->_h_sigma + num_atoms_type, _device_data->_d_sigma.begin());
+  thrust::copy(fd->_h_sigma, fd->_h_sigma + num_atoms_type,
+               _device_data->_d_sigma.begin());
 
-
- ///charge
- //thrust::copy(fd->_h_charge, fd->_h_charge + num_atoms, _device_data->_d_charge.begin());
-
+  /// charge
+  // thrust::copy(fd->_h_charge, fd->_h_charge + num_atoms,
+  // _device_data->_d_charge.begin());
 
   return true;
 }

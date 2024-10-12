@@ -2,10 +2,10 @@
 #include "full_neighbor_list_builder.h"
 
 class HalfNeighborListBuilder : public FullNeighborListBuilder {
-public:
+ public:
   explicit HalfNeighborListBuilder();
 
-protected:
+ protected:
   void ComputeNeighborCells() override;
 
   void EstimateNeighborsList() override;
@@ -13,5 +13,4 @@ protected:
   bool GenerateNeighborsList() override;
 
   bool _without_pbc = false;
-
 };

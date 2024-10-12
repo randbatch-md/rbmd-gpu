@@ -21,14 +21,14 @@ struct LinkedCellDeviceDataPtr {
 
 class LinkedCell {
  public:
- //  LinkedCell(const LinkedCell&) = delete;
- //  LinkedCell& operator=(const LinkedCell&) = delete;
- //  static LinkedCell& GetInstance()
- //  {
- //    static LinkedCell instance;
- //    return instance;
- //  }
- // private:
+  //  LinkedCell(const LinkedCell&) = delete;
+  //  LinkedCell& operator=(const LinkedCell&) = delete;
+  //  static LinkedCell& GetInstance()
+  //  {
+  //    static LinkedCell instance;
+  //    return instance;
+  //  }
+  // private:
   LinkedCell();
   ~LinkedCell();
 

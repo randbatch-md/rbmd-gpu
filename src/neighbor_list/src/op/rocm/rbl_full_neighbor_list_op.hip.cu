@@ -41,7 +41,10 @@ __global__ void GenerateRBLFullNeighborList(
             ++neighbor_num;
           } else if (distance >= trunc_distance_power_2 &&
                      distance < cutoff_2) {
-            if (index_shell % selection_frequency == 0 && random_neighbor_num < neighbor_sample_num) {   // random_neighbor_num < neighbor_sample_num
+            if (index_shell % selection_frequency == 0 &&
+                random_neighbor_num <
+                    neighbor_sample_num) {  // random_neighbor_num <
+                                            // neighbor_sample_num
               random_neighbors[random_neighbor_start] = neighbor_atom_idx;
               random_neighbor_start++;
               random_neighbor_num++;
