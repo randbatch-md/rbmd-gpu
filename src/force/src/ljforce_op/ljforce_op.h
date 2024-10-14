@@ -288,6 +288,43 @@ namespace op
            rbmd::Real* fz);
       };
 
+     template <typename DEVICE>
+     struct  ComputeBondForceOp
+     {
+       void  operator()(
+         Box* box,
+         const rbmd::Id num_bonds,
+         const rbmd::Real* bond_coeffs_k,
+         const rbmd::Real* bond_coeffs_equilibrium,
+         const rbmd::Id* bond_type,
+         const int2* bondlist,
+         const rbmd::Real* px,
+         const rbmd::Real* py,
+         const rbmd::Real* pz,
+         rbmd::Real* fx,
+         rbmd::Real* fy,
+         rbmd::Real* fz,
+         rbmd::Real* energy_bond);
+     };
+
+     template <typename DEVICE>
+     struct ComputeAngleForceOp
+     {
+       void operator()(
+       Box* box,
+       const rbmd::Id num_anglels,
+       const rbmd::Real* anglel_coeffs_k,
+       const rbmd::Real* anglel_coeffs_equilibrium,
+       const rbmd::Id* anglel_type,
+       const int3* anglelist,
+       const rbmd::Real* px,
+       const rbmd::Real* py,
+       const rbmd::Real* pz,
+       rbmd::Real* fx,
+       rbmd::Real* fy,
+       rbmd::Real* fz,
+       rbmd::Real* energy_angle);
+     };
 
         // // // // // // // // // // // // // // // // // // //
         template <>
@@ -571,5 +608,42 @@ namespace op
            rbmd::Real* fy,
            rbmd::Real* fz);
       };
+     template <>
+     struct  ComputeBondForceOp<device::DEVICE_GPU>
+     {
+       void  operator()(
+         Box* box,
+         const rbmd::Id num_bonds,
+         const rbmd::Real* bond_coeffs_k,
+         const rbmd::Real* bond_coeffs_equilibrium,
+         const rbmd::Id* bond_type,
+         const int2* bondlist,
+         const rbmd::Real* px,
+         const rbmd::Real* py,
+         const rbmd::Real* pz,
+         rbmd::Real* fx,
+         rbmd::Real* fy,
+         rbmd::Real* fz,
+         rbmd::Real* energy_bond);
+     };
+
+     template <>
+     struct ComputeAngleForceOp<device::DEVICE_GPU>
+    {
+       void operator()(
+       Box* box,
+       const rbmd::Id num_anglels,
+       const rbmd::Real* anglel_coeffs_k,
+       const rbmd::Real* anglel_coeffs_equilibrium,
+       const rbmd::Id* anglel_type,
+       const int3* anglelist,
+       const rbmd::Real* px,
+       const rbmd::Real* py,
+       const rbmd::Real* pz,
+       rbmd::Real* fx,
+       rbmd::Real* fy,
+       rbmd::Real* fz,
+       rbmd::Real* energy_angle);
+     };
 
 }// namespace op

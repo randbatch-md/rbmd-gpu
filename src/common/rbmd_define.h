@@ -41,6 +41,7 @@ typedef double2 Real2;
 #define ROUND round
 #define LOG log
 #define ABS fabs
+#define ACOS acos
 #else
 typedef float3 Real3;
 typedef float2 Real2;
@@ -57,6 +58,7 @@ typedef float2 Real2;
 #define ROUND roundf
 #define LOG logf
 #define ABS fabsf
+#define ACOS acosf
 
 #endif
 

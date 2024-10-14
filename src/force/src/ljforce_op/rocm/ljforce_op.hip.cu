@@ -1422,7 +1422,146 @@ void CoulCutForce_rcs_erf(
 	  }
 	}
 
+       __global__ void ComputeBondForce(
+       Box* box,
+       const rbmd::Id num_bonds,
+       const rbmd::Real* bond_coeffs_k,
+       const rbmd::Real* bond_coeffs_equilibrium,
+       const rbmd::Id* bond_type,
+       const int2* bondlist,
+       const rbmd::Real* px,
+       const rbmd::Real* py,
+       const rbmd::Real* pz,
+       rbmd::Real* fx,
+       rbmd::Real* fy,
+       rbmd::Real* fz,
+       rbmd::Real* energy_bond)
+        {
+	  unsigned int tid1 = blockIdx.x * blockDim.x + threadIdx.x;
+	  if (tid1 < num_bonds)
+	  {
+	    rbmd::Id bondi = bondlist[tid1].x;
+	    rbmd::Id bondj = bondlist[tid1].y;
+	    rbmd::Id bondtype = bond_type[tid1];
+	    rbmd::Real k = bond_coeffs_k[bondtype];
+	    rbmd::Real equilibrium_bond = bond_coeffs_equilibrium[bondtype];
+	    rbmd::Real x1 = px[bondi];
+	    rbmd::Real y1 = py[bondi];
+	    rbmd::Real z1 = pz[bondi];
 
+	    rbmd::Real x2 = px[bondj];
+	    rbmd::Real y2 = py[bondj];
+	    rbmd::Real z2 = pz[bondj];
+	    rbmd::Real x12 = x2-x1;
+	    rbmd::Real y12 = y2-y1;
+	    rbmd::Real z12 = z2-z1;
+	    MinImageDistance(box,x12,y12,z12);
+	    rbmd::Real  dis_12 = SQRT(x12 * x12 + y12 * y12 + z12 * z12);
+	    rbmd::Real dr = dis_12 - equilibrium_bond;
+	    rbmd::Real rk = k * dr;
+
+	    rbmd::Real forcebondij;
+	    if (dis_12 > 0.01)
+	      forcebondij =  -2.0 * rk / dis_12;
+	    else
+	      forcebondij = 0.0;
+	    fx[tid1] = forcebondij*x12;
+	    fy[tid1] = forcebondij*y12;
+	    fz[tid1] = forcebondij*z12;
+
+	    energy_bond[tid1] = rk * dr;
+	  }
+	}
+
+
+      //
+       __global__ void ComputeAngleForce(
+       Box* box,
+       const rbmd::Id num_anglels,
+       const rbmd::Real* anglel_coeffs_k,
+       const rbmd::Real* anglel_coeffs_equilibrium,
+       const rbmd::Id* anglel_type,
+       const int3* anglelist,
+       const rbmd::Real* px,
+       const rbmd::Real* py,
+       const rbmd::Real* pz,
+       rbmd::Real* fx,
+       rbmd::Real* fy,
+       rbmd::Real* fz,
+       rbmd::Real* energy_angle)
+        {
+	  unsigned int tid1 = blockIdx.x * blockDim.x + threadIdx.x;
+	  if (tid1 < num_anglels)
+	  {
+	    rbmd::Id bondi = anglelist[tid1].x;
+	    rbmd::Id bondj = anglelist[tid1].y;
+	    rbmd::Id bondk = anglelist[tid1].z;
+	    rbmd::Id bondtype = anglel_type[tid1];
+	    rbmd::Real k = anglel_coeffs_k[bondtype];
+	    rbmd::Real equilibrium_angle = anglel_coeffs_equilibrium[bondtype];
+	    rbmd::Real x1 = px[bondi];
+	    rbmd::Real y1 = py[bondi];
+	    rbmd::Real z1 = pz[bondi];
+
+	    rbmd::Real x2 = px[bondj];
+	    rbmd::Real y2 = py[bondj];
+	    rbmd::Real z2 = pz[bondj];
+
+	    rbmd::Real x3 = px[bondk];
+	    rbmd::Real y3 = py[bondk];
+	    rbmd::Real z3 = pz[bondk];
+	    rbmd::Real x12 = x2-x1;
+	    rbmd::Real y12 = y2-y1;
+	    rbmd::Real z12 = z2-z1;
+
+	    rbmd::Real x23 = x2-x3;
+	    rbmd::Real y23 = y2-y3;
+	    rbmd::Real z23 = z2-z3;
+	    MinImageDistance(box,x12,y12,z12);
+	    MinImageDistance(box,x23,y23,z23);
+	    rbmd::Real dis_12_2 = x12 * x12 + y12 * y12 + z12 * z12;
+	    rbmd::Real dis_23_2 = x23 * x23 + y23 * y23 + z23 * z23;
+	    rbmd::Real  dis_12 = SQRT(dis_12_2);
+	    rbmd::Real  dis_23 = SQRT(dis_23_2);
+
+	    rbmd::Real cosangle = x12*x23 + y12*y23 + z12*z23;
+	    cosangle /= dis_12 * dis_23;
+
+	    if (cosangle > 1.0)
+	      cosangle = 1.0;
+	    if (cosangle < -1.0)
+	      cosangle = -1.0;
+	    rbmd::Real s = SQRT(1.0 - cosangle * cosangle);
+	    const rbmd::Real SMALL = 0.001;
+	    if (s < SMALL)
+	      s = SMALL;
+	    s = 1.0 / s;
+
+	    rbmd::Real dtheta = ACOS(cosangle) - (equilibrium_angle * M_PI) / 180;
+	    rbmd::Real tk = k * dtheta;
+	    energy_angle[tid1] = tk * dtheta;
+
+	    rbmd::Real a = -2.0 * tk * s;
+	    rbmd::Real a11 = a * cosangle / dis_12_2;
+	    rbmd::Real a12 = -a / (dis_12 * dis_23);
+	    rbmd::Real a22 = a * cosangle / dis_23_2;
+	    rbmd::Real force_anglei_x,force_anglei_y,force_anglei_z;
+	    rbmd::Real force_anglek_x,force_anglek_y,force_anglek_z;
+	    rbmd::Real force_anglej_x,force_anglej_y,force_anglej_z;
+
+	    force_anglei_x = a11 * x12 + a12 * x23;
+	    force_anglei_y = a11 * y12 + a12 * y23;
+	    force_anglei_z = a11 * z12 + a12 * z23;
+
+	    force_anglek_x = a22 * x23 + a12 * x12;
+	    force_anglek_y = a22 * y23 + a12 * y12;
+	    force_anglek_z = a22 * z23 + a12 * z12;
+
+	    force_anglej_x = -(force_anglei_x+force_anglek_x);
+	    force_anglej_y = -(force_anglei_y+force_anglek_y);
+	    force_anglej_z = -(force_anglei_z+force_anglek_z);
+	  }
+	}
 
         /////////////////////
 	//verlet-list: LJForce
@@ -1763,6 +1902,53 @@ void CoulCutForce_rcs_erf(
                   (box, num_atoms, p_number, alpha,qqr2e, real_array, imag_array, charge,
                          p_sample_x,p_sample_y,p_sample_z, px, py, pz, fx, fy, fz));
 
+	}
+
+//
+      void ComputeBondForceOp<device::DEVICE_GPU>::operator()(
+       Box* box,
+       const rbmd::Id num_bonds,
+       const rbmd::Real* bond_coeffs_k,
+       const rbmd::Real* bond_coeffs_equilibrium,
+       const rbmd::Id* bond_type,
+       const int2* bondlist,
+       const rbmd::Real* px,
+       const rbmd::Real* py,
+       const rbmd::Real* pz,
+       rbmd::Real* fx,
+       rbmd::Real* fy,
+       rbmd::Real* fz,
+       rbmd::Real* energy_bond)
+       {
+	  unsigned int blocks_per_grid = (num_bonds + BLOCK_SIZE - 1) / BLOCK_SIZE;
+
+	  CHECK_KERNEL(ComputeBondForce <<<blocks_per_grid, BLOCK_SIZE, 0, 0 >>>
+                  (box, num_bonds,bond_coeffs_k,bond_coeffs_equilibrium,bond_type,
+                    bondlist,px, py, pz, fx, fy, fz,energy_bond));
+       }
+
+//
+       void ComputeAngleForceOp<device::DEVICE_GPU>::operator()(
+        Box* box,
+        const rbmd::Id num_anglels,
+        const rbmd::Real* anglel_coeffs_k,
+        const rbmd::Real* anglel_coeffs_equilibrium,
+        const rbmd::Id* anglel_type,
+        const int3* anglelist,
+        const rbmd::Real* px,
+        const rbmd::Real* py,
+        const rbmd::Real* pz,
+        rbmd::Real* fx,
+        rbmd::Real* fy,
+        rbmd::Real* fz,
+        rbmd::Real* energy_angle)
+        {
+	  unsigned int blocks_per_grid = (num_anglels + BLOCK_SIZE - 1) / BLOCK_SIZE;
+
+	  CHECK_KERNEL(ComputeAngleForce <<<blocks_per_grid, BLOCK_SIZE, 0, 0 >>>
+                  (box, num_anglels,anglel_coeffs_k,
+                    anglel_coeffs_equilibrium,anglel_type,
+                    anglelist,px, py, pz, fx, fy, fz,energy_angle));
 	}
 
 }
