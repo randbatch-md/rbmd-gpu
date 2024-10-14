@@ -2,6 +2,7 @@
 #include "../../common/types.h"
 #include "force.h"
 #include "model/box.h"
+#include "../common/erf_table.h"
 #include "neighbor_list/include/neighbor_list/neighbor_list.h"
 #include "neighbor_list/include/neighbor_list_builder/full_neighbor_list_builder.h"
 class LJCutCoulKspaceForce : public Force
@@ -27,6 +28,7 @@ public:
           rbmd::Real* value_Im_array);
   void ComputeEwlad();//Ewald
 
+  void ERFinit();
   void RBEInit(Box* box,rbmd::Real alpha,rbmd::Id RBE_P);
   void ComputeChargeStructureFactorRBE(
          Box* box,

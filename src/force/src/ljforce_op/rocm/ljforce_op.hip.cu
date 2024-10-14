@@ -113,6 +113,31 @@ namespace op
 	}
 
         __device__
+        void CoulCutForce_erf(
+                rbmd::Real cut_off,
+                rbmd::Real alpha,
+                rbmd::Real qqr2e,
+                rbmd::Real table_pij,
+                rbmd::Real charge_i,
+                rbmd::Real charge_j,
+                rbmd::Real px12,
+                rbmd::Real py12,
+                rbmd::Real pz12,
+                rbmd::Real& force_coul,
+                rbmd::Real& energy_coul)
+	{
+	  const rbmd::Real dis_2 = px12 * px12 + py12 * py12 + pz12 * pz12;
+	  const rbmd::Real dis = SQRT(dis_2);
+	  const rbmd::Real cut_off_2 = cut_off * cut_off;
+
+	  if (dis_2 < cut_off_2 && dis_2 > EPSILON)
+	  {
+	    force_coul = qqr2e * (-charge_i * charge_j * table_pij / dis);
+	    energy_coul = qqr2e * (0.5 * charge_i * charge_j * (1.0 - ERF(SQRT(alpha) * dis)) / dis);
+	  }
+	}
+
+        __device__
         void CoulCutForce_rs(
                 rbmd::Real rs,
                 rbmd::Real alpha,
@@ -139,19 +164,42 @@ namespace op
 	  }
 	}
 
-        __device__
-        void CoulCutForce_rcs(
-                rbmd::Real rc,
-                rbmd::Real rs,
-                rbmd::Id  pice_num,
-                rbmd::Real alpha,
-                rbmd::Real qqr2e,
-                rbmd::Real charge_i,
-                rbmd::Real charge_j,
-                rbmd::Real px12,
-                rbmd::Real py12,
-                rbmd::Real pz12,
-                rbmd::Real& force_coul)
+__device__
+void CoulCutForce_rs_erf(
+        rbmd::Real rs,
+        rbmd::Real alpha,
+        rbmd::Real qqr2e,
+        rbmd::Real table_pij,
+        rbmd::Real charge_i,
+        rbmd::Real charge_j,
+        rbmd::Real px12,
+        rbmd::Real py12,
+        rbmd::Real pz12,
+        rbmd::Real& force_coul)
+	{
+	  const rbmd::Real dis_2 = px12 * px12 + py12 * py12 + pz12 * pz12;
+	  const rbmd::Real dis = SQRT(dis_2);
+	  const rbmd::Real rs_2 = rs * rs;
+
+	  if (dis_2 < rs_2 && dis_2 > EPSILON)
+	  {
+	    force_coul = qqr2e * (-charge_i * charge_j * table_pij / dis);
+	  }
+	}
+
+__device__
+void CoulCutForce_rcs(
+        rbmd::Real rc,
+        rbmd::Real rs,
+        rbmd::Id  pice_num,
+        rbmd::Real alpha,
+        rbmd::Real qqr2e,
+        rbmd::Real charge_i,
+        rbmd::Real charge_j,
+        rbmd::Real px12,
+        rbmd::Real py12,
+        rbmd::Real pz12,
+        rbmd::Real& force_coul)
 	{
 	  const rbmd::Real dis_2 = px12 * px12 + py12 * py12 + pz12 * pz12;
 	  const rbmd::Real dis = SQRT(dis_2);
@@ -168,6 +216,33 @@ namespace op
 	    force_coul = pice_num * qqr2e * (-charge_i * charge_j * gnear_value / dis);
 	  }
 	}
+
+__device__
+void CoulCutForce_rcs_erf(
+        rbmd::Real rc,
+        rbmd::Real rs,
+        rbmd::Id  pice_num,
+        rbmd::Real alpha,
+        rbmd::Real qqr2e,
+        rbmd::Real table_pij,
+        rbmd::Real charge_i,
+        rbmd::Real charge_j,
+        rbmd::Real px12,
+        rbmd::Real py12,
+        rbmd::Real pz12,
+        rbmd::Real& force_coul)
+	{
+	  const rbmd::Real dis_2 = px12 * px12 + py12 * py12 + pz12 * pz12;
+	  const rbmd::Real dis = SQRT(dis_2);
+	  const rbmd::Real rc_2 = rc * rc;
+	  const rbmd::Real rs_2 = rs * rs;
+
+	  if (dis_2 < rc_2 && dis_2 > rs_2)
+	  {
+	    force_coul = pice_num * qqr2e * (-charge_i * charge_j * table_pij / dis);
+	  }
+	}
+
 
 	//EwaldForce
 	__device__ void EwaldForce(
@@ -719,7 +794,7 @@ namespace op
 
 	//LJCoulCutForce
 	__global__ void ComputeLJCutCoulForce(
-		Box* box,
+		Box* box,ERFTable* erf_table,
 		const rbmd::Real cut_off,
 		const rbmd::Id num_atoms,
 		const rbmd::Real alpha,
@@ -791,6 +866,11 @@ namespace op
 
 				MinImageDistance(box, px12, py12, pz12);
 
+			        //erf
+			        rbmd::Real  dis = SQRT(px12*px12+py12*py12+pz12*pz12);
+			        rbmd::Id index_table_pij = erf_table->Extract(dis);
+			        rbmd::Real  table_pij = erf_table->TableGnearValue(dis,index_table_pij);
+
 				rbmd::Real force_lj, force_coul, force_pair;
 				rbmd::Real energy_lj, energy_coul;
 
@@ -798,7 +878,7 @@ namespace op
 				lj126(cut_off, px12, py12, pz12, eps_ij, sigma_ij, force_lj, energy_lj);
 
 				//Coul cut
-				CoulCutForce(cut_off, alpha, qqr2e, charge_i, charge_j, px12, py12, pz12, force_coul, energy_coul);
+				CoulCutForce_erf(cut_off, alpha, qqr2e,table_pij, charge_i, charge_j, px12, py12, pz12, force_coul, energy_coul);
 
 				force_pair = force_lj + force_coul;
 
@@ -828,7 +908,7 @@ namespace op
 
        //LJCutCoulEnergy
 	__global__ void ComputeLJCutCoulEnergy(
-		Box* box,
+		Box* box,ERFTable* erf_table,
 		const rbmd::Real cut_off,
 		const rbmd::Id num_atoms,
 		const rbmd::Real alpha,
@@ -894,7 +974,12 @@ namespace op
 
 				MinImageDistance(box, px12, py12, pz12);
 
-				rbmd::Real force_lj, force_coul, force_pair;
+			        //erf
+			        rbmd::Real  dis = SQRT(px12*px12+py12*py12+pz12*pz12);
+			        rbmd::Id index_table_pij = erf_table->Extract(dis);
+			        rbmd::Real  table_pij = erf_table->TableGnearValue(dis,index_table_pij);
+
+			        rbmd::Real force_lj, force_coul, force_pair;
 				rbmd::Real energy_lj, energy_coul;
 
 				//lj cut
@@ -902,10 +987,8 @@ namespace op
 				  force_lj, energy_lj);
 
 				//Coul cut
-				CoulCutForce(cut_off, alpha, qqr2e, charge_i, charge_j,
+				CoulCutForce_erf(cut_off, alpha, qqr2e,table_pij, charge_i, charge_j,
 				  px12, py12, pz12, force_coul, energy_coul);
-
-				force_pair = force_lj + force_coul;
 
 				sum_elj += energy_lj;
 				sum_ecoul += energy_coul;
@@ -926,6 +1009,7 @@ namespace op
        //LJCutCoul RBL
 	__global__ void ComputeLJCutCoulRBLForce(
 		Box* box,
+		ERFTable* erf_table,
 		const rbmd::Real rs,
                 const rbmd::Real rc,
 		const rbmd::Id num_atoms,
@@ -996,15 +1080,22 @@ namespace op
 			  rbmd::Real px12 = x2 - x1;
 			  rbmd::Real py12 = y2 - y1;
 			  rbmd::Real pz12 = z2 - z1;
+
+
 			  //if (molecular_id_i == molecular_id_j)
 			  	//continue;
 			  MinImageDistance(box, px12, py12, pz12);
+
+			  //erf
+			  rbmd::Real  dis = SQRT(px12*px12+py12*py12+pz12*pz12);
+			  rbmd::Id index_table_pij = erf_table->Extract(dis);
+			  rbmd::Real  table_pij = erf_table->TableGnearValue(dis,index_table_pij);
 
 			  //compute the force_rs
 			  rbmd::Real force_lj_rs, force_coul_rs, force_pair;
 			  lj126_rs(rs, px12, py12, pz12, eps_ij, sigma_ij,
 			    force_lj_rs);
-			  CoulCutForce_rs(rs, alpha, qqr2e, charge_i, charge_j,
+			  CoulCutForce_rs(rs, alpha, qqr2e,charge_i, charge_j,
 			    px12, py12, pz12, force_coul_rs);
 
 			  fs_ij = force_lj_rs + force_coul_rs;
@@ -1037,6 +1128,11 @@ namespace op
 			  //if (molecular_id_i == molecular_id_j)
 			  	//continue;
 			  MinImageDistance(box, px12, py12, pz12);
+
+			  //erf
+			  rbmd::Real  dis = SQRT(px12*px12+py12*py12+pz12*pz12);
+			  rbmd::Id index_table_pij = erf_table->Extract(dis);
+			  rbmd::Real  table_pij = erf_table->TableGnearValue(dis,index_table_pij);
 
 			  //compute the force_rcs
 			  rbmd::Real force_lj_rcs, force_coul_rcs, force_pair;
@@ -1461,7 +1557,7 @@ namespace op
 	}
 
 	void LJCutCoulForceOp<device::DEVICE_GPU>::operator()(
-		Box* box,
+		Box* box,ERFTable* erf_table,
 		const rbmd::Real cut_off,
 		const rbmd::Id num_atoms,
 		const rbmd::Real alpha,
@@ -1485,13 +1581,13 @@ namespace op
 	{
 		unsigned int blocks_per_grid = (num_atoms + BLOCK_SIZE - 1) / BLOCK_SIZE;
 
-		CHECK_KERNEL(ComputeLJCutCoulForce <<<blocks_per_grid, BLOCK_SIZE, 0, 0 >>> (box, cut_off, num_atoms, alpha, qqr2e, atoms_type, molecular_type,
+		CHECK_KERNEL(ComputeLJCutCoulForce <<<blocks_per_grid, BLOCK_SIZE, 0, 0 >>> (box,erf_table, cut_off, num_atoms, alpha, qqr2e, atoms_type, molecular_type,
 			sigma, eps, start_id, end_id, id_verletlist, charge, px, py, pz,
 			fx, fy, fz, total_evdwl, total_ecoul));
 	}
 
         void LJCutCoulRBLForceOp<device::DEVICE_GPU>::operator()(
-                Box* box,
+                Box* box,ERFTable* erf_table,
                 const rbmd::Real rs,
                 const rbmd::Real rc,
                 const rbmd::Id num_atoms,
@@ -1519,13 +1615,13 @@ namespace op
 	  unsigned int blocks_per_grid = (num_atoms + BLOCK_SIZE - 1) / BLOCK_SIZE;
 
 	  CHECK_KERNEL(ComputeLJCutCoulRBLForce <<<blocks_per_grid, BLOCK_SIZE, 0, 0 >>>
-	    (box, rs,rc, num_atoms,neighbor_sample_num,pice_num,alpha, qqr2e,
+	    (box, erf_table,rs,rc, num_atoms,neighbor_sample_num,pice_num,alpha, qqr2e,
 	      atoms_type, molecular_type,sigma, eps, start_id, end_id, id_verletlist,
 	      id_random_neighbor, random_neighbor_num,charge, px, py, pz,fx,fy,fz));
 	}
 
        void LJCutCoulEnergyOp<device::DEVICE_GPU>::operator()(
-        Box* box,
+        Box* box,ERFTable* erf_table,
         const rbmd::Real cut_off,
         const rbmd::Id num_atoms,
         const rbmd::Real alpha,
@@ -1547,7 +1643,7 @@ namespace op
 	  unsigned int blocks_per_grid = (num_atoms + BLOCK_SIZE - 1) / BLOCK_SIZE;
 
 	  CHECK_KERNEL(ComputeLJCutCoulEnergy <<<blocks_per_grid, BLOCK_SIZE, 0, 0 >>>
-	    (box, cut_off, num_atoms, alpha, qqr2e, atoms_type, molecular_type,
+	    (box, erf_table,cut_off, num_atoms, alpha, qqr2e, atoms_type, molecular_type,
 	    sigma, eps, start_id, end_id, id_verletlist, charge, px, py, pz,
 	    total_evdwl, total_ecoul));
 	}

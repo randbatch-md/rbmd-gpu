@@ -19,10 +19,10 @@ BerendsenController::~BerendsenController() {
 void BerendsenController::Init() {
   _num_atoms = *(_structure_info_data->_num_atoms);
   _temp_sum = 0;
-  _Tdamp = 0.1;  // ÅäÖÃÎÄ¼şÖĞ¶ÁÈ¡ temperature [1.0,1.0,0.1]
-  _dt = 0.001;   // ÅäÖÃÎÄ¼şÖĞ¶ÁÈ¡
+  _Tdamp = 0.1;  // ï¿½ï¿½ï¿½ï¿½ï¿½Ä¼ï¿½ï¿½Ğ¶ï¿½È¡ temperature [1.0,1.0,0.1]
+  _dt = 0.001;   // ï¿½ï¿½ï¿½ï¿½ï¿½Ä¼ï¿½ï¿½Ğ¶ï¿½È¡
   auto unit = "LJ";
-  UNIT unit_factor = unit_factor_map[unit];  // ÕâÀï¿ÉÄÜÓĞÖØ¶¨ÒåÒş»¼
+  UNIT unit_factor = unit_factor_map[unit];  // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ø¶ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 
   switch (unit_factor) {
     case UNIT::LJ:
@@ -45,6 +45,7 @@ void BerendsenController::Update() {
 }
 
 void BerendsenController::ComputeTemp() {
+  extern int test_current_step;
   // rbmd::Real* temp_contrib;
   // CHECK_RUNTIME(hipMemset(temp_contrib, 0, sizeof(rbmd::Real)));
   //
@@ -81,12 +82,16 @@ void BerendsenController::ComputeTemp() {
   _test_temperature = _temp;
 
   std::cout << "_temp=" << _temp << std::endl;
+  // out
+  std::ofstream outfile("temp.txt", std::ios::app);
+  outfile << test_current_step << " " << _temp << std::endl;
+  outfile.close();
 
   // CHECK_RUNTIME(FREE(temp_contrib));
 }
 
 void BerendsenController::UpdataVelocity() {
-  rbmd::Real kbT = 1;  // ÅäÖÃÎÄ¼ş»ñÈ¡
+  rbmd::Real kbT = 1;  // ï¿½ï¿½ï¿½ï¿½ï¿½Ä¼ï¿½ï¿½ï¿½È¡
   rbmd::Real coeff_Berendsen =
       std::sqrt(1.0 + (_dt / _Tdamp) * (kbT / _temp - 1.0));
 

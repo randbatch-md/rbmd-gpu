@@ -3,6 +3,7 @@
 
 #include "../common/types.h"
 #include "box.h"
+#include "../common/erf_table.h"
 
 class DeviceData {
  public:
@@ -108,5 +109,6 @@ class DeviceData {
 
   // box in device
   Box* _d_box;
-  ~DeviceData() { CHECK_RUNTIME(FREE(_d_box)); }
+  ERFTable* _d_erf_table;
+  ~DeviceData() { CHECK_RUNTIME(FREE(_d_box));CHECK_RUNTIME(FREE(_d_erf_table)); }
 };

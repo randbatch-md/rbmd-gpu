@@ -120,6 +120,11 @@ bool MemoryScheduler::asyncMemoryH2D() {
   CHECK_RUNTIME(MALLOC(&_device_data->_d_box, sizeof(Box)));
   CHECK_RUNTIME(
       MEMCPY(_device_data->_d_box, _md_data->_h_box.get(), sizeof(Box), H2D));
+
+  //
+  CHECK_RUNTIME(MALLOC(&_device_data->_d_erf_table, sizeof(ERFTable)));
+  CHECK_RUNTIME(
+      MEMCPY(_device_data->_d_erf_table, _md_data->_h_erf_table.get(), sizeof(ERFTable), H2D));
   return true;
 }
 

@@ -17,7 +17,7 @@ NVTensemble::NVTensemble()
 	_position_controller = std::make_shared<DefaultPositionController>(); 
 	_velocity_controller = std::make_shared<DefaultVelocityController>(); 
 	_force_controller = std::make_shared<LJCutCoulKspaceForce>(); // todo �Զ���forcetype =
-	_temperature_controller = std::make_shared<RescaleController>();
+	_temperature_controller = std::make_shared<BerendsenController>();
 }
 
 void NVTensemble::Init() {
