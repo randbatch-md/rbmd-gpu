@@ -588,7 +588,29 @@ void CVFF::ComputeKspaceEnergy(
 }
 
 
-//
+
+void CVFF::ComputeSpecialCoulForce()
+{
+  thrust::device_vector<rbmd::Id> group_vec;
+  thrust::device_vector<rbmd::Id> special_ids;
+  thrust::device_vector<rbmd::Id> special_weights;
+
+   op::ComputeSpecialCoulForceOp<device::DEVICE_GPU> special_coul_force_op;
+   special_coul_force_op(_device_data->_d_box,_num_atoms,
+   thrust::raw_pointer_cast(group_vec.data()),
+   thrust::raw_pointer_cast(special_ids.data()),
+   thrust::raw_pointer_cast(special_weights.data()),
+   thrust::raw_pointer_cast(_device_data->_d_charge.data()),
+    thrust::raw_pointer_cast(_device_data->_d_px.data()),
+    thrust::raw_pointer_cast(_device_data->_d_py.data()),
+    thrust::raw_pointer_cast(_device_data->_d_pz.data()),
+    thrust::raw_pointer_cast(_device_data->_d_fx.data()),
+    thrust::raw_pointer_cast(_device_data->_d_fy.data()),
+    thrust::raw_pointer_cast(_device_data->_d_fz.data()));
+
+
+}
+
 void CVFF::ComputeBondForce()
 {
   thrust::device_vector<int2> bond_list;

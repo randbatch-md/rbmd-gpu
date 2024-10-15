@@ -349,7 +349,22 @@ namespace op
          rbmd::Real* energy_dihedral);
      };
 
-
+     template <typename DEVICE>
+     struct  ComputeSpecialCoulForceOp
+      {
+       void  operator()(Box* box,
+         const rbmd::Id num_atoms,
+         const rbmd::Id*  group_vec,
+         const rbmd::Id*  special_ids,
+         const rbmd::Id*  special_weights,
+         const rbmd::Real* charge,
+         const rbmd::Real* px,
+         const rbmd::Real* py,
+         const rbmd::Real* pz,
+         rbmd::Real* fx,
+         rbmd::Real* fy,
+         rbmd::Real* fz);
+     };
 
         // // // // // // // // // // // // // // // // // // //
         template <>
@@ -633,6 +648,26 @@ namespace op
            rbmd::Real* fy,
            rbmd::Real* fz);
       };
+
+    template <>
+    struct  ComputeSpecialCoulForceOp<device::DEVICE_GPU>
+   {
+        void  operator()(Box* box,
+          const rbmd::Id num_atoms,
+          const rbmd::Id*  group_vec,
+          const rbmd::Id*  special_ids,
+          const rbmd::Id*  special_weights,
+          const rbmd::Real* charge,
+          const rbmd::Real* px,
+          const rbmd::Real* py,
+          const rbmd::Real* pz,
+          rbmd::Real* fx,
+          rbmd::Real* fy,
+          rbmd::Real* fz);
+    };
+
+
+
      template <>
      struct  ComputeBondForceOp<device::DEVICE_GPU>
      {

@@ -1437,6 +1437,81 @@ void CoulCutForce_rcs_erf(
 	  }
 	}
 
+        //
+      __global__ void ComputeSpecialCoulForce(
+       Box* box,
+       const rbmd::Id num_atoms,
+       const rbmd::Id*  group_vec,
+       const rbmd::Id*  special_ids,
+       const rbmd::Id*  special_weights,
+       const rbmd::Real* charge,
+       const rbmd::Real* px,
+       const rbmd::Real* py,
+       const rbmd::Real* pz,
+       rbmd::Real* fx,
+       rbmd::Real* fy,
+       rbmd::Real* fz)
+       {
+          rbmd::Real  sum_fx=0.0;
+          rbmd::Real  sum_fy=0.0;
+          rbmd::Real  sum_fz=0.0;
+
+          unsigned int tid1 = blockIdx.x * blockDim.x + threadIdx.x;
+          if (tid1 < num_atoms)
+          {
+            rbmd::Real charge_i = charge[tid1];
+            rbmd::Real x1 = px[tid1];
+            rbmd::Real y1 = py[tid1];
+            rbmd::Real z1 = pz[tid1];
+            rbmd::Id num = group_vec[tid1];  // 每个原子的 group 数量
+            rbmd::Id  num_components = special_ids[tid1];
+
+            if (num >= 3)
+            {
+              for (rbmd::Id j = 0; j < num_components; ++j)
+              {
+                rbmd::Id tid2 = group_vec[j];
+                if (tid1 == tid2)
+                  continue;
+
+                rbmd::Real charge_j = charge[tid2];
+                rbmd::Real x2 = px[tid2];
+                rbmd::Real y2 = py[tid2];
+                rbmd::Real z2 = pz[tid2];
+
+                rbmd::Real x12 = x2 - x1;
+                rbmd::Real y12 = y2 - y1;
+                rbmd::Real z12 = z2 - z1;
+                MinImageDistance(box, x12, y12, z12);
+
+                rbmd::Real dis_ij = SQRT(x12*x12+y12*y12+z12*z12);
+                rbmd::Real dis_ij3 = POW(dis_ij, 3.0);
+                rbmd::Real force_component = -332.06371 * charge_i * charge_j / dis_ij3;
+
+                rbmd::Real weight = 1.0;
+                for (rbmd::Id k = 0; k < num_components; ++k)
+                {
+                  if (special_ids[k] == tid2)
+                  {
+                    weight = special_weights[k];
+                    break;
+                  }
+                }
+
+                sum_fx += (1.0 - weight) * force_component * x12;
+                sum_fy += (1.0 - weight) * force_component * y12;
+                sum_fz += (1.0 - weight) * force_component * z12;
+              }
+            }
+
+            //
+            fx[tid1] = sum_fx;
+            fy[tid1] = sum_fy;
+            fz[tid1] = sum_fz;
+         }
+       }
+
+
        __global__ void ComputeBondForce(
        Box* box,
        const rbmd::Id num_bonds,
@@ -2161,6 +2236,27 @@ hipcub::BlockReduce<rbmd::Real, BLOCK_SIZE>(temp_storage).Sum(local_energy_dihed
                          p_sample_x,p_sample_y,p_sample_z, px, py, pz, fx, fy, fz));
 
 	}
+
+void ComputeSpecialCoulForceOp<device::DEVICE_GPU>::operator()(
+       Box* box,
+       const rbmd::Id num_atoms,
+       const rbmd::Id*  group_vec,
+       const rbmd::Id*  special_ids,
+       const rbmd::Id*  special_weights,
+       const rbmd::Real* charge,
+       const rbmd::Real* px,
+       const rbmd::Real* py,
+       const rbmd::Real* pz,
+       rbmd::Real* fx,
+       rbmd::Real* fy,
+       rbmd::Real* fz)
+      {
+          unsigned int blocks_per_grid = (num_atoms + BLOCK_SIZE - 1) / BLOCK_SIZE;
+
+          CHECK_KERNEL(ComputeSpecialCoulForce <<<blocks_per_grid, BLOCK_SIZE, 0, 0 >>>
+                  (box,num_atoms,group_vec,special_ids,special_weights,
+                    charge,px, py, pz, fx, fy, fz));
+      }
 
 //
       void ComputeBondForceOp<device::DEVICE_GPU>::operator()(

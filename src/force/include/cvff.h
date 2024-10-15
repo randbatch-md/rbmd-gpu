@@ -57,6 +57,8 @@ public:
         rbmd::Real qqr2e,
         rbmd::Real& ave_ekspace);   //Ewald  Energy
 
+  void ComputeSpecialCoulForce();
+
   void ComputeBondForce(); //Harmonic
   void ComputeAngleForce(); //Harmonic
   void ComputeDihedralForce(); //Harmonic
