@@ -22,7 +22,7 @@ struct ERFTable
     thrust::device_vector<rbmd::Real> table_function_rij2;
     thrust::device_vector<rbmd::Real> table_dfunction_rij2;
 
-       __host__ __device__ __forceinline__ void init()
+    void init()
     {
         table_index1.resize(1127);
         table_rij1.resize(1127);

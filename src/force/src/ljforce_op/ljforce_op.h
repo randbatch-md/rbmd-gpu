@@ -294,6 +294,7 @@ namespace op
        void  operator()(
          Box* box,
          const rbmd::Id num_bonds,
+         const rbmd::Id num_atoms,
          const rbmd::Real* bond_coeffs_k,
          const rbmd::Real* bond_coeffs_equilibrium,
          const rbmd::Id* bond_type,
@@ -313,6 +314,7 @@ namespace op
        void operator()(
        Box* box,
        const rbmd::Id num_anglels,
+       const rbmd::Id num_atoms,
        const rbmd::Real* anglel_coeffs_k,
        const rbmd::Real* anglel_coeffs_equilibrium,
        const rbmd::Id* anglel_type,
@@ -325,6 +327,29 @@ namespace op
        rbmd::Real* fz,
        rbmd::Real* energy_angle);
      };
+
+     template <typename DEVICE>
+     struct ComputeDihedralForceOp
+     {
+       void operator()(
+         Box* box,
+         const rbmd::Id num_dihedrals,
+         const rbmd::Id num_atoms,
+         const rbmd::Real* dihedral_coeffs_k,
+         const rbmd::Id* dihedral_coeffs_sign ,
+         const rbmd::Id* dihedral_coeffs_multiplicity ,
+         const rbmd::Id* dihedral_type,
+         const int4* dihedrallist,
+         const rbmd::Real* px,
+         const rbmd::Real* py,
+         const rbmd::Real* pz,
+         rbmd::Real* fx,
+         rbmd::Real* fy,
+         rbmd::Real* fz,
+         rbmd::Real* energy_dihedral);
+     };
+
+
 
         // // // // // // // // // // // // // // // // // // //
         template <>
@@ -614,6 +639,7 @@ namespace op
        void  operator()(
          Box* box,
          const rbmd::Id num_bonds,
+         const rbmd::Id num_atoms,
          const rbmd::Real* bond_coeffs_k,
          const rbmd::Real* bond_coeffs_equilibrium,
          const rbmd::Id* bond_type,
@@ -633,6 +659,7 @@ namespace op
        void operator()(
        Box* box,
        const rbmd::Id num_anglels,
+       const rbmd::Id num_atoms,
        const rbmd::Real* anglel_coeffs_k,
        const rbmd::Real* anglel_coeffs_equilibrium,
        const rbmd::Id* anglel_type,
@@ -645,5 +672,28 @@ namespace op
        rbmd::Real* fz,
        rbmd::Real* energy_angle);
      };
+
+    template <>
+    struct ComputeDihedralForceOp<device::DEVICE_GPU>
+    {
+      void operator()(
+        Box* box,
+        const rbmd::Id num_dihedrals,
+        const rbmd::Id num_atoms,
+        const rbmd::Real* dihedral_coeffs_k,
+        const rbmd::Id* dihedral_coeffs_sign ,
+        const rbmd::Id* dihedral_coeffs_multiplicity ,
+        const rbmd::Id* dihedral_type,
+        const int4* dihedrallist,
+        const rbmd::Real* px,
+        const rbmd::Real* py,
+        const rbmd::Real* pz,
+        rbmd::Real* fx,
+        rbmd::Real* fy,
+        rbmd::Real* fz,
+        rbmd::Real* energy_dihedral);
+    };
+
+
 
 }// namespace op

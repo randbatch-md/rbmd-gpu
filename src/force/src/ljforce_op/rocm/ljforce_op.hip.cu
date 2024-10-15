@@ -8,6 +8,21 @@ namespace op
 {
 
 	//---------device---------//
+        // 线性索引函数，将二维数组映射为一维
+        __device__ rbmd::Id index2D(rbmd::Id row, rbmd::Id col, rbmd::Id num_columns) {
+          return row * num_columns + col;
+        }
+
+        // 线性索引函数，将三维数组映射为一维
+        __device__ rbmd::Id index3D(
+          rbmd::Id depth,
+          rbmd::Id row,
+          rbmd::Id col,
+          rbmd::Id num_rows,
+          rbmd::Id num_columns) {
+          return depth * (num_rows * num_columns) + row * num_columns + col;
+        }
+
 	//lj126
 	__device__ void lj126(
 		rbmd::Real cut_off,
@@ -1425,6 +1440,7 @@ void CoulCutForce_rcs_erf(
        __global__ void ComputeBondForce(
        Box* box,
        const rbmd::Id num_bonds,
+       const rbmd::Id num_atoms,
        const rbmd::Real* bond_coeffs_k,
        const rbmd::Real* bond_coeffs_equilibrium,
        const rbmd::Id* bond_type,
@@ -1437,39 +1453,71 @@ void CoulCutForce_rcs_erf(
        rbmd::Real* fz,
        rbmd::Real* energy_bond)
         {
+	  __shared__ typename hipcub::BlockReduce<rbmd::Real, BLOCK_SIZE>::TempStorage
+    temp_storage;
+
+	  rbmd::Real local_energy_bond  = 0;
+
 	  unsigned int tid1 = blockIdx.x * blockDim.x + threadIdx.x;
 	  if (tid1 < num_bonds)
 	  {
-	    rbmd::Id bondi = bondlist[tid1].x;
-	    rbmd::Id bondj = bondlist[tid1].y;
+	    rbmd::Id row = tid1 / num_atoms;  // 假设 bondlist 是二维结构，这里做二维索引
+	    rbmd::Id col = tid1 % num_atoms;
+	    rbmd::Id bondi = bondlist[index2D(row, col, num_atoms)].x;
+	    rbmd::Id bondj = bondlist[index2D(row, col, num_atoms)].y;
+
+	    //rbmd::Id bondi = bondlist[tid1].x;
+	    //rbmd::Id bondj = bondlist[tid1].y;
 	    rbmd::Id bondtype = bond_type[tid1];
 	    rbmd::Real k = bond_coeffs_k[bondtype];
 	    rbmd::Real equilibrium_bond = bond_coeffs_equilibrium[bondtype];
-	    rbmd::Real x1 = px[bondi];
-	    rbmd::Real y1 = py[bondi];
-	    rbmd::Real z1 = pz[bondi];
 
-	    rbmd::Real x2 = px[bondj];
-	    rbmd::Real y2 = py[bondj];
-	    rbmd::Real z2 = pz[bondj];
-	    rbmd::Real x12 = x2-x1;
-	    rbmd::Real y12 = y2-y1;
-	    rbmd::Real z12 = z2-z1;
+	    rbmd::Real x12 = px[bondj]-px[bondi];
+	    rbmd::Real y12 = py[bondj]-py[bondi];
+	    rbmd::Real z12 = pz[bondj]-pz[bondi];
 	    MinImageDistance(box,x12,y12,z12);
 	    rbmd::Real  dis_12 = SQRT(x12 * x12 + y12 * y12 + z12 * z12);
 	    rbmd::Real dr = dis_12 - equilibrium_bond;
 	    rbmd::Real rk = k * dr;
+
+	    //energy
+	    local_energy_bond += rk * dr;
 
 	    rbmd::Real forcebondij;
 	    if (dis_12 > 0.01)
 	      forcebondij =  -2.0 * rk / dis_12;
 	    else
 	      forcebondij = 0.0;
-	    fx[tid1] = forcebondij*x12;
-	    fy[tid1] = forcebondij*y12;
-	    fz[tid1] = forcebondij*z12;
 
-	    energy_bond[tid1] = rk * dr;
+	    // // apply force to each of 2 atoms
+	    // fx[bondi] += forcebondij * x12;
+	    // fy[bondi] += forcebondij * y12;
+	    // fz[bondi] += forcebondij * z12;
+	    //
+	    // fx[bondj] -= forcebondij * x12;
+	    // fy[bondj] -= forcebondij * y12;
+	    // fz[bondj] -= forcebondij * z12;
+
+	    // 计算作用力分量
+	    rbmd::Real fx_ij = forcebondij * x12;
+	    rbmd::Real fy_ij = forcebondij * y12;
+	    rbmd::Real fz_ij = forcebondij * z12;
+
+	    // 使用atomicAdd聚合作用力
+	    atomicAdd(&fx[bondi], fx_ij); // 将作用力添加到原子bondi
+	    atomicAdd(&fy[bondi], fy_ij);
+	    atomicAdd(&fz[bondi], fz_ij);
+
+	    atomicAdd(&fx[bondj], -fx_ij); // 对于bondj施加相反的作用力
+	    atomicAdd(&fy[bondj], -fy_ij);
+	    atomicAdd(&fz[bondj], -fz_ij);
+	  }
+
+	  rbmd::Real block_sum =
+    hipcub::BlockReduce<rbmd::Real, BLOCK_SIZE>(temp_storage).Sum(local_energy_bond);
+
+	  if (threadIdx.x == 0){
+	    atomicAdd(energy_bond, block_sum);
 	  }
 	}
 
@@ -1478,6 +1526,7 @@ void CoulCutForce_rcs_erf(
        __global__ void ComputeAngleForce(
        Box* box,
        const rbmd::Id num_anglels,
+       const rbmd::Id num_atoms,
        const rbmd::Real* anglel_coeffs_k,
        const rbmd::Real* anglel_coeffs_equilibrium,
        const rbmd::Id* anglel_type,
@@ -1490,38 +1539,34 @@ void CoulCutForce_rcs_erf(
        rbmd::Real* fz,
        rbmd::Real* energy_angle)
         {
+          __shared__ typename hipcub::BlockReduce<rbmd::Real, BLOCK_SIZE>::TempStorage
+temp_storage;
+          rbmd::Real local_energy_angle  = 0;
+
 	  unsigned int tid1 = blockIdx.x * blockDim.x + threadIdx.x;
 	  if (tid1 < num_anglels)
 	  {
-	    rbmd::Id bondi = anglelist[tid1].x;
-	    rbmd::Id bondj = anglelist[tid1].y;
-	    rbmd::Id bondk = anglelist[tid1].z;
+	    rbmd::Id angleli = anglelist[tid1].x;
+	    rbmd::Id anglelj = anglelist[tid1].y;
+	    rbmd::Id anglelk = anglelist[tid1].z;
 	    rbmd::Id bondtype = anglel_type[tid1];
 	    rbmd::Real k = anglel_coeffs_k[bondtype];
 	    rbmd::Real equilibrium_angle = anglel_coeffs_equilibrium[bondtype];
-	    rbmd::Real x1 = px[bondi];
-	    rbmd::Real y1 = py[bondi];
-	    rbmd::Real z1 = pz[bondi];
 
-	    rbmd::Real x2 = px[bondj];
-	    rbmd::Real y2 = py[bondj];
-	    rbmd::Real z2 = pz[bondj];
-
-	    rbmd::Real x3 = px[bondk];
-	    rbmd::Real y3 = py[bondk];
-	    rbmd::Real z3 = pz[bondk];
-	    rbmd::Real x12 = x2-x1;
-	    rbmd::Real y12 = y2-y1;
-	    rbmd::Real z12 = z2-z1;
-
-	    rbmd::Real x23 = x2-x3;
-	    rbmd::Real y23 = y2-y3;
-	    rbmd::Real z23 = z2-z3;
+	    rbmd::Real x12 = px[angleli]-px[anglelj];  //i j
+	    rbmd::Real y12 = py[angleli]-py[anglelj];
+	    rbmd::Real z12 = pz[angleli]-pz[anglelj];
 	    MinImageDistance(box,x12,y12,z12);
+
+	    rbmd::Real x23 = px[anglelk]-px[anglelj]; // k j
+	    rbmd::Real y23 = py[anglelk]-py[anglelj];
+	    rbmd::Real z23 = pz[anglelk]-pz[anglelj];
 	    MinImageDistance(box,x23,y23,z23);
+
 	    rbmd::Real dis_12_2 = x12 * x12 + y12 * y12 + z12 * z12;
-	    rbmd::Real dis_23_2 = x23 * x23 + y23 * y23 + z23 * z23;
 	    rbmd::Real  dis_12 = SQRT(dis_12_2);
+
+	    rbmd::Real dis_23_2 = x23 * x23 + y23 * y23 + z23 * z23;
 	    rbmd::Real  dis_23 = SQRT(dis_23_2);
 
 	    rbmd::Real cosangle = x12*x23 + y12*y23 + z12*z23;
@@ -1532,6 +1577,7 @@ void CoulCutForce_rcs_erf(
 	    if (cosangle < -1.0)
 	      cosangle = -1.0;
 	    rbmd::Real s = SQRT(1.0 - cosangle * cosangle);
+
 	    const rbmd::Real SMALL = 0.001;
 	    if (s < SMALL)
 	      s = SMALL;
@@ -1539,12 +1585,15 @@ void CoulCutForce_rcs_erf(
 
 	    rbmd::Real dtheta = ACOS(cosangle) - (equilibrium_angle * M_PI) / 180;
 	    rbmd::Real tk = k * dtheta;
-	    energy_angle[tid1] = tk * dtheta;
+
+	    //energy
+	    local_energy_angle += tk * dtheta;
 
 	    rbmd::Real a = -2.0 * tk * s;
 	    rbmd::Real a11 = a * cosangle / dis_12_2;
 	    rbmd::Real a12 = -a / (dis_12 * dis_23);
 	    rbmd::Real a22 = a * cosangle / dis_23_2;
+
 	    rbmd::Real force_anglei_x,force_anglei_y,force_anglei_z;
 	    rbmd::Real force_anglek_x,force_anglek_y,force_anglek_z;
 	    rbmd::Real force_anglej_x,force_anglej_y,force_anglej_z;
@@ -1560,8 +1609,217 @@ void CoulCutForce_rcs_erf(
 	    force_anglej_x = -(force_anglei_x+force_anglek_x);
 	    force_anglej_y = -(force_anglei_y+force_anglek_y);
 	    force_anglej_z = -(force_anglei_z+force_anglek_z);
+
+	    atomicAdd(&fx[angleli], force_anglei_x);
+	    atomicAdd(&fy[angleli], force_anglei_y);
+	    atomicAdd(&fz[angleli], force_anglei_z);
+
+	    atomicAdd(&fx[anglelk], force_anglek_x);
+	    atomicAdd(&fy[anglelk], force_anglek_y);
+	    atomicAdd(&fz[anglelk], force_anglek_z);
+
+	    atomicAdd(&fx[anglelj], force_anglej_x);
+	    atomicAdd(&fy[anglelj], force_anglej_y);
+	    atomicAdd(&fz[anglelj], force_anglej_z);
 	  }
+
+          rbmd::Real block_sum =
+hipcub::BlockReduce<rbmd::Real, BLOCK_SIZE>(temp_storage).Sum(local_energy_angle);
+
+          if (threadIdx.x == 0){
+            atomicAdd(energy_angle, block_sum);
+          }
 	}
+
+       __global__ void ComputeDihedralForce(
+         Box* box,
+         const rbmd::Id num_dihedrals,
+         const rbmd::Id num_atoms,
+         const rbmd::Real* dihedral_coeffs_k,
+         const rbmd::Id* dihedral_coeffs_sign ,
+         const rbmd::Id* dihedral_coeffs_multiplicity ,
+         const rbmd::Id* dihedral_type,
+         const int4* dihedrallist,
+         const rbmd::Real* px,
+         const rbmd::Real* py,
+         const rbmd::Real* pz,
+         rbmd::Real* fx,
+         rbmd::Real* fy,
+         rbmd::Real* fz,
+         rbmd::Real* energy_dihedral)
+       {
+          __shared__ typename hipcub::BlockReduce<rbmd::Real, BLOCK_SIZE>::TempStorage
+temp_storage;
+          rbmd::Real local_energy_dihedral  = 0;
+
+          unsigned int tid1 = blockIdx.x * blockDim.x + threadIdx.x;
+          if (tid1 < num_dihedrals)
+          {
+
+            rbmd::Id dihedrali = dihedrallist[tid1].x;
+            rbmd::Id dihedralj = dihedrallist[tid1].y;
+            rbmd::Id dihedralk = dihedrallist[tid1].z;
+            rbmd::Id dihedralw = dihedrallist[tid1].w;
+            rbmd::Real cos_shift, sin_shift;
+            if (dihedral_coeffs_sign[tid1] == 1)
+            {
+              cos_shift = 1.0;
+              sin_shift = 0.0;
+            }
+            else
+            {
+              cos_shift = -1.0;
+              sin_shift = 0.0;
+            }
+
+            rbmd::Id bondtype = dihedral_type[tid1];
+            rbmd::Real k = dihedral_coeffs_k[bondtype];
+
+            rbmd::Real x12 = px[dihedrali]-px[dihedralj];  // i j =vb1
+            rbmd::Real y12 = py[dihedrali]-py[dihedralj];
+            rbmd::Real z12 = pz[dihedrali]-pz[dihedralj];
+            MinImageDistance(box,x12,y12,z12);
+
+            rbmd::Real x23 = px[dihedralk]-px[dihedralj];  //  k j=vb2
+            rbmd::Real y23 = py[dihedralk]-py[dihedralj];
+            rbmd::Real z23 = pz[dihedralk]-pz[dihedralj];
+            MinImageDistance(box,x23,y23,z23);
+
+            rbmd::Real x23m = -x23;  // =vb2m
+            rbmd::Real y23m = -y23;
+            rbmd::Real z23m = -z23;
+
+            rbmd::Real x34 = px[dihedralw]-px[dihedralk];  // w k   =vb3
+            rbmd::Real y34 = py[dihedralw]-py[dihedralk];
+            rbmd::Real z34 = pz[dihedralw]-pz[dihedralk];
+            MinImageDistance(box,x34,y34,z34);
+            // c,s calculation
+
+            rbmd::Real ax = y12 * z23m - z12 * y23m;
+            rbmd::Real ay = z12 * x23m - x12 * z23m;
+            rbmd::Real az = x12 * y23m - y12 * x23m;
+            rbmd::Real bx = y34 * z23m - z34 * y23m;
+            rbmd::Real by = z34 * x23m - x34 * z23m;
+            rbmd::Real bz = x34 * y23m - z34 * x23m;
+
+            rbmd::Real rasq = ax * ax + ay * ay + az * az;
+            rbmd::Real rbsq = bx * bx + by * by + bz * bz;
+            rbmd::Real rgsq = x23m * x23m + y23m * y23m + z23m * z23m;
+            rbmd::Real rg = SQRT(rgsq);
+
+            rbmd::Real  rginv, ra2inv, rb2inv;
+            rginv = ra2inv = rb2inv = 0.0;
+            if (rg > 0) rginv = 1.0 / rg;
+
+            if (rasq > 0) ra2inv = 1.0 / rasq;
+
+            if (rbsq > 0)  rb2inv = 1.0 / rbsq;
+
+            rbmd::Real rabinv = SQRT(ra2inv * rb2inv);
+
+            rbmd::Real c = (ax * bx + ay * by + az * bz) * rabinv;
+            rbmd::Real s = rg * rabinv * (ax * x34 + ay * y34 + az * z34);
+
+            if (c > 1.0) c = 1.0;
+            if (c < -1.0)  c = -1.0;
+
+            rbmd::Id m = dihedral_coeffs_multiplicity[tid1];
+            rbmd::Real p = 1.0;
+            rbmd::Real ddf1, df1;
+            ddf1 = df1 = 0.0;
+            for (rbmd::Id i = 0; i < m; i++)
+            {
+              ddf1 = p * c - df1 * s;
+              df1 = p * s + df1 * c;
+              p = ddf1;
+            }
+
+            p = p * cos_shift + df1 * sin_shift;
+            df1 = df1 * cos_shift - ddf1 * sin_shift;
+            df1 *= -m;
+            p += 1.0;
+
+            if (m == 0)
+            {
+              p = 1.0 + cos_shift;
+              //p = 1.0 + cos_shift[type];
+              df1 = 0.0;
+            }
+
+            //energy
+            local_energy_dihedral += k * p;
+
+            rbmd::Real fg = x12 * x23m + y12 * y23m + z12 * z23m;
+            rbmd::Real hg = x34 * x23m + y34 * y23m + z34 * z23m;
+
+            rbmd::Real  fga = fg * ra2inv * rginv;
+            rbmd::Real  hgb = hg * rb2inv * rginv;
+            rbmd::Real  gaa = -ra2inv * rg;
+            rbmd::Real  gbb = rb2inv * rg;
+
+            rbmd::Real  dtfx = gaa * ax;
+            rbmd::Real  dtfy = gaa * ay;
+            rbmd::Real  dtfz = gaa * az;
+            rbmd::Real  dtgx = fga * ax - hgb * bx;
+            rbmd::Real  dtgy = fga * ay - hgb * by;
+            rbmd::Real  dtgz = fga * az - hgb * bz;
+            rbmd::Real  dthx = gbb * bx;
+            rbmd::Real  dthy = gbb * by;
+            rbmd::Real  dthz = gbb * bz;
+
+            rbmd::Real df = -k  * df1;
+            //df = -k[type] * df1;
+            rbmd::Real sx2 = df * dtgx;
+            rbmd::Real sy2 = df * dtgy;
+            rbmd::Real sz2 = df * dtgz;
+
+            //force
+            rbmd::Real force_dihedrali_x,force_dihedrali_y,force_dihedrali_z;
+            rbmd::Real force_dihedralj_x,force_dihedralj_y,force_dihedralj_z;
+            rbmd::Real force_dihedralk_x,force_dihedralk_y,force_dihedralk_z;
+            rbmd::Real force_dihedralw_x,force_dihedralw_y,force_dihedralw_z;
+
+            force_dihedrali_x = df * dtfx;
+            force_dihedrali_y = df * dtfy;
+            force_dihedrali_z = df * dtfz;
+
+            force_dihedralj_x = sx2 - force_dihedrali_x;
+            force_dihedralj_y = sy2 - force_dihedrali_y;
+            force_dihedralj_z = sz2 - force_dihedrali_z;
+
+            force_dihedralw_x = df * dthx;
+            force_dihedralw_y = df * dthy;
+            force_dihedralw_z = df * dthz;
+
+            force_dihedralk_x = -sx2 - force_dihedralw_x;
+            force_dihedralk_y = -sy2 - force_dihedralw_y;
+            force_dihedralk_z = -sz2 - force_dihedralw_z;
+
+            atomicAdd(&fx[dihedrali], force_dihedrali_x);
+            atomicAdd(&fy[dihedrali], force_dihedrali_y);
+            atomicAdd(&fz[dihedrali], force_dihedrali_z);
+
+            atomicAdd(&fx[dihedralj], force_dihedralj_x);
+            atomicAdd(&fy[dihedralj], force_dihedralj_y);
+            atomicAdd(&fz[dihedralj], force_dihedralj_z);
+
+            atomicAdd(&fx[dihedralw], force_dihedralw_x);
+            atomicAdd(&fy[dihedralw], force_dihedralw_y);
+            atomicAdd(&fz[dihedralw], force_dihedralw_z);
+
+            atomicAdd(&fx[dihedralk], force_dihedralk_x);
+            atomicAdd(&fy[dihedralk], force_dihedralk_y);
+            atomicAdd(&fz[dihedralk], force_dihedralk_z);
+          }
+
+          rbmd::Real block_sum =
+hipcub::BlockReduce<rbmd::Real, BLOCK_SIZE>(temp_storage).Sum(local_energy_dihedral);
+
+          if (threadIdx.x == 0){
+            atomicAdd(energy_dihedral, block_sum);
+          }
+       }
+
 
         /////////////////////
 	//verlet-list: LJForce
@@ -1908,6 +2166,7 @@ void CoulCutForce_rcs_erf(
       void ComputeBondForceOp<device::DEVICE_GPU>::operator()(
        Box* box,
        const rbmd::Id num_bonds,
+       const rbmd::Id num_atoms,
        const rbmd::Real* bond_coeffs_k,
        const rbmd::Real* bond_coeffs_equilibrium,
        const rbmd::Id* bond_type,
@@ -1923,7 +2182,7 @@ void CoulCutForce_rcs_erf(
 	  unsigned int blocks_per_grid = (num_bonds + BLOCK_SIZE - 1) / BLOCK_SIZE;
 
 	  CHECK_KERNEL(ComputeBondForce <<<blocks_per_grid, BLOCK_SIZE, 0, 0 >>>
-                  (box, num_bonds,bond_coeffs_k,bond_coeffs_equilibrium,bond_type,
+                  (box, num_bonds,num_atoms,bond_coeffs_k,bond_coeffs_equilibrium,bond_type,
                     bondlist,px, py, pz, fx, fy, fz,energy_bond));
        }
 
@@ -1931,6 +2190,7 @@ void CoulCutForce_rcs_erf(
        void ComputeAngleForceOp<device::DEVICE_GPU>::operator()(
         Box* box,
         const rbmd::Id num_anglels,
+        const rbmd::Id num_atoms,
         const rbmd::Real* anglel_coeffs_k,
         const rbmd::Real* anglel_coeffs_equilibrium,
         const rbmd::Id* anglel_type,
@@ -1946,10 +2206,38 @@ void CoulCutForce_rcs_erf(
 	  unsigned int blocks_per_grid = (num_anglels + BLOCK_SIZE - 1) / BLOCK_SIZE;
 
 	  CHECK_KERNEL(ComputeAngleForce <<<blocks_per_grid, BLOCK_SIZE, 0, 0 >>>
-                  (box, num_anglels,anglel_coeffs_k,
+                  (box, num_anglels,num_atoms,anglel_coeffs_k,
                     anglel_coeffs_equilibrium,anglel_type,
                     anglelist,px, py, pz, fx, fy, fz,energy_angle));
 	}
+
+//
+
+        void ComputeDihedralForceOp<device::DEVICE_GPU>::operator()(
+          Box* box,
+          const rbmd::Id num_dihedrals,
+          const rbmd::Id num_atoms,
+          const rbmd::Real* dihedral_coeffs_k,
+          const rbmd::Id* dihedral_coeffs_sign ,
+          const rbmd::Id* dihedral_coeffs_multiplicity ,
+          const rbmd::Id* dihedral_type,
+          const int4* dihedrallist,
+          const rbmd::Real* px,
+          const rbmd::Real* py,
+          const rbmd::Real* pz,
+          rbmd::Real* fx,
+          rbmd::Real* fy,
+          rbmd::Real* fz,
+          rbmd::Real* energy_dihedral)
+       {
+          unsigned int blocks_per_grid = (num_dihedrals + BLOCK_SIZE - 1) / BLOCK_SIZE;
+
+          CHECK_KERNEL(ComputeDihedralForce <<<blocks_per_grid, BLOCK_SIZE, 0, 0 >>>
+                  (box, num_dihedrals,num_atoms,dihedral_coeffs_k,
+                    dihedral_coeffs_sign,dihedral_coeffs_multiplicity,dihedral_type,
+                    dihedrallist,px, py, pz, fx, fy, fz,energy_dihedral));
+
+       }
 
 }
 
