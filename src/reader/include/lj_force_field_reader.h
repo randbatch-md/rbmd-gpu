@@ -10,7 +10,7 @@
 //{
 // public:
 //	LJForceFieldReader(const std::string& filePath, const StructureInfo&
-//info, std::shared_ptr<ForceFieldData>& force_field_data);
+// info, std::shared_ptr<ForceFieldData>& force_field_data);
 //	~LJForceFieldReader();
 //
 // private:
