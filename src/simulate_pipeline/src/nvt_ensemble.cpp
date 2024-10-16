@@ -17,7 +17,7 @@ NVTensemble::NVTensemble()
 	_position_controller = std::make_shared<DefaultPositionController>(); 
 	_velocity_controller = std::make_shared<DefaultVelocityController>(); 
 	_force_controller = std::make_shared<LJCutCoulKspaceForce>(); // todo �Զ���forcetype =
-	_temperature_controller = std::make_shared<BerendsenController>();
+	_temperature_controller = std::make_shared<RescaleController>();
 }
 
 void NVTensemble::Init() {
@@ -35,6 +35,7 @@ void NVTensemble::Presolve() {
 }
 
 void NVTensemble::Solve() {
+  hipDeviceSynchronize();
   auto start = std::chrono::high_resolution_clock::now();
 
   _velocity_controller->Update();

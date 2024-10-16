@@ -100,7 +100,7 @@ void LJForce::Execute() {
                         thrust::raw_pointer_cast(_device_data->_d_fz.data()));
 
     //energy
-    ComputeLJEnergy();
+    //ComputeLJEnergy();
   }
 
   else  //
@@ -138,20 +138,20 @@ void LJForce::Execute() {
                 thrust::raw_pointer_cast(_device_data->_d_fz.data()),
                 _d_total_evdwl);
 
-    CHECK_RUNTIME(
-        MEMCPY(&h_total_evdwl, _d_total_evdwl, sizeof(rbmd::Real), D2H));
-
-    // 打印累加后的总能量
-    rbmd::Real ave_evdwl = h_total_evdwl / _num_atoms;
-    std::cout << "test_current_step:" << test_current_step << " "
-              << "average_vdwl_energy:" << ave_evdwl << std::endl;
-
-    std::cout << "out of force execute" << std::endl;
-
-    // out
-    std::ofstream outfile("ave_evdwl.txt", std::ios::app);
-    outfile << test_current_step << " " << ave_evdwl << std::endl;
-    outfile.close();
+    // CHECK_RUNTIME(
+    //     MEMCPY(&h_total_evdwl, _d_total_evdwl, sizeof(rbmd::Real), D2H));
+    //
+    // // 打印累加后的总能量
+    // rbmd::Real ave_evdwl = h_total_evdwl / _num_atoms;
+    // std::cout << "test_current_step:" << test_current_step << " "
+    //           << "average_vdwl_energy:" << ave_evdwl << std::endl;
+    //
+    // std::cout << "out of force execute" << std::endl;
+    //
+    // // out
+    // std::ofstream outfile("ave_evdwl.txt", std::ios::app);
+    // outfile << test_current_step << " " << ave_evdwl << std::endl;
+    // outfile.close();
   }
 }
 

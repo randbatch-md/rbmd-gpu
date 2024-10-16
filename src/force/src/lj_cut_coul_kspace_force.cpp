@@ -65,9 +65,14 @@ void LJCutCoulKspaceForce::Init()
 
 void LJCutCoulKspaceForce::Execute()
 {
+  auto start = std::chrono::high_resolution_clock::now();
   ComputeLJCutCoulForce();
   ComputeKspaceForce();
   SumForces();
+
+  auto end = std::chrono::high_resolution_clock::now();
+  std::chrono::duration<rbmd::Real> duration = end - start;
+  std::cout << "力执行总耗时" << duration.count() << "秒" << std::endl;
 }
 
 void LJCutCoulKspaceForce::ComputeLJCutCoulForce()
@@ -86,6 +91,8 @@ void LJCutCoulKspaceForce::ComputeLJCutCoulForce()
     std::cout << "构建RBL邻居列表耗时" << duration.count() << "秒" << std::endl;
 
     // compute force
+    auto start_force  = std::chrono::high_resolution_clock::now();
+
     const auto r_core =
       DataManager::getInstance().getConfigData()->Get<rbmd::Real>(
           "r_core", "hyper_parameters", "neighbor");
@@ -133,8 +140,12 @@ void LJCutCoulKspaceForce::ComputeLJCutCoulForce()
                         thrust::raw_pointer_cast(_device_data->_d_force_ljcoul_y.data()),
                         thrust::raw_pointer_cast(_device_data->_d_force_ljcoul_z.data()));
 
+    auto end_force = std::chrono::high_resolution_clock::now();
+    std::chrono::duration<rbmd::Real> duration_force = end_force - start_force ;
+    std::cout << "计算rbl-lj-coul力耗时" << duration_force.count() << "秒" << std::endl;
+
     //energy
-    ComputeLJCoulEnergy();
+    //ComputeLJCoulEnergy();
 
   }
   else
@@ -149,6 +160,7 @@ void LJCutCoulKspaceForce::ComputeLJCutCoulForce()
   std::cout << "构建verlet-list耗时" << duration.count() << "秒" << std::endl;
 
   //
+  auto start_force  = std::chrono::high_resolution_clock::now();
 
   rbmd::Real h_total_evdwl = 0.0;
   rbmd::Real h_total_ecoul = 0.0;
@@ -175,20 +187,24 @@ void LJCutCoulKspaceForce::ComputeLJCutCoulForce()
                   thrust::raw_pointer_cast(_device_data->_d_force_ljcoul_z.data()),
                   _d_total_evdwl,_d_total_ecoul);
 
-  CHECK_RUNTIME(MEMCPY(&h_total_evdwl,_d_total_evdwl , sizeof(rbmd::Real), D2H));
-  CHECK_RUNTIME(MEMCPY(&h_total_ecoul,_d_total_ecoul , sizeof(rbmd::Real), D2H));
+    auto end_force = std::chrono::high_resolution_clock::now();
+    std::chrono::duration<rbmd::Real> duration_force = end_force - start_force ;
+    std::cout << "计算verlet-lj-coul力耗时" << duration_force.count() << "秒" << std::endl;
 
-  // 打印累加后的总能量
-  _ave_evdwl = h_total_evdwl/_num_atoms;
-  _ave_ecoul = h_total_ecoul/_num_atoms;
-
-  std::cout << "test_current_step:" << test_current_step <<  " ,"
-  << "average_vdwl_energy:" << _ave_evdwl << " ," <<  "average_coul_energy:" << _ave_ecoul << std::endl;
-
-  //out
-  std::ofstream outfile("ave_ljcoul.txt", std::ios::app);
-  outfile << test_current_step << " " << _ave_evdwl  << " "<< _ave_ecoul << std::endl;
-  outfile.close();
+  // CHECK_RUNTIME(MEMCPY(&h_total_evdwl,_d_total_evdwl , sizeof(rbmd::Real), D2H));
+  // CHECK_RUNTIME(MEMCPY(&h_total_ecoul,_d_total_ecoul , sizeof(rbmd::Real), D2H));
+  //
+  // // 打印累加后的总能量
+  // _ave_evdwl = h_total_evdwl/_num_atoms;
+  // _ave_ecoul = h_total_ecoul/_num_atoms;
+  //
+  // std::cout << "test_current_step:" << test_current_step <<  " ,"
+  // << "average_vdwl_energy:" << _ave_evdwl << " ," <<  "average_coul_energy:" << _ave_ecoul << std::endl;
+  //
+  // //out
+  // std::ofstream outfile("ave_ljcoul.txt", std::ios::app);
+  // outfile << test_current_step << " " << _ave_evdwl  << " "<< _ave_ecoul << std::endl;
+  // outfile.close();
   }
 }
 
@@ -196,17 +212,28 @@ void LJCutCoulKspaceForce::ComputeKspaceForce()
 {
   if("RBE" == _coulomb_type)
   {
-      ComputeRBE();
+    auto start = std::chrono::high_resolution_clock::now();
+    ComputeRBE();
+
+    auto end = std::chrono::high_resolution_clock::now();
+
+    std::chrono::duration<rbmd::Real> duration = end - start;
+    std::cout << "计算RBE耗时" << duration.count() << "秒" << std::endl;
   }
   else
   {
-     ComputeEwlad();
+    auto start = std::chrono::high_resolution_clock::now();
+    ComputeEwlad();
+
+    auto end = std::chrono::high_resolution_clock::now();
+    std::chrono::duration<rbmd::Real> duration = end - start;
+    std::cout << "计算Ewlad耗时" << duration.count() << "秒" << std::endl;
   }
 }
 
 void LJCutCoulKspaceForce::SumForces()
 {
-
+  auto start = std::chrono::high_resolution_clock::now();
   thrust::transform(
       _device_data->_d_force_ljcoul_x.begin(), _device_data->_d_force_ljcoul_x.end(),
       _device_data->_d_force_ewald_x.begin(),
@@ -224,6 +251,11 @@ void LJCutCoulKspaceForce::SumForces()
       _device_data->_d_force_ewald_z.begin(),
       _device_data->_d_fz.begin(), // 将结果存回到 _d_fz 中
       thrust::plus<rbmd::Real>());
+  auto end = std::chrono::high_resolution_clock::now();
+  std::chrono::duration<rbmd::Real> duration = end - start;
+  std::cout << "求和力耗时" << duration.count() << "秒" << std::endl;
+
+
 }
 
 void LJCutCoulKspaceForce::ComputeChargeStructureFactorEwald(
@@ -272,8 +304,8 @@ void LJCutCoulKspaceForce::ComputeChargeStructureFactorEwald(
                     rbmd::Real value_Im = thrust::reduce(density_imag_atom.begin(), density_imag_atom.end(), 0.0f, thrust::plus<rbmd::Real>());
                     rbmd::Real Range_density2 = POW(value_Re, 2.0) + POW(value_Im, 2.0);
 
-                    total_energy_kspace +=
-                      EXP(-0.25 * Range_K2 * alpha_inv) * Range_density2 / Range_K2;
+                    // total_energy_kspace +=
+                    //   EXP(-0.25 * Range_K2 * alpha_inv) * Range_density2 / Range_K2;
 
                     value_Re_array[index] = value_Re;
                     value_Im_array[index] = value_Im;
@@ -286,22 +318,22 @@ void LJCutCoulKspaceForce::ComputeChargeStructureFactorEwald(
   //energy
 
   //charge self energy//
-  ComputeSelfEnergy(alpha,qqr2e,_ave_self_energy);
-
-  //compute Kspace energy//
-  rbmd::Real volume = box->_length[0] * box->_length[1]*box->_length[2];
-  total_energy_kspace = qqr2e * (2 * M_PI / volume) * total_energy_kspace;
-  _ave_ekspace = total_energy_kspace / _num_atoms;
-
-  _ave_ekspace = _ave_ekspace + _ave_self_energy;
-
-  //out
-   std::cout << "test_current_step:" << test_current_step <<  " ,"
-   << "ave_energy_ewald:" << _ave_ekspace << std::endl;
-
-  std::ofstream outfile("ave_ewald.txt", std::ios::app);
-  outfile << test_current_step << " "<< _ave_ekspace << std::endl;
-  outfile.close();
+  // ComputeSelfEnergy(alpha,qqr2e,_ave_self_energy);
+  //
+  // //compute Kspace energy//
+  // rbmd::Real volume = box->_length[0] * box->_length[1]*box->_length[2];
+  // total_energy_kspace = qqr2e * (2 * M_PI / volume) * total_energy_kspace;
+  // _ave_ekspace = total_energy_kspace / _num_atoms;
+  //
+  // _ave_ekspace = _ave_ekspace + _ave_self_energy;
+  //
+  // //out
+  //  std::cout << "test_current_step:" << test_current_step <<  " ,"
+  //  << "ave_energy_ewald:" << _ave_ekspace << std::endl;
+  //
+  // std::ofstream outfile("ave_ewald.txt", std::ios::app);
+  // outfile << test_current_step << " "<< _ave_ekspace << std::endl;
+  // outfile.close();
 }
 
 void LJCutCoulKspaceForce::ComputeEwlad()
@@ -409,20 +441,20 @@ void LJCutCoulKspaceForce::ComputeChargeStructureFactorRBE(
   //energy
 
   //charge self energy//
-  ComputeSelfEnergy(alpha,qqr2e,_ave_self_energy);
-
-  //kspace energy
-  ComputeKspaceEnergy(_device_data->_d_box, _num_atoms, Kmax,
-      alpha, qqr2e ,_ave_ekspace);
-  _ave_ekspace = _ave_ekspace +_ave_self_energy;
-
-    //out
-   std::cout << "test_current_step:" << test_current_step <<  " ,"
-   << "ave_energy_rbe:" << _ave_ekspace << std::endl;
-
-  std::ofstream outfile("ave_rbe.txt", std::ios::app);
-  outfile << test_current_step << " "<< _ave_ekspace << std::endl;
-  outfile.close();
+  // ComputeSelfEnergy(alpha,qqr2e,_ave_self_energy);
+  //
+  // //kspace energy
+  // ComputeKspaceEnergy(_device_data->_d_box, _num_atoms, Kmax,
+  //     alpha, qqr2e ,_ave_ekspace);
+  // _ave_ekspace = _ave_ekspace +_ave_self_energy;
+  //
+  //   //out
+  //  std::cout << "test_current_step:" << test_current_step <<  " ,"
+  //  << "ave_energy_rbe:" << _ave_ekspace << std::endl;
+  //
+  // std::ofstream outfile("ave_rbe.txt", std::ios::app);
+  // outfile << test_current_step << " "<< _ave_ekspace << std::endl;
+  // outfile.close();
 }
 
 void LJCutCoulKspaceForce::ComputeRBE()

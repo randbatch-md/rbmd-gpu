@@ -420,8 +420,8 @@ void CoulCutForce_rcs_erf(
 		rbmd::Real* fz,
 		rbmd::Real* total_evdwl)
 	{
-		__shared__ typename hipcub::BlockReduce<rbmd::Real, BLOCK_SIZE>::TempStorage
-			temp_storage;
+		// __shared__ typename hipcub::BlockReduce<rbmd::Real, BLOCK_SIZE>::TempStorage
+		// 	temp_storage;
 
 		rbmd::Real sum_fx = 0;
 		rbmd::Real sum_fy = 0;
@@ -474,18 +474,18 @@ void CoulCutForce_rcs_erf(
 				sum_fy += force_lj * py12;
 				sum_fz += force_lj * pz12;
 
-				sum_elj += energy_lj;
+				//sum_elj += energy_lj;
 			}
 
 			fx[tid1] = sum_fx;
 			fy[tid1] = sum_fy;
 			fz[tid1] = sum_fz;
 
-			rbmd::Real block_sum =
-				hipcub::BlockReduce<rbmd::Real, BLOCK_SIZE>(temp_storage).Sum(sum_elj);
-			if (threadIdx.x == 0) {
-				atomicAdd(total_evdwl, block_sum);
-			}
+			// rbmd::Real block_sum =
+			// 	hipcub::BlockReduce<rbmd::Real, BLOCK_SIZE>(temp_storage).Sum(sum_elj);
+			// if (threadIdx.x == 0) {
+			// 	atomicAdd(total_evdwl, block_sum);
+			// }
 			//printf("--------test---evdwl[tid1]:%f---\n",evdwl[tid1]);
 		}
 	}
@@ -851,10 +851,10 @@ void CoulCutForce_rcs_erf(
 		rbmd::Real* total_evdwl,
 		rbmd::Real* total_ecoul)
 	{
-	  __shared__ typename hipcub::BlockReduce<rbmd::Real, BLOCK_SIZE>::TempStorage
-        temp_storage_elj;
-	  __shared__ typename hipcub::BlockReduce<rbmd::Real, BLOCK_SIZE>::TempStorage
-        temp_storage_ecoul;
+	  // __shared__ typename hipcub::BlockReduce<rbmd::Real, BLOCK_SIZE>::TempStorage
+   //      temp_storage_elj;
+	  // __shared__ typename hipcub::BlockReduce<rbmd::Real, BLOCK_SIZE>::TempStorage
+   //      temp_storage_ecoul;
 		rbmd::Real sum_fx = 0;
 		rbmd::Real sum_fy = 0;
 		rbmd::Real sum_fz = 0;
@@ -921,23 +921,23 @@ void CoulCutForce_rcs_erf(
 				sum_fy += force_pair * py12;
 				sum_fz += force_pair * pz12;
 
-				sum_elj += energy_lj;
-				sum_ecoul += energy_coul;
+				//sum_elj += energy_lj;
+				//sum_ecoul += energy_coul;
 			}
 
 			fx[tid1] = sum_fx;
 			fy[tid1] = sum_fy;
 			fz[tid1] = sum_fz;
 			//printf("--------test---fx[tid1]:%f---\n",fx[tid1]);
-		  rbmd::Real block_sum_elj =
-                          hipcub::BlockReduce<rbmd::Real, BLOCK_SIZE>(temp_storage_elj).Sum(sum_elj);
-		  rbmd::Real block_sum_ecoul =
-                         hipcub::BlockReduce<rbmd::Real, BLOCK_SIZE>(temp_storage_ecoul).Sum(sum_ecoul);
-
-		  if (threadIdx.x == 0) {
-		    atomicAdd(total_evdwl, block_sum_elj);
-		    atomicAdd(total_ecoul, block_sum_ecoul);
-		  }
+		  // rbmd::Real block_sum_elj =
+    //                       hipcub::BlockReduce<rbmd::Real, BLOCK_SIZE>(temp_storage_elj).Sum(sum_elj);
+		  // rbmd::Real block_sum_ecoul =
+    //                      hipcub::BlockReduce<rbmd::Real, BLOCK_SIZE>(temp_storage_ecoul).Sum(sum_ecoul);
+    //
+		  // if (threadIdx.x == 0) {
+		  //   atomicAdd(total_evdwl, block_sum_elj);
+		  //   atomicAdd(total_ecoul, block_sum_ecoul);
+		  // }
 		}
 	}
 
