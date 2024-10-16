@@ -10,6 +10,18 @@ const rbmd::Id MASK = 67076096; // 2^26-2^15
 
 struct ERFTable
  {
+    rbmd::Id* h_table_index1;
+    rbmd::Real* h_table_rij1;
+    rbmd::Real* h_table_drij1;
+    rbmd::Real* h_table_function_rij1;
+    rbmd::Real* h_table_dfunction_rij1;
+
+    rbmd::Id*  h_table_index2;
+    rbmd::Real* h_table_rij2;
+    rbmd::Real* h_table_drij2;
+    rbmd::Real* h_table_function_rij2;
+    rbmd::Real* h_table_dfunction_rij2;
+
     thrust::device_vector<rbmd::Id> table_index1;
     thrust::device_vector<rbmd::Real> table_rij1;
     thrust::device_vector<rbmd::Real> table_drij1;
@@ -47,6 +59,19 @@ struct ERFTable
         thrust::copy(erf_dis_dif_geq2_v.begin(), erf_dis_dif_geq2_v.end(), table_drij2.begin());
         thrust::copy(erf_gnear_geq2_v.begin(), erf_gnear_geq2_v.end(), table_function_rij2.begin());
         thrust::copy(erf_gnear_der_geq2_v.begin(), erf_gnear_der_geq2_v.end(), table_dfunction_rij2.begin());
+
+        // Assign raw pointers from device vectors
+        h_table_index1 = thrust::raw_pointer_cast(table_index1.data());
+        h_table_rij1 = thrust::raw_pointer_cast(table_rij1.data());
+        h_table_drij1 = thrust::raw_pointer_cast(table_drij1.data());
+        h_table_function_rij1 = thrust::raw_pointer_cast(table_function_rij1.data());
+        h_table_dfunction_rij1 = thrust::raw_pointer_cast(table_dfunction_rij1.data());
+
+        h_table_index2 = thrust::raw_pointer_cast(table_index2.data());
+        h_table_rij2 = thrust::raw_pointer_cast(table_rij2.data());
+        h_table_drij2 = thrust::raw_pointer_cast(table_drij2.data());
+        h_table_function_rij2 = thrust::raw_pointer_cast(table_function_rij2.data());
+        h_table_dfunction_rij2 = thrust::raw_pointer_cast(table_dfunction_rij2.data());
     }
 
  __host__ __device__ __forceinline__ rbmd::Real TableGnearValue(
@@ -56,13 +81,13 @@ struct ERFTable
      rbmd::Real  table;
      if (dis < 2.0)
      {
-       index_rij = index_rij - table_index1[0];
-       table = table_function_rij1[index_rij];
+       index_rij = index_rij - h_table_index1[0];
+       table = h_table_function_rij1[index_rij];
      }
      else
      {
-       index_rij = index_rij - table_index2[0];
-       table = table_function_rij2[index_rij];
+       index_rij = index_rij - h_table_index2[0];
+       table = h_table_function_rij2[index_rij];
      }
      return table;
    }

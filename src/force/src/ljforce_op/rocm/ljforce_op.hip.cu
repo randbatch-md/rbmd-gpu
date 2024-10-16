@@ -1483,7 +1483,7 @@ void CoulCutForce_rcs_erf(
             rbmd::Real x1 = px[tid1];
             rbmd::Real y1 = py[tid1];
             rbmd::Real z1 = pz[tid1];
-            rbmd::Id num = group_vec[tid1];  // Ã¿¸öÔ­×ÓµÄ group ÊýÁ¿
+            rbmd::Id num = group_vec[tid1];  // Ã¿ï¿½ï¿½Ô­ï¿½Óµï¿½ group ï¿½ï¿½ï¿½ï¿½
             rbmd::Id  num_components = special_ids[tid1];
 
             if (num >= 3)
@@ -1556,7 +1556,7 @@ void CoulCutForce_rcs_erf(
 	  unsigned int tid1 = blockIdx.x * blockDim.x + threadIdx.x;
 	  if (tid1 < num_bonds)
 	  {
-	    rbmd::Id row = tid1 / num_atoms;  // ¼ÙÉè bondlist ÊÇ¶þÎ¬½á¹¹£¬ÕâÀï×ö¶þÎ¬Ë÷Òý
+	    rbmd::Id row = tid1 / num_atoms;  // ï¿½ï¿½ï¿½ï¿½ bondlist ï¿½Ç¶ï¿½Î¬ï¿½á¹¹ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Î¬ï¿½ï¿½ï¿½ï¿½
 	    rbmd::Id col = tid1 % num_atoms;
 	    rbmd::Id bondi = bondlist[index2D(row, col, num_atoms)].x;
 	    rbmd::Id bondj = bondlist[index2D(row, col, num_atoms)].y;
@@ -1593,17 +1593,17 @@ void CoulCutForce_rcs_erf(
 	    // fy[bondj] -= forcebondij * y12;
 	    // fz[bondj] -= forcebondij * z12;
 
-	    // ¼ÆËã×÷ÓÃÁ¦·ÖÁ¿
+	    // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 	    rbmd::Real fx_ij = forcebondij * x12;
 	    rbmd::Real fy_ij = forcebondij * y12;
 	    rbmd::Real fz_ij = forcebondij * z12;
 
-	    // Ê¹ÓÃatomicAdd¾ÛºÏ×÷ÓÃÁ¦
-	    atomicAdd(&fx[bondi], fx_ij); // ½«×÷ÓÃÁ¦Ìí¼Óµ½Ô­×Óbondi
+	    // Ê¹ï¿½ï¿½atomicAddï¿½Ûºï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+	    atomicAdd(&fx[bondi], fx_ij); // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Óµï¿½Ô­ï¿½ï¿½bondi
 	    atomicAdd(&fy[bondi], fy_ij);
 	    atomicAdd(&fz[bondi], fz_ij);
 
-	    atomicAdd(&fx[bondj], -fx_ij); // ¶ÔÓÚbondjÊ©¼ÓÏà·´µÄ×÷ÓÃÁ¦
+	    atomicAdd(&fx[bondj], -fx_ij); // ï¿½ï¿½ï¿½ï¿½bondjÊ©ï¿½ï¿½ï¿½à·´ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 	    atomicAdd(&fy[bondj], -fy_ij);
 	    atomicAdd(&fz[bondj], -fz_ij);
 	  }
