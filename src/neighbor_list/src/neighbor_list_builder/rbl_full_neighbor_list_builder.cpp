@@ -74,8 +74,8 @@ bool RblFullNeighborListBuilder::GenerateNeighborsList() {
   CHECK_RUNTIME(
       MEMCPY(_d_should_realloc, &(this->should_realloc), sizeof(bool), H2D));
   op::GenerateRblFullNeighborListOp<device::DEVICE_GPU>
-      generate_full_neighbor_list_op;
-  generate_full_neighbor_list_op(
+      generate_rbl_full_neighbor_list_op;
+  generate_rbl_full_neighbor_list_op(
       thrust::raw_pointer_cast(_linked_cell->_per_atom_cell_id.data()),
       thrust::raw_pointer_cast(_linked_cell->_in_atom_list_start_index.data()),
       thrust::raw_pointer_cast(_linked_cell->_in_atom_list_end_index.data()),

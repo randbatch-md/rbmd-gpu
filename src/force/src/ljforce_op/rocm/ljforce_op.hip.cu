@@ -123,8 +123,7 @@ __global__ void ComputeLJForce(
     const rbmd::Real* sigma, const rbmd::Real* eps, const rbmd::Id* start_id,
     const rbmd::Id* end_id, const rbmd::Id* id_verletlist, const rbmd::Real* px,
     const rbmd::Real* py, const rbmd::Real* pz, rbmd::Real* force_x,
-    rbmd::Real* force_y, rbmd::Real* force_z,
-    rbmd::Real* total_evdwl) {
+    rbmd::Real* force_y, rbmd::Real* force_z, rbmd::Real* total_evdwl) {
   __shared__ typename hipcub::BlockReduce<rbmd::Real, BLOCK_SIZE>::TempStorage
       temp_storage;
   rbmd::Real sum_fx = 0;
@@ -412,7 +411,7 @@ __global__ void ComputeLJEnergy(
     const rbmd::Id* end_id, const rbmd::Id* id_verletlist, const rbmd::Real* px,
     const rbmd::Real* py, const rbmd::Real* pz, rbmd::Real* total_evdwl) {
   __shared__ typename hipcub::BlockReduce<rbmd::Real, BLOCK_SIZE>::TempStorage
-    temp_storage;
+      temp_storage;
 
   rbmd::Real sum_eij = 0;
 
@@ -457,7 +456,7 @@ __global__ void ComputeLJEnergy(
     }
 
     rbmd::Real block_sum =
-    hipcub::BlockReduce<rbmd::Real, BLOCK_SIZE>(temp_storage).Sum(sum_eij);
+        hipcub::BlockReduce<rbmd::Real, BLOCK_SIZE>(temp_storage).Sum(sum_eij);
     if (threadIdx.x == 0) {
       atomicAdd(total_evdwl, block_sum);
     }
@@ -651,7 +650,7 @@ __global__ void ComputeEwaldForce(
 //			//MinMirror(box, px12, py12, pz12);
 //			rbmd::Real Virial_f;
 //			Virial_f = LJVirial(cut_off, px12, py12, pz12, eps_ij,
-//sigma_ij);
+// sigma_ij);
 
 //			rbmd::Real Virial_fx = Virial_f * px12;
 //			rbmd::Real Virial_fy = Virial_f * py12;
@@ -693,11 +692,11 @@ __global__ void ComputeEwaldForce(
 //	if (dis_2 < cut_off_2 && dis_2 > small_value)
 //	{
 //		rbmd::Real sigmaij_6 = sigma_ij * sigma_ij * sigma_ij * sigma_ij
-//* sigma_ij * sigma_ij; 		rbmd::Real dis_6 = dis_2 * dis_2 * dis_2; 		rbmd::Real
-//sigmaij_dis_6 = sigmaij_6 / dis_6;
+//* sigma_ij * sigma_ij; 		rbmd::Real dis_6 = dis_2 * dis_2 *
+//dis_2; 		rbmd::Real sigmaij_dis_6 = sigmaij_6 / dis_6;
 
 //		 virial_f = 0.5 * 24 * eps_ij * ((2 * sigmaij_dis_6 - 1) *
-//sigmaij_dis_6) / dis_2;
+// sigmaij_dis_6) / dis_2;
 
 //}
 //	return virial_f;
