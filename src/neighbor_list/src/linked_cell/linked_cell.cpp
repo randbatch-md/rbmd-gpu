@@ -17,8 +17,8 @@ LinkedCell::LinkedCell() {
   this->_config_data = DataManager::getInstance().getConfigData();
   this->_per_atom_cell_id.resize(*(_structure_info_data->_num_atoms));
   // TODO  反序列化
-  this->_cutoff = 5;  //_config_data->Get<rbmd::Real>("cut_off",
-                      //"hyper_parameters", "neighbor");
+  this->_cutoff =  _config_data->Get<rbmd::Real>("cut_off",
+                      "hyper_parameters", "neighbor");
   this->_total_atoms_num =
       *(_structure_info_data->_num_atoms);  // do this because nativate num
   this->_atom_id_to_idx.resize(_total_atoms_num);
@@ -146,14 +146,15 @@ void LinkedCell::SortAtomsByCellKey() {
   thrust::stable_sort_by_key(per_atom_cell_id_copy.begin(),
                              per_atom_cell_id_copy.end(),
                              _device_data->_d_vy.begin());
-  //charge
+
+  per_atom_cell_id_copy = _per_atom_cell_id;
+  thrust::stable_sort_by_key(per_atom_cell_id_copy.begin(), per_atom_cell_id_copy.end(),
+                             _device_data->_d_vz.begin());
+  // //charge
   per_atom_cell_id_copy = _per_atom_cell_id;
   thrust::stable_sort_by_key(per_atom_cell_id_copy.begin(),
                              per_atom_cell_id_copy.end(),
                              _device_data->_d_charge.begin());
-
-  thrust::stable_sort_by_key(_per_atom_cell_id.begin(), _per_atom_cell_id.end(),
-                             _device_data->_d_vz.begin());
 }
 
 void LinkedCell::AllocDeviceMemory() {

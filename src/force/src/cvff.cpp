@@ -126,9 +126,9 @@ void CVFF::ComputeLJCutCoulForce()
         thrust::raw_pointer_cast(_device_data->_d_px.data()),
         thrust::raw_pointer_cast(_device_data->_d_py.data()),
         thrust::raw_pointer_cast(_device_data->_d_pz.data()),
-        thrust::raw_pointer_cast(_device_data->_d_fx.data()),
-        thrust::raw_pointer_cast(_device_data->_d_fy.data()),
-        thrust::raw_pointer_cast(_device_data->_d_fz.data()));
+        thrust::raw_pointer_cast(_device_data->_d_force_ljcoul_x.data()),
+        thrust::raw_pointer_cast(_device_data->_d_force_ljcoul_y.data()),
+        thrust::raw_pointer_cast(_device_data->_d_force_ljcoul_z.data()));
 
     _corr_value_x =
         thrust::reduce(_device_data->_d_fx.begin(), _device_data->_d_fx.end(),
@@ -143,9 +143,9 @@ void CVFF::ComputeLJCutCoulForce()
     // fix RBL:   rbl_force = f - corr_value
     op::FixRBLForceOp<device::DEVICE_GPU> fix_rbl_force_op;
     fix_rbl_force_op(_num_atoms, _corr_value_x, _corr_value_y, _corr_value_z,
-                        thrust::raw_pointer_cast(_device_data->_d_fx.data()),
-                        thrust::raw_pointer_cast(_device_data->_d_fy.data()),
-                        thrust::raw_pointer_cast(_device_data->_d_fz.data()));
+                        thrust::raw_pointer_cast(_device_data->_d_force_ljcoul_x.data()),
+                        thrust::raw_pointer_cast(_device_data->_d_force_ljcoul_y.data()),
+                        thrust::raw_pointer_cast(_device_data->_d_force_ljcoul_z.data()));
 
     //energy
     ComputeLJCoulEnergy();
