@@ -10,7 +10,7 @@ Executioner::Executioner(
 //_num_steps(_exec_node["num_steps"].asInt())
 {
   _time_step = 0.001;
-  _num_steps = 10000;
+  _num_steps = 5;
   test_num_steps = _num_steps;
   _current_time = 0;
 }

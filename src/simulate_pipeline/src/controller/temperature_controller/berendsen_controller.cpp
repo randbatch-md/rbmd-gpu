@@ -81,7 +81,9 @@ void BerendsenController::ComputeTemp() {
   }
   _test_temperature = _temp;
 
-  std::cout << "_temp=" << _temp << std::endl;
+  std::cout <<  "step=" << test_current_step <<
+  ", " << "_temp=" << _temp << std::endl;
+
   // out
   std::ofstream outfile("temp.txt", std::ios::app);
   outfile << test_current_step << " " << _temp << std::endl;
