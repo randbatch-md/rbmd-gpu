@@ -529,7 +529,6 @@ void CoulCutForce_rcs_erf(
 
 		rbmd::Real sum_elj = 0;
 
-<<<<<<< .mine
 		unsigned int tid1 = blockIdx.x * blockDim.x + threadIdx.x;
 		if (tid1 < num_atoms)
 		{
@@ -537,23 +536,6 @@ void CoulCutForce_rcs_erf(
 			rbmd::Id molecular_id_i = molecular_type[tid1];
 			rbmd::Real eps_i = eps[typei];
 			rbmd::Real sigma_i = sigma[typei];
-
-
-
-
-=======
-// verlet-list: LJEnergy
-__global__ void ComputeLJEnergy(
-    Box* box, const rbmd::Real cut_off, const rbmd::Id num_atoms,
-    const rbmd::Id* atoms_type, const rbmd::Id* molecular_type,
-    const rbmd::Real* sigma, const rbmd::Real* eps, const rbmd::Id* start_id,
-    const rbmd::Id* end_id, const rbmd::Id* id_verletlist, const rbmd::Real* px,
-    const rbmd::Real* py, const rbmd::Real* pz, rbmd::Real* total_evdwl) {
-  __shared__ typename hipcub::BlockReduce<rbmd::Real, BLOCK_SIZE>::TempStorage
-      temp_storage;
-
-  rbmd::Real sum_eij = 0;
->>>>>>> .theirs
 
 			rbmd::Real x1 = px[tid1];
 			rbmd::Real y1 = py[tid1];
@@ -587,25 +569,10 @@ __global__ void ComputeLJEnergy(
 				rbmd::Real force_lj, fpair;
 				rbmd::Real energy_lj;
 
-<<<<<<< .mine
 				lj126(cut_off, px12, py12, pz12, eps_ij, sigma_ij, force_lj, energy_lj);
 				sum_fx += force_lj * px12;
 				sum_fy += force_lj * py12;
 				sum_fz += force_lj * pz12;
-
-
-
-
-=======
-    rbmd::Real block_sum =
-        hipcub::BlockReduce<rbmd::Real, BLOCK_SIZE>(temp_storage).Sum(sum_eij);
-    if (threadIdx.x == 0) {
-      atomicAdd(total_evdwl, block_sum);
-    }
-    // printf("--------test---evdwl[tid1]:%f---\n",evdwl[tid1]);
-  }
-}
->>>>>>> .theirs
 
 				fpair = -0.5 * force_lj;
 				sum_virial_xx += px12 * px12 * fpair;
@@ -762,7 +729,7 @@ __global__ void ComputeLJEnergy(
 
 			fx[tid1] = sum_fx;
 			fy[tid1] = sum_fy;
-			fz[tid1] = sum_fz;	
+			fz[tid1] = sum_fz;
 		}
 
 
@@ -1516,7 +1483,7 @@ __global__ void ComputeLJEnergy(
             rbmd::Real x1 = px[tid1];
             rbmd::Real y1 = py[tid1];
             rbmd::Real z1 = pz[tid1];
-            rbmd::Id num = group_vec[tid1];  // ÿ��ԭ�ӵ� group ����
+            rbmd::Id num = group_vec[tid1];  // 每个原子的 group 数量
             rbmd::Id  num_components = special_ids[tid1];
 
             if (num >= 3)
@@ -1589,7 +1556,7 @@ __global__ void ComputeLJEnergy(
 	  unsigned int tid1 = blockIdx.x * blockDim.x + threadIdx.x;
 	  if (tid1 < num_bonds)
 	  {
-	    rbmd::Id row = tid1 / num_atoms;  // ���� bondlist �Ƕ�ά�ṹ����������ά����
+	    rbmd::Id row = tid1 / num_atoms;  // 假设 bondlist 是二维结构，这里做二维索引
 	    rbmd::Id col = tid1 % num_atoms;
 	    rbmd::Id bondi = bondlist[index2D(row, col, num_atoms)].x;
 	    rbmd::Id bondj = bondlist[index2D(row, col, num_atoms)].y;
@@ -1626,17 +1593,17 @@ __global__ void ComputeLJEnergy(
 	    // fy[bondj] -= forcebondij * y12;
 	    // fz[bondj] -= forcebondij * z12;
 
-	    // ��������������
+	    // 计算作用力分量
 	    rbmd::Real fx_ij = forcebondij * x12;
 	    rbmd::Real fy_ij = forcebondij * y12;
 	    rbmd::Real fz_ij = forcebondij * z12;
 
-	    // ʹ��atomicAdd�ۺ�������
-	    atomicAdd(&fx[bondi], fx_ij); // ����������ӵ�ԭ��bondi
+	    // 使用atomicAdd聚合作用力
+	    atomicAdd(&fx[bondi], fx_ij); // 将作用力添加到原子bondi
 	    atomicAdd(&fy[bondi], fy_ij);
 	    atomicAdd(&fz[bondi], fz_ij);
 
-	    atomicAdd(&fx[bondj], -fx_ij); // ����bondjʩ���෴��������
+	    atomicAdd(&fx[bondj], -fx_ij); // 对于bondj施加相反的作用力
 	    atomicAdd(&fy[bondj], -fy_ij);
 	    atomicAdd(&fz[bondj], -fz_ij);
 	  }
@@ -1835,17 +1802,9 @@ temp_storage;
             rbmd::Real rgsq = x23m * x23m + y23m * y23m + z23m * z23m;
             rbmd::Real rg = SQRT(rgsq);
 
-<<<<<<< .mine
             rbmd::Real  rginv, ra2inv, rb2inv;
             rginv = ra2inv = rb2inv = 0.0;
             if (rg > 0) rginv = 1.0 / rg;
-
-=======
-//			//MinMirror(box, px12, py12, pz12);
-//			rbmd::Real Virial_f;
-//			Virial_f = LJVirial(cut_off, px12, py12, pz12, eps_ij,
-// sigma_ij);
->>>>>>> .theirs
 
             if (rasq > 0) ra2inv = 1.0 / rasq;
 
@@ -1870,35 +1829,17 @@ temp_storage;
               p = ddf1;
             }
 
-<<<<<<< .mine
             p = p * cos_shift + df1 * sin_shift;
             df1 = df1 * cos_shift - ddf1 * sin_shift;
             df1 *= -m;
             p += 1.0;
 
-=======
-//	if (dis_2 < cut_off_2 && dis_2 > small_value)
-//	{
-//		rbmd::Real sigmaij_6 = sigma_ij * sigma_ij * sigma_ij * sigma_ij
-//* sigma_ij * sigma_ij; 		rbmd::Real dis_6 = dis_2 * dis_2 *
-//dis_2; 		rbmd::Real sigmaij_dis_6 = sigmaij_6 / dis_6;
->>>>>>> .theirs
-
-<<<<<<< .mine
             if (m == 0)
             {
               p = 1.0 + cos_shift;
               //p = 1.0 + cos_shift[type];
               df1 = 0.0;
             }
-=======
-//		 virial_f = 0.5 * 24 * eps_ij * ((2 * sigmaij_dis_6 - 1) *
-// sigmaij_dis_6) / dis_2;
-
-
-
-
->>>>>>> .theirs
 
             //energy
             local_energy_dihedral += k * p;
