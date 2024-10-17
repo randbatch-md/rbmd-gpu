@@ -20,7 +20,8 @@ void BerendsenController::Init() {
   _num_atoms = *(_structure_info_data->_num_atoms);
   _temp_sum = 0;
   _Tdamp = 0.1;  // �����ļ��ж�ȡ temperature [1.0,1.0,0.1]
-  _dt = 0.001;   // �����ļ��ж�ȡ
+  _dt = DataManager::getInstance().getConfigData()->Get
+ <rbmd::Id>("timestep", "execution"); //0.001;
   auto unit = "LJ";
   UNIT unit_factor = unit_factor_map[unit];  // ����������ض�������
 

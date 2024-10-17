@@ -9,8 +9,10 @@ Executioner::Executioner(
 //_time_step(_exec_node["num_steps"].asFloat()),
 //_num_steps(_exec_node["num_steps"].asInt())
 {
-  _time_step = 0.001;
-  _num_steps = 5;
+  _time_step = DataManager::getInstance().getConfigData()->Get
+ <rbmd::Id>("timestep", "execution"); //0.001;
+  _num_steps = DataManager::getInstance().getConfigData()->Get
+ <rbmd::Id>("num_steps", "execution");//5
   test_num_steps = _num_steps;
   _current_time = 0;
 }
