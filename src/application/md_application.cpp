@@ -32,9 +32,9 @@ int MDApplication::Execute() {
   //		return -1;
   //	}
   //	//_executioner =
-  //std::make_shared<Executioner>(_parser->GetJsonNode("execution"), _system);
+  // std::make_shared<Executioner>(_parser->GetJsonNode("execution"), _system);
   //	//_executioner =
-  //std::make_shared<Executioner>(_config_data->GetJsonNode("execution"),
+  // std::make_shared<Executioner>(_config_data->GetJsonNode("execution"),
   //_simulate_pipelines);
   //
   //	for (size_t i = 0; i < _simulate_pipelines.size(); i++)

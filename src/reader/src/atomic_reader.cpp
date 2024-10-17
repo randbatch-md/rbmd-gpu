@@ -423,7 +423,7 @@ void AtomicReader::SetSpecialBonds()
     //for (int i =0;i< sizeof(ids_atoms);i++)
     //{
     //    auto atoms_id = ids_atoms[i];
-    //    //û�гɼ��Ĳ���
+    //    //??��???????
     //    if (_special_map.find(atoms_id) == _special_map.end())
     //    {
     //        special_weights.push_back(1.0);
@@ -432,12 +432,12 @@ void AtomicReader::SetSpecialBonds()
     //        continue;
     //    }
 
-    //    //�ɼ��Ĳ���
+    //    //????????
     //    rbmd::Id offset = 0;
     //    auto link_0 = _special_map.equal_range(atoms_id);
     //    for (auto it0 = link_0.first; it0 != link_0.second; ++it0)
     //    {
-    //        //һ������
+    //        //???????
     //        int key_1 = it0->second;
     //        special_weights.push_back(special_bonds[0]);
     //        special_ids.push_back(key_1);
@@ -446,7 +446,7 @@ void AtomicReader::SetSpecialBonds()
     //        if (_special_map.find(key_1) == _special_map.end())
     //            continue;
 
-    //        //��������
+    //        //????????
     //        auto link_1 = _special_map.equal_range(key_1);
     //        for (auto it1 = link_1.first; it1 != link_1.second; ++it1)
     //        {
@@ -461,7 +461,7 @@ void AtomicReader::SetSpecialBonds()
     //            if (_special_map.find(key_2) == _special_map.end())
     //                continue;
 
-    //            //��������
+    //            //????????
     //            auto link_2 = _special_map.equal_range(key_2);
     //            for (auto it2 = link_2.first; it2 != link_2.second; ++it2)
     //            {

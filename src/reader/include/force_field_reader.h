@@ -9,7 +9,7 @@
 //{
 // public:
 //	ForceFieldReader(const std::string& filePath, const StructureInfo& info,
-//std::shared_ptr<ForceFieldData>& force_field_data); 	~ForceFieldReader();
+// std::shared_ptr<ForceFieldData>& force_field_data); 	~ForceFieldReader();
 //
 // private:
 //	std::shared_ptr<ForceFieldData>& _force_field_data;

@@ -6,15 +6,18 @@
 #include "default_position_controller.h"
 #include "default_velocity_controller.h"
 #include "ljforce.h"
-#include "nose_hoover_controller.h"
+#include "lj_cut_coul_kspace_force.h"
 #include "rescale_controller.h"
+#include "berendsen_controller.h"
+#include "nose_hoover_controller.h"
 #include "shake_controller.h"
 
-NVTensemble::NVTensemble() {
-  _position_controller = std::make_shared<DefaultPositionController>();
-  _velocity_controller = std::make_shared<DefaultVelocityController>();
-  _force_controller = std::make_shared<LJForce>();  // todo �Զ���forcetype =
-  _temperature_controller = std::make_shared<RescaleController>();
+NVTensemble::NVTensemble()
+{
+	_position_controller = std::make_shared<DefaultPositionController>(); 
+	_velocity_controller = std::make_shared<DefaultVelocityController>(); 
+	_force_controller = std::make_shared<LJCutCoulKspaceForce>(); // todo �Զ���forcetype =
+	_temperature_controller = std::make_shared<BerendsenController>();
 }
 
 void NVTensemble::Init() {
@@ -39,7 +42,8 @@ void NVTensemble::Solve() {
   _position_controller->Update();
 
   bool use_shake;
-  if (true == use_shake) {
+  if (true == use_shake)
+  {
     _shake_controller->ShakeA();
   }
 
@@ -47,7 +51,8 @@ void NVTensemble::Solve() {
 
   _velocity_controller->Update();
 
-  if (true == use_shake) {
+  if (true == use_shake)
+  {
     _shake_controller->ShakeB();
   }
   _temperature_controller->Update();
@@ -56,7 +61,7 @@ void NVTensemble::Solve() {
   auto end = std::chrono::high_resolution_clock::now();
   std::chrono::duration<rbmd::Real> duration = end - start;
 
-  std::cout << "time pre step " << duration.count() << "秒" << std::endl;
+  std::cout << "time pre step "<< duration.count() << "秒" << std::endl;
 }
 
 void NVTensemble::Postsolve() {}
