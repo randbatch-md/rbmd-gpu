@@ -427,7 +427,7 @@ void AtomicReader::SetSpecialBonds()
     //for (int i =0;i< sizeof(ids_atoms);i++)
     //{
     //    auto atoms_id = ids_atoms[i];
-    //    //??§Ô???????
+    //    //??ï¿½ï¿½???????
     //    if (_special_map.find(atoms_id) == _special_map.end())
     //    {
     //        special_weights.push_back(1.0);

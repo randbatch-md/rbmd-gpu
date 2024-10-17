@@ -221,23 +221,75 @@ void CVFF::ComputeKspaceForce()
 void CVFF::SumForces()
 {
 
-  thrust::transform(
-      _device_data->_d_force_ljcoul_x.begin(), _device_data->_d_force_ljcoul_x.end(),
-      _device_data->_d_force_ewald_x.begin(),
-      _device_data->_d_fx.begin(), // 将结果存回到 _d_fx 中
-      thrust::plus<rbmd::Real>());
+  // thrust::transform(
+  //     _device_data->_d_force_ljcoul_x.begin(), _device_data->_d_force_ljcoul_x.end(),
+  //     _device_data->_d_force_ewald_x.begin(),
+  //     _device_data->_d_fx.begin(), // 将结果存回到 _d_fx 中
+  //     thrust::plus<rbmd::Real>());
+  //
+  // thrust::transform(
+  //     _device_data->_d_force_ljcoul_y.begin(), _device_data->_d_force_ljcoul_y.end(),
+  //     _device_data->_d_force_ewald_y.begin(),
+  //     _device_data->_d_fy.begin(), // 将结果存回到 _d_fy 中
+  //     thrust::plus<rbmd::Real>());
+  //
+  // thrust::transform(
+  //     _device_data->_d_force_ljcoul_z.begin(), _device_data->_d_force_ljcoul_z.end(),
+  //     _device_data->_d_force_ewald_z.begin(),
+  //     _device_data->_d_fz.begin(), // 将结果存回到 _d_fz 中
+  //     thrust::plus<rbmd::Real>());
 
   thrust::transform(
-      _device_data->_d_force_ljcoul_y.begin(), _device_data->_d_force_ljcoul_y.end(),
+    thrust::make_zip_iterator(thrust::make_tuple(
+        _device_data->_d_force_ljcoul_x.begin(),
+        _device_data->_d_force_ewald_x.begin(),
+        _device_data->_d_force_bond_x.begin(),
+        _device_data->_d_force_angle_x.begin())),
+    thrust::make_zip_iterator(thrust::make_tuple(
+        _device_data->_d_force_ljcoul_x.end(),
+        _device_data->_d_force_ewald_x.end(),
+        _device_data->_d_force_bond_x.end(),
+        _device_data->_d_force_angle_x.end())),
+    _device_data->_d_fx.begin(),
+    [] __device__ (thrust::tuple<rbmd::Real, rbmd::Real, rbmd::Real, rbmd::Real> forces) {
+        return thrust::get<0>(forces) + thrust::get<1>(forces) +
+               thrust::get<2>(forces) + thrust::get<3>(forces);
+    });
+
+  thrust::transform(
+  thrust::make_zip_iterator(thrust::make_tuple(
+      _device_data->_d_force_ljcoul_y.begin(),
       _device_data->_d_force_ewald_y.begin(),
-      _device_data->_d_fy.begin(), // 将结果存回到 _d_fy 中
-      thrust::plus<rbmd::Real>());
+      _device_data->_d_force_bond_y.begin(),
+      _device_data->_d_force_angle_y.begin())),
+  thrust::make_zip_iterator(thrust::make_tuple(
+      _device_data->_d_force_ljcoul_y.end(),
+      _device_data->_d_force_ewald_y.end(),
+      _device_data->_d_force_bond_y.end(),
+      _device_data->_d_force_angle_y.end())),
+  _device_data->_d_fy.begin(),
+  [] __device__ (thrust::tuple<rbmd::Real, rbmd::Real, rbmd::Real, rbmd::Real> forces) {
+      return thrust::get<0>(forces) + thrust::get<1>(forces) +
+             thrust::get<2>(forces) + thrust::get<3>(forces);
+  });
 
   thrust::transform(
-      _device_data->_d_force_ljcoul_z.begin(), _device_data->_d_force_ljcoul_z.end(),
+  thrust::make_zip_iterator(thrust::make_tuple(
+      _device_data->_d_force_ljcoul_z.begin(),
       _device_data->_d_force_ewald_z.begin(),
-      _device_data->_d_fz.begin(), // 将结果存回到 _d_fz 中
-      thrust::plus<rbmd::Real>());
+      _device_data->_d_force_bond_z.begin(),
+      _device_data->_d_force_angle_z.begin())),
+  thrust::make_zip_iterator(thrust::make_tuple(
+      _device_data->_d_force_ljcoul_z.end(),
+      _device_data->_d_force_ewald_z.end(),
+      _device_data->_d_force_bond_z.end(),
+      _device_data->_d_force_angle_z.end())),
+  _device_data->_d_fz.begin(),
+  [] __device__ (thrust::tuple<rbmd::Real, rbmd::Real, rbmd::Real, rbmd::Real> forces) {
+      return thrust::get<0>(forces) + thrust::get<1>(forces) +
+             thrust::get<2>(forces) + thrust::get<3>(forces);
+  });
+
 }
 
 void CVFF::ComputeChargeStructureFactorEwald(
@@ -613,7 +665,7 @@ void CVFF::ComputeSpecialCoulForce()
 
 void CVFF::ComputeBondForce()
 {
-  thrust::device_vector<int2> bond_list;
+  //thrust::device_vector<int2> bond_list;
 
   rbmd::Real h_energy_bond = 0.0;
   CHECK_RUNTIME(MEMSET(_d_total_ebond, 0, sizeof(rbmd::Real)));
@@ -621,15 +673,16 @@ void CVFF::ComputeBondForce()
   op::ComputeBondForceOp<device::DEVICE_GPU> bond_force_op;
   bond_force_op(_device_data->_d_box,_num_bonds,_num_atoms,
     thrust::raw_pointer_cast(_device_data->_d_bond_coeffs_k.data()),
-    thrust::raw_pointer_cast(_device_data->_d_angle_coeffs_equilibrium.data()),
+    thrust::raw_pointer_cast(_device_data->_d_bond_coeffs_equilibrium.data()),
     thrust::raw_pointer_cast(_device_data->_d_bond_type.data()),
-    thrust::raw_pointer_cast(bond_list.data()),
+    thrust::raw_pointer_cast(_device_data->_d_bond_id0.data()),
+    thrust::raw_pointer_cast(_device_data->_d_bond_id1.data()),
     thrust::raw_pointer_cast(_device_data->_d_px.data()),
     thrust::raw_pointer_cast(_device_data->_d_py.data()),
     thrust::raw_pointer_cast(_device_data->_d_pz.data()),
-    thrust::raw_pointer_cast(_device_data->_d_fx.data()),
-    thrust::raw_pointer_cast(_device_data->_d_fy.data()),
-    thrust::raw_pointer_cast(_device_data->_d_fz.data()),
+    thrust::raw_pointer_cast(_device_data->_d_force_bond_x.data()),
+    thrust::raw_pointer_cast(_device_data->_d_force_bond_y.data()),
+    thrust::raw_pointer_cast(_device_data->_d_force_bond_z.data()),
     _d_total_ebond);
 
   CHECK_RUNTIME(MEMCPY(&h_energy_bond,_d_total_ebond , sizeof(rbmd::Real), D2H));
@@ -637,7 +690,8 @@ void CVFF::ComputeBondForce()
   // 打印累加后的总能量
   _ave_ebond = h_energy_bond/_num_bonds;
 
-
+  std::cout << "test_current_step:" << test_current_step <<  " ,"
+  << "average_bond_energy:" << _ave_ebond  << std::endl;
 
   //append force bond
   //TODO
@@ -646,23 +700,25 @@ void CVFF::ComputeBondForce()
 
 void CVFF::ComputeAngleForce()
 {
-  thrust::device_vector<int3> angle_list;
+  //thrust::device_vector<int3> angle_list;
 
   rbmd::Real h_energy_bond = 0.0;
   CHECK_RUNTIME(MEMSET(_d_total_eangle, 0, sizeof(rbmd::Real)));
 
   op::ComputeAngleForceOp<device::DEVICE_GPU> angle_force_op;
-  angle_force_op(_device_data->_d_box,_num_bonds,_num_atoms,
-    thrust::raw_pointer_cast(_device_data->_d_bond_coeffs_k.data()),
+  angle_force_op(_device_data->_d_box,_num_angles,_num_atoms,
+    thrust::raw_pointer_cast(_device_data->_d_angle_coeffs_k.data()),
     thrust::raw_pointer_cast(_device_data->_d_angle_coeffs_equilibrium.data()),
-    thrust::raw_pointer_cast(_device_data->_d_bond_type.data()),
-    thrust::raw_pointer_cast(angle_list.data()),
+    thrust::raw_pointer_cast(_device_data->_d_angle_type.data()),
+    thrust::raw_pointer_cast(_device_data->_d_angle_id0.data()),
+    thrust::raw_pointer_cast(_device_data->_d_angle_id1.data()),
+    thrust::raw_pointer_cast(_device_data->_d_angle_id2.data()),
     thrust::raw_pointer_cast(_device_data->_d_px.data()),
     thrust::raw_pointer_cast(_device_data->_d_py.data()),
     thrust::raw_pointer_cast(_device_data->_d_pz.data()),
-    thrust::raw_pointer_cast(_device_data->_d_fx.data()),
-    thrust::raw_pointer_cast(_device_data->_d_fy.data()),
-    thrust::raw_pointer_cast(_device_data->_d_fz.data()),
+    thrust::raw_pointer_cast(_device_data->_d_force_angle_x.data()),
+    thrust::raw_pointer_cast(_device_data->_d_force_angle_y.data()),
+    thrust::raw_pointer_cast(_device_data->_d_force_angle_z.data()),
     _d_total_eangle);
 
   CHECK_RUNTIME(MEMCPY(&h_energy_bond,_d_total_eangle , sizeof(rbmd::Real), D2H));
@@ -670,8 +726,7 @@ void CVFF::ComputeAngleForce()
   // 打印累加后的总能量
   _ave_eangle = h_energy_bond/_num_angles;
 
-  std::cout << "test_current_step:" << test_current_step <<  " ,"
-  << "average_bond_energy:" << _ave_ebond << " ," <<
+  std::cout << "test_current_step:" << test_current_step <<  " ," <<
     "average_angle_energy:" << _ave_eangle << std::endl;
 
   //append force angle
