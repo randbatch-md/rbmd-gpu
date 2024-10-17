@@ -11,6 +11,7 @@
 #include "../simulate_pipeline/include/nvt_ensemble.h"
 #include "executioner.h"
 #include "lj_memory_scheduler.h"
+#include "cvff_memory_scheduler.h"
 #include "memory_scheduler.h"
 
 MDApplication::MDApplication(int argc, char* argv[]) : Application(argc, argv) {
@@ -122,8 +123,8 @@ int MDApplication::ReadMDData() {
   std::shared_ptr<MDData> md_data = DataManager::getInstance().getMDData();
   reader = std::make_shared<AtomicReader>("rbmd.data", *md_data);
   reader->Execute();
-  std::shared_ptr<LJMemoryScheduler> lj_memory_scheduler =
-      std::make_shared<LJMemoryScheduler>();
+  std::shared_ptr<CVFFMemoryScheduler> lj_memory_scheduler =
+      std::make_shared<CVFFMemoryScheduler>();
   DataManager::getInstance().Fill2Device(lj_memory_scheduler);
   return 0;
 }

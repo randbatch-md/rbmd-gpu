@@ -17,6 +17,7 @@ bool CVFFMemoryScheduler::asyncMemoryH2D() {
   auto fd = std::dynamic_pointer_cast<CVFFForceFieldData>(_force_field_data);
 
   /// copy data
+  _device_data->_d_molecular_id.resize(num_bonds);
   _device_data->_d_bond_type.resize(num_bonds);
   _device_data->_d_bond_id0.resize(num_bonds);
   _device_data->_d_bond_id1.resize(num_bonds);
@@ -30,6 +31,9 @@ bool CVFFMemoryScheduler::asyncMemoryH2D() {
   _device_data->_d_dihedral_id2.resize(num_dihedrals);
   _device_data->_d_dihedral_id3.resize(num_dihedrals);
 
+  /// molecular id
+  thrust::copy(sd->_h_molecules_id, sd->_h_molecules_id + num_bonds,
+               _device_data->_d_molecular_id.begin());
   /// bond
   thrust::copy(sd->_h_bond_type, sd->_h_bond_type + num_bonds,
                _device_data->_d_bond_type.begin());

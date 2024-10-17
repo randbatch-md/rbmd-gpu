@@ -4,11 +4,10 @@
 
 class StructureInfoData {
  public:
-  StructureInfoData() : _num_atoms1(0){};
+  StructureInfoData(){};
 
  public:
   rbmd::Id* _num_atoms;
-  rbmd::Id _num_atoms1;
   rbmd::Id* _num_bonds;
   rbmd::Id* _num_angles;
   rbmd::Id* _num_dihedrals;

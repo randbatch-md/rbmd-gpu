@@ -20,9 +20,12 @@ class MDData : public Object {
    * @brief constructor
    */
   MDData() {
-    _structure_data = std::make_shared<ChargeStructureData>();
+      /*auto atom_style = DataManager::getInstance().getConfigData()->Get<std::string>("atom_style", "init_configuration", "read_data");
+      if ("atomic" == atom_style) {
+      }*/
+    _structure_data = std::make_shared<FullStructureData>();
     _structure_info_data = std::make_shared<StructureInfoData>();
-    _force_field_data = std::make_shared<LJForceFieldData>();
+    _force_field_data = std::make_shared<CVFFForceFieldData>();
     _h_box = std::make_shared<Box>();
   }
 

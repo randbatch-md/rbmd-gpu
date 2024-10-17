@@ -26,6 +26,6 @@ class CVFFForceFieldData : public ForceFieldData {
 
   /// dihedral
   rbmd::Real* _h_dihedral_coeffs_k;
-  rbmd::Id* _h_dihedral_coeffs_sign;
-  rbmd::Id* _h_dihedral_coeffs_multiplicity;
+  rbmd::Real* _h_dihedral_coeffs_sign;
+  rbmd::Real* _h_dihedral_coeffs_multiplicity;
 };

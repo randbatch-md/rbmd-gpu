@@ -6,6 +6,7 @@
 
 #include "../Utilities/string_util.h"
 #include "model/md_data.h"
+#include "data_manager.h"
 
 #define HIP_CHECK(call)                                              \
   {                                                                  \
@@ -56,7 +57,7 @@ int StructureReder::ReadHeader() {
     HIP_CHECK(MALLOCHOST(&(info->_num_bounds_type), sizeof(rbmd::Id)));
     HIP_CHECK(MALLOCHOST(&(info->_num_angles_type), sizeof(rbmd::Id)));
     HIP_CHECK(MALLOCHOST(&(info->_num_dihedrals_type), sizeof(rbmd::Id)));
-    HIP_CHECK(hipHostMalloc(&(info->_range), sizeof(rbmd::Range)));
+    HIP_CHECK(MALLOCHOST(&(info->_range), sizeof(rbmd::Range)));
     auto& box = _md_data._h_box;
     rbmd::Real coord_min[3];
     rbmd::Real coord_max[3];
@@ -77,24 +78,23 @@ int StructureReder::ReadHeader() {
             // std::cout << *(info->_num_angles) << " angles" << std::endl;
           } else if (line.find("dihedrals") != std::string::npos) {
             iss >> *(info->_num_dihedrals);
-            // std::cout << *(info->_num_dihedrals) << " dihedrals" <<
-            // std::endl;
+             //std::cout << *(info->_num_dihedrals) << " dihedrals" << std::endl;
           } else if (line.find("impropers") != std::string::npos) {
             iss >> *(info->_num_impropers);
-            // std::cout << *(info->_num_impropers) << " impropers" <<
-            // std::endl;
+            //std::cout << *(info->_num_impropers) << " impropers" << std::endl;
           } else if (line.find("atom types") != std::string::npos) {
             iss >> *(info->_num_atoms_type);
-            // std::cout << *(info->_num_atoms_type) << " atom types" <<
-            // std::endl;
+            //std::cout << *(info->_num_atoms_type) << " atom types" << std::endl;
           } else if (line.find("bond types") != std::string::npos) {
             iss >> *(info->_num_bounds_type);
-            // std::cout << *(info->_num_bounds_type) << " bond types" <<
-            // std::endl;
+            //std::cout << *(info->_num_bounds_type) << " bond types" << std::endl;
           } else if (line.find("angle types") != std::string::npos) {
             iss >> *(info->_num_angles_type);
-            // std::cout << *(info->_num_angles_type) << " angle types" <<
-            // std::endl;
+            // std::cout << *(info->_num_angles_type) << " angle types" << std::endl;
+          }
+          else if (line.find("dihedral types") != std::string::npos) {
+              iss >> *(info->_num_dihedrals_type);
+              //std::cout << *(info->_num_angles_type) << " angle types" << std::endl;
           } else if (line.find("xlo xhi") != std::string::npos) {
             iss >> coord_min[0] >> coord_max[0];
             // std::cout << coord_min[0] << " " << coord_max[0] << "xlo xhi" <<
@@ -152,6 +152,8 @@ int StructureReder::ReadForceField() {
           } else if (line.find("Angle Coeffs") != std::string::npos) {
             ReadAngleCoeffs(*(info->_num_angles_type));
             // std::cout << "Angle Coeffs" << std::endl;
+          } else if (line.find("Dihedral Coeffs") != std::string::npos) {
+            ReadDihedralsCoeffs(*(info->_num_dihedrals_type));
           } else if (line.find("group") != std::string::npos) {
             break;
           } else if (line.find("Atoms") != std::string::npos) {
@@ -169,109 +171,183 @@ int StructureReder::ReadForceField() {
 }
 
 int StructureReder::ReadMass(const rbmd::Id& numAtomTypes) {
-  try {
-    auto force_filed =
-        std::dynamic_pointer_cast<LJForceFieldData>(_md_data._force_field_data);
-    auto& mass = force_filed->_h_mass;
-    HIP_CHECK(hipHostMalloc(&mass, numAtomTypes * sizeof(rbmd::Id)));
-    rbmd::Id atom_type;
-    rbmd::Real value;
+    auto force_style = DataManager::getInstance().getConfigData()->Get<std::string>( "type", "hyper_parameters", "force_field");
+    if ("CVFF" == force_style) {
+        try {
+            auto force_filed =
+                std::dynamic_pointer_cast<CVFFForceFieldData>(_md_data._force_field_data);
+            auto& mass = force_filed->_h_mass;
+            HIP_CHECK(MALLOCHOST(&mass, numAtomTypes * sizeof(rbmd::Real)));
+            rbmd::Id atom_type;
+            rbmd::Real value;
 
-    _line_start = &_mapped_memory[_locate];
-    for (auto num = 0; _locate < _file_size && num < numAtomTypes; ++_locate) {
-      if (_mapped_memory[_locate] == '\n') {
-        auto line = std::string(_line_start, &_mapped_memory[_locate]);
-        std::istringstream iss(line);
-        if (rbmd::IsLegalLine(line)) {
-          iss >> atom_type >> value;
-          mass[atom_type - 1] = value;
-          // std::cout << atom_type << " " << force_filed->_h_mass[atom_type -
-          // 1] << std::endl;
-          ++num;
+            _line_start = &_mapped_memory[_locate];
+            for (auto num = 0; _locate < _file_size && num < numAtomTypes; ++_locate) {
+                if (_mapped_memory[_locate] == '\n') {
+                    auto line = std::string(_line_start, &_mapped_memory[_locate]);
+                    std::istringstream iss(line);
+                    if (rbmd::IsLegalLine(line)) {
+                        iss >> atom_type >> value;
+                        mass[atom_type - 1] = value;
+                        // std::cout << atom_type << " " << force_filed->_h_mass[atom_type -
+                        // 1] << std::endl;
+                        ++num;
+                    }
+
+                    _line_start = &_mapped_memory[_locate];
+                }
+            }
+            auto& mass_1 = force_filed->_h_mass;
+            //std::cout << "mass[0]=" << force_filed->_h_mass[0] << ","<< "mass[1]=" << force_filed->_h_mass[1] << std::endl;
         }
+        catch (const std::exception& e) {
+            // log
+            return -1;
+        }
+    }else
+    {
+        try {
+            auto force_filed =
+                std::dynamic_pointer_cast<LJForceFieldData>(_md_data._force_field_data);
+            auto& mass = force_filed->_h_mass;
+            HIP_CHECK(MALLOCHOST(&mass, numAtomTypes * sizeof(rbmd::Id)));
+            rbmd::Id atom_type;
+            rbmd::Real value;
 
-        _line_start = &_mapped_memory[_locate];
-      }
+            _line_start = &_mapped_memory[_locate];
+            for (auto num = 0; _locate < _file_size && num < numAtomTypes; ++_locate) {
+                if (_mapped_memory[_locate] == '\n') {
+                    auto line = std::string(_line_start, &_mapped_memory[_locate]);
+                    std::istringstream iss(line);
+                    if (rbmd::IsLegalLine(line)) {
+                        iss >> atom_type >> value;
+                        mass[atom_type - 1] = value;
+                        // std::cout << atom_type << " " << force_filed->_h_mass[atom_type -
+                        // 1] << std::endl;
+                        ++num;
+                    }
+
+                    _line_start = &_mapped_memory[_locate];
+                }
+            }
+            auto& mass_1 = force_filed->_h_mass;
+            /*std::cout << "mass[0]=" << force_filed->_h_mass[0] << ","
+                << "mass[1]=" << force_filed->_h_mass[1] << std::endl;*/
+        }
+        catch (const std::exception& e) {
+            // log
+            return -1;
+        }
     }
-    auto& mass_1 = force_filed->_h_mass;
-    std::cout << "mass[0]=" << force_filed->_h_mass[0] << ","
-              << "mass[1]=" << force_filed->_h_mass[1] << std::endl;
-  } catch (const std::exception& e) {
-    // log
-    return -1;
-  }
+  
 
   return 0;
 }
 
 int StructureReder::ReadPairCoeffs(const rbmd::Id& numAtomTypes) {
-  try {
-    auto force_filed =
-        std::dynamic_pointer_cast<LJForceFieldData>(_md_data._force_field_data);
-    auto& eps = force_filed->_h_eps;
-    auto& sigma = force_filed->_h_sigma;
-    HIP_CHECK(hipHostMalloc(&eps, numAtomTypes * sizeof(rbmd::Id)));
-    HIP_CHECK(hipHostMalloc(&sigma, numAtomTypes * sizeof(rbmd::Id)));
-    rbmd::Id atom_type;
-    rbmd::Real eps_value;
-    rbmd::Real sigma_value;
+    auto force_style = DataManager::getInstance().getConfigData()->Get<std::string>("type", "hyper_parameters", "force_field");
+    if ("CVFF" == force_style) {
+        try {
+            auto force_filed =
+                std::dynamic_pointer_cast<CVFFForceFieldData>(_md_data._force_field_data);
+            auto& eps = force_filed->_h_eps;
+            auto& sigma = force_filed->_h_sigma;
+            HIP_CHECK(MALLOCHOST(&eps, numAtomTypes * sizeof(rbmd::Id)));
+            HIP_CHECK(MALLOCHOST(&sigma, numAtomTypes * sizeof(rbmd::Id)));
+            rbmd::Id atom_type;
+            rbmd::Real eps_value;
+            rbmd::Real sigma_value;
 
-    _line_start = &_mapped_memory[_locate];
-    for (auto num = 0; _locate < _file_size && num < numAtomTypes; ++_locate) {
-      if (_mapped_memory[_locate] == '\n') {
-        auto line = std::string(_line_start, &_mapped_memory[_locate]);
-        std::istringstream iss(line);
-        if (rbmd::IsLegalLine(line)) {
-          iss >> atom_type >> eps_value >> sigma_value;
-          eps[atom_type - 1] = eps_value;
-          sigma[atom_type - 1] = sigma_value;
-          // std::cout << atom_type << " " << force_filed->_h_eps[atom_type - 1]
-          // << " " << force_filed->_h_sigma[atom_type - 1] << std::endl;
-          ++num;
+            _line_start = &_mapped_memory[_locate];
+            for (auto num = 0; _locate < _file_size && num < numAtomTypes; ++_locate) {
+                if (_mapped_memory[_locate] == '\n') {
+                    auto line = std::string(_line_start, &_mapped_memory[_locate]);
+                    std::istringstream iss(line);
+                    if (rbmd::IsLegalLine(line)) {
+                        iss >> atom_type >> eps_value >> sigma_value;
+                        eps[atom_type - 1] = eps_value;
+                        sigma[atom_type - 1] = sigma_value;
+                        // std::cout << atom_type << " " << force_filed->_h_eps[atom_type - 1]
+                        // << " " << force_filed->_h_sigma[atom_type - 1] << std::endl;
+                        ++num;
+                    }
+                    _line_start = &_mapped_memory[_locate];
+                }
+            }
         }
-        _line_start = &_mapped_memory[_locate];
-      }
+        catch (const std::exception& e) {
+            // log
+            return -1;
+        }
     }
-  } catch (const std::exception& e) {
-    // log
-    return -1;
-  }
+    else {
+        try {
+            auto force_filed =
+                std::dynamic_pointer_cast<LJForceFieldData>(_md_data._force_field_data);
+            auto& eps = force_filed->_h_eps;
+            auto& sigma = force_filed->_h_sigma;
+            HIP_CHECK(MALLOCHOST(&eps, numAtomTypes * sizeof(rbmd::Id)));
+            HIP_CHECK(MALLOCHOST(&sigma, numAtomTypes * sizeof(rbmd::Id)));
+            rbmd::Id atom_type;
+            rbmd::Real eps_value;
+            rbmd::Real sigma_value;
+
+            _line_start = &_mapped_memory[_locate];
+            for (auto num = 0; _locate < _file_size && num < numAtomTypes; ++_locate) {
+                if (_mapped_memory[_locate] == '\n') {
+                    auto line = std::string(_line_start, &_mapped_memory[_locate]);
+                    std::istringstream iss(line);
+                    if (rbmd::IsLegalLine(line)) {
+                        iss >> atom_type >> eps_value >> sigma_value;
+                        eps[atom_type - 1] = eps_value;
+                        sigma[atom_type - 1] = sigma_value;
+                        // std::cout << atom_type << " " << force_filed->_h_eps[atom_type - 1]
+                        // << " " << force_filed->_h_sigma[atom_type - 1] << std::endl;
+                        ++num;
+                    }
+                    _line_start = &_mapped_memory[_locate];
+                }
+            }
+        }
+        catch (const std::exception& e) {
+            // log
+            return -1;
+        }
+    }
+  
 
   return 0;
 }
 
 int StructureReder::ReadBondCoeffs(const rbmd::Id& numBondTypes) {
   try {
-    /*auto& bond_coeffs_k = _md_data._potential_data._bond_coeffs_k;
-    auto& bond_coeffs_equilibrium =
-    _md_data._potential_data._bond_coeffs_equilibrium;
-    bond_coeffs_k.resize(numBondTypes);
-    bond_coeffs_equilibrium.resize(numBondTypes);
-    rbmd::Id bound_type;
-    rbmd::Real bond_coeffs_k_value;
-    rbmd::Real equilibrium_value;
-
-    _line_start = &_mapped_memory[_locate];
-    for (auto num = 0; _locate < _file_size && num < numBondTypes; ++_locate)
-    {
-            if (_mapped_memory[_locate] == '\n')
-            {
-                    auto line = std::string(_line_start,
-    &_mapped_memory[_locate]); std::istringstream iss(line); if
-    (rbmd::IsLegalLine(line))
-                    {
-                            iss >> bound_type >> bond_coeffs_k_value >>
-    equilibrium_value;
-                            //std::cout << bound_type << " " <<
-    bond_coeffs_k_value << " " << equilibrium_value << std::endl;
-                            bond_coeffs_k[bound_type - 1] = bond_coeffs_k_value;
-                            bond_coeffs_equilibrium[bound_type - 1] =
-    equilibrium_value;
-                            ++num;
-                    }
-                    _line_start = &_mapped_memory[_locate];
-            }
-    }*/
+      auto force_filed = std::dynamic_pointer_cast<CVFFForceFieldData>(_md_data._force_field_data);
+      auto& bond_coeffs_k = force_filed->_h_bond_coeffs_k;
+      auto& bond_coeffs_equilibrium = force_filed->_h_bond_coeffs_equilibrium;
+      HIP_CHECK(MALLOCHOST(&bond_coeffs_k, numBondTypes * sizeof(rbmd::Real)));
+      HIP_CHECK(MALLOCHOST(&bond_coeffs_equilibrium, numBondTypes * sizeof(rbmd::Real)));
+      rbmd::Id bound_type;
+      rbmd::Real bond_coeffs_k_value;
+      rbmd::Real equilibrium_value;
+      
+      _line_start = &_mapped_memory[_locate];
+      for (auto num = 0; _locate < _file_size && num < numBondTypes; ++_locate)
+      {
+          if (_mapped_memory[_locate] == '\n')
+          {
+              auto line = std::string(_line_start,&_mapped_memory[_locate]); 
+              std::istringstream iss(line); 
+              if(rbmd::IsLegalLine(line))
+              {
+                  iss >> bound_type >> bond_coeffs_k_value >> equilibrium_value;
+                  //std::cout << bound_type << " " <<bond_coeffs_k_value << " " << equilibrium_value << std::endl;
+                  bond_coeffs_k[bound_type - 1] = bond_coeffs_k_value;
+                  bond_coeffs_equilibrium[bound_type - 1] =equilibrium_value;
+                  ++num;
+               }
+                  _line_start = &_mapped_memory[_locate];
+           }
+      }
 
   } catch (const std::exception& e) {
     // log
@@ -281,38 +357,36 @@ int StructureReder::ReadBondCoeffs(const rbmd::Id& numBondTypes) {
   return 0;
 }
 
-int StructureReder::ReadAngleCoeffs(const rbmd::Id& numAngleTypes) {
+int StructureReder::ReadAngleCoeffs(const rbmd::Id& numAngleTypes)
+{
   try {
-    /*auto& angle_coeffs_k = _md_data._potential_data._bond_coeffs_k;
-    auto& angle_coeffs_equilibrium =
-    _md_data._potential_data._angle_coeffs_equilibrium;
-    angle_coeffs_k.resize(numAngleTypes);
-    angle_coeffs_equilibrium.resize(numAngleTypes);
-    rbmd::Id angle_type;
-    rbmd::Real angle_coeffs_k_value;
-    rbmd::Real equilibrium_value;
-
-    _line_start = &_mapped_memory[_locate];
-    for (auto num = 0; _locate < _file_size && num < numAngleTypes; ++_locate)
-    {
-            if (_mapped_memory[_locate] == '\n')
-            {
-                    auto line = std::string(_line_start,
-    &_mapped_memory[_locate]); std::istringstream iss(line); if
-    (rbmd::IsLegalLine(line))
-                    {
-                            iss >> angle_type >> angle_coeffs_k_value >>
-    equilibrium_value;
-                            //std::cout << angle_type << " " <<
-    angle_coeffs_k_value << " " << equilibrium_value << std::endl;
-                            angle_coeffs_k[angle_type - 1] =
-    angle_coeffs_k_value; angle_coeffs_equilibrium[angle_type - 1] =
-    equilibrium_value;
-                            ++num;
-                    }
-                    _line_start = &_mapped_memory[_locate];
-            }
-    }*/
+      auto force_filed = std::dynamic_pointer_cast<CVFFForceFieldData>(_md_data._force_field_data);
+      auto& angle_coeffs_k = force_filed->_h_angle_coeffs_k;
+      auto& angle_coeffs_equilibrium = force_filed->_h_angle_coeffs_equilibrium;
+      HIP_CHECK(MALLOCHOST(&angle_coeffs_k, numAngleTypes * sizeof(rbmd::Real)));
+      HIP_CHECK(MALLOCHOST(&angle_coeffs_equilibrium, numAngleTypes * sizeof(rbmd::Real)));
+      rbmd::Id angle_type;
+      rbmd::Real angle_coeffs_k_value;
+      rbmd::Real equilibrium_value;
+      
+      _line_start = &_mapped_memory[_locate];
+      for (auto num = 0; _locate < _file_size && num < numAngleTypes; ++_locate)
+      {
+         if (_mapped_memory[_locate] == '\n')
+         {
+             auto line = std::string(_line_start,&_mapped_memory[_locate]);
+             std::istringstream iss(line); 
+             if(rbmd::IsLegalLine(line))
+             {
+                 iss >> angle_type >> angle_coeffs_k_value >>equilibrium_value;
+                 //std::cout << angle_type << " " <<angle_coeffs_k_value << " " << equilibrium_value << std::endl;
+                 angle_coeffs_k[angle_type - 1] = angle_coeffs_k_value; 
+                 angle_coeffs_equilibrium[angle_type - 1] = equilibrium_value;
+                 ++num;
+             }
+             _line_start = &_mapped_memory[_locate];
+         }
+      }
   } catch (const std::exception& e) {
     // log
     return -1;
@@ -320,3 +394,46 @@ int StructureReder::ReadAngleCoeffs(const rbmd::Id& numAngleTypes) {
 
   return 0;
 }
+
+int StructureReder::ReadDihedralsCoeffs(const rbmd::Id& numDihedralsTypes)
+{
+    try {
+        auto force_filed = std::dynamic_pointer_cast<CVFFForceFieldData>(_md_data._force_field_data);
+        auto& dihedral_coeffs_k = force_filed->_h_dihedral_coeffs_k;
+        auto& dihedral_coeffs_sign = force_filed->_h_dihedral_coeffs_sign;
+        auto& dihedral_coeffs_multiplicity = force_filed->_h_dihedral_coeffs_multiplicity;
+        HIP_CHECK(MALLOCHOST(&dihedral_coeffs_k, numDihedralsTypes * sizeof(rbmd::Real)));
+        HIP_CHECK(MALLOCHOST(&dihedral_coeffs_sign, numDihedralsTypes * sizeof(rbmd::Real)));
+        HIP_CHECK(MALLOCHOST(&dihedral_coeffs_multiplicity, numDihedralsTypes * sizeof(rbmd::Real)));
+        rbmd::Id dihedral_type;
+        rbmd::Real dihedral_coeffs_k_value;
+        rbmd::Real dihedral_coeffs_sign_value;
+        rbmd::Real dihedral_coeffs_multiplicity_value;
+
+        _line_start = &_mapped_memory[_locate];
+        for (auto num = 0; _locate < _file_size && num < numDihedralsTypes; ++_locate)
+        {
+            if (_mapped_memory[_locate] == '\n')
+            {
+                auto line = std::string(_line_start, &_mapped_memory[_locate]); std::istringstream iss(line);
+                if (rbmd::IsLegalLine(line))
+                {
+                    iss >> dihedral_type >> dihedral_coeffs_k_value >> dihedral_coeffs_sign_value >> dihedral_coeffs_multiplicity_value;
+                    dihedral_coeffs_k[dihedral_type - 1] = dihedral_coeffs_k_value;
+                    dihedral_coeffs_sign[dihedral_type - 1] = dihedral_coeffs_sign_value;
+                    dihedral_coeffs_multiplicity[dihedral_type - 1] = dihedral_coeffs_multiplicity_value;
+                    //std::cout << dihedral_type << " " << dihedral_coeffs_k_value << " " << dihedral_coeffs_sign_value << " " << dihedral_coeffs_multiplicity_value << std::endl;
+                    ++num;
+                }
+                _line_start = &_mapped_memory[_locate];
+            }
+        }
+    }
+    catch (const std::exception& e) {
+        // log
+        return -1;
+    }
+
+    return 0;
+}
+
