@@ -7,6 +7,7 @@ bool CVFFMemoryScheduler::asyncMemoryH2D() {
   }
 
   auto& num_atoms_type = *(_structure_info_data->_num_atoms_type);
+  auto& num_atoms = *(_structure_info_data->_num_atoms);
   auto& num_bonds = *(_structure_info_data->_num_bonds);
   auto& num_bonds_type = *(_structure_info_data->_num_bounds_type);
   auto& num_angles = *(_structure_info_data->_num_angles);
@@ -30,9 +31,14 @@ bool CVFFMemoryScheduler::asyncMemoryH2D() {
   _device_data->_d_dihedral_id1.resize(num_dihedrals);
   _device_data->_d_dihedral_id2.resize(num_dihedrals);
   _device_data->_d_dihedral_id3.resize(num_dihedrals);
+  _device_data->_d_charge.resize(num_atoms);
+
+  /// charge
+  thrust::copy(sd->_h_charge, sd->_h_charge + num_atoms,
+      _device_data->_d_charge.begin());
 
   /// molecular id
-  thrust::copy(sd->_h_molecules_id, sd->_h_molecules_id + num_bonds,
+  thrust::copy(sd->_h_molecules_id, sd->_h_molecules_id + num_atoms,
                _device_data->_d_molecular_id.begin());
   /// bond
   thrust::copy(sd->_h_bond_type, sd->_h_bond_type + num_bonds,

@@ -178,9 +178,10 @@ int AtomicReader::ReadAtoms(const rbmd::Id& atoms_num) {
             iss >> atom_id;
             auto index = atom_id - 1;
             ids[index] = atom_id - 1;
-            iss >> types[index] >> data->_h_charge[index];
+            iss >> atom_type >> data->_h_charge[index];
             iss >> data->_h_px[index] >> data->_h_py[index] >>
                 data->_h_pz[index];
+            types[index] = atom_type - 1;
             ++num;
             // std::cout << atom_id << " " << types[index] << " " <<
             // data->_h_charge[index]  << " " << data->_h_px[index] << " " <<
@@ -191,6 +192,7 @@ int AtomicReader::ReadAtoms(const rbmd::Id& atoms_num) {
       }
     }
     else if ("full" == atom_style) {
+        rbmd::Id molecules_id;
         auto& full_structure_data = _md_data._structure_data;
         FullStructureData* data =
             dynamic_cast<FullStructureData*>(full_structure_data.get());
@@ -202,9 +204,11 @@ int AtomicReader::ReadAtoms(const rbmd::Id& atoms_num) {
                     iss >> atom_id;
                     auto index = atom_id - 1;
                     ids[index] = atom_id - 1;
-                    iss >> data->_h_molecules_id[index]  >> types[index] >> data->_h_charge[index];
+                    iss >> molecules_id >> atom_type >> data->_h_charge[index];
                     iss >> data->_h_px[index] >> data->_h_py[index] >>
                         data->_h_pz[index];
+                    types[index] = atom_type - 1;
+                    data->_h_molecules_id[index] = molecules_id - 1;
                     ++num;
                     /*std::cout << atom_id << " " << data->_h_molecules_id[index] << " " << types[index] << " " <<
                     data->_h_charge[index]  << " " << data->_h_px[index] << " " <<
