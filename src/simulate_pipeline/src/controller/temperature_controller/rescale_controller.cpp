@@ -13,14 +13,14 @@ RescaleController::RescaleController() {
 }
 RescaleController::~RescaleController() {
   CHECK_RUNTIME(FREE(_d_temp_contrib));
-};
+}
 
 void RescaleController::Init() {
   _num_atoms = *(_structure_info_data->_num_atoms);
   _temp_sum = 0;
 
-  auto unit = "LJ";                          
-  UNIT unit_factor = unit_factor_map[unit];  
+  auto unit = "LJ";
+  UNIT unit_factor = unit_factor_map[unit];
 
   switch (unit_factor) {
     case UNIT::LJ:
@@ -44,11 +44,10 @@ void RescaleController::Update() {
   UpdataVelocity();
 }
 
-void RescaleController::ComputeTemp()
-{
-    extern int test_current_step;
-    // CHECK_RUNTIME(MEMCPY(temp_contrib, &_temp_sum, sizeof(rbmd::Real), H2D));
-    CHECK_RUNTIME(MEMSET(_d_temp_contrib,0,sizeof(rbmd::Real)));
+void RescaleController::ComputeTemp() {
+  extern int test_current_step;
+  // CHECK_RUNTIME(MEMCPY(temp_contrib, &_temp_sum, sizeof(rbmd::Real), H2D));
+  CHECK_RUNTIME(MEMSET(_d_temp_contrib, 0, sizeof(rbmd::Real)));
   op::ComputeTemperatureOp<device::DEVICE_GPU> compute_temperature_op;
   compute_temperature_op(
       _num_atoms, _mvv2e,
@@ -78,14 +77,14 @@ void RescaleController::ComputeTemp()
 
   std::cout << "_temp=" << _temp << std::endl;
 
-  //out
+  // out
   std::ofstream outfile("temp.txt", std::ios::app);
   outfile << test_current_step << " " << _temp << std::endl;
   outfile.close();
 }
 
 void RescaleController::UpdataVelocity() {
-  rbmd::Real kbT = 1; 
+  rbmd::Real kbT = 1;
   rbmd::Real coeff_rescale = std::sqrt(kbT / _temp);
 
   op::UpdataVelocityRescaleOp<device::DEVICE_GPU> updata_velocity_op;

@@ -1,9 +1,9 @@
 #pragma once
 
 namespace device {
-    struct DEVICE_CPU;
-    struct DEVICE_GPU;
-} // namespace device
+struct DEVICE_CPU;
+struct DEVICE_GPU;
+}  // namespace device
 
 // enum class DeviceType
 //{

@@ -9,7 +9,7 @@ class Object {
  public:
   Object() {
     //_console = spdlog::get("console");
-    //if (!_console) {
+    // if (!_console) {
     //  _console = spdlog::stdout_color_mt("console");
     //}
   }
@@ -17,5 +17,5 @@ class Object {
   virtual ~Object() = default;
 
  protected:
-  //std::shared_ptr<spdlog::logger> _console;
+  // std::shared_ptr<spdlog::logger> _console;
 };

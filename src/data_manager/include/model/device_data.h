@@ -1,8 +1,9 @@
 ﻿#pragma once
 #include <thrust/device_vector.h>
 
-#include "box.h"
 #include "../common/types.h"
+#include "box.h"
+#include "../common/erf_table.h"
 
 class DeviceData {
  public:
@@ -85,12 +86,29 @@ class DeviceData {
   thrust::device_vector<rbmd::Real> _d_fx;
   thrust::device_vector<rbmd::Real> _d_fy;
   thrust::device_vector<rbmd::Real> _d_fz;
-    //	
+
+  thrust::device_vector<rbmd::Real> _d_force_ljcoul_x;
+  thrust::device_vector<rbmd::Real> _d_force_ljcoul_y;
+  thrust::device_vector<rbmd::Real> _d_force_ljcoul_z;
+
+  thrust::device_vector<rbmd::Real> _d_force_ewald_x;
+  thrust::device_vector<rbmd::Real> _d_force_ewald_y;
+  thrust::device_vector<rbmd::Real> _d_force_ewald_z;
+
+
+  thrust::device_vector<rbmd::Real> _d_virial_xx;
+  thrust::device_vector<rbmd::Real> _d_virial_yy;
+  thrust::device_vector<rbmd::Real> _d_virial_zz;
+  thrust::device_vector<rbmd::Real> _d_virial_xy;
+  thrust::device_vector<rbmd::Real> _d_virial_xz;
+  thrust::device_vector<rbmd::Real> _d_virial_yz;
+  //
   thrust::device_vector<rbmd::Real> _d_evdwl;
-  
+
+  thrust::device_vector<rbmd::Real> _d_charge;
+
   // box in device
   Box* _d_box;
-  ~DeviceData() {
-    CHECK_RUNTIME(FREE(_d_box));
-  }
+  ERFTable* _d_erf_table;
+  ~DeviceData() { CHECK_RUNTIME(FREE(_d_box));CHECK_RUNTIME(FREE(_d_erf_table)); }
 };

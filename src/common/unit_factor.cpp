@@ -9,6 +9,7 @@ const rbmd::Real UnitFactor<UNIT::LJ>::_kb = 1.0;
 const rbmd::Real UnitFactor<UNIT::LJ>::_fmt2v = 1.0;
 const rbmd::Real UnitFactor<UNIT::LJ>::_mvv2e = 1.0;
 const rbmd::Real UnitFactor<UNIT::LJ>::_qqr2e = 1.0;
+const rbmd::Real UnitFactor<UNIT::LJ>::_nktv2p = 1.0;
 
 // REAL ��λ�Ƴ�������
 const rbmd::Real UnitFactor<UNIT::REAL>::_kb = 1.9872067 * std::pow(10.0, -3.0);
@@ -16,9 +17,11 @@ const rbmd::Real UnitFactor<UNIT::REAL>::_fmt2v = 4.186 * std::pow(10.0, -4.0);
 const rbmd::Real UnitFactor<UNIT::REAL>::_mvv2e =
     1.0 / (4.186 * std::pow(10.0, -4.0));
 const rbmd::Real UnitFactor<UNIT::REAL>::_qqr2e = 332.06371;
+const rbmd::Real UnitFactor<UNIT::REAL>::_nktv2p = 68568.415;
 
 // METAL ��λ�Ƴ�������
 const rbmd::Real UnitFactor<UNIT::METAL>::_kb = 8.617343e-5;
 const rbmd::Real UnitFactor<UNIT::METAL>::_fmt2v = 1.0 / 1.0364269e-4;
 const rbmd::Real UnitFactor<UNIT::METAL>::_mvv2e = 1.0364269e-4;
 const rbmd::Real UnitFactor<UNIT::METAL>::_qqr2e = 14.399645;
+const rbmd::Real UnitFactor<UNIT::METAL>::_nktv2p = 1.6021765e6;

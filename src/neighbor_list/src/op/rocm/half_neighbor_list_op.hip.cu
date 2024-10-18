@@ -5,11 +5,12 @@
 #include "common/device_types.h"
 #include "common/rbmd_define.h"
 #include "common/types.h"
-#include "full_neighbor_list_op.h"
+#include "half_neighbor_list_op.h"
 #include "model/box.h"
+#include "src/op/full_neighbor_list_op.h"
 
 namespace op {
-__global__ void ComputeFullNeighbors(rbmd::Id* per_dimension_cells,
+__global__ void ComputeHalfNeighbors(rbmd::Id* per_dimension_cells,
                                      rbmd::Id* neighbor_cell,
                                      rbmd::Id neighbor_num, rbmd::Id total_cell,
                                      rbmd::Id cell_count_within_cutoff) {
@@ -31,59 +32,38 @@ __global__ void ComputeFullNeighbors(rbmd::Id* per_dimension_cells,
            ++dy) {
         for (int dx = -cell_count_within_cutoff; dx <= cell_count_within_cutoff;
              ++dx) {
-          int neighbor_z =
-              (idx_z + dz + per_dimension_cells[2]) % per_dimension_cells[2];
-          int neighbor_y =
-              (idx_y + dy + per_dimension_cells[1]) % per_dimension_cells[1];
-          int neighbor_x =
-              (idx_x + dx + per_dimension_cells[0]) % per_dimension_cells[0];
+          const int offset =
+              (dz * per_dimension_cells[1] + dy) * per_dimension_cells[0] + dx;
+          if (offset >= 0) {
+            int neighbor_z =
+                (idx_z + dz + per_dimension_cells[2]) % per_dimension_cells[2];
+            int neighbor_y =
+                (idx_y + dy + per_dimension_cells[1]) % per_dimension_cells[1];
+            int neighbor_x =
+                (idx_x + dx + per_dimension_cells[0]) % per_dimension_cells[0];
 
-          rbmd::Id neighbour_cell_idx =
-              (neighbor_z * per_dimension_cells[1] + neighbor_y) *
-                  per_dimension_cells[0] +
-              neighbor_x;
+            rbmd::Id neighbour_cell_idx =
+                (neighbor_z * per_dimension_cells[1] + neighbor_y) *
+                    per_dimension_cells[0] +
+                neighbor_x;
 
-          neighbor_cell[cell_idx * neighbor_num + neighbor_count] =
-              neighbour_cell_idx;
-          ++neighbor_count;
+            neighbor_cell[cell_idx * neighbor_num + neighbor_count] =
+                neighbour_cell_idx;
+            ++neighbor_count;
+          }
         }
       }
     }
   }
 }
 
-// use while total_cell < computed neighbor_num
-__global__ void ComputeFullNeighborsWithoutPBC(rbmd::Id* neighbor_cell, rbmd::Id neighbor_num,
-                                         rbmd::Id total_cell) {
-  const unsigned int cell_idx = blockIdx.x * blockDim.x + threadIdx.x;
-  if (cell_idx < total_cell) {
-    int neighbor_count = 0;
-    for (int neighbor_cell_idx = 0; neighbor_cell_idx < neighbor_num; ++neighbor_cell_idx) {
-      neighbor_cell[cell_idx * neighbor_num + neighbor_count] =
-        neighbor_cell_idx;
-      ++neighbor_count;
-    }
-  }
-}
-
-
-__host__ __device__ __forceinline__ rbmd::Real CaculateDistance(
-    Box* box, rbmd::Real i_x, rbmd::Real i_y, rbmd::Real i_z, rbmd::Real j_x,
-    rbmd::Real j_y, rbmd::Real j_z) {
-  rbmd::Real dx = i_x - j_x;
-  rbmd::Real dy = i_y - j_y;
-  rbmd::Real dz = i_z - j_z;
-  MinImageDistance(box, dx, dy, dz);
-  return (POW(dx, 2) + POW(dy, 2) + POW(dz, 2));
-}
-
 /// 一个原子对应一个线程束   建议调用的时候 -EPSILON
-__global__ void EstimateFullNeighborList(
+__global__ void EstimateHalfNeighborList(
     rbmd::Id* per_atom_cell_id, rbmd::Id* in_atom_list_start_index,
     rbmd::Id* in_atom_list_end_index, rbmd::Real cutoff_2,
     rbmd::Id total_atom_num, rbmd::Real* px, rbmd::Real* py, rbmd::Real* pz,
     rbmd::Id* neighbour_num, rbmd::Id* max_neighbour_num, Box* box,
-    rbmd::Id* neighbor_cell, rbmd::Id neighbor_cell_num) {
+    rbmd::Id* neighbor_cell, rbmd::Id neighbor_cell_num, bool without_pbc) {
   // cutoff2是平方
   extern __shared__ hipcub::WarpReduce<rbmd::Id>::TempStorage
       reduce_temp_storage[];
@@ -105,7 +85,15 @@ __global__ void EstimateFullNeighborList(
                in_atom_list_start_index[neighbour_cell_idx] + lane_id;
            neighbor_atom_idx < in_atom_list_end_index[neighbour_cell_idx];
            neighbor_atom_idx += warpSize) {
-        if (atom_idx != neighbor_atom_idx) {
+        bool valid_neighbor;
+        if (cell_idx == neighbour_cell_idx || without_pbc == true) {
+          // 如果是同一个cell，只考虑索引大于当前原子的邻居
+          valid_neighbor = (neighbor_atom_idx > atom_idx);
+        } else {
+          // 如果是不同的cell，考虑所有不等于当前原子的邻居
+          valid_neighbor = (neighbor_atom_idx != atom_idx);
+        }
+        if (valid_neighbor) {
           distance =
               CaculateDistance(box, px[atom_idx], py[atom_idx], pz[atom_idx],
                                px[neighbor_atom_idx], py[neighbor_atom_idx],
@@ -132,13 +120,14 @@ __global__ void EstimateFullNeighborList(
   }
 }
 
-__global__ void GenerateFullNeighborList(
+__global__ void GenerateHalfNeighborList(
     rbmd::Id* per_atom_cell_id, rbmd::Id* in_atom_list_start_index,
     rbmd::Id* in_atom_list_end_index, rbmd::Real cutoff_2,
     rbmd::Id total_atom_num, rbmd::Real* px, rbmd::Real* py, rbmd::Real* pz,
     rbmd::Id* max_neighbor_num, rbmd::Id* neighbor_start,
     rbmd::Id* neighbor_end, rbmd::Id* neighbors, Box* d_box,
-    bool* should_realloc, rbmd::Id* neighbor_cell, rbmd::Id neighbor_cell_num) {
+    bool* should_realloc, rbmd::Id* neighbor_cell, rbmd::Id neighbor_cell_num,
+    bool without_pbc) {
   const unsigned int atom_idx =
       (blockIdx.x * blockDim.x + threadIdx.x) / warpSize;
   const unsigned int lane_id =
@@ -161,8 +150,15 @@ __global__ void GenerateFullNeighborList(
       for (rbmd::Id base_idx = start; base_idx < end; base_idx += warpSize) {
         rbmd::Id neighbor_atom_idx = base_idx + lane_id;
         int is_neighbor = 0;
-
-        if (neighbor_atom_idx < end && atom_idx != neighbor_atom_idx) {
+        bool valid_neighbor;
+        if (cell_idx == neighbour_cell_idx ||
+            without_pbc == true) {  // TODO 暂未测试
+          // 如果是同一个cell，只考虑索引大于当前原子的邻居
+          valid_neighbor = (neighbor_atom_idx > atom_idx);
+        } else {
+          valid_neighbor = (neighbor_atom_idx != atom_idx);
+        }
+        if (valid_neighbor) {
           rbmd::Real distance =
               CaculateDistance(d_box, px[atom_idx], py[atom_idx], pz[atom_idx],
                                px[neighbor_atom_idx], py[neighbor_atom_idx],
@@ -198,62 +194,58 @@ __global__ void GenerateFullNeighborList(
   }
 }
 
-void ComputeFullNeighborsOp<device::DEVICE_GPU>::operator()(
+void ComputeHalfNeighborsOp<device::DEVICE_GPU>::operator()(
     rbmd::Id* per_dimension_cells, rbmd::Id* neighbor_cell,
     rbmd::Id neighbor_num, rbmd::Id total_cell,
     rbmd::Id cell_count_within_cutoff) {
   unsigned int blocks_per_grid = (total_cell + BLOCK_SIZE - 1) / BLOCK_SIZE;
-  CHECK_KERNEL(ComputeFullNeighbors<<<blocks_per_grid, BLOCK_SIZE, 0, 0>>>(
+  CHECK_KERNEL(ComputeHalfNeighbors<<<blocks_per_grid, BLOCK_SIZE, 0, 0>>>(
       per_dimension_cells, neighbor_cell, neighbor_num, total_cell,
       cell_count_within_cutoff));
 }
 
-void ComputeFullNeighborsWithoutPBCOp<device::DEVICE_GPU>::operator()(rbmd::Id* neighbor_cell, rbmd::Id neighbor_num, rbmd::Id total_cell){
-  unsigned int blocks_per_grid = (total_cell + BLOCK_SIZE - 1) / BLOCK_SIZE;
-  CHECK_KERNEL(ComputeFullNeighborsWithoutPBC<<<blocks_per_grid, BLOCK_SIZE, 0, 0>>>(neighbor_cell, neighbor_num, total_cell));
-}
-
-void EstimateFullNeighborListOp<device::DEVICE_GPU>::operator()(
+void EstimateHalfNeighborListOp<device::DEVICE_GPU>::operator()(
     rbmd::Id* per_atom_cell_id, rbmd::Id* in_atom_list_start_index,
     rbmd::Id* in_atom_list_end_index, rbmd::Real cutoff_2,
     rbmd::Id total_atom_num, rbmd::Real* px, rbmd::Real* py, rbmd::Real* pz,
     rbmd::Id* neighbour_num, rbmd::Id* max_neighbour_num, Box* box,
-    rbmd::Id* neighbor_cell, rbmd::Id neighbor_cell_num) {
+    rbmd::Id* neighbor_cell, rbmd::Id neighbor_cell_num, bool without_pbc) {
   unsigned int threads_per_block = BLOCK_SIZE;
   unsigned int warps_per_block = threads_per_block / WARP_SIZE;
   unsigned int blocks_per_grid =
       (total_atom_num + warps_per_block - 1) / warps_per_block;
   CHECK_KERNEL(
-      EstimateFullNeighborList<<<blocks_per_grid, BLOCK_SIZE,
+      EstimateHalfNeighborList<<<blocks_per_grid, BLOCK_SIZE,
                                  sizeof(hipcub::WarpReduce<int>::TempStorage) *
                                      (BLOCK_SIZE / WARP_SIZE),
                                  0>>>(
           per_atom_cell_id, in_atom_list_start_index, in_atom_list_end_index,
           cutoff_2, total_atom_num, px, py, pz, neighbour_num,
-          max_neighbour_num, box, neighbor_cell, neighbor_cell_num));
+          max_neighbour_num, box, neighbor_cell, neighbor_cell_num,
+          without_pbc));
 }
 
-void GenerateFullNeighborListOp<device::DEVICE_GPU>::operator()(
+void GenerateHalfNeighborListOp<device::DEVICE_GPU>::operator()(
     rbmd::Id* per_atom_cell_id, rbmd::Id* in_atom_list_start_index,
     rbmd::Id* in_atom_list_end_index, rbmd::Real cutoff_2,
     rbmd::Id total_atom_num, rbmd::Real* px, rbmd::Real* py, rbmd::Real* pz,
     rbmd::Id* max_neighbor_num, rbmd::Id* neighbor_start,
     rbmd::Id* neighbor_end, rbmd::Id* neighbors, Box* d_box,
-    bool* should_realloc, rbmd::Id* neighbor_cell, rbmd::Id neighbor_cell_num) {
+    bool* should_realloc, rbmd::Id* neighbor_cell, rbmd::Id neighbor_cell_num,
+    bool without_pbc) {
   unsigned int threads_per_block = BLOCK_SIZE;
   unsigned int warps_per_block = threads_per_block / WARP_SIZE;
   unsigned int blocks_per_grid =
       (total_atom_num + warps_per_block - 1) / warps_per_block;
   CHECK_KERNEL(
-      GenerateFullNeighborList<<<blocks_per_grid, BLOCK_SIZE,
+      GenerateHalfNeighborList<<<blocks_per_grid, BLOCK_SIZE,
                                  sizeof(hipcub::WarpScan<int>::TempStorage) *
                                      (BLOCK_SIZE / WARP_SIZE),
                                  0>>>(
           per_atom_cell_id, in_atom_list_start_index, in_atom_list_end_index,
           cutoff_2, total_atom_num, px, py, pz, max_neighbor_num,
           neighbor_start, neighbor_end, neighbors, d_box, should_realloc,
-          neighbor_cell, neighbor_cell_num));
+          neighbor_cell, neighbor_cell_num, without_pbc));
+}
 
-  }
-
-} // namespace op
+}  // namespace op

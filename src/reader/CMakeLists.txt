@@ -18,4 +18,6 @@ depends_include ${INCLUDE_DIR}
 depends_link_dir ${LINK_DIR}
 depends_name ${DEPENDS_NAME}
 )
+set(LIB_DIR ${CMAKE_CURRENT_LIST_DIR}/../lib)
+target_link_libraries(${PROJECT_NAME}  data_manager)
 

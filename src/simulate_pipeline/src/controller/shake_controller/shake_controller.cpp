@@ -1,11 +1,7 @@
 #include "shake_controller.h"
 
-ShakeController::ShakeController() {};
+ShakeController::ShakeController(){};
 
-void ShakeController::ShakeA()
-{
-}
+void ShakeController::ShakeA() {}
 
-void ShakeController::ShakeB()
-{
-}
+void ShakeController::ShakeB() {}

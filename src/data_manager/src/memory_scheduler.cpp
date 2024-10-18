@@ -1,10 +1,11 @@
 #include "include/scheduler/memory_scheduler.h"
-#include "../data_manager/include/data_manager.h"
 
 #include <thrust/copy.h>
 
+#include "../data_manager/include/data_manager.h"
+
 MemoryScheduler::MemoryScheduler()
-    : //_data_manager(DataManager::getInstance()),
+    :  //_data_manager(DataManager::getInstance()),
       _device_data(DataManager::getInstance().getDeviceData()),
       _md_data(DataManager::getInstance().getMDData()),
       _structure_data(_md_data->_structure_data),
@@ -30,7 +31,10 @@ bool MemoryScheduler::asyncMemoryH2D() {
   auto& h_fy = _structure_data->_h_fy;
   auto& h_fz = _structure_data->_h_fz;
 
-  	//
+  //
+  ChargeStructureData* charge_data = dynamic_cast<ChargeStructureData*>(_structure_data.get());
+  auto& h_charge = charge_data->_h_charge;
+
   auto& h_evdwl= _structure_data->_h_evdwl;
 
   auto& h_atoms_id = _structure_data->_h_atoms_id;
@@ -53,7 +57,6 @@ bool MemoryScheduler::asyncMemoryH2D() {
   // thrust::copy(h_flagY, h_flagY + num_atoms, _device_data->_d_flagY.begin());
   // thrust::copy(h_flagZ, h_flagZ + num_atoms, _device_data->_d_flagZ.begin());
 
-
   /// cpoy velocity
   _device_data->_d_vx.resize(num_atoms);
   _device_data->_d_vy.resize(num_atoms);
@@ -62,20 +65,44 @@ bool MemoryScheduler::asyncMemoryH2D() {
   thrust::copy(h_vy, h_vy + num_atoms, _device_data->_d_vy.begin());
   thrust::copy(h_vz, h_vz + num_atoms, _device_data->_d_vz.begin());
 
+
+
+  // cpoy charge
+  if (charge_data && charge_data->_h_charge)
+  {
+    _device_data->_d_charge.resize(num_atoms);
+    thrust::copy(charge_data->_h_charge, charge_data->_h_charge + num_atoms,
+      _device_data->_d_charge.begin());
+  }
+  else{_device_data->_d_charge.resize(num_atoms);}
+
+
   /// cpoy force
   _device_data->_d_fx.resize(num_atoms);
   _device_data->_d_fy.resize(num_atoms);
   _device_data->_d_fz.resize(num_atoms);
-   // thrust::copy(h_fx, h_fx + num_atoms, _device_data->_d_fx.begin());
-   // thrust::copy(h_fy, h_fy + num_atoms, _device_data->_d_fy.begin());
-   // thrust::copy(h_fz, h_fz + num_atoms, _device_data->_d_fz.begin());
+  // thrust::copy(h_fx, h_fx + num_atoms, _device_data->_d_fx.begin());
+  // thrust::copy(h_fy, h_fy + num_atoms, _device_data->_d_fy.begin());
+  // thrust::copy(h_fz, h_fz + num_atoms, _device_data->_d_fz.begin());
 
+  _device_data->_d_force_ljcoul_x.resize(num_atoms);
+  _device_data->_d_force_ljcoul_y.resize(num_atoms);
+  _device_data->_d_force_ljcoul_z.resize(num_atoms);
 
+  _device_data->_d_force_ewald_x.resize(num_atoms);
+  _device_data->_d_force_ewald_y.resize(num_atoms);
+  _device_data->_d_force_ewald_z.resize(num_atoms);
 
+  _device_data->_d_virial_xx.resize(num_atoms);
+  _device_data->_d_virial_yy.resize(num_atoms);
+  _device_data->_d_virial_zz.resize(num_atoms);
+  _device_data->_d_virial_xy.resize(num_atoms);
+  _device_data->_d_virial_xy.resize(num_atoms);
+  _device_data->_d_virial_yz.resize(num_atoms);
 
-   //cpoy evdwl
+  // cpoy evdwl
   _device_data->_d_evdwl.resize(num_atoms);
-  //thrust::copy(h_evdwl, h_evdwl + num_atoms, _device_data->_d_evdwl.begin());
+  // thrust::copy(h_evdwl, h_evdwl + num_atoms, _device_data->_d_evdwl.begin());
 
   /// copy other
   _device_data->_d_atoms_id.resize(num_atoms);
@@ -85,12 +112,19 @@ bool MemoryScheduler::asyncMemoryH2D() {
                _device_data->_d_atoms_id.begin());
   thrust::copy(h_atoms_type, h_atoms_type + num_atoms,
                _device_data->_d_atoms_type.begin());
-  // thrust::copy(h_molecular_id, h_molecular_id + num_atoms,    //TODO 有好多h没有，只需resize
+  // thrust::copy(h_molecular_id, h_molecular_id + num_atoms,    //TODO
+  // 有好多h没有，只需resize
   //              _device_data->_d_molecular_id.begin());
 
   // copy box
   CHECK_RUNTIME(MALLOC(&_device_data->_d_box, sizeof(Box)));
-  CHECK_RUNTIME(MEMCPY(_device_data->_d_box,_md_data->_h_box.get() , sizeof(Box), H2D));
+  CHECK_RUNTIME(
+      MEMCPY(_device_data->_d_box, _md_data->_h_box.get(), sizeof(Box), H2D));
+
+  //
+  CHECK_RUNTIME(MALLOC(&_device_data->_d_erf_table, sizeof(ERFTable)));
+  CHECK_RUNTIME(
+      MEMCPY(_device_data->_d_erf_table, _md_data->_h_erf_table.get(), sizeof(ERFTable), H2D));
   return true;
 }
 

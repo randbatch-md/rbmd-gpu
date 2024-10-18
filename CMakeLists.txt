@@ -33,7 +33,9 @@ set(src
 ./src/application/application.cpp
 ./src/application/md_application.cpp
 ./src/parser/command_line.cpp
-./src/common/unit_factor.cpp)
+./src/common/unit_factor.cpp
+./src/common/RBEPSample.h
+./src/common/erf_table.h)
 
 include_directories("${CMAKE_CURRENT_LIST_DIR}/src")
 include_directories("${CMAKE_CURRENT_LIST_DIR}/src/Utilities")
@@ -55,7 +57,7 @@ list(REMOVE_DUPLICATES include_dirs)
 
 include_directories(${include_dirs})
 
-# Á´½ÓÕÒµ½µÄËùÓÐ¾²Ì¬¿âµ½¿ÉÖ´ÐÐÎÄ¼þ
+# ï¿½ï¿½ï¿½ï¿½ï¿½Òµï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ð¾ï¿½Ì¬ï¿½âµ½ï¿½ï¿½Ö´ï¿½ï¿½ï¿½Ä¼ï¿½
 file(GLOB tools_path ${CMAKE_CURRENT_LIST_DIR}/tools/*.tar.gz)
 
 foreach(tool_path ${tools_path})
@@ -76,13 +78,13 @@ pkg_check_modules(CXXOPTS REQUIRED cxxopts IMPORTED_TARGET GLOBAL)
 
 
 
-# Ìí¼Ó¿ÉÖ´ÐÐÎÄ¼þ
+# ï¿½ï¿½Ó¿ï¿½Ö´ï¿½ï¿½ï¿½Ä¼ï¿½
 add_executable(${PROJECT_NAME} ${src})
 
-# ÉèÖÃ¿âÎÄ¼þµÄÂ·¾¶
+# ï¿½ï¿½ï¿½Ã¿ï¿½ï¿½Ä¼ï¿½ï¿½ï¿½Â·ï¿½ï¿½
 set(LIB_DIR ${CMAKE_CURRENT_LIST_DIR}/lib)
 
-# ¶¨ÒåÒª²éÕÒµÄ¿âÃûÁÐ±í
+# ï¿½ï¿½ï¿½ï¿½Òªï¿½ï¿½ï¿½ÒµÄ¿ï¿½ï¿½ï¿½ï¿½Ð±ï¿½
 set(LIBRARY_NAMES
 		data_manager
 		reader
@@ -112,7 +114,7 @@ target_link_libraries(${PROJECT_NAME} PUBLIC ${LIBRARY_NAMES} PkgConfig::JSONCPP
 
 #./src/ensemble/MDensemble.cpp
 #./src/ensemble/NVEensemble.cpp
-#./src/ensemble/NVPensemble.cpp
+#./src/ensemble/NPTensemble.cpp
 #./src/ensemble/NVTensemble.cpp
 #./src/controller/position_controller/default_position_controller.cpp
 #./src/controller/velocity_controller/default_velocity_controller.cpp

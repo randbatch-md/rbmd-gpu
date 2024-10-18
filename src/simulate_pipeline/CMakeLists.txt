@@ -54,3 +54,5 @@ depends_include ${include_dir}
 depends_link_dir ${link_dirs}
 depends_name ${depend_names}
 )
+set(LIB_DIR ${CMAKE_CURRENT_LIST_DIR}/../lib)
+target_link_libraries(${PROJECT_NAME} force)

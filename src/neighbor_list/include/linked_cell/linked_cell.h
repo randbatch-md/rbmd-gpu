@@ -21,14 +21,14 @@ struct LinkedCellDeviceDataPtr {
 
 class LinkedCell {
  public:
- //  LinkedCell(const LinkedCell&) = delete;
- //  LinkedCell& operator=(const LinkedCell&) = delete;
- //  static LinkedCell& GetInstance()
- //  {
- //    static LinkedCell instance;
- //    return instance;
- //  }
- // private:
+  //  LinkedCell(const LinkedCell&) = delete;
+  //  LinkedCell& operator=(const LinkedCell&) = delete;
+  //  static LinkedCell& GetInstance()
+  //  {
+  //    static LinkedCell instance;
+  //    return instance;
+  //  }
+  // private:
   LinkedCell();
   ~LinkedCell();
 
@@ -55,7 +55,7 @@ class LinkedCell {
   rbmd::Id _cell_count_within_cutoff = 1;
 
   thrust::device_vector<rbmd::Id> _per_atom_cell_id{};
-  __host__ void Rebuild(Box* box);
+  __host__ void Build(Box* box);
 
   LinkedCellDeviceDataPtr* GetDataPtr();
 

@@ -1,26 +1,11 @@
 #include "nve_ensemble.h"
 
-NVEensemble::NVEensemble()
-{
+NVEensemble::NVEensemble() {}
 
-}
+void NVEensemble::Init() {}
 
-void NVEensemble::Init() 
-{
+void NVEensemble::Presolve() {}
 
-}
+void NVEensemble::Solve() {}
 
-void NVEensemble::Presolve()
-{
-
-}
-
-void NVEensemble::Solve()
-{
-
-}
-
-void NVEensemble::Postsolve()
-{
-
-}
+void NVEensemble::Postsolve() {}
