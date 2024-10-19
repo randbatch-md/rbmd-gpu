@@ -26,6 +26,7 @@ class BerendsenController : public TemperatureController {
   rbmd::Real _kB;
   rbmd::Real _temp_sum;
   rbmd::Real _temp;
+  rbmd::Real _temperature_targert;
 
   rbmd::Real _Tdamp;
   rbmd::Real* _d_temp_contrib;

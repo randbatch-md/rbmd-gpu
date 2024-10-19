@@ -1535,7 +1535,7 @@ void CoulCutForce_rcs_erf(
        __global__ void ComputeBondForce(
        Box* box,
        const rbmd::Id num_bonds,
-       const rbmd::Id num_atoms,
+       const rbmd::Id* atom_id_to_idx,
        const rbmd::Real* bond_coeffs_k,
        const rbmd::Real* bond_coeffs_equilibrium,
        const rbmd::Id* bond_type,
@@ -1547,6 +1547,7 @@ void CoulCutForce_rcs_erf(
        rbmd::Real* fx,
        rbmd::Real* fy,
        rbmd::Real* fz,
+       rbmd::Id* atom_ids_out,
        rbmd::Real* energy_bond)
         {
 	  __shared__ typename hipcub::BlockReduce<rbmd::Real, BLOCK_SIZE>::TempStorage
@@ -1557,22 +1558,25 @@ void CoulCutForce_rcs_erf(
 	  unsigned int tid1 = blockIdx.x * blockDim.x + threadIdx.x;
 	  if (tid1 < num_bonds)
 	  {
-	    //rbmd::Id row = tid1 / num_atoms;  // 假设 bondlist 是二维结构，这里做二维索引
-	    //rbmd::Id col = tid1 % num_atoms;
 	    rbmd::Id bondi = bondlisti[tid1];
 	    rbmd::Id bondj = bondlistj[tid1];
-	    //printf("--------test---bondi:%i--bondj:%i\n",bondi,bondj);
-	    //rbmd::Id bondi = bondlist[tid1].x;
-	    //rbmd::Id bondj = bondlist[tid1].y;
+	    rbmd::Id bondii = atom_id_to_idx[bondi];
+	    rbmd::Id bondjj = atom_id_to_idx[bondj];
+	  // printf("--------test--tid1:%i---bondi:%i--bondj:%i\n",
+	    // tid1,bondi,bondj);
+
+	   //printf("--------test--tid1:%i---idx_bondi:%i---idx_bondj:%i\n"
+	    // ,tid1,atom_id_to_idx[bondi],atom_id_to_idx[bondj]);
 	    rbmd::Id bondtype = bond_type[tid1];
 	    rbmd::Real k = bond_coeffs_k[bondtype];
 	    rbmd::Real equilibrium_bond = bond_coeffs_equilibrium[bondtype];
 	    //printf("--------test---bondtype:%i---bond_coeffs_k:%f---equilibrium_bond:%f\n",
              // bondtype,k,equilibrium_bond);
 
-	    rbmd::Real x12 = px[bondj]-px[bondi];
-	    rbmd::Real y12 = py[bondj]-py[bondi];
-	    rbmd::Real z12 = pz[bondj]-pz[bondi];
+	    rbmd::Real x12 = px[bondjj]-px[bondii];
+	    rbmd::Real y12 = py[bondjj]-py[bondii];
+	    rbmd::Real z12 = pz[bondjj]-pz[bondii];
+	    //printf("--------test---x12:%f---y12:%f---z12:%f\n",x12,y12,z12);
 	    MinImageDistance(box,x12,y12,z12);
 	    rbmd::Real  dis_12 = SQRT(x12 * x12 + y12 * y12 + z12 * z12);
 	    rbmd::Real dr = dis_12 - equilibrium_bond;
@@ -1581,7 +1585,7 @@ void CoulCutForce_rcs_erf(
 	    //energy
 	    local_energy_bond += rk * dr;
 	    //printf("--------test--dr:%f--rk:%f----local_energy_bond:%f\n"
-	    //  ,dr,rk,local_energy_bond);
+	     // ,dr,rk,local_energy_bond);
 
 	    rbmd::Real forcebondij;
 	    if (dis_12 > 0.01)
@@ -1602,15 +1606,26 @@ void CoulCutForce_rcs_erf(
 	    rbmd::Real fx_ij = forcebondij * x12;
 	    rbmd::Real fy_ij = forcebondij * y12;
 	    rbmd::Real fz_ij = forcebondij * z12;
-	    //printf("--------test--fx_ij:%---fy_ij:%----fz_ij:%f\n",fx_ij,fy_ij,fz_ij);
-	    // 使用atomicAdd聚合作用力
-	    atomicAdd(&fx[bondi], fx_ij); // 将作用力添加到原子bondi
-	    atomicAdd(&fy[bondi], fy_ij);
-	    atomicAdd(&fz[bondi], fz_ij);
+	    //printf("force_bond, %i  %f %f %f\n",tid1,fx_ij,fy_ij,fz_ij);
 
-	    atomicAdd(&fx[bondj], -fx_ij); // 对于bondj施加相反的作用力
-	    atomicAdd(&fy[bondj], -fy_ij);
-	    atomicAdd(&fz[bondj], -fz_ij);
+	    atomicAdd(&fx[bondii], fx_ij); // 将作用力添加到原子bondi
+	    atomicAdd(&fy[bondii], fy_ij);
+	    atomicAdd(&fz[bondii], fz_ij);
+
+	    atomicAdd(&fx[bondjj], -fx_ij); // 对于bondj施加相反的作用力
+	    atomicAdd(&fy[bondjj], -fy_ij);
+	    atomicAdd(&fz[bondjj], -fz_ij);
+
+	    // // 保存bondi和bondj的力到输出数组中
+	    // atom_ids_out[2 * tid1]     = bondii;   // bondi -> bondii
+	    // fx[2 * tid1]           = fx_ij;
+	    // fy[2 * tid1]           = fy_ij;
+	    // fz[2 * tid1]           = fz_ij;
+	    //
+	    // atom_ids_out[2 * tid1 + 1] = bondjj;   // bondj -> bondjj
+	    // fx[2 * tid1 + 1]       = -fx_ij;   // 反向力
+	    // fy[2 * tid1 + 1]       = -fy_ij;
+	    // fz[2 * tid1 + 1]       = -fz_ij;
 
 	  }
 
@@ -1627,7 +1642,7 @@ void CoulCutForce_rcs_erf(
        __global__ void ComputeAngleForce(
        Box* box,
        const rbmd::Id num_anglels,
-       const rbmd::Id num_atoms,
+       const rbmd::Id* atom_id_to_idx,
        const rbmd::Real* anglel_coeffs_k,
        const rbmd::Real* anglel_coeffs_equilibrium,
        const rbmd::Id* anglel_type,
@@ -1652,6 +1667,9 @@ temp_storage;
 	    rbmd::Id angleli = anglelisti[tid1];
 	    rbmd::Id anglelj = anglelistj[tid1];
 	    rbmd::Id anglelk = anglelistk[tid1];
+	    rbmd::Id anglelii = atom_id_to_idx[angleli];
+	    rbmd::Id angleljj = atom_id_to_idx[anglelj];
+	    rbmd::Id anglelkk = atom_id_to_idx[anglelk];
 	    //printf("--------test---angleli:%i---anglelj:%i---anglelk:%i\n",
 	     // angleli,anglelj,anglelk);
 
@@ -1661,14 +1679,14 @@ temp_storage;
 	   // printf("--------test---angleltype:%i---k:%f---equilibrium_angle:%f\n",
 	    // angleltype,k,equilibrium_angle);
 
-	    rbmd::Real x12 = px[angleli]-px[anglelj];  //i j
-	    rbmd::Real y12 = py[angleli]-py[anglelj];
-	    rbmd::Real z12 = pz[angleli]-pz[anglelj];
+	    rbmd::Real x12 = px[anglelii]-px[angleljj];  //i j
+	    rbmd::Real y12 = py[anglelii]-py[angleljj];
+	    rbmd::Real z12 = pz[anglelii]-pz[angleljj];
 	    MinImageDistance(box,x12,y12,z12);
 
-	    rbmd::Real x23 = px[anglelk]-px[anglelj]; // k j
-	    rbmd::Real y23 = py[anglelk]-py[anglelj];
-	    rbmd::Real z23 = pz[anglelk]-pz[anglelj];
+	    rbmd::Real x23 = px[anglelkk]-px[angleljj]; // k j
+	    rbmd::Real y23 = py[anglelkk]-py[angleljj];
+	    rbmd::Real z23 = pz[anglelkk]-pz[angleljj];
 	    MinImageDistance(box,x23,y23,z23);
 
 	    rbmd::Real dis_12_2 = x12 * x12 + y12 * y12 + z12 * z12;
@@ -1720,17 +1738,25 @@ temp_storage;
 	    force_anglej_y = -(force_anglei_y+force_anglek_y);
 	    force_anglej_z = -(force_anglei_z+force_anglek_z);
 
-	    atomicAdd(&fx[angleli], force_anglei_x);
-	    atomicAdd(&fy[angleli], force_anglei_y);
-	    atomicAdd(&fz[angleli], force_anglei_z);
+// 	    printf("force_angle_i, %i  %f %f %f\n",tid1,
+// 	    force_anglei_x,force_anglei_y,force_anglei_z);
+//
+// 	    printf("force_angle_j, %i  %f %f %f\n",tid1,
+// force_anglej_x,force_anglej_y,force_anglej_z);
+//
+// 	    printf("force_angle_k, %i  %f %f %f\n",tid1,
+// force_anglek_x,force_anglek_y,force_anglek_z);
+	    atomicAdd(&fx[anglelii], force_anglei_x);
+	    atomicAdd(&fy[anglelii], force_anglei_y);
+	    atomicAdd(&fz[anglelii], force_anglei_z);
 
-	    atomicAdd(&fx[anglelk], force_anglek_x);
-	    atomicAdd(&fy[anglelk], force_anglek_y);
-	    atomicAdd(&fz[anglelk], force_anglek_z);
+	    atomicAdd(&fx[anglelkk], force_anglek_x);
+	    atomicAdd(&fy[anglelkk], force_anglek_y);
+	    atomicAdd(&fz[anglelkk], force_anglek_z);
 
-	    atomicAdd(&fx[anglelj], force_anglej_x);
-	    atomicAdd(&fy[anglelj], force_anglej_y);
-	    atomicAdd(&fz[anglelj], force_anglej_z);
+	    atomicAdd(&fx[angleljj], force_anglej_x);
+	    atomicAdd(&fy[angleljj], force_anglej_y);
+	    atomicAdd(&fz[angleljj], force_anglej_z);
 	  }
 
           rbmd::Real block_sum =
@@ -2297,7 +2323,7 @@ void ComputeSpecialCoulForceOp<device::DEVICE_GPU>::operator()(
       void ComputeBondForceOp<device::DEVICE_GPU>::operator()(
        Box* box,
        const rbmd::Id num_bonds,
-       const rbmd::Id num_atoms,
+       const rbmd::Id* atom_id_to_idx,
        const rbmd::Real* bond_coeffs_k,
        const rbmd::Real* bond_coeffs_equilibrium,
        const rbmd::Id* bond_type,
@@ -2309,20 +2335,21 @@ void ComputeSpecialCoulForceOp<device::DEVICE_GPU>::operator()(
        rbmd::Real* fx,
        rbmd::Real* fy,
        rbmd::Real* fz,
+       rbmd::Id* atom_ids_out,
        rbmd::Real* energy_bond)
        {
 	  unsigned int blocks_per_grid = (num_bonds + BLOCK_SIZE - 1) / BLOCK_SIZE;
 
 	  CHECK_KERNEL(ComputeBondForce <<<blocks_per_grid, BLOCK_SIZE, 0, 0 >>>
-                  (box, num_bonds,num_atoms,bond_coeffs_k,bond_coeffs_equilibrium,bond_type,
-                    bondlisti,bondlistj,px, py, pz, fx, fy, fz,energy_bond));
+                  (box, num_bonds,atom_id_to_idx,bond_coeffs_k,bond_coeffs_equilibrium,bond_type,
+                    bondlisti,bondlistj,px, py, pz, fx, fy, fz,atom_ids_out,energy_bond));
        }
 
 //
        void ComputeAngleForceOp<device::DEVICE_GPU>::operator()(
         Box* box,
         const rbmd::Id num_anglels,
-        const rbmd::Id num_atoms,
+        const rbmd::Id* _atom_id_to_idx,
         const rbmd::Real* anglel_coeffs_k,
         const rbmd::Real* anglel_coeffs_equilibrium,
         const rbmd::Id* anglel_type,
@@ -2340,7 +2367,7 @@ void ComputeSpecialCoulForceOp<device::DEVICE_GPU>::operator()(
 	  unsigned int blocks_per_grid = (num_anglels + BLOCK_SIZE - 1) / BLOCK_SIZE;
 
 	  CHECK_KERNEL(ComputeAngleForce <<<blocks_per_grid, BLOCK_SIZE, 0, 0 >>>
-                  (box, num_anglels,num_atoms,anglel_coeffs_k,
+                  (box, num_anglels,_atom_id_to_idx,anglel_coeffs_k,
                     anglel_coeffs_equilibrium,anglel_type,
                     anglelisti,anglelistj,anglelistk,px, py, pz, fx, fy, fz,energy_angle));
 	}

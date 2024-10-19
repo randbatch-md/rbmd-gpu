@@ -155,40 +155,6 @@ void LinkedCell::SortAtomsByCellKey() {
   thrust::stable_sort_by_key(per_atom_cell_id_copy.begin(),
                              per_atom_cell_id_copy.end(),
                              _device_data->_d_charge.begin());
-
-  //bond
-  per_atom_cell_id_copy = _per_atom_cell_id;
-  thrust::stable_sort_by_key(per_atom_cell_id_copy.begin(),
-                             per_atom_cell_id_copy.end(),
-                             _device_data->_d_bond_type.begin());
-
-  per_atom_cell_id_copy = _per_atom_cell_id;
-  thrust::stable_sort_by_key(per_atom_cell_id_copy.begin(),
-                             per_atom_cell_id_copy.end(),
-                             _device_data->_d_bond_id0.begin());
-  per_atom_cell_id_copy = _per_atom_cell_id;
-  thrust::stable_sort_by_key(per_atom_cell_id_copy.begin(),
-                             per_atom_cell_id_copy.end(),
-                             _device_data->_d_bond_id1.begin());
-
-  //angle
-  per_atom_cell_id_copy = _per_atom_cell_id;
-  thrust::stable_sort_by_key(per_atom_cell_id_copy.begin(),
-                             per_atom_cell_id_copy.end(),
-                             _device_data->_d_angle_type.begin());
-  per_atom_cell_id_copy = _per_atom_cell_id;
-  thrust::stable_sort_by_key(per_atom_cell_id_copy.begin(),
-                             per_atom_cell_id_copy.end(),
-                             _device_data->_d_angle_id0.begin());
-  per_atom_cell_id_copy = _per_atom_cell_id;
-  thrust::stable_sort_by_key(per_atom_cell_id_copy.begin(),
-                             per_atom_cell_id_copy.end(),
-                             _device_data->_d_angle_id1.begin());
-  per_atom_cell_id_copy = _per_atom_cell_id;
-  thrust::stable_sort_by_key(per_atom_cell_id_copy.begin(),
-                             per_atom_cell_id_copy.end(),
-                             _device_data->_d_angle_id2.begin());
-
 }
 
 void LinkedCell::AllocDeviceMemory() {

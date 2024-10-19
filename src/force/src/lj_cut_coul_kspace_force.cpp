@@ -5,6 +5,7 @@
 #include "../../common/device_types.h"
 #include "../../common/rbmd_define.h"
 #include "../../common/types.h"
+#include "../../common/unit_factor.h"
 #include "ljforce_op/ljforce_op.h"
 #include "../common/RBEPSample.h"
 #include "../common/erf_table.h"
@@ -15,6 +16,7 @@
 // #include <hipcub/backend/rocprim/block/block_reduce.hpp>
 
 extern int test_current_step;
+extern std::map<std::string, UNIT> unit_factor_map;
 
 LJCutCoulKspaceForce::LJCutCoulKspaceForce()
 {
@@ -43,8 +45,23 @@ void LJCutCoulKspaceForce::Init()
      _ave_ecoul = 0.0;
      _ave_self_energy = 0.0;
      _ave_ekspace = 0.0;
-     _qqr2e = 1.0;
 
+  auto unit = DataManager::getInstance().getConfigData()->Get
+<std::string>("unit", "init_configuration", "read_data");
+  UNIT unit_factor = unit_factor_map[unit];
+
+  switch (unit_factor) {
+    case UNIT::LJ:
+      _qqr2e = UnitFactor<UNIT::LJ>::_qqr2e;
+    break;
+
+    case UNIT::REAL:
+      _qqr2e = UnitFactor<UNIT::REAL>::_qqr2e;
+    break;
+
+    default:
+      break;
+  }
    _cut_off = DataManager::getInstance().getConfigData()->Get
     <rbmd::Real>("cut_off", "hyper_parameters", "neighbor");
    _neighbor_type = DataManager::getInstance().getConfigData()->Get

@@ -19,7 +19,8 @@ void RescaleController::Init() {
   _num_atoms = *(_structure_info_data->_num_atoms);
   _temp_sum = 0;
 
-  auto unit = "LJ";
+  auto unit = DataManager::getInstance().getConfigData()->Get
+    <std::string>("unit", "init_configuration", "read_data");
   UNIT unit_factor = unit_factor_map[unit];
 
   switch (unit_factor) {
@@ -84,7 +85,7 @@ void RescaleController::ComputeTemp() {
 }
 
 void RescaleController::UpdataVelocity() {
-  rbmd::Real kbT = 1;
+  rbmd::Real kbT = 298.0;
   rbmd::Real coeff_rescale = std::sqrt(kbT / _temp);
 
   op::UpdataVelocityRescaleOp<device::DEVICE_GPU> updata_velocity_op;

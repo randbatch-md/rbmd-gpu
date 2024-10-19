@@ -294,7 +294,7 @@ namespace op
        void  operator()(
          Box* box,
          const rbmd::Id num_bonds,
-         const rbmd::Id num_atoms,
+         const rbmd::Id* atom_id_to_idx,
          const rbmd::Real* bond_coeffs_k,
          const rbmd::Real* bond_coeffs_equilibrium,
          const rbmd::Id* bond_type,
@@ -306,6 +306,7 @@ namespace op
          rbmd::Real* fx,
          rbmd::Real* fy,
          rbmd::Real* fz,
+         rbmd::Id* atom_ids_out,
          rbmd::Real* energy_bond);
      };
 
@@ -315,7 +316,7 @@ namespace op
        void operator()(
        Box* box,
        const rbmd::Id num_anglels,
-       const rbmd::Id num_atoms,
+       const rbmd::Id* atom_id_to_idx,
        const rbmd::Real* anglel_coeffs_k,
        const rbmd::Real* anglel_coeffs_equilibrium,
        const rbmd::Id* anglel_type,
@@ -677,7 +678,7 @@ namespace op
        void  operator()(
          Box* box,
          const rbmd::Id num_bonds,
-         const rbmd::Id num_atoms,
+         const rbmd::Id* atom_id_to_idx,
          const rbmd::Real* bond_coeffs_k,
          const rbmd::Real* bond_coeffs_equilibrium,
          const rbmd::Id* bond_type,
@@ -689,6 +690,7 @@ namespace op
          rbmd::Real* fx,
          rbmd::Real* fy,
          rbmd::Real* fz,
+         rbmd::Id* atom_ids_out,
          rbmd::Real* energy_bond);
      };
 
@@ -698,7 +700,7 @@ namespace op
        void operator()(
        Box* box,
        const rbmd::Id num_anglels,
-       const rbmd::Id num_atoms,
+       const rbmd::Id* atom_id_to_idx,
        const rbmd::Real* anglel_coeffs_k,
        const rbmd::Real* anglel_coeffs_equilibrium,
        const rbmd::Id* anglel_type,

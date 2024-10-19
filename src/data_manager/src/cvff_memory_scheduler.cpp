@@ -18,7 +18,7 @@ bool CVFFMemoryScheduler::asyncMemoryH2D() {
   auto fd = std::dynamic_pointer_cast<CVFFForceFieldData>(_force_field_data);
 
   /// copy data
-  _device_data->_d_molecular_id.resize(num_bonds);
+  _device_data->_d_molecular_id.resize(num_atoms);
   _device_data->_d_bond_type.resize(num_bonds);
   _device_data->_d_bond_id0.resize(num_bonds);
   _device_data->_d_bond_id1.resize(num_bonds);

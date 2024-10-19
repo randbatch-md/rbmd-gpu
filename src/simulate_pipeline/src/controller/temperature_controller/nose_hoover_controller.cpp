@@ -19,9 +19,11 @@ void NoseHooverController::Init() {
   _num_atoms = *(_structure_info_data->_num_atoms);
   _temp_sum = 0;
   _nosehooverxi = 0;
-  _dt = 0.001;  // ÅäÖÃÎÄ¼þÖÐ¶ÁÈ¡
-  auto unit = "LJ";
-  UNIT unit_factor = unit_factor_map[unit];  // ÕâÀï¿ÉÄÜÓÐÖØ¶¨ÒåÒþ»¼
+  _dt = DataManager::getInstance().getConfigData()->Get<rbmd::Real>(
+          "timestep", "execution");//0.001
+  auto unit = DataManager::getInstance().getConfigData()->Get
+    <std::string>("unit", "init_configuration", "read_data");
+  UNIT unit_factor = unit_factor_map[unit];  // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ø¶ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 
   switch (unit_factor) {
     case UNIT::LJ:
@@ -84,7 +86,7 @@ void NoseHooverController::ComputeTemp() {
 }
 
 void NoseHooverController::UpdataVelocity() {
-  rbmd::Real kbT = 1;  // ÅäÖÃÎÄ¼þ»ñÈ¡
+  rbmd::Real kbT = 1;  // ï¿½ï¿½ï¿½ï¿½ï¿½Ä¼ï¿½ï¿½ï¿½È¡
 
   op::UpdataVelocityNoseHooverOp<device::DEVICE_GPU>
       updata_velocity_nose_hoover_op;

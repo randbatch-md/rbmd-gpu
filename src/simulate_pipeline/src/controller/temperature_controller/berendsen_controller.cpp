@@ -19,10 +19,11 @@ BerendsenController::~BerendsenController() {
 void BerendsenController::Init() {
   _num_atoms = *(_structure_info_data->_num_atoms);
   _temp_sum = 0;
-  _Tdamp = 0.1;  // �����ļ��ж�ȡ temperature [1.0,1.0,0.1]
+  _Tdamp = 50;  // �����ļ��ж�ȡ temperature [1.0,1.0,0.1]
   _dt =  DataManager::getInstance().getConfigData()->Get<rbmd::Real>(
           "timestep", "execution");//0.001
-  auto unit = "LJ";
+  auto unit = DataManager::getInstance().getConfigData()->Get
+    <std::string>("unit", "init_configuration", "read_data");
   UNIT unit_factor = unit_factor_map[unit];  // ����������ض�������
 
   switch (unit_factor) {
@@ -92,9 +93,9 @@ void BerendsenController::ComputeTemp() {
 }
 
 void BerendsenController::UpdataVelocity() {
-  rbmd::Real kbT = 1;  // �����ļ���ȡ
+  _temperature_targert = 298.0;
   rbmd::Real coeff_Berendsen =
-      std::sqrt(1.0 + (_dt / _Tdamp) * (kbT / _temp - 1.0));
+      std::sqrt(1.0 + (_dt / _Tdamp) * (_temperature_targert/ _temp - 1.0));
 
   op::UpdataVelocityRescaleOp<device::DEVICE_GPU> updata_velocity_op;
   updata_velocity_op(_num_atoms, coeff_Berendsen,

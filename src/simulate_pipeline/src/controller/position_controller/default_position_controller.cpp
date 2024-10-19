@@ -11,7 +11,8 @@ void DefaultPositionController::Init() {
   // auto atom_style = _config_data->Get<std::string>("atom_style",
   // "init_configuration", "read_data");
 
-  _dt = 0.001;
+  _dt = DataManager::getInstance().getConfigData()->Get<rbmd::Real>(
+          "timestep", "execution");//0.001
   _num_atoms = *(_structure_info_data->_num_atoms);
 }
 
