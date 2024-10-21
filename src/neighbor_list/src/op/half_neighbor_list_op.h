@@ -25,7 +25,7 @@ struct EstimateHalfNeighborListOp {
                   rbmd::Id total_atom_num, rbmd::Real* px, rbmd::Real* py,
                   rbmd::Real* pz, rbmd::Id* neighbour_num,
                   rbmd::Id* max_neighbour_num, Box* box,
-                  rbmd::Id* neighbor_cell, rbmd::Id neighbor_cell_num,bool without_pbc);
+                  rbmd::Id* neighbor_cell, rbmd::Id neighbor_cell_num,bool without_pbc_or_rbl);
 };
 
 template <typename DEVICE>
@@ -58,7 +58,7 @@ struct EstimateHalfNeighborListOp<device::DEVICE_GPU> {
                   rbmd::Id total_atom_num, rbmd::Real* px, rbmd::Real* py,
                   rbmd::Real* pz, rbmd::Id* neighbour_num,
                   rbmd::Id* max_neighbour_num, Box* box,
-                  rbmd::Id* neighbor_cell, rbmd::Id neighbor_cell_num,bool without_pbc);
+                  rbmd::Id* neighbor_cell, rbmd::Id neighbor_cell_num,bool without_pbc_or_rbl);
 };
 
 template <>
