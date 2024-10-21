@@ -72,9 +72,9 @@ __global__ void ShakeA(const rbmd::Id num_angle,
                        const rbmd::Real* fx,
                        const rbmd::Real* fy,
                        const rbmd::Real* fz,
-                       rbmd::Real* flag_px,
-                       rbmd::Real* flag_py,
-                       rbmd::Real* flag_pz) {
+                       rbmd::Id* flag_px,
+                       rbmd::Id* flag_py,
+                       rbmd::Id* flag_pz) {
   int tid = threadIdx.x + blockIdx.x * blockDim.x;
 
   if (tid < num_angle) {
@@ -133,9 +133,9 @@ void ShakeAOp<device::DEVICE_GPU>::operator()(const rbmd::Id num_angle,
                                               const rbmd::Real* fx,
                                               const rbmd::Real* fy,
                                               const rbmd::Real* fz,
-                                              rbmd::Real* flag_px,
-                                              rbmd::Real* flag_py,
-                                              rbmd::Real* flag_pz) 
+                                              rbmd::Id* flag_px,
+                                              rbmd::Id* flag_py,
+                                              rbmd::Id* flag_pz) 
 {
   unsigned int blocks_per_grid = (num_angle + BLOCK_SIZE - 1) / BLOCK_SIZE;
   CHECK_KERNEL(ShakeA<<<blocks_per_grid, BLOCK_SIZE, 0, 0>>>(

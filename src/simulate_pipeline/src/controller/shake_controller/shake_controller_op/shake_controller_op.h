@@ -25,9 +25,9 @@ namespace op {
                       const rbmd::Real* fx,
                       const rbmd::Real* fy, 
                       const rbmd::Real* fz, 
-                      rbmd::Real* flag_px,
-                      rbmd::Real* flag_py, 
-                      rbmd::Real* flag_pz);
+                      rbmd::Id* flag_px,
+                      rbmd::Id* flag_py, 
+                      rbmd::Id* flag_pz);
     };
     
     template <>
@@ -51,8 +51,8 @@ namespace op {
                       const rbmd::Real* fx,
                       const rbmd::Real* fy,
                       const rbmd::Real* fz,
-                      rbmd::Real* flag_px,
-                      rbmd::Real* flag_py,
-                      rbmd::Real* flag_pz);
+                      rbmd::Id* flag_px,
+                      rbmd::Id* flag_py,
+                      rbmd::Id* flag_pz);
     };
 }  // namespace op
