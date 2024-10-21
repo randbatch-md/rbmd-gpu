@@ -45,6 +45,9 @@ typedef double2 Real2;
 #else
 typedef float3 Real3;
 typedef float2 Real2;
+typedef int3 Id3;
+typedef int2 Id2;
+
 #define make_Real3 make_float3
 #define make_Real2 make_float2
 #define POW powf

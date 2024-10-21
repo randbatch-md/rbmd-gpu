@@ -26,6 +26,8 @@ bool CVFFMemoryScheduler::asyncMemoryH2D() {
   _device_data->_d_angle_id0.resize(num_angles);
   _device_data->_d_angle_id1.resize(num_angles);
   _device_data->_d_angle_id2.resize(num_angles);
+  _device_data->_d_angle_id_vec.resize(num_angles);
+
   _device_data->_d_dihedral_type.resize(num_dihedrals);
   _device_data->_d_dihedral_id0.resize(num_dihedrals);
   _device_data->_d_dihedral_id1.resize(num_dihedrals);
@@ -57,6 +59,9 @@ bool CVFFMemoryScheduler::asyncMemoryH2D() {
                _device_data->_d_angle_id1.begin());
   thrust::copy(sd->_h_angle_id2, sd->_h_angle_id2 + num_angles,
                _device_data->_d_angle_id2.begin());
+
+  thrust::copy(sd->_h_angle_id_vec, sd->_h_angle_id_vec + num_angles,
+      _device_data->_d_angle_id_vec.begin()); // TODO:qw: Use Real3 is ok?
 
   /// dihedral
   thrust::copy(sd->_h_dihedral_type, sd->_h_dihedral_type + num_dihedrals,

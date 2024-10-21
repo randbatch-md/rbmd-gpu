@@ -19,13 +19,13 @@ void DefaultVelocityController::Init() {
 
   switch (unit_factor) {
     case UNIT::METAL:
-      _fmt2v = UnitFactor<UNIT::METAL>::_kb;
+      _fmt2v = UnitFactor<UNIT::METAL>::_fmt2v;
       break;
     case UNIT::LJ:
-      _fmt2v = UnitFactor<UNIT::LJ>::_kb;
+      _fmt2v = UnitFactor<UNIT::LJ>::_fmt2v;
       break;
     case UNIT::REAL:
-      _fmt2v = UnitFactor<UNIT::REAL>::_kb;
+      _fmt2v = UnitFactor<UNIT::REAL>::_fmt2v;
       break;
     default:
       break;
@@ -35,9 +35,9 @@ void DefaultVelocityController::Init() {
 void DefaultVelocityController::Update() {
   bool shake = false;
   if (shake) {
-    // __device_data->_shake_vx = _device_data->_d_vx;
-    // __device_data->_shake_vy = _device_data->_d_vy;
-    // __device_data->_shake_vz = _device_data->_d_vz;
+     //_device_data->_d_shake_vx = _device_data->_d_vx;
+     //_device_data->_d_shake_vy = _device_data->_d_vy;
+     //_device_data->_d_shake_vz = _device_data->_d_vz;
   }
 
   op::UpdateVelocityOp<device::DEVICE_GPU> update_velocity_op;

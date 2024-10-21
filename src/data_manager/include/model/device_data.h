@@ -13,6 +13,10 @@ class DeviceData {
   thrust::device_vector<rbmd::Real> _d_py;
   thrust::device_vector<rbmd::Real> _d_pz;
 
+  thrust::device_vector<rbmd::Real> _d_shake_px;
+  thrust::device_vector<rbmd::Real> _d_shake_py;
+  thrust::device_vector<rbmd::Real> _d_shake_pz;
+
   /// atoms id
   thrust::device_vector<rbmd::Id> _d_atoms_id;
 
@@ -32,6 +36,10 @@ class DeviceData {
   thrust::device_vector<rbmd::Real> _d_vy;
   thrust::device_vector<rbmd::Real> _d_vz;
 
+  thrust::device_vector<rbmd::Real> _d_shake_vx;
+  thrust::device_vector<rbmd::Real> _d_shake_vy;
+  thrust::device_vector<rbmd::Real> _d_shake_vz;
+
   /// bond
   thrust::device_vector<rbmd::Id> _d_bond_type;
   thrust::device_vector<rbmd::Id> _d_bond_id0;
@@ -42,7 +50,7 @@ class DeviceData {
   thrust::device_vector<rbmd::Id> _d_angle_id0;
   thrust::device_vector<rbmd::Id> _d_angle_id1;
   thrust::device_vector<rbmd::Id> _d_angle_id2;
-
+  thrust::device_vector<Id3> _d_angle_id_vec;
   /// dihedral
   thrust::device_vector<rbmd::Id> _d_dihedral_type;
   thrust::device_vector<rbmd::Id> _d_dihedral_id0;

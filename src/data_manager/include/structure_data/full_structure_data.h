@@ -28,7 +28,7 @@ class FullStructureData : public BasicStructureData {
   rbmd::Id* _h_angle_id0;
   rbmd::Id* _h_angle_id1;
   rbmd::Id* _h_angle_id2;
-
+  Id3* _h_angle_id_vec;
   /// dihedral
   rbmd::Id* _h_dihedral_type;
   rbmd::Id* _h_dihedral_id0;
