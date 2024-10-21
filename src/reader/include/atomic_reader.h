@@ -20,5 +20,11 @@ class AtomicReader : public StructureReder {
   int ReadDihedrals(const rbmd::Id& atoms_num);
   void SetSpecialBonds();
 
+  void MolecularMapInsert(rbmd::Id& key, rbmd::Id& value);
+  void AtomstoMolecular(rbmd::Id& key, rbmd::Id& value);
+  void SetMolecularGroup();
+
   std::multimap<rbmd::Id, rbmd::Id> _special_map;
+  std::map<rbmd::Id, std::vector<rbmd::Id>> _molecular_map;
+  std::map<rbmd::Id, rbmd::Id> atom_to_molecular_map;
 };

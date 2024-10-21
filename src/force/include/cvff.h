@@ -79,6 +79,7 @@ private:
   rbmd::Real _corr_value_z;
   rbmd::Real* _d_total_evdwl;
   rbmd::Real* _d_total_ecoul;
+  rbmd::Real* _d_total_e_specialcoul;
   rbmd::Real* _d_total_ebond;
   rbmd::Real*  _d_total_eangle;
   rbmd::Real*  _d_total_edihedral;
@@ -86,6 +87,7 @@ private:
   //energy
   rbmd::Real _ave_evdwl;
   rbmd::Real _ave_ecoul;
+  rbmd::Real _ave_e_specialcoul;
   rbmd::Real _ave_self_energy;
   rbmd::Real _ave_ekspace;
   rbmd::Real _ave_ebond;

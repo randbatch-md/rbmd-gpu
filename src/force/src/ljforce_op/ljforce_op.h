@@ -124,7 +124,7 @@ namespace op
             const rbmd::Real alpha,
             const rbmd::Real qqr2e,
             const rbmd::Id* atoms_type,
-            const rbmd::Id* molecular_type,
+            const rbmd::Id* molecular_id,
             const rbmd::Real* sigma,
             const rbmd::Real* eps,
             const rbmd::Id* start_id,
@@ -356,18 +356,22 @@ namespace op
      template <typename DEVICE>
      struct  ComputeSpecialCoulForceOp
       {
-       void  operator()(Box* box,
+       void  operator()(
+         Box* box,
          const rbmd::Id num_atoms,
-         const rbmd::Id*  group_vec,
+         const rbmd::Real qqr2e,
+         const rbmd::Id*  atoms_vec,
+         const rbmd::Id*  atoms_offset,
          const rbmd::Id*  special_ids,
-         const rbmd::Id*  special_weights,
+         const rbmd::Real*  special_weights,
          const rbmd::Real* charge,
          const rbmd::Real* px,
          const rbmd::Real* py,
          const rbmd::Real* pz,
          rbmd::Real* fx,
          rbmd::Real* fy,
-         rbmd::Real* fz);
+         rbmd::Real* fz,
+         rbmd::Real* total_especial_coul);
      };
 
         // // // // // // // // // // // // // // // // // // //
@@ -488,7 +492,7 @@ namespace op
             const rbmd::Real alpha,
             const rbmd::Real qqr2e,
             const rbmd::Id* atoms_type,
-            const rbmd::Id* molecular_type,
+            const rbmd::Id* molecular_id,
             const rbmd::Real* sigma,
             const rbmd::Real* eps,
             const rbmd::Id* start_id,
@@ -656,18 +660,22 @@ namespace op
     template <>
     struct  ComputeSpecialCoulForceOp<device::DEVICE_GPU>
    {
-        void  operator()(Box* box,
+        void  operator()(
+          Box* box,
           const rbmd::Id num_atoms,
-          const rbmd::Id*  group_vec,
+          const rbmd::Real qqr2e,
+          const rbmd::Id*  atoms_vec,
+          const rbmd::Id*  atoms_offset,
           const rbmd::Id*  special_ids,
-          const rbmd::Id*  special_weights,
+          const rbmd::Real*  special_weights,
           const rbmd::Real* charge,
           const rbmd::Real* px,
           const rbmd::Real* py,
           const rbmd::Real* pz,
           rbmd::Real* fx,
           rbmd::Real* fy,
-          rbmd::Real* fz);
+          rbmd::Real* fz,
+          rbmd::Real* total_especial_coul);
     };
 
 

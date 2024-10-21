@@ -33,6 +33,15 @@ bool CVFFMemoryScheduler::asyncMemoryH2D() {
   _device_data->_d_dihedral_id3.resize(num_dihedrals);
   _device_data->_d_charge.resize(num_atoms);
 
+  //special
+  _device_data->_d_special_weights.resize(sd->_h_special_weights.size());
+  _device_data->_d_special_ids.resize(sd->_h_special_ids.size());
+  _device_data->_d_special_offsets.resize(sd->_h_special_offsets.size());
+
+  _device_data->_d_atoms_vec.resize(sd->_h_atoms_vec_gro.size());
+  _device_data->_d_atoms_offset.resize(sd->_h_countVector.size());
+
+
   /// charge
   thrust::copy(sd->_h_charge, sd->_h_charge + num_atoms,
       _device_data->_d_charge.begin());
@@ -47,6 +56,27 @@ bool CVFFMemoryScheduler::asyncMemoryH2D() {
                _device_data->_d_bond_id0.begin());
   thrust::copy(sd->_h_bond_id1, sd->_h_bond_id1 + num_bonds,
                _device_data->_d_bond_id1.begin());
+  //special
+  thrust::copy(sd->_h_special_weights.begin(), sd->_h_special_weights.end(),
+             _device_data->_d_special_weights.begin());
+  thrust::copy(sd->_h_special_ids.begin(), sd->_h_special_ids.end(),
+               _device_data->_d_special_ids.begin());
+  thrust::copy(sd->_h_special_offsets.begin(), sd->_h_special_offsets.end(),
+               _device_data->_d_special_offsets.begin());
+
+  // atoms_vec  sourceArray
+  thrust::copy(sd->_h_atoms_vec_gro.begin(), sd->_h_atoms_vec_gro.end(),
+    _device_data->_d_atoms_vec.begin());
+
+  //atoms_vec offsetArray
+  thrust::device_vector<rbmd::Id> d_atoms_offset_temp(sd->_h_countVector.size());
+  thrust::copy(sd->_h_countVector.begin(), sd->_h_countVector.end(),
+    d_atoms_offset_temp.begin());
+
+  _device_data->_d_atoms_offset.resize(d_atoms_offset_temp.size() + 1);
+  _device_data->_d_atoms_offset[0] = 0;
+  thrust::exclusive_scan(d_atoms_offset_temp.begin(), d_atoms_offset_temp.end(),
+    _device_data->_d_atoms_offset.begin() + 1);
 
   /// angle
   thrust::copy(sd->_h_angle_type, sd->_h_angle_type + num_angles,

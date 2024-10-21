@@ -26,6 +26,7 @@ CVFF::CVFF()
 
   CHECK_RUNTIME(MALLOC(&_d_total_evdwl, sizeof(rbmd::Real)));
   CHECK_RUNTIME(MALLOC(&_d_total_ecoul, sizeof(rbmd::Real)));
+  CHECK_RUNTIME(MALLOC(&_d_total_e_specialcoul, sizeof(rbmd::Real)));
   CHECK_RUNTIME(MALLOC(&_d_total_ebond, sizeof(rbmd::Real)));
   CHECK_RUNTIME(MALLOC(&_d_total_eangle, sizeof(rbmd::Real)));
   CHECK_RUNTIME(MALLOC(&_d_total_edihedral, sizeof(rbmd::Real)));
@@ -35,6 +36,7 @@ CVFF::~CVFF()
 {
   CHECK_RUNTIME(FREE(_d_total_evdwl));
   CHECK_RUNTIME(FREE(_d_total_ecoul));
+  CHECK_RUNTIME(FREE(_d_total_e_specialcoul));
   CHECK_RUNTIME(FREE(_d_total_ebond));
   CHECK_RUNTIME(FREE(_d_total_eangle));
   CHECK_RUNTIME(FREE(_d_total_edihedral));
@@ -96,6 +98,7 @@ void CVFF::Init()
 void CVFF::Execute()
 {
   ComputeLJCutCoulForce();
+  ComputeSpecialCoulForce();
   ComputeKspaceForce();
 
   ComputeBondForce();
@@ -190,6 +193,7 @@ void CVFF::ComputeLJCutCoulForce()
   CHECK_RUNTIME(MEMSET(_d_total_ecoul, 0, sizeof(rbmd::Real)));
 
   //
+  //std::cout << "_qqr2e:" << _qqr2e  <<std::endl;
   op::LJCutCoulForceOp<device::DEVICE_GPU> lj_cut_coul_force_op;
   lj_cut_coul_force_op(_device_data->_d_box,_device_data->_d_erf_table, _cut_off, _num_atoms,_alpha,_qqr2e,
                   thrust::raw_pointer_cast(_device_data->_d_atoms_type.data()),
@@ -215,12 +219,13 @@ void CVFF::ComputeLJCutCoulForce()
   _ave_evdwl = h_total_evdwl/_num_atoms;
   _ave_ecoul = h_total_ecoul/_num_atoms;
 
+
   std::cout << "test_current_step:" << test_current_step <<  " ,"
-  << "average_vdwl_energy:" << _ave_evdwl << " ," <<  "average_coul_energy:" << _ave_ecoul << std::endl;
+  << "average_vdwl_energy:" << _ave_evdwl << std::endl;
 
   //out
-  std::ofstream outfile("ave_ljcoul.txt", std::ios::app);
-  outfile << test_current_step << " " << _ave_evdwl  << " "<< _ave_ecoul << std::endl;
+  std::ofstream outfile("ave_lj.txt", std::ios::app);
+  outfile << test_current_step << " " << _ave_evdwl << std::endl;
   outfile.close();
 
     std::vector<rbmd::Real> h_force_ljcoul_x(_num_atoms);
@@ -245,6 +250,45 @@ void CVFF::ComputeLJCutCoulForce()
   }
 }
 
+void CVFF::ComputeSpecialCoulForce()
+{
+  rbmd::Real h_total_e_specialcoul = 0.0;
+  CHECK_RUNTIME(MEMSET(_d_total_e_specialcoul, 0, sizeof(rbmd::Real)));
+
+  //
+  op::ComputeSpecialCoulForceOp<device::DEVICE_GPU> special_coul_force_op;
+  special_coul_force_op(_device_data->_d_box,_num_atoms,_qqr2e,
+    thrust::raw_pointer_cast(_device_data->_d_atoms_vec.data()),
+    thrust::raw_pointer_cast(_device_data->_d_atoms_offset.data()),
+    thrust::raw_pointer_cast(_device_data->_d_special_ids.data()),
+    thrust::raw_pointer_cast(_device_data->_d_special_weights.data()),
+    thrust::raw_pointer_cast(_device_data->_d_charge.data()),
+    thrust::raw_pointer_cast(_device_data->_d_px.data()),
+    thrust::raw_pointer_cast(_device_data->_d_py.data()),
+    thrust::raw_pointer_cast(_device_data->_d_pz.data()),
+    thrust::raw_pointer_cast(_device_data->_d_force_specialcoul_x.data()),
+    thrust::raw_pointer_cast(_device_data->_d_force_specialcoul_y.data()),
+    thrust::raw_pointer_cast(_device_data->_d_force_specialcoul_z.data()),
+    _d_total_e_specialcoul);
+
+  CHECK_RUNTIME(MEMCPY(&h_total_e_specialcoul,_d_total_e_specialcoul , sizeof(rbmd::Real), D2H));
+
+  _ave_e_specialcoul = h_total_e_specialcoul/_num_atoms;
+  _ave_ecoul = _ave_ecoul -  _ave_e_specialcoul;
+
+  // 打印累加后的总能量
+  std::cout << "test_current_step:" << test_current_step <<  " ,"<<
+    "average_specialcoul_energy:" << _ave_e_specialcoul
+  <<"average_ecoul_energy:" << _ave_ecoul << std::endl;
+
+
+  //out
+  std::ofstream outfile("ave_special_coul.txt", std::ios::app);
+  outfile << test_current_step << " "
+  << _ave_e_specialcoul << " " << _ave_ecoul<<  std::endl;
+  outfile.close();
+
+}
 void CVFF::ComputeKspaceForce()
 {
   if("RBE" == _coulomb_type)
@@ -283,16 +327,20 @@ void CVFF::SumForces()
         _device_data->_d_force_ljcoul_x.begin(),
         _device_data->_d_force_ewald_x.begin(),
         _device_data->_d_force_bond_x.begin(),
+        _device_data->_d_force_specialcoul_x.begin(),
         _device_data->_d_force_angle_x.begin())),
     thrust::make_zip_iterator(thrust::make_tuple(
         _device_data->_d_force_ljcoul_x.end(),
         _device_data->_d_force_ewald_x.end(),
+        _device_data->_d_force_specialcoul_x.end(),
         _device_data->_d_force_bond_x.end(),
         _device_data->_d_force_angle_x.end())),
     _device_data->_d_fx.begin(),
-    [] __device__ (thrust::tuple<rbmd::Real, rbmd::Real, rbmd::Real, rbmd::Real> forces) {
+    [] __device__ (thrust::tuple<rbmd::Real, rbmd::Real, rbmd::Real,
+      rbmd::Real, rbmd::Real> forces) {
         return thrust::get<0>(forces) + thrust::get<1>(forces) +
-               thrust::get<2>(forces) + thrust::get<3>(forces);
+               thrust::get<2>(forces) + thrust::get<3>(forces)+
+                 thrust::get<4>(forces);
     });
 
   thrust::transform(
@@ -716,30 +764,6 @@ void CVFF::ComputeKspaceEnergy(
   rbmd::Real volume = box->_length[0] * box->_length[1]*box->_length[2];
   total_energy_ewald = qqr2e * (2 * M_PI / volume) * total_energy_ewald;
   ave_ekspace = total_energy_ewald / num_atoms;
-}
-
-
-
-void CVFF::ComputeSpecialCoulForce()
-{
-  thrust::device_vector<rbmd::Id> group_vec;
-  thrust::device_vector<rbmd::Id> special_ids;
-  thrust::device_vector<rbmd::Id> special_weights;
-
-   op::ComputeSpecialCoulForceOp<device::DEVICE_GPU> special_coul_force_op;
-   special_coul_force_op(_device_data->_d_box,_num_atoms,
-   thrust::raw_pointer_cast(group_vec.data()),
-   thrust::raw_pointer_cast(special_ids.data()),
-   thrust::raw_pointer_cast(special_weights.data()),
-   thrust::raw_pointer_cast(_device_data->_d_charge.data()),
-    thrust::raw_pointer_cast(_device_data->_d_px.data()),
-    thrust::raw_pointer_cast(_device_data->_d_py.data()),
-    thrust::raw_pointer_cast(_device_data->_d_pz.data()),
-    thrust::raw_pointer_cast(_device_data->_d_fx.data()),
-    thrust::raw_pointer_cast(_device_data->_d_fy.data()),
-    thrust::raw_pointer_cast(_device_data->_d_fz.data()));
-
-
 }
 
 void CVFF::ComputeBondForce()
