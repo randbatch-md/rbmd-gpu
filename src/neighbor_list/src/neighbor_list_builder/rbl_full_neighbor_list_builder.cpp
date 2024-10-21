@@ -33,14 +33,14 @@ RblFullNeighborListBuilder::RblFullNeighborListBuilder() {
                              (2 * _linked_cell->_cell_count_within_cutoff + 1) *
                              (2 * _linked_cell->_cell_count_within_cutoff + 1);
   if (_linked_cell->_total_cells < this->_neighbor_cell_num) {
-    this->_neighbor_cell_num = _linked_cell->_total_cells;
-    std::cout << "\033[31mwarning: The current simulation domain is too small "
-                 "for PBC to be effective.\033[0m"
-              << std::endl;
-    this->FullNeighborListBuilder::ComputeNeighborCellsWithoutPBC();
-  } else {
-    this->FullNeighborListBuilder::ComputeNeighborCells();
-  }
+     this->_neighbor_cell_num = _linked_cell->_total_cells;
+     std::cout << "\033[31mwarning: The current simulation domain is too small "
+                  "for PBC to be effective.\033[0m"
+               << std::endl;
+     this->FullNeighborListBuilder::ComputeNeighborCellsWithoutPBC();
+   } else {
+     this->FullNeighborListBuilder::ComputeNeighborCells();
+   }
 }
 
 void RblFullNeighborListBuilder::GetRblParams() {
@@ -74,8 +74,8 @@ bool RblFullNeighborListBuilder::GenerateNeighborsList() {
   CHECK_RUNTIME(
       MEMCPY(_d_should_realloc, &(this->should_realloc), sizeof(bool), H2D));
   op::GenerateRblFullNeighborListOp<device::DEVICE_GPU>
-      generate_full_neighbor_list_op;
-  generate_full_neighbor_list_op(
+      generate_rbl_full_neighbor_list_op;
+  generate_rbl_full_neighbor_list_op(
       thrust::raw_pointer_cast(_linked_cell->_per_atom_cell_id.data()),
       thrust::raw_pointer_cast(_linked_cell->_in_atom_list_start_index.data()),
       thrust::raw_pointer_cast(_linked_cell->_in_atom_list_end_index.data()),

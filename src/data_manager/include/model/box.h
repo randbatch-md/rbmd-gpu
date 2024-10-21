@@ -49,17 +49,17 @@ __host__ __device__ __forceinline__ void MinImageDistance(Box* box,
                                                           rbmd::Real& dz) {
   if (box->_type == Box::BoxType::ORTHOGONAL) {
     if (box->_pbc_x) {
-      if (abs(dx) > box->_length[0] * 0.5) {
+      if (ABS(dx) > box->_length[0] * 0.5) {
         dx -= (dx > 0 ? box->_length[0] : -box->_length[0]);
       }
     }
     if (box->_pbc_y) {
-      if (abs(dy) > box->_length[1] * 0.5) {
+      if (ABS(dy) > box->_length[1] * 0.5) {
         dy -= (dy > 0 ? box->_length[1] : -box->_length[1]);
       }
     }
     if (box->_pbc_z) {
-      if (abs(dz) > box->_length[2] * 0.5) {
+      if (ABS(dz) > box->_length[2] * 0.5) {
         dz -= (dz > 0 ? box->_length[2] : -box->_length[2]);
       }
     }

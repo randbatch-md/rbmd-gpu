@@ -9,27 +9,26 @@ class LJForce : public Force {
   LJForce();
   virtual ~LJForce();
 
-  void Init() override;
-  void Execute() override;
-  void ComputeChargeStructureFactorEwald(Box* box, rbmd::Id _num_atoms,
-                                         rbmd::Id Kmax,
-                                         rbmd::Real* value_Re_array,
-                                         rbmd::Real* value_Im_array);
-
-  void ComputeEwladForce();
+	void Init() override;
+	void  Execute() override;
+        void ComputeLJEnergy();
 
  private:
   rbmd::Id _num_atoms;
   std::shared_ptr<BaseNeighborListBuilder> _rbl_neighbor_list_builder;
   std::shared_ptr<BaseNeighborListBuilder> _neighbor_list_builder;
-  std::shared_ptr<NeighborList> rbl_list;
-  std::shared_ptr<NeighborList> list;
+  std::shared_ptr<NeighborList> _rbl_list;
+  std::shared_ptr<NeighborList> _list;
   Box box;
 
   rbmd::Real _corr_value_x;
   rbmd::Real _corr_value_y;
   rbmd::Real _corr_value_z;
   rbmd::Real* _d_total_evdwl;
+
+  //RBL
+  std::string _neighbor_type;
+  rbmd::Real _cut_off;
 
   rbmd::Real virial[6];
 };

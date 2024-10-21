@@ -16,12 +16,9 @@ get_property(cmake_dir GLOBAL PROPERTY CUSTOME_CMAKE_DIR)
 
 #option
 include("${cmake_dir}/option.cmake")
-if(USE_CUDA AND USE_ROCM)
-	message(FATAL_ERROR "USE_CUDA and USE_ROCM both true!")
-endif()
 
-#gpu setting
-include("${cmake_dir}/gpu_setting.cmake")
+#hip setting
+include("${cmake_dir}/hip_setting.cmake")
 
 #sub directory
 add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/tools)
@@ -29,72 +26,74 @@ add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/src)
 include_directories(${CMAKE_CURRENT_LIST_DIR}/src/common)
 
 
-#set(src
-#./src/main.cpp
-#./src/executioner/executioner.cpp
-#./src/Utilities/string_util.cpp
-#./src/application/application.cpp
-#./src/application/md_application.cpp
-#./src/parser/command_line.cpp
-#./src/common/unit_factor.cpp)
-#
-#include_directories("${CMAKE_CURRENT_LIST_DIR}/src")
-#include_directories("${CMAKE_CURRENT_LIST_DIR}/src/Utilities")
-#include_directories("${CMAKE_CURRENT_LIST_DIR}/src/parser")
-#include_directories("${CMAKE_CURRENT_LIST_DIR}/src/application")
-#include_directories("${CMAKE_CURRENT_LIST_DIR}/src/executioner")
-#include_directories("${CMAKE_CURRENT_LIST_DIR}/src/common")
-#
-#file(GLOB_RECURSE all_include_dirs
-#    "${CMAKE_CURRENT_LIST_DIR}/src/*.h"
-#)
-#
-#set(include_dirs)
-#foreach(header_file ${all_include_dirs})
-#    get_filename_component(dir ${header_file} DIRECTORY)
-#    list(APPEND include_dirs ${dir})
-#endforeach()
-#list(REMOVE_DUPLICATES include_dirs)
-#
-#include_directories(${include_dirs})
-#
-## Á´½ÓÕÒµ½µÄËùÓÐ¾²Ì¬¿âµ½¿ÉÖ´ÐÐÎÄ¼þ
-#file(GLOB tools_path ${CMAKE_CURRENT_LIST_DIR}/tools/*.tar.gz)
-#
-#foreach(tool_path ${tools_path})
-#	get_filename_component(toolname ${tool_path} NAME)
-#	get_filename_component(tooldir ${tool_path} PATH)
-#	string(REGEX REPLACE "\\.tar\\.gz$" "" toolname_without_ext ${toolname})
-#	set(TOOL_INSTALL_PATH ${tooldir}/${CMAKE_SYSTEM_NAME}/${CMAKE_BUILD_TYPE}/${toolname_without_ext})
-#	list(APPEND CMAKE_PREFIX_PATH ${TOOL_INSTALL_PATH})
-#endforeach()
-#
-#find_package(PkgConfig REQUIRED)
-#pkg_check_modules(JSONCPP REQUIRED jsoncpp IMPORTED_TARGET GLOBAL)
-#pkg_check_modules(SPDLOG REQUIRED spdlog IMPORTED_TARGET GLOBAL)
-#pkg_check_modules(CXXOPTS REQUIRED cxxopts IMPORTED_TARGET GLOBAL)
-#
-#
-#
-#
-#
-#
-## Ìí¼Ó¿ÉÖ´ÐÐÎÄ¼þ
-#add_executable(${PROJECT_NAME} ${src})
-#
-## ÉèÖÃ¿âÎÄ¼þµÄÂ·¾¶
-#set(LIB_DIR ${CMAKE_CURRENT_LIST_DIR}/lib)
-#
-## ¶¨ÒåÒª²éÕÒµÄ¿âÃûÁÐ±í
-#set(LIBRARY_NAMES
-#		data_manager
-#		reader
-#		neighbor_list
-#		force
-#		simulate_pipeline
-#)
-#
-#target_link_libraries(${PROJECT_NAME} PUBLIC ${LIBRARY_NAMES} PkgConfig::JSONCPP PkgConfig::SPDLOG PkgConfig::CXXOPTS)
+set(src
+./src/main.cpp
+./src/executioner/executioner.cpp
+./src/Utilities/string_util.cpp
+./src/application/application.cpp
+./src/application/md_application.cpp
+./src/parser/command_line.cpp
+./src/common/unit_factor.cpp
+./src/common/RBEPSample.h
+./src/common/erf_table.h)
+
+include_directories("${CMAKE_CURRENT_LIST_DIR}/src")
+include_directories("${CMAKE_CURRENT_LIST_DIR}/src/Utilities")
+include_directories("${CMAKE_CURRENT_LIST_DIR}/src/parser")
+include_directories("${CMAKE_CURRENT_LIST_DIR}/src/application")
+include_directories("${CMAKE_CURRENT_LIST_DIR}/src/executioner")
+include_directories("${CMAKE_CURRENT_LIST_DIR}/src/common")
+
+file(GLOB_RECURSE all_include_dirs
+    "${CMAKE_CURRENT_LIST_DIR}/src/*.h"
+)
+
+set(include_dirs)
+foreach(header_file ${all_include_dirs})
+    get_filename_component(dir ${header_file} DIRECTORY)
+    list(APPEND include_dirs ${dir})
+endforeach()
+list(REMOVE_DUPLICATES include_dirs)
+
+include_directories(${include_dirs})
+
+# ï¿½ï¿½ï¿½ï¿½ï¿½Òµï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ð¾ï¿½Ì¬ï¿½âµ½ï¿½ï¿½Ö´ï¿½ï¿½ï¿½Ä¼ï¿½
+file(GLOB tools_path ${CMAKE_CURRENT_LIST_DIR}/tools/*.tar.gz)
+
+foreach(tool_path ${tools_path})
+	get_filename_component(toolname ${tool_path} NAME)
+	get_filename_component(tooldir ${tool_path} PATH)
+	string(REGEX REPLACE "\\.tar\\.gz$" "" toolname_without_ext ${toolname})
+	set(TOOL_INSTALL_PATH ${tooldir}/${CMAKE_SYSTEM_NAME}/${CMAKE_BUILD_TYPE}/${toolname_without_ext})
+	list(APPEND CMAKE_PREFIX_PATH ${TOOL_INSTALL_PATH})
+endforeach()
+
+find_package(PkgConfig REQUIRED)
+pkg_check_modules(JSONCPP REQUIRED jsoncpp IMPORTED_TARGET GLOBAL)
+pkg_check_modules(SPDLOG REQUIRED spdlog IMPORTED_TARGET GLOBAL)
+pkg_check_modules(CXXOPTS REQUIRED cxxopts IMPORTED_TARGET GLOBAL)
+
+
+
+
+
+
+# ï¿½ï¿½Ó¿ï¿½Ö´ï¿½ï¿½ï¿½Ä¼ï¿½
+add_executable(${PROJECT_NAME} ${src})
+
+# ï¿½ï¿½ï¿½Ã¿ï¿½ï¿½Ä¼ï¿½ï¿½ï¿½Â·ï¿½ï¿½
+set(LIB_DIR ${CMAKE_CURRENT_LIST_DIR}/lib)
+
+# ï¿½ï¿½ï¿½ï¿½Òªï¿½ï¿½ï¿½ÒµÄ¿ï¿½ï¿½ï¿½ï¿½Ð±ï¿½
+set(LIBRARY_NAMES
+		data_manager
+		reader
+		neighbor_list
+		force
+		simulate_pipeline
+)
+
+target_link_libraries(${PROJECT_NAME} PUBLIC ${LIBRARY_NAMES} PkgConfig::JSONCPP PkgConfig::SPDLOG PkgConfig::CXXOPTS)
 
 
 #set(src

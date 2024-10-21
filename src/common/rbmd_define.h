@@ -46,6 +46,12 @@ typedef double2 Real2;
 #define SQRT sqrt
 #define ERF erf
 #define EXP exp
+#define COS cos
+#define SIN sin
+#define ROUND round
+#define LOG log
+#define ABS fabs
+#define ACOS acos
 #else
 typedef float3 Real3;
 typedef float2 Real2;
@@ -57,6 +63,13 @@ typedef float2 Real2;
 #define SQRT sqrtf
 #define ERF erff
 #define EXP expf
+#define COS cosf
+#define SIN sinf
+#define ROUND roundf
+#define LOG logf
+#define ABS fabsf
+#define ACOS acosf
+
 #endif
 
 #if USE_64BIT_IDS
