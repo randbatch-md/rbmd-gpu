@@ -2,7 +2,7 @@
 #include <memory>
 
 #include "config_data.h"
-#include "data_manager/include/scheduler/memory_scheduler.h"
+#include "./scheduler/memory_scheduler.h"
 // #include "../data_manager/include/model/post_process_data.h"
 #include "../data_manager/include/model/device_data.h"
 //#include "../data_manager/include/model/md_data.h"
