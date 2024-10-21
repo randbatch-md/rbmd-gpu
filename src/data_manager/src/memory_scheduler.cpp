@@ -89,6 +89,11 @@ bool MemoryScheduler::asyncMemoryH2D() {
   _device_data->_d_force_ljcoul_y.resize(num_atoms);
   _device_data->_d_force_ljcoul_z.resize(num_atoms);
 
+  _device_data->_d_force_specialcoul_x.resize(num_atoms);
+  _device_data->_d_force_specialcoul_y.resize(num_atoms);
+  _device_data->_d_force_specialcoul_z.resize(num_atoms);
+
+
   _device_data->_d_force_ewald_x.resize(num_atoms);
   _device_data->_d_force_ewald_y.resize(num_atoms);
   _device_data->_d_force_ewald_z.resize(num_atoms);

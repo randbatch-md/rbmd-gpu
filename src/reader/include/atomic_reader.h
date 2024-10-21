@@ -26,5 +26,5 @@ class AtomicReader : public StructureReder {
 
   std::multimap<rbmd::Id, rbmd::Id> _special_map;
   std::map<rbmd::Id, std::vector<rbmd::Id>> _molecular_map;
-  std::map<rbmd::Id, rbmd::Id> atom_to_molecular_map;
+  std::map<rbmd::Id, rbmd::Id> _atom_to_molecular_map;
 };

@@ -43,6 +43,7 @@ class DeviceData {
 
   thrust::device_vector<rbmd::Id> _d_atoms_vec;
   thrust::device_vector<rbmd::Id> _d_atoms_offset;
+  thrust::device_vector<rbmd::Id> _d_atoms_count;
 
   /// angle
   thrust::device_vector<rbmd::Id> _d_angle_type;

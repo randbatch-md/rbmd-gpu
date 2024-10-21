@@ -57,7 +57,7 @@ __device__ void UpdateFlagOverRangePoint(
   }
   */
 
-  // x方向
+  // x鏂瑰悜
   if (px_tid > max_x_tid) {
     flag_px_tid += 1;
     px_tid -= (max_x_tid - min_x_tid);
@@ -66,7 +66,7 @@ __device__ void UpdateFlagOverRangePoint(
     px_tid += (max_x_tid - min_x_tid);
   }
 
-  // y方向
+  // y鏂瑰悜
   if (py_tid > max_y_tid) {
     flag_py_tid += 1;
     py_tid -= (max_y_tid - min_y_tid);
@@ -75,7 +75,7 @@ __device__ void UpdateFlagOverRangePoint(
     py_tid += (max_y_tid - min_y_tid);
   }
 
-  // z方向
+  // z鏂瑰悜
   if (pz_tid > max_z_tid) {
     flag_pz_tid += 1;
     pz_tid -= (max_z_tid - min_z_tid);

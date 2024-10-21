@@ -209,8 +209,8 @@ int AtomicReader::ReadAtoms(const rbmd::Id& atoms_num) {
                         data->_h_pz[index];
                     types[index] = atom_type - 1;
                     data->_h_molecules_id[index] = molecules_id - 1;
-                  MolecularMapInsert(data->_h_molecules_id[atom_id - 1], ids[atom_id - 1]);
-                  AtomstoMolecular(ids[atom_id - 1], data->_h_molecules_id[atom_id - 1]);
+                  MolecularMapInsert(data->_h_molecules_id[index], ids[index]);
+                  AtomstoMolecular(ids[index], data->_h_molecules_id[index]);
                     ++num;
                     /*std::cout << atom_id << " " << data->_h_molecules_id[index] << " " << types[index] << " " <<
                     data->_h_charge[index]  << " " << data->_h_px[index] << " " <<
@@ -557,14 +557,14 @@ void AtomicReader::MolecularMapInsert(rbmd::Id& key, rbmd::Id& value)
 
 void AtomicReader::AtomstoMolecular(rbmd::Id& key, rbmd::Id& value)
 {
-  auto it = atom_to_molecular_map.find(key);
-  if (it != atom_to_molecular_map.end())
+  auto it = _atom_to_molecular_map.find(key);
+  if (it != _atom_to_molecular_map.end())
   {
     it->second = value;
   }
   else
   {
-    atom_to_molecular_map.insert(std::make_pair(key, value));
+    _atom_to_molecular_map.insert(std::make_pair(key, value));
   }
 }
 
@@ -577,9 +577,10 @@ void AtomicReader::SetMolecularGroup()
   auto& atoms_id = _md_data._structure_data->_h_atoms_id;
   auto& num_atoms = *(_md_data._structure_info_data->_num_atoms);
   std::vector<std::vector<rbmd::Id>> atoms_gro;
-  for (int atom_id =0;atom_id < num_atoms;++atom_id )
+  for (int i =0;i < num_atoms;++i )
   {
-    auto molecular_id = atom_to_molecular_map[atom_id];
+    auto atoms_id_single = atoms_id[i];
+    auto molecular_id = _atom_to_molecular_map[atoms_id_single];
     auto atoms_vec = _molecular_map[molecular_id];
     atoms_gro.emplace_back(atoms_vec);
   }
@@ -593,5 +594,14 @@ void AtomicReader::SetMolecularGroup()
     //计数数组
     data->_h_countVector.push_back(innerVector.size());
   }
+
+  // for (int i = 0; i < data->_h_atoms_vec_gro.size(); ++i)
+  // {
+  //   std::cout<< i << " "<< data->_h_atoms_vec_gro[i] << std::endl;
+  // }
+  // for (int i = 0; i < data->_h_countVector.size(); ++i)
+  // {
+  //   std::cout<<  i << " " << data->_h_countVector[i] << std::endl;
+  // }
 
 }

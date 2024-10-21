@@ -160,11 +160,6 @@ void LinkedCell::SortAtomsByCellKey() {
   thrust::stable_sort_by_key(per_atom_cell_id_copy.begin(),
                              per_atom_cell_id_copy.end(),
                              _device_data->_d_molecular_id.begin());
-
-  per_atom_cell_id_copy = _per_atom_cell_id;
-  thrust::stable_sort_by_key(per_atom_cell_id_copy.begin(),
-                             per_atom_cell_id_copy.end(),
-                             _device_data->_d_atoms_offset.begin());
 }
 
 void LinkedCell::AllocDeviceMemory() {

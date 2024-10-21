@@ -256,10 +256,15 @@ void CVFF::ComputeSpecialCoulForce()
   CHECK_RUNTIME(MEMSET(_d_total_e_specialcoul, 0, sizeof(rbmd::Real)));
 
   //
+  auto atom_id_to_idx =
+  LinkedCellLocator::GetInstance().GetLinkedCell()->_atom_id_to_idx;
+
   op::ComputeSpecialCoulForceOp<device::DEVICE_GPU> special_coul_force_op;
   special_coul_force_op(_device_data->_d_box,_num_atoms,_qqr2e,
+    thrust::raw_pointer_cast(atom_id_to_idx.data()),
     thrust::raw_pointer_cast(_device_data->_d_atoms_vec.data()),
     thrust::raw_pointer_cast(_device_data->_d_atoms_offset.data()),
+    thrust::raw_pointer_cast(_device_data->_d_atoms_count.data()),
     thrust::raw_pointer_cast(_device_data->_d_special_ids.data()),
     thrust::raw_pointer_cast(_device_data->_d_special_weights.data()),
     thrust::raw_pointer_cast(_device_data->_d_charge.data()),
@@ -278,7 +283,7 @@ void CVFF::ComputeSpecialCoulForce()
 
   // 打印累加后的总能量
   std::cout << "test_current_step:" << test_current_step <<  " ,"<<
-    "average_specialcoul_energy:" << _ave_e_specialcoul
+    "average_specialcoul_energy:" << _ave_e_specialcoul << " ,"
   <<"average_ecoul_energy:" << _ave_ecoul << std::endl;
 
 
@@ -325,14 +330,14 @@ void CVFF::SumForces()
   thrust::transform(
     thrust::make_zip_iterator(thrust::make_tuple(
         _device_data->_d_force_ljcoul_x.begin(),
+        _device_data->_d_force_specialcoul_x.begin(),
         _device_data->_d_force_ewald_x.begin(),
         _device_data->_d_force_bond_x.begin(),
-        _device_data->_d_force_specialcoul_x.begin(),
         _device_data->_d_force_angle_x.begin())),
     thrust::make_zip_iterator(thrust::make_tuple(
         _device_data->_d_force_ljcoul_x.end(),
-        _device_data->_d_force_ewald_x.end(),
         _device_data->_d_force_specialcoul_x.end(),
+        _device_data->_d_force_ewald_x.end(),
         _device_data->_d_force_bond_x.end(),
         _device_data->_d_force_angle_x.end())),
     _device_data->_d_fx.begin(),
@@ -346,35 +351,43 @@ void CVFF::SumForces()
   thrust::transform(
   thrust::make_zip_iterator(thrust::make_tuple(
       _device_data->_d_force_ljcoul_y.begin(),
+      _device_data->_d_force_specialcoul_y.begin(),
       _device_data->_d_force_ewald_y.begin(),
       _device_data->_d_force_bond_y.begin(),
       _device_data->_d_force_angle_y.begin())),
   thrust::make_zip_iterator(thrust::make_tuple(
       _device_data->_d_force_ljcoul_y.end(),
+      _device_data->_d_force_specialcoul_y.end(),
       _device_data->_d_force_ewald_y.end(),
       _device_data->_d_force_bond_y.end(),
       _device_data->_d_force_angle_y.end())),
   _device_data->_d_fy.begin(),
-  [] __device__ (thrust::tuple<rbmd::Real, rbmd::Real, rbmd::Real, rbmd::Real> forces) {
+  [] __device__ (thrust::tuple<rbmd::Real, rbmd::Real, rbmd::Real,
+    rbmd::Real,rbmd::Real> forces) {
       return thrust::get<0>(forces) + thrust::get<1>(forces) +
-             thrust::get<2>(forces) + thrust::get<3>(forces);
+             thrust::get<2>(forces) + thrust::get<3>(forces)+
+               thrust::get<4>(forces);
   });
 
   thrust::transform(
   thrust::make_zip_iterator(thrust::make_tuple(
       _device_data->_d_force_ljcoul_z.begin(),
+      _device_data->_d_force_specialcoul_z.begin(),
       _device_data->_d_force_ewald_z.begin(),
       _device_data->_d_force_bond_z.begin(),
       _device_data->_d_force_angle_z.begin())),
   thrust::make_zip_iterator(thrust::make_tuple(
       _device_data->_d_force_ljcoul_z.end(),
+      _device_data->_d_force_specialcoul_z.end(),
       _device_data->_d_force_ewald_z.end(),
       _device_data->_d_force_bond_z.end(),
       _device_data->_d_force_angle_z.end())),
   _device_data->_d_fz.begin(),
-  [] __device__ (thrust::tuple<rbmd::Real, rbmd::Real, rbmd::Real, rbmd::Real> forces) {
+  [] __device__ (thrust::tuple<rbmd::Real, rbmd::Real, rbmd::Real,
+    rbmd::Real,rbmd::Real> forces) {
       return thrust::get<0>(forces) + thrust::get<1>(forces) +
-             thrust::get<2>(forces) + thrust::get<3>(forces);
+             thrust::get<2>(forces) + thrust::get<3>(forces)+
+               thrust::get<4>(forces);
   });
 
 }

@@ -39,8 +39,8 @@ bool CVFFMemoryScheduler::asyncMemoryH2D() {
   _device_data->_d_special_offsets.resize(sd->_h_special_offsets.size());
 
   _device_data->_d_atoms_vec.resize(sd->_h_atoms_vec_gro.size());
-  _device_data->_d_atoms_offset.resize(sd->_h_countVector.size());
-
+  _device_data->_d_atoms_offset.resize(sd->_h_countVector.size()+1);
+  _device_data->_d_atoms_count.resize(sd->_h_countVector.size());
 
   /// charge
   thrust::copy(sd->_h_charge, sd->_h_charge + num_atoms,
@@ -69,14 +69,30 @@ bool CVFFMemoryScheduler::asyncMemoryH2D() {
     _device_data->_d_atoms_vec.begin());
 
   //atoms_vec offsetArray
-  thrust::device_vector<rbmd::Id> d_atoms_offset_temp(sd->_h_countVector.size());
+  //cpu上运行
   thrust::copy(sd->_h_countVector.begin(), sd->_h_countVector.end(),
-    d_atoms_offset_temp.begin());
+_device_data->_d_atoms_count.begin());
 
-  _device_data->_d_atoms_offset.resize(d_atoms_offset_temp.size() + 1);
-  _device_data->_d_atoms_offset[0] = 0;
-  thrust::exclusive_scan(d_atoms_offset_temp.begin(), d_atoms_offset_temp.end(),
-    _device_data->_d_atoms_offset.begin() + 1);
+  //
+  std::vector<rbmd::Id> h_countVector =  sd->_h_countVector;
+  std::vector<rbmd::Id> cumulative_offsets;
+  cumulative_offsets.push_back(0); // 初始偏移量为0
+  for (int i = 0; i < h_countVector.size(); ++i)
+  {
+    cumulative_offsets.push_back(cumulative_offsets.back() + h_countVector[i]);
+  }
+  thrust::copy(cumulative_offsets.begin(), cumulative_offsets.end(),
+  _device_data->_d_atoms_offset.begin());
+
+  //GPU上运行
+  // thrust::device_vector<rbmd::Id> d_atoms_offset_temp(sd->_h_countVector.size());
+  // thrust::copy(sd->_h_countVector.begin(), sd->_h_countVector.end(),
+  //   d_atoms_offset_temp.begin());
+  //
+  // _device_data->_d_atoms_offset.resize(d_atoms_offset_temp.size() + 1);
+  // _device_data->_d_atoms_offset[0] = 0;
+  // thrust::exclusive_scan(d_atoms_offset_temp.begin(), d_atoms_offset_temp.end(),
+  //   _device_data->_d_atoms_offset.begin() + 1);
 
   /// angle
   thrust::copy(sd->_h_angle_type, sd->_h_angle_type + num_angles,
