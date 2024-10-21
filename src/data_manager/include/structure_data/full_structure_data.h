@@ -35,4 +35,7 @@ class FullStructureData : public BasicStructureData {
   rbmd::Id* _h_dihedral_id1;
   rbmd::Id* _h_dihedral_id2;
   rbmd::Id* _h_dihedral_id3;
+
+  rbmd::Id* _h_special_source_array;
+  rbmd::Id* _h_special_offsets_array;
 };
