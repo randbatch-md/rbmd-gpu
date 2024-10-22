@@ -67,4 +67,6 @@ if(USE_CUDA)
 	depends_link_dir ${link_dir}
 	depends_name ${depends_name}
 	)
+
+	set_target_properties(${PROJECT_NAME} CUDA_SEPARABLE_COMPILATION ON)
 endif()
