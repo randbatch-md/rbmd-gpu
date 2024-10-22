@@ -1513,7 +1513,7 @@ void CoulCutForce_rcs_erf(
               for (rbmd::Id j = 0; j < atom_count[id]; ++j)
               {
                 rbmd::Id id2 = atoms_vec[num_offset + j];
-                //printf("atom_count %i tid2 %i\n",atom_count[id] ,tid2);
+                //printf("atom_count %i id2 %i\n",atom_count[id] ,id2);
 
                 if (id == id2)
                   continue;
@@ -1533,16 +1533,16 @@ void CoulCutForce_rcs_erf(
                 rbmd::Real force_component = -qqr2e * charge_i * charge_j / dis_ij3;
                 rbmd::Real energy_atom = 0.5 * qqr2e * charge_i * charge_j / dis_ij;
 
-                rbmd::Real weight = 1.0;
-                for (rbmd::Id k = 0; k < special_count[id]; ++k)
-                {
-                  //printf("special_count %i tid22 %i\n",special_count[id] ,special_ids[num_components+k]);
-                  if (special_ids[num_components+k] == id2)
-                  {
-                    weight = special_weights[num_components+k];
-                    //printf("weight %f\n", weight);
-                  }
-                }
+                rbmd::Real weight = 0.0;
+                // for (rbmd::Id k = 0; k < special_count[id]; ++k)
+                // {
+                //   //printf("special_count %i tid22 %i\n",special_count[id] ,special_ids[num_components+k]);
+                //   if (special_ids[num_components+k] == id2)
+                //   {
+                //     weight = special_weights[num_components+k];
+                //     //printf("weight %f\n", weight);
+                //   }
+                // }
                 sum_fx += (1.0 - weight) * force_component * x12;
                 sum_fy += (1.0 - weight) * force_component * y12;
                 sum_fz += (1.0 - weight) * force_component * z12;
@@ -1552,16 +1552,17 @@ void CoulCutForce_rcs_erf(
             }
 
             //printf(" force %f %f %f\n" ,sum_fx,sum_fy,sum_fz);
-            fx[tid1] = sum_fx;
-            fy[tid1] = sum_fy;
-            fz[tid1] = sum_fz;
-
+            fx[id] = sum_fx;
+            fy[id] = sum_fy;
+            fz[id] = sum_fz;
+            //
             rbmd::Real block_sum_especial_coul = hipcub::BlockReduce<rbmd::Real, BLOCK_SIZE>
             (temp_storage).Sum(sum_energy_special_coul);
 
             if (threadIdx.x == 0) {
               atomicAdd(total_especial_coul, block_sum_especial_coul);
             }
+            //atomicAdd(total_especial_coul, sum_energy_special_coul);
          }
        }
 
@@ -1641,13 +1642,13 @@ void CoulCutForce_rcs_erf(
 	    rbmd::Real fz_ij = forcebondij * z12;
 	    //printf("force_bond, %i  %f %f %f\n",tid1,fx_ij,fy_ij,fz_ij);
 
-	    atomicAdd(&fx[bondii], fx_ij); // 将作用力添加到原子bondi
-	    atomicAdd(&fy[bondii], fy_ij);
-	    atomicAdd(&fz[bondii], fz_ij);
+	    atomicAdd(&fx[bondi], fx_ij); // 将作用力添加到原子bondi
+	    atomicAdd(&fy[bondi], fy_ij);
+	    atomicAdd(&fz[bondi], fz_ij);
 
-	    atomicAdd(&fx[bondjj], -fx_ij); // 对于bondj施加相反的作用力
-	    atomicAdd(&fy[bondjj], -fy_ij);
-	    atomicAdd(&fz[bondjj], -fz_ij);
+	    atomicAdd(&fx[bondj], -fx_ij); // 对于bondj施加相反的作用力
+	    atomicAdd(&fy[bondj], -fy_ij);
+	    atomicAdd(&fz[bondj], -fz_ij);
 
 	    // // 保存bondi和bondj的力到输出数组中
 	    // atom_ids_out[2 * tid1]     = bondii;   // bondi -> bondii
@@ -1779,17 +1780,17 @@ temp_storage;
 //
 // 	    printf("force_angle_k, %i  %f %f %f\n",tid1,
 // force_anglek_x,force_anglek_y,force_anglek_z);
-	    atomicAdd(&fx[anglelii], force_anglei_x);
-	    atomicAdd(&fy[anglelii], force_anglei_y);
-	    atomicAdd(&fz[anglelii], force_anglei_z);
+	    atomicAdd(&fx[angleli], force_anglei_x);
+	    atomicAdd(&fy[angleli], force_anglei_y);
+	    atomicAdd(&fz[angleli], force_anglei_z);
 
-	    atomicAdd(&fx[anglelkk], force_anglek_x);
-	    atomicAdd(&fy[anglelkk], force_anglek_y);
-	    atomicAdd(&fz[anglelkk], force_anglek_z);
+	    atomicAdd(&fx[anglelk], force_anglek_x);
+	    atomicAdd(&fy[anglelk], force_anglek_y);
+	    atomicAdd(&fz[anglelk], force_anglek_z);
 
-	    atomicAdd(&fx[angleljj], force_anglej_x);
-	    atomicAdd(&fy[angleljj], force_anglej_y);
-	    atomicAdd(&fz[angleljj], force_anglej_z);
+	    atomicAdd(&fx[anglelj], force_anglej_x);
+	    atomicAdd(&fy[anglelj], force_anglej_y);
+	    atomicAdd(&fz[anglelj], force_anglej_z);
 	  }
 
           rbmd::Real block_sum =

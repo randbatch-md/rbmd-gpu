@@ -227,7 +227,9 @@ void CVFF::ComputeLJCutCoulForce()
   std::ofstream outfile("ave_lj.txt", std::ios::app);
   outfile << test_current_step << " " << _ave_evdwl << std::endl;
   outfile.close();
+  }
 
+  //out
     std::vector<rbmd::Real> h_force_ljcoul_x(_num_atoms);
     std::vector<rbmd::Real> h_force_ljcoul_y(_num_atoms);
     std::vector<rbmd::Real> h_force_ljcoul_z(_num_atoms);
@@ -242,12 +244,10 @@ void CVFF::ComputeLJCutCoulForce()
     std::ofstream output_file("output_force_ljcoul.txt");
     for (size_t i = 0; i < h_force_ljcoul_x.size(); ++i)
     {
-      output_file << "i:" << i << " " << h_force_ljcoul_x[i] << " "<<h_force_ljcoul_y[i] <<" "
+      output_file << i << " " << h_force_ljcoul_x[i] << " "<<h_force_ljcoul_y[i] <<" "
       << h_force_ljcoul_z[i] << std::endl;
     }
     output_file.close();
-
-  }
 }
 
 void CVFF::ComputeSpecialCoulForce()
@@ -292,6 +292,27 @@ void CVFF::ComputeSpecialCoulForce()
   outfile << test_current_step << " "
   << _ave_e_specialcoul << " " << _ave_ecoul<<  std::endl;
   outfile.close();
+
+  //out
+  std::vector<rbmd::Real> h_specialcoulx(_num_atoms);
+  std::vector<rbmd::Real> h_specialcouly(_num_atoms);
+  std::vector<rbmd::Real> h_specialcoulz(_num_atoms);
+
+  thrust::copy(_device_data->_d_force_specialcoul_x.begin(),
+    _device_data->_d_force_specialcoul_x.end(), h_specialcoulx.begin());
+  thrust::copy(_device_data->_d_force_specialcoul_y.begin(),
+  _device_data->_d_force_specialcoul_y.end(), h_specialcouly.begin());
+  thrust::copy(_device_data->_d_force_specialcoul_z.begin(),
+  _device_data->_d_force_specialcoul_z.end(), h_specialcoulz.begin());
+
+  std::ofstream output_file1("output_force_specialcoul.txt");
+  for (size_t i = 0; i < h_specialcoulx.size(); ++i)
+  {
+    output_file1  << i << " "
+    << h_specialcoulx[i] << " " << h_specialcouly[i]  << " " << h_specialcoulz[i]
+    << std::endl;
+  }
+  output_file1.close();
 
 }
 void CVFF::ComputeKspaceForce()
@@ -514,7 +535,7 @@ void CVFF::ComputeEwlad()
   std::ofstream output_file("output_force_ewald.txt");
   for (size_t i = 0; i < h_force_ewald_x.size(); ++i)
   {
-    output_file << "i:" << i << " " << h_force_ewald_x[i] << " "<<h_force_ewald_y[i] <<" "
+    output_file << i << " " << h_force_ewald_x[i] << " "<<h_force_ewald_y[i] <<" "
     << h_force_ewald_z[i] << std::endl;
   }
   output_file.close();
@@ -830,7 +851,7 @@ void CVFF::ComputeBondForce()
   std::ofstream output_file("output_force_bond.txt");
   for (size_t i = 0; i < h_force_bondx.size(); ++i)
   {
-    output_file << "i:" << i << " "
+    output_file  << i << " "
     << h_force_bondx[i] << " " << h_force_bondy[i]  << " " << h_force_bondz[i]
     << std::endl;
   }
@@ -886,7 +907,7 @@ void CVFF::ComputeAngleForce()
   std::ofstream output_file("output_force_angle.txt");
   for (size_t i = 0; i < h_force_anglex.size(); ++i)
   {
-    output_file << "i:" << i << " "
+    output_file << i << " "
     << h_force_anglex[i] << " " << h_force_angley[i]  << " " << h_force_anglez[i]
     << std::endl;
   }
