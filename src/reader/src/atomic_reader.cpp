@@ -275,7 +275,8 @@ void AtomicReader::SetMolecularGroup()
     //
     std::vector<std::vector<rbmd::Id>> atoms_gro;
     auto& ids = _md_data._structure_data->_h_atoms_id;
-    for (int index=0;index< sizeof(ids);index++)
+    auto& info = _md_data._structure_info_data;
+    for (int index=0;index< *(info->_num_atoms);index++)
     {
         const auto atom_id = ids[index];
         auto molecular_id = _atom_to_molecular_map[atom_id];
@@ -295,12 +296,16 @@ void AtomicReader::SetMolecularGroup()
     auto& full_structure_data = _md_data._structure_data;
     FullStructureData* data =
         dynamic_cast<FullStructureData*>(full_structure_data.get());
-    // HIP_CHECK(
-    //     MALLOCHOST(&(data->_h_special_source_array), atoms_vec_gro.size() * sizeof(rbmd::Id)));
-    // HIP_CHECK(
-    //     MALLOCHOST(&(data->_h_special_offsets_array), atoms_vec_gro.size() * sizeof(rbmd::Id)));
-    data->_h_atoms_vec_gro = atoms_vec_gro.data();
-    data->_h_countVector = countVector.data();
+    HIP_CHECK(
+        MALLOCHOST(&(data->_h_special_source_array), atoms_vec_gro.size() * sizeof(rbmd::Id)));
+    HIP_CHECK(
+        MALLOCHOST(&(data->_h_special_offsets_array), countVector.size() * sizeof(rbmd::Id)));
+    HIP_CHECK(MALLOCHOST(&(data->_num_special_source_array), sizeof(rbmd::Id)));
+    HIP_CHECK(MALLOCHOST(&(data->_num_special_offsets_array), sizeof(rbmd::Id)));
+    data->_h_special_source_array = atoms_vec_gro.data();
+    data->_h_special_offsets_array = countVector.data();
+    *(data->_num_special_source_array) = atoms_vec_gro.size();
+    *(data->_num_special_offsets_array) = countVector.size();
 }
 
 int AtomicReader::ReadVelocity(const rbmd::Id& atoms_num) {
@@ -501,9 +506,8 @@ void AtomicReader::SetSpecialBonds()
     std::vector<rbmd::Id> special_ids;
     std::vector<rbmd::Id> special_offsets;
     auto& ids_atoms = _md_data._structure_data->_h_atoms_id;
-    auto num_atoms = *(_md_data._structure_info_data->_num_atoms);
-
-    for (int i =0;i< num_atoms;i++) //
+    auto& info = _md_data._structure_info_data;
+    for (int i =0;i< *(info->_num_atoms);i++)
     {
         auto atoms_id = ids_atoms[i];
         //没有成键的部分
@@ -565,9 +569,15 @@ void AtomicReader::SetSpecialBonds()
     HIP_CHECK(MALLOCHOST(&ids, special_ids.size() * sizeof(rbmd::Id)));
     HIP_CHECK(MALLOCHOST(&offsets, (special_offsets.size()+1) * sizeof(rbmd::Id)));
     HIP_CHECK(MALLOCHOST(&special_offset_count, special_offsets.size() * sizeof(rbmd::Id)));
+    HIP_CHECK(MALLOCHOST(&(data->_num_special_weights), sizeof(rbmd::Id)));
+    HIP_CHECK(MALLOCHOST(&(data->_num_special_ids), sizeof(rbmd::Id)));
+    HIP_CHECK(MALLOCHOST(&(data->_num_special_offsets), sizeof(rbmd::Id)));
     weights = special_weights.data();
     ids = special_ids.data();
     special_offset_count = special_offsets.data();
+    *(data->_num_special_weights) = special_weights.size();
+    *(data->_num_special_ids) = special_ids.size();
+    *(data->_num_special_offsets) = special_offsets.size();
 
     //cpu上运行 前缀和
     std::vector<rbmd::Id> cumulative_offsets;

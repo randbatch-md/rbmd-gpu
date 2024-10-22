@@ -43,7 +43,7 @@ class Box {
   rbmd::Id ALIGN(ALIGN_SIZE(rbmd::Id, 3)) _box_width_as_cell_units[3]{};
 };
 
-__host__ __device__ __forceinline__ void MinImageDistance(Box* box,
+static __host__ __device__ __forceinline__ void MinImageDistance(Box* box,
                                                           rbmd::Real& dx,
                                                           rbmd::Real& dy,
                                                           rbmd::Real& dz) {

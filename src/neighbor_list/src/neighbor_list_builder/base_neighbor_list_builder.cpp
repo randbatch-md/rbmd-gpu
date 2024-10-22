@@ -11,7 +11,7 @@
 BaseNeighborListBuilder::BaseNeighborListBuilder() {
   this->_linked_cell = LinkedCellLocator::GetInstance().GetLinkedCell();
   this->_d_box = DataManager::getInstance().getDeviceData()->_d_box;
-  CHECK_RUNTIME(MALLOC(&_d_should_realloc, sizeof(bool)));
+  CHECK_RUNTIME(MALLOC(&_d_should_realloc, sizeof(rbmd::Id)));
 }
 BaseNeighborListBuilder::~BaseNeighborListBuilder() {
   CHECK_RUNTIME(FREE(_d_should_realloc));
