@@ -1,4 +1,4 @@
-project(data_manager LANGUAGES CUDA CXX )
+project(data_manager LANGUAGES CUDA )
 
 get_property(cmake_dir GLOBAL PROPERTY CUSTOME_CMAKE_DIR)
 include(${cmake_dir}/cpp_setting.cmake)
