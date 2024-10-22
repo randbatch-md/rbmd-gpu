@@ -23,6 +23,12 @@ class FullStructureData : public BasicStructureData {
   rbmd::Id* _h_special_ids;
   rbmd::Id* _h_special_offsets;
 
+  rbmd::Id* _num_special_weights;
+  rbmd::Id* _num_special_ids;
+  rbmd::Id* _num_special_offsets;
+  rbmd::Id* _num_special_source_array;
+  rbmd::Id* _num_special_offsets_array;
+
   /// angle
   rbmd::Id* _h_angle_type;
   rbmd::Id* _h_angle_id0;

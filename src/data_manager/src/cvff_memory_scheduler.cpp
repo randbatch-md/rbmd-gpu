@@ -32,15 +32,15 @@ bool CVFFMemoryScheduler::asyncMemoryH2D() {
   _device_data->_d_dihedral_id2.resize(num_dihedrals);
   _device_data->_d_dihedral_id3.resize(num_dihedrals);
   _device_data->_d_charge.resize(num_atoms);
-  _device_data->_d_special_source_array.resize(sizeof(sd->_h_special_source_array));
-  _device_data->_d_special_offsets_array.resize(sizeof(sd->_h_special_offsets_array));
-  _device_data->_d_special_weights.resize(sizeof(sd->_h_special_weights));
-  _device_data->_d_special_ids.resize(sizeof(sd->_h_special_ids));
-  _device_data->_d_special_offsets.resize(sizeof(sd->_h_special_offsets));
+  _device_data->_d_special_source_array.resize(*(sd->_num_special_source_array));
+  _device_data->_d_special_offsets_array.resize(*(sd->_num_special_offsets_array));
+  _device_data->_d_special_weights.resize(*(sd->_num_special_weights));
+  _device_data->_d_special_ids.resize(*(sd->_num_special_ids));
+  _device_data->_d_special_offsets.resize(*(sd->_num_special_offsets));
 
-  thrust::copy(sd->_h_special_source_array, sd->_h_special_source_array + sizeof(sd->_h_special_source_array),
+  thrust::copy(sd->_h_special_source_array, sd->_h_special_source_array + *(sd->_num_special_source_array),
       _device_data->_d_special_source_array.begin());
-  thrust::copy(sd->_h_special_offsets_array, sd->_h_special_offsets_array + sizeof(sd->_h_special_offsets_array),
+  thrust::copy(sd->_h_special_offsets_array, sd->_h_special_offsets_array + *(sd->_num_special_offsets_array),
       _device_data->_d_special_offsets_array.begin());
 
   /// charge
@@ -59,11 +59,11 @@ bool CVFFMemoryScheduler::asyncMemoryH2D() {
                _device_data->_d_bond_id1.begin());
 
   ///special
-  thrust::copy(sd->_h_special_weights, sd->_h_special_weights + sizeof(sd->_h_special_weights),
+  thrust::copy(sd->_h_special_weights, sd->_h_special_weights + *(sd->_num_special_weights),
       _device_data->_d_special_weights.begin());
-  thrust::copy(sd->_h_special_ids, sd->_h_special_ids + sizeof(sd->_h_special_ids),
+  thrust::copy(sd->_h_special_ids, sd->_h_special_ids + *(sd->_num_special_ids),
       _device_data->_d_special_ids.begin());
-  thrust::copy(sd->_h_special_offsets, sd->_h_special_offsets + sizeof(sd->_h_special_offsets),
+  thrust::copy(sd->_h_special_offsets, sd->_h_special_offsets + *(sd->_num_special_offsets),
       _device_data->_d_special_offsets.begin());
 
   /// angle
