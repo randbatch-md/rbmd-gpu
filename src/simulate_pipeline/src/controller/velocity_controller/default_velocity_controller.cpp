@@ -13,8 +13,9 @@ DefaultVelocityController::DefaultVelocityController(){};
 void DefaultVelocityController::Init() {
   _num_atoms = *(_structure_info_data->_num_atoms);
 
-  _dt = 0.001;
-  auto unit = "LJ";
+  _dt = DataManager::getInstance().getConfigData()->Get<rbmd::Real>( "timestep", "execution"); // TODO: Json file
+  auto unit = DataManager::getInstance().getConfigData()->Get<std::string>( "unit", "init_configuration", "read_data");
+
   UNIT unit_factor = unit_factor_map[unit];
 
   switch (unit_factor) {

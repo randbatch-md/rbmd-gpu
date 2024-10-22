@@ -21,7 +21,6 @@ NVTensemble::NVTensemble()
 }
 
 void NVTensemble::Init() {
-  // ���Լ�������ı����ڸ��Ե�init�����ʼ����
   _position_controller->Init();
   _velocity_controller->Init();
   _temperature_controller->Init();
@@ -30,9 +29,7 @@ void NVTensemble::Init() {
   _force_controller->Execute();
 }
 
-void NVTensemble::Presolve() {
-  // ����Զ����ʱ Ҫ������Ӧ����
-}
+void NVTensemble::Presolve() {}
 
 void NVTensemble::Solve() {
   auto start = std::chrono::high_resolution_clock::now();
@@ -41,7 +38,7 @@ void NVTensemble::Solve() {
 
   _position_controller->Update();
 
-  bool use_shake;
+  bool use_shake = DataManager::getInstance().getConfigData()->Get<bool>( "fix_shake", "hyper_parameters", "extend");
   if (true == use_shake)
   {
     _shake_controller->ShakeA();

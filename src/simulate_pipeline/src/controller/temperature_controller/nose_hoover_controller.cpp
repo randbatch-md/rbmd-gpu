@@ -19,9 +19,9 @@ void NoseHooverController::Init() {
   _num_atoms = *(_structure_info_data->_num_atoms);
   _temp_sum = 0;
   _nosehooverxi = 0;
-  _dt = 0.001;  // 配置文件中读取
-  auto unit = "LJ";
-  UNIT unit_factor = unit_factor_map[unit];  // 这里可能有重定义隐患
+  _dt = DataManager::getInstance().getConfigData()->Get<rbmd::Real>( "timestep", "execution"); // TODO: Json file
+  auto unit = DataManager::getInstance().getConfigData()->Get<std::string>( "unit", "init_configuration", "read_data");
+  UNIT unit_factor = unit_factor_map[unit];
 
   switch (unit_factor) {
     case UNIT::LJ:
@@ -84,7 +84,7 @@ void NoseHooverController::ComputeTemp() {
 }
 
 void NoseHooverController::UpdataVelocity() {
-  rbmd::Real kbT = 1;  // 配置文件获取
+  rbmd::Real kbT = 1;  // 锟斤拷锟斤拷锟侥硷拷锟斤拷取
 
   op::UpdataVelocityNoseHooverOp<device::DEVICE_GPU>
       updata_velocity_nose_hoover_op;

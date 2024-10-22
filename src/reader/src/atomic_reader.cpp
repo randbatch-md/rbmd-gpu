@@ -59,8 +59,7 @@ int AtomicReader::ReadData() {
 
 void AtomicReader::AllocateDataSpace() {
   auto atom_style =
-      DataManager::getInstance().getConfigData()->Get<std::string>(
-          "atom_style", "init_configuration", "read_data");
+      DataManager::getInstance().getConfigData()->Get<std::string>("atom_style", "init_configuration", "read_data");
   auto& md_data = DataManager::getInstance().getMDData();
   auto& info = _md_data._structure_info_data;
   if ("atomic" == atom_style) {
@@ -435,7 +434,7 @@ void AtomicReader::SetSpecialBonds()
     //for (int i =0;i< sizeof(ids_atoms);i++)
     //{
     //    auto atoms_id = ids_atoms[i];
-    //    //??§Ô???????
+    //    //??ï¿½ï¿½???????
     //    if (_special_map.find(atoms_id) == _special_map.end())
     //    {
     //        special_weights.push_back(1.0);

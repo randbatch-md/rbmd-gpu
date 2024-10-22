@@ -19,12 +19,12 @@ BerendsenController::~BerendsenController() {
 void BerendsenController::Init() {
   _num_atoms = *(_structure_info_data->_num_atoms);
   _temp_sum = 0;
-  _Tdamp = 0.1;  // �����ļ��ж�ȡ temperature [1.0,1.0,0.1]
-  _dt =  DataManager::getInstance().getConfigData()->Get<rbmd::Real>(
-          "timestep", "execution");//0.001
-  auto unit = "LJ";
-  UNIT unit_factor = unit_factor_map[unit];  // ����������ض�������
+  auto Tdamp_vector=DataManager::getInstance().getConfigData()->GetVector<rbmd::Real>("temperature", "execution");
+  _Tdamp=Tdamp_vector[2];//original _Tdamp id 0.1 (temperature [1.0,1.0,0.1])
+  _dt = DataManager::getInstance().getConfigData()->Get<rbmd::Real>( "timestep", "execution"); // TODO: Json file
 
+  auto unit = DataManager::getInstance().getConfigData()->Get<std::string>( "unit", "init_configuration", "read_data");
+  UNIT unit_factor = unit_factor_map[unit];
   switch (unit_factor) {
     case UNIT::LJ:
       _mvv2e = UnitFactor<UNIT::LJ>::_mvv2e;

@@ -59,6 +59,48 @@ class ConfigData : public Object {
     }
   }
 
+  template <typename T, typename... Args>
+  std::vector<T> GetVector(std::string key, Args&&... args) {
+        Json::Value json_node = _json_node;
+
+        auto getNode = [this, &json_node](const auto& arg) {
+            if (json_node[arg].isObject()) {
+                json_node = json_node[arg];
+            } else {
+                //_console->error("{} is not a object!", arg);
+                return;
+            }
+        };
+
+        (getNode(std::forward<Args>(args)), ...);
+
+        try {
+            if (json_node.isMember(key)) {
+                auto& node = json_node[key];
+                if (node.isArray())
+                {
+                    std::vector<T> value;
+                    for (auto i = 0; i < node.size(); ++i)
+                    {
+                        value.push_back(node[i].as<T>());
+                    }
+                    return value;
+                } else{
+                    throw std::runtime_error("this is not a array: " + key);}
+            } else {
+                throw std::runtime_error("no key named: " + key);
+            }
+        } catch (const std::exception&) {
+            // log
+            //_console->error("no key named: {}", key);
+            throw;
+        }
+    }
+
+
+
+
+
   /**
    * @brief get json node
    * @param key
