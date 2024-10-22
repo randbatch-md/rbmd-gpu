@@ -1,9 +1,9 @@
 cmake_minimum_required(VERSION 3.16)
 
+project(rbmd-gpu LANGUAGES CXX CUDA)
+
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
-
-project(rbmd-gpu LANGUAGES CUDA)
 
 #cmake build type
 if(NOT CMAKE_BUILD_TYPE)
