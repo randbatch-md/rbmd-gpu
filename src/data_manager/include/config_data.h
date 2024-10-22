@@ -4,6 +4,8 @@
 #include "../common/object.h"
 #include "json/reader.h"
 #include "json/value.h"
+#include <vector>
+#include "common/types.h"
 
 class ConfigData : public Object {
  public:
@@ -58,6 +60,41 @@ class ConfigData : public Object {
       throw;
     }
   }
+
+  template <typename T, typename... Args>
+  std::vector<T> GetArray(std::string key, Args&&... args) {
+      Json::Value json_node = _json_node;
+
+      auto getNode = [this, &json_node](const auto& arg) {
+          if (json_node[arg].isObject()) {
+              json_node = json_node[arg];
+          }
+          else {
+              //_console->error("{} is not a object!", arg);
+              return;
+          }
+      };
+
+      (getNode(std::forward<Args>(args)), ...);
+      std::cout << "Checking key: " << key << " in node: " << json_node.toStyledString() << std::endl;
+      if (json_node.isMember(key)) {
+          Json::Value value = json_node[key];
+          if (value.isArray()) {
+              std::vector<T> result;
+              for (const auto& item : value) {
+                  result.push_back(item.as<T>());  // 将数组元素转换为 T 类型
+              }
+              return result;
+          }
+          else {
+              throw std::runtime_error(key + " is not an array");
+          }
+      }
+      else {
+          throw std::runtime_error("no key named: " + key);
+      }
+  }
+
 
   /**
    * @brief get json node

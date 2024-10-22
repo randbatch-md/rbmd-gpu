@@ -209,6 +209,10 @@ int AtomicReader::ReadAtoms(const rbmd::Id& atoms_num) {
                         data->_h_pz[index];
                     types[index] = atom_type - 1;
                     data->_h_molecules_id[index] = molecules_id - 1;
+                    MolecularMapInsert(data->_h_molecules_id[index], ids[index]);
+                    AtomsMapInsert(types[index], ids[index]);
+                    AtomstoMolecular(ids[index], data->_h_molecules_id[index]);
+                    SetMolecularGroup();
                     ++num;
                     /*std::cout << atom_id << " " << data->_h_molecules_id[index] << " " << types[index] << " " <<
                     data->_h_charge[index]  << " " << data->_h_px[index] << " " <<
@@ -225,6 +229,78 @@ int AtomicReader::ReadAtoms(const rbmd::Id& atoms_num) {
   }
 
   return 0;
+}
+void AtomicReader::MolecularMapInsert(const rbmd::Id& key, const rbmd::Id& value)
+{
+    auto it = _molecular_map.find(key);
+    if (it != _molecular_map.end())
+    {
+        it->second.push_back(value);
+    }
+    else
+    {
+        _molecular_map.insert(std::make_pair(key, std::vector<rbmd::Id>{ value }));
+    }
+}
+
+void AtomicReader::AtomsMapInsert(const rbmd::Id& key, const rbmd::Id& value)
+{
+    auto it = _atoms_map.find(key);
+    if (it != _atoms_map.end())
+    {
+        it->second.push_back(value);
+    }
+    else
+    {
+        _atoms_map.insert(std::make_pair(key, std::vector<rbmd::Id>{ value }));
+    }
+
+}
+
+void AtomicReader::AtomstoMolecular(const rbmd::Id& key, const rbmd::Id& value)
+{
+    auto it = _atom_to_molecular_map.find(key);
+    if (it != _atom_to_molecular_map.end())
+    {
+        it->second = value;
+    }
+    else
+    {
+        _atom_to_molecular_map.insert(std::make_pair(key, value));
+    }
+}
+
+void AtomicReader::SetMolecularGroup()
+{
+    //
+    std::vector<std::vector<rbmd::Id>> atoms_gro;
+    auto& ids = _md_data._structure_data->_h_atoms_id;
+    for (int index=0;index< sizeof(ids);index++)
+    {
+        const auto atom_id = ids[index];
+        auto molecular_id = _atom_to_molecular_map[atom_id];
+        auto atoms_vec = _molecular_map[molecular_id];
+        atoms_gro.emplace_back(atoms_vec);
+    }
+
+    std::vector<rbmd::Id> atoms_vec_gro;
+    std::vector<rbmd::Id> countVector;
+    for (const std::vector<rbmd::Id>& innerVector : atoms_gro)
+    {
+        //��ƽ��
+        atoms_vec_gro.insert(atoms_vec_gro.end(), innerVector.begin(), innerVector.end());
+        //��������
+        countVector.push_back(innerVector.size());
+    }
+    auto& full_structure_data = _md_data._structure_data;
+    FullStructureData* data =
+        dynamic_cast<FullStructureData*>(full_structure_data.get());
+    HIP_CHECK(
+        MALLOCHOST(&(data->_h_special_source_array), atoms_vec_gro.size() * sizeof(rbmd::Id)));
+    HIP_CHECK(
+        MALLOCHOST(&(data->_h_special_offsets_array), atoms_vec_gro.size() * sizeof(rbmd::Id)));
+    data->_h_special_source_array = atoms_vec_gro.data();
+    data->_h_special_offsets_array = countVector.data();
 }
 
 int AtomicReader::ReadVelocity(const rbmd::Id& atoms_num) {
@@ -299,7 +375,7 @@ int AtomicReader::ReadBond(const rbmd::Id& atoms_num) {
                 _line_start = &_mapped_memory[_locate];
             }
         }
-        //SetSpecialBonds();
+        SetSpecialBonds();
     }
     catch (const std::exception& e) {
         // log
@@ -413,80 +489,80 @@ int AtomicReader::ReadDihedrals(const rbmd::Id& atoms_num)
 
 void AtomicReader::SetSpecialBonds()
 {
-    //auto special_bonds = DataManager::getInstance().getConfigData()->Get<std::vector<rbmd::Real>>("special_bonds", "hyper_parameters", "extend");
-    //auto& full_structure_data = _md_data._structure_data;
-    //FullStructureData* data = dynamic_cast<FullStructureData*>(full_structure_data.get());
-    //auto& weights = data._h_special_weights;
-    //auto& ids = data._h_special_ids;
-    //auto& offsets = data._h_special_offsets;
-    //
-    //std::vector<rbmd::Real> special_weights;
-    //std::vector<rbmd::Id> special_ids;
-    //std::vector<rbmd::Id> special_offsets;
-    //auto& ids_atoms = _md_data._structure_data->_h_atoms_id;
-    //for (int i =0;i< sizeof(ids_atoms);i++)
-    //{
-    //    auto atoms_id = ids_atoms[i];
-    //    //??��???????
-    //    if (_special_map.find(atoms_id) == _special_map.end())
-    //    {
-    //        special_weights.push_back(1.0);
-    //        special_ids.push_back(atoms_id);
-    //        special_offsets.push_back(1);
-    //        continue;
-    //    }
+    auto special_bonds = DataManager::getInstance().getConfigData()->GetArray<rbmd::Real>("special_bonds", "hyper_parameters", "extend");
+    auto& full_structure_data = _md_data._structure_data;
+    FullStructureData* data = dynamic_cast<FullStructureData*>(full_structure_data.get());
+    auto& weights = data->_h_special_weights;
+    auto& ids = data->_h_special_ids;
+    auto& offsets = data->_h_special_offsets;
 
-    //    //????????
-    //    rbmd::Id offset = 0;
-    //    auto link_0 = _special_map.equal_range(atoms_id);
-    //    for (auto it0 = link_0.first; it0 != link_0.second; ++it0)
-    //    {
-    //        //???????
-    //        int key_1 = it0->second;
-    //        special_weights.push_back(special_bonds[0]);
-    //        special_ids.push_back(key_1);
-    //        offset++;
+    std::vector<rbmd::Real> special_weights;
+    std::vector<rbmd::Id> special_ids;
+    std::vector<rbmd::Id> special_offsets;
+    auto& ids_atoms = _md_data._structure_data->_h_atoms_id;
+    for (int i =0;i< sizeof(ids_atoms);i++)
+    {
+        auto atoms_id = ids_atoms[i];
+        //没有成键的部分
+        if (_special_map.find(atoms_id) == _special_map.end())
+        {
+            special_weights.push_back(1.0);
+            special_ids.push_back(atoms_id);
+            special_offsets.push_back(1);
+            continue;
+        }
 
-    //        if (_special_map.find(key_1) == _special_map.end())
-    //            continue;
+        //成键的部分
+        rbmd::Id offset = 0;
+        auto link_0 = _special_map.equal_range(atoms_id);
+        for (auto it0 = link_0.first; it0 != link_0.second; ++it0)
+        {
+            //一级连接
+            int key_1 = it0->second;
+            special_weights.push_back(special_bonds[0]);
+            special_ids.push_back(key_1);
+            offset++;
 
-    //        //????????
-    //        auto link_1 = _special_map.equal_range(key_1);
-    //        for (auto it1 = link_1.first; it1 != link_1.second; ++it1)
-    //        {
-    //            auto key_2 = it1->second;
-    //            if (atoms_id == key_2)
-    //                continue;
+            if (_special_map.find(key_1) == _special_map.end())
+                continue;
 
-    //            special_weights.push_back(special_bonds[1]);
-    //            special_ids.push_back(key_2);
-    //            offset++;
+            //二级链接
+            auto link_1 = _special_map.equal_range(key_1);
+            for (auto it1 = link_1.first; it1 != link_1.second; ++it1)
+            {
+                auto key_2 = it1->second;
+                if (atoms_id == key_2)
+                    continue;
 
-    //            if (_special_map.find(key_2) == _special_map.end())
-    //                continue;
+                special_weights.push_back(special_bonds[1]);
+                special_ids.push_back(key_2);
+                offset++;
 
-    //            //????????
-    //            auto link_2 = _special_map.equal_range(key_2);
-    //            for (auto it2 = link_2.first; it2 != link_2.second; ++it2)
-    //            {
-    //                auto key_3 = it2->second;
-    //                if (key_1 == key_3)
-    //                    continue;
+                if (_special_map.find(key_2) == _special_map.end())
+                    continue;
 
-    //                special_weights.push_back(special_bonds[2]);
-    //                special_ids.push_back(key_3);
-    //                offset++;
-    //            }
-    //        }
-    //    }
+                //三级连接
+                auto link_2 = _special_map.equal_range(key_2);
+                for (auto it2 = link_2.first; it2 != link_2.second; ++it2)
+                {
+                    auto key_3 = it2->second;
+                    if (key_1 == key_3)
+                        continue;
 
-    //    special_offsets.push_back(offset);
-    //}
-    //HIP_CHECK(MALLOCHOST(&weights, special_weights.size() * sizeof(rbmd::Real)));
-    //HIP_CHECK(MALLOCHOST(&ids, special_ids.size() * sizeof(rbmd::Id)));
-    //HIP_CHECK(MALLOCHOST(&offsets, special_offsets.size() * sizeof(rbmd::Id)));
-    //weights = special_weights.data();
-    //ids = special_ids.data();
-    //offsets = special_offsets.data();
+                    special_weights.push_back(special_bonds[2]);
+                    special_ids.push_back(key_3);
+                    offset++;
+                }
+            }
+        }
+
+        special_offsets.push_back(offset);
+    }
+    HIP_CHECK(MALLOCHOST(&weights, special_weights.size() * sizeof(rbmd::Real)));
+    HIP_CHECK(MALLOCHOST(&ids, special_ids.size() * sizeof(rbmd::Id)));
+    HIP_CHECK(MALLOCHOST(&offsets, special_offsets.size() * sizeof(rbmd::Id)));
+    weights = special_weights.data();
+    ids = special_ids.data();
+    offsets = special_offsets.data();
 
 }
