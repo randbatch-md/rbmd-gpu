@@ -197,12 +197,17 @@ void CVFF::ComputeLJCutCoulForce()
   op::LJCutCoulForceOp<device::DEVICE_GPU> lj_cut_coul_force_op;
   lj_cut_coul_force_op(_device_data->_d_box,_device_data->_d_erf_table, _cut_off, _num_atoms,_alpha,_qqr2e,
                   thrust::raw_pointer_cast(_device_data->_d_atoms_type.data()),
+                  thrust::raw_pointer_cast(_device_data->_d_atoms_id.data()),
                   thrust::raw_pointer_cast(_device_data->_d_molecular_id.data()),
                   thrust::raw_pointer_cast(_device_data->_d_sigma.data()),
                   thrust::raw_pointer_cast(_device_data->_d_eps.data()),
                   thrust::raw_pointer_cast(_list->_start_idx.data()),
                   thrust::raw_pointer_cast(_list->_end_idx.data()),
                   thrust::raw_pointer_cast(_list->_d_neighbors.data()),
+                  thrust::raw_pointer_cast(_device_data->_d_special_ids.data()),
+                  thrust::raw_pointer_cast(_device_data->_d_special_weights.data()),
+                  thrust::raw_pointer_cast(_device_data->_d_special_offsets.data()),
+                  thrust::raw_pointer_cast(_device_data->_d_special_count.data()),
                   thrust::raw_pointer_cast(_device_data->_d_charge.data()),
                   thrust::raw_pointer_cast(_device_data->_d_px.data()),
                   thrust::raw_pointer_cast(_device_data->_d_py.data()),
@@ -221,7 +226,8 @@ void CVFF::ComputeLJCutCoulForce()
 
 
   std::cout << "test_current_step:" << test_current_step <<  " ,"
-  << "average_vdwl_energy:" << _ave_evdwl << std::endl;
+  << "average_vdwl_energy:" << _ave_evdwl << " " << "average_coul_energy_old:" <<
+    _ave_ecoul  << std::endl;
 
   //out
   std::ofstream outfile("ave_lj.txt", std::ios::app);
@@ -257,7 +263,6 @@ void CVFF::ComputeSpecialCoulForce()
   auto _atom_id_to_idx =
     LinkedCellLocator::GetInstance().GetLinkedCell()->_atom_id_to_idx;
   //
-
   op::ComputeSpecialCoulForceOp<device::DEVICE_GPU> special_coul_force_op;
   special_coul_force_op(_device_data->_d_box,_num_atoms,_qqr2e,
   thrust::raw_pointer_cast(_device_data->_d_atoms_id.data()),

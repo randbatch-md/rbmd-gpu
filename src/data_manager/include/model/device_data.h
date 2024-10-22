@@ -39,12 +39,12 @@ class DeviceData {
 
   thrust::device_vector<rbmd::Real> _d_special_weights;
   thrust::device_vector<rbmd::Id> _d_special_ids;
-  thrust::device_vector<rbmd::Id> _d_special_offsets;
   thrust::device_vector<rbmd::Id> _d_special_count;
+  thrust::device_vector<rbmd::Id> _d_special_offsets;
 
   thrust::device_vector<rbmd::Id> _d_atoms_vec;
-  thrust::device_vector<rbmd::Id> _d_atoms_offset;
   thrust::device_vector<rbmd::Id> _d_atoms_count;
+  thrust::device_vector<rbmd::Id> _d_atoms_offset;
 
   /// angle
   thrust::device_vector<rbmd::Id> _d_angle_type;
@@ -60,8 +60,8 @@ class DeviceData {
   thrust::device_vector<rbmd::Id> _d_dihedral_id3;
 
   /// Processing data
-  thrust::device_vector<rbmd::Id> _d_special_source_array;
-  thrust::device_vector<rbmd::Id> _d_special_offsets_array;
+  // thrust::device_vector<rbmd::Id> _d_special_source_array;
+  // thrust::device_vector<rbmd::Id> _d_special_offsets_array;
 
 
   ///< force on device>

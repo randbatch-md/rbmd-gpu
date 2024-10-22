@@ -124,7 +124,8 @@ void LinkedCell::SortAtomsByCellKey() {
       _device_data->_d_vx.begin(),
       _device_data->_d_vy.begin(),
       _device_data->_d_vz.begin(),
-      _device_data->_d_charge.begin()
+      _device_data->_d_charge.begin(),
+      _device_data->_d_molecular_id.begin()
   ));
 
   // 一次性排序所有数据
@@ -136,13 +137,7 @@ void LinkedCell::SortAtomsByCellKey() {
   op::MapAtomidToIdxOp<device::DEVICE_GPU> map_atomid_to_idx_op;
   map_atomid_to_idx_op(thrust::raw_pointer_cast(_atom_id_to_idx.data()),
                        raw_ptr(_device_data->_d_atoms_id), _total_atoms_num);
- //molecular_id
-  per_atom_cell_id_copy = _per_atom_cell_id;
-  thrust::stable_sort_by_key(per_atom_cell_id_copy.begin(),
-                             per_atom_cell_id_copy.end(),
-                             _device_data->_d_molecular_id.begin());
 }
-
 void LinkedCell::AllocDeviceMemory() {
   if (nullptr == this->_linked_cell_device_data_ptr) {
     CHECK_RUNTIME(MALLOC(&(this->_linked_cell_device_data_ptr),

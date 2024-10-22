@@ -32,17 +32,15 @@ bool CVFFMemoryScheduler::asyncMemoryH2D() {
   _device_data->_d_dihedral_id2.resize(num_dihedrals);
   _device_data->_d_dihedral_id3.resize(num_dihedrals);
   _device_data->_d_charge.resize(num_atoms);
-  _device_data->_d_special_source_array.resize(*(sd->_num_special_source_array));
-  _device_data->_d_special_offsets_array.resize(*(sd->_num_special_offsets_array));
-  _device_data->_d_special_weights.resize(*(sd->_num_special_weights));
-  _device_data->_d_special_ids.resize(*(sd->_num_special_ids));
-  _device_data->_d_special_offsets.resize(*(sd->_num_special_offsets));
-  _device_data->_d_special_count.resize(sizeof(sd->_h_special_offset_count));
 
-  thrust::copy(sd->_h_special_source_array, sd->_h_special_source_array + *(sd->_num_special_source_array),
-      _device_data->_d_special_source_array.begin());
-  thrust::copy(sd->_h_special_offsets_array, sd->_h_special_offsets_array + *(sd->_num_special_offsets_array),
-      _device_data->_d_special_offsets_array.begin());
+  _device_data->_d_atoms_vec.resize(sd->_num_atoms_vec_gro);
+  _device_data->_d_atoms_count.resize(sd->_num_count_vector);
+  _device_data->_d_atoms_offset.resize(sd->_num_atoms_offset );
+
+  _device_data->_d_special_weights.resize(sd->_num_special_weights);
+  _device_data->_d_special_ids.resize(sd->_num_special_ids);
+  _device_data->_d_special_offsets.resize(sd->_num_special_offsets);
+  _device_data->_d_special_count.resize(sd->_num_special_offset_count);
 
   /// charge
   thrust::copy(sd->_h_charge, sd->_h_charge + num_atoms,
@@ -58,36 +56,28 @@ bool CVFFMemoryScheduler::asyncMemoryH2D() {
                _device_data->_d_bond_id0.begin());
   thrust::copy(sd->_h_bond_id1, sd->_h_bond_id1 + num_bonds,
                _device_data->_d_bond_id1.begin());
-  //special
-  thrust::copy(sd->_h_special_weights, sd->_h_special_weights + *(sd->_num_special_weights),
+
+  //special weights and ids
+  thrust::copy(sd->_h_special_weights, sd->_h_special_weights + sd->_num_special_weights,
       _device_data->_d_special_weights.begin());
-  thrust::copy(sd->_h_special_ids, sd->_h_special_ids + *(sd->_num_special_ids),
+  thrust::copy(sd->_h_special_ids, sd->_h_special_ids + sd->_num_special_ids,
       _device_data->_d_special_ids.begin());
-  thrust::copy(sd->_h_special_offsets, sd->_h_special_offsets + *(sd->_num_special_offsets),
+  thrust::copy(sd->_h_special_offsets, sd->_h_special_offsets + sd->_num_special_offsets,
       _device_data->_d_special_offsets.begin());
-  thrust::copy(sd->_h_special_offset_count, sd->_h_special_offset_count+
-    sizeof(sd->_h_special_offset_count),_device_data->_d_special_count.begin());
+  thrust::copy(sd->_h_special_offset_count, sd->_h_special_offset_count +
+    sd->_num_special_offset_count,_device_data->_d_special_count.begin());
 
-  // atoms_vec  sourceArray
-  thrust::copy(sd->_h_atoms_vec_gro, sd->_h_atoms_vec_gro + sizeof(sd->_h_atoms_vec_gro),
-    _device_data->_d_atoms_vec.begin());
+  // special atoms_vec
+  thrust::copy(sd->_h_atoms_vec_gro, sd->_h_atoms_vec_gro + sd->_num_atoms_vec_gro,
+      _device_data->_d_atoms_vec.begin());
 
-  thrust::copy(sd->_h_countVector, sd->_h_countVector + sizeof(sd->_h_countVector),
-    _device_data->_d_atoms_count.begin());
+  thrust::copy(sd->_h_count_vector, sd->_h_count_vector + sd->_num_count_vector,
+      _device_data->_d_atoms_count.begin());
 
-  //atoms_vec offsetArray
-  //cpu上运行
-  std::vector<rbmd::Id> cumulative_offsets;
-  cumulative_offsets.push_back(0); // 初始偏移量为0
-
-  for (int i = 0; i < sizeof(sd->_h_countVector); ++i)
-  {
-    cumulative_offsets.push_back(cumulative_offsets.back() + sd->_h_countVector[i]);
-  }
-  thrust::copy(cumulative_offsets.begin(), cumulative_offsets.end(),
+  thrust::copy(sd->_h_atoms_offset, sd->_h_atoms_offset + sd->_num_atoms_offset,
   _device_data->_d_atoms_offset.begin());
 
-  //GPU上运行
+  //GPU
   // thrust::device_vector<rbmd::Id> d_atoms_offset_temp(sd->_h_countVector.size());
   // thrust::copy(sd->_h_countVector.begin(), sd->_h_countVector.end(),
   //   d_atoms_offset_temp.begin());

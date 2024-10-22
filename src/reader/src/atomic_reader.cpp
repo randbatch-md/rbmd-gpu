@@ -221,7 +221,6 @@ int AtomicReader::ReadAtoms(const rbmd::Id& atoms_num) {
                 _line_start = &_mapped_memory[_locate];
             }
         }
-      //SetMolecularGroup();
     }
   } catch (const std::exception& e) {
     // log
@@ -296,16 +295,30 @@ void AtomicReader::SetMolecularGroup()
     auto& full_structure_data = _md_data._structure_data;
     FullStructureData* data =
         dynamic_cast<FullStructureData*>(full_structure_data.get());
+
     HIP_CHECK(
-        MALLOCHOST(&(data->_h_special_source_array), atoms_vec_gro.size() * sizeof(rbmd::Id)));
+        MALLOCHOST(&(data->_h_atoms_vec_gro), atoms_vec_gro.size() * sizeof(rbmd::Id)));
     HIP_CHECK(
-        MALLOCHOST(&(data->_h_special_offsets_array), countVector.size() * sizeof(rbmd::Id)));
-    HIP_CHECK(MALLOCHOST(&(data->_num_special_source_array), sizeof(rbmd::Id)));
-    HIP_CHECK(MALLOCHOST(&(data->_num_special_offsets_array), sizeof(rbmd::Id)));
-    data->_h_special_source_array = atoms_vec_gro.data();
-    data->_h_special_offsets_array = countVector.data();
-    *(data->_num_special_source_array) = atoms_vec_gro.size();
-    *(data->_num_special_offsets_array) = countVector.size();
+        MALLOCHOST(&(data->_h_count_vector), countVector.size() * sizeof(rbmd::Id)));
+    HIP_CHECK(
+     MALLOCHOST(&(data->_h_atoms_offset), (countVector.size()+1)* sizeof(rbmd::Id)));
+
+
+    memcpy(data->_h_atoms_vec_gro, atoms_vec_gro.data(), atoms_vec_gro.size() * sizeof(rbmd::Id));
+    memcpy(data->_h_count_vector, countVector.data(), countVector.size() * sizeof(rbmd::Id));
+
+    std::vector<rbmd::Id> cumulative_offsets;
+    cumulative_offsets.push_back(0);
+
+    for (int i = 0; i < countVector.size(); ++i)
+    {
+      cumulative_offsets.push_back(cumulative_offsets.back() + countVector[i]); //cpu
+    }
+    memcpy(data->_h_atoms_offset, cumulative_offsets.data(), cumulative_offsets.size() * sizeof(rbmd::Id));
+
+    data->_num_atoms_vec_gro = atoms_vec_gro.size();
+    data->_num_count_vector = countVector.size();
+    data->_num_atoms_offset = cumulative_offsets.size();
 }
 
 int AtomicReader::ReadVelocity(const rbmd::Id& atoms_num) {
@@ -494,7 +507,9 @@ int AtomicReader::ReadDihedrals(const rbmd::Id& num_dihedrals)
 
 void AtomicReader::SetSpecialBonds()
 {
-    auto special_bonds = DataManager::getInstance().getConfigData()->GetArray<rbmd::Real>("special_bonds", "hyper_parameters", "extend");
+    auto special_bonds = DataManager::getInstance().getConfigData()->
+  GetArray<rbmd::Real>("special_bonds", "hyper_parameters", "extend");
+
     auto& full_structure_data = _md_data._structure_data;
     FullStructureData* data = dynamic_cast<FullStructureData*>(full_structure_data.get());
     auto& weights = data->_h_special_weights;
@@ -565,19 +580,15 @@ void AtomicReader::SetSpecialBonds()
 
         special_offsets.push_back(offset);
     }
+
     HIP_CHECK(MALLOCHOST(&weights, special_weights.size() * sizeof(rbmd::Real)));
     HIP_CHECK(MALLOCHOST(&ids, special_ids.size() * sizeof(rbmd::Id)));
     HIP_CHECK(MALLOCHOST(&offsets, (special_offsets.size()+1) * sizeof(rbmd::Id)));
     HIP_CHECK(MALLOCHOST(&special_offset_count, special_offsets.size() * sizeof(rbmd::Id)));
-    HIP_CHECK(MALLOCHOST(&(data->_num_special_weights), sizeof(rbmd::Id)));
-    HIP_CHECK(MALLOCHOST(&(data->_num_special_ids), sizeof(rbmd::Id)));
-    HIP_CHECK(MALLOCHOST(&(data->_num_special_offsets), sizeof(rbmd::Id)));
-    weights = special_weights.data();
-    ids = special_ids.data();
-    special_offset_count = special_offsets.data();
-    *(data->_num_special_weights) = special_weights.size();
-    *(data->_num_special_ids) = special_ids.size();
-    *(data->_num_special_offsets) = special_offsets.size();
+
+    memcpy(weights, special_weights.data(), special_weights.size() * sizeof(rbmd::Real));
+    memcpy(ids, special_ids.data(), special_ids.size() * sizeof(rbmd::Id));
+    memcpy(special_offset_count, special_offsets.data(), special_offsets.size() * sizeof(rbmd::Id));
 
     //cpu上运行 前缀和
     std::vector<rbmd::Id> cumulative_offsets;
@@ -587,34 +598,10 @@ void AtomicReader::SetSpecialBonds()
     {
       cumulative_offsets.push_back(cumulative_offsets.back() + special_offsets[i]);
     }
-    offsets = cumulative_offsets.data();
+    memcpy(offsets, cumulative_offsets.data(), cumulative_offsets.size() * sizeof(rbmd::Id));
 
-  // //cuda上运行 前缀和
-  // // 创建 device 端的偏移数组并分配空间
-  // thrust::device_vector<rbmd::Id> d_special_offsets(offsets.size());
-  // thrust::copy(offsets.begin(), offsets.end(), d_special_offsets.begin());
-  //
-  // // 创建输出的 cumulative_offsets 数组
-  // thrust::device_vector<rbmd::Id> d_offsets;
-  // d_offsets.resize(d_special_offsets.size() + 1); // 比原始数组多一个元素
-  // d_offsets[0] = 0; // 初始偏移量
-  // thrust::exclusive_scan(d_special_offsets.begin(), d_special_offsets.end(), d_offsets.begin() + 1);
-
-  for (int i = 0; i < special_ids.size(); ++i)
-  {
-    std::cout << i << " " << "ids: " <<ids[i]<<  std::endl;
-  }
-  for (int i = 0; i < special_weights.size(); ++i)
-  {
-    std::cout << i << " " << "special_weights: "<<  weights[i]<<  std::endl;
-  }
-  for (int i = 0; i < cumulative_offsets.size(); ++i)
-  {
-    std::cout << i << " " << "offsets: "<< offsets[i]<<  std::endl;
-  }
-  for (int i = 0; i < special_offsets.size(); ++i)
-  {
-    std::cout << i << " " << "special_offset_count: "<< special_offset_count[i]<<  std::endl;
-  }
-
+    data->_num_special_weights = special_weights.size();
+    data->_num_special_ids = special_ids.size();
+    data->_num_special_offset_count = special_offsets.size();
+    data->_num_special_offsets =cumulative_offsets.size() ;
 }

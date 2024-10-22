@@ -175,22 +175,27 @@ void LJCutCoulKspaceForce::ComputeLJCutCoulForce()
 
   //
   op::LJCutCoulForceOp<device::DEVICE_GPU> lj_cut_coul_force_op;
-  lj_cut_coul_force_op(_device_data->_d_box,_device_data->_d_erf_table, _cut_off, _num_atoms,_alpha,_qqr2e,
-                  thrust::raw_pointer_cast(_device_data->_d_atoms_type.data()),
-                  thrust::raw_pointer_cast(_device_data->_d_molecular_id.data()),
-                  thrust::raw_pointer_cast(_device_data->_d_sigma.data()),
-                  thrust::raw_pointer_cast(_device_data->_d_eps.data()),
-                  thrust::raw_pointer_cast(_list->_start_idx.data()),
-                  thrust::raw_pointer_cast(_list->_end_idx.data()),
-                  thrust::raw_pointer_cast(_list->_d_neighbors.data()),
-                  thrust::raw_pointer_cast(_device_data->_d_charge.data()),
-                  thrust::raw_pointer_cast(_device_data->_d_px.data()),
-                  thrust::raw_pointer_cast(_device_data->_d_py.data()),
-                  thrust::raw_pointer_cast(_device_data->_d_pz.data()),
-                  thrust::raw_pointer_cast(_device_data->_d_force_ljcoul_x.data()),
-                  thrust::raw_pointer_cast(_device_data->_d_force_ljcoul_y.data()),
-                  thrust::raw_pointer_cast(_device_data->_d_force_ljcoul_z.data()),
-                  _d_total_evdwl,_d_total_ecoul);
+    lj_cut_coul_force_op(_device_data->_d_box,_device_data->_d_erf_table, _cut_off, _num_atoms,_alpha,_qqr2e,
+                    thrust::raw_pointer_cast(_device_data->_d_atoms_type.data()),
+                    thrust::raw_pointer_cast(_device_data->_d_atoms_id.data()),
+                    thrust::raw_pointer_cast(_device_data->_d_molecular_id.data()),
+                    thrust::raw_pointer_cast(_device_data->_d_sigma.data()),
+                    thrust::raw_pointer_cast(_device_data->_d_eps.data()),
+                    thrust::raw_pointer_cast(_list->_start_idx.data()),
+                    thrust::raw_pointer_cast(_list->_end_idx.data()),
+                    thrust::raw_pointer_cast(_list->_d_neighbors.data()),
+                    thrust::raw_pointer_cast(_device_data->_d_special_ids.data()),
+                    thrust::raw_pointer_cast(_device_data->_d_special_weights.data()),
+                    thrust::raw_pointer_cast(_device_data->_d_special_offsets.data()),
+                    thrust::raw_pointer_cast(_device_data->_d_special_count.data()),
+                    thrust::raw_pointer_cast(_device_data->_d_charge.data()),
+                    thrust::raw_pointer_cast(_device_data->_d_px.data()),
+                    thrust::raw_pointer_cast(_device_data->_d_py.data()),
+                    thrust::raw_pointer_cast(_device_data->_d_pz.data()),
+                    thrust::raw_pointer_cast(_device_data->_d_force_ljcoul_x.data()),
+                    thrust::raw_pointer_cast(_device_data->_d_force_ljcoul_y.data()),
+                    thrust::raw_pointer_cast(_device_data->_d_force_ljcoul_z.data()),
+                    _d_total_evdwl,_d_total_ecoul);
 
   CHECK_RUNTIME(MEMCPY(&h_total_evdwl,_d_total_evdwl , sizeof(rbmd::Real), D2H));
   CHECK_RUNTIME(MEMCPY(&h_total_ecoul,_d_total_ecoul , sizeof(rbmd::Real), D2H));
