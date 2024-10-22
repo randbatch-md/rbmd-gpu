@@ -37,6 +37,7 @@ bool CVFFMemoryScheduler::asyncMemoryH2D() {
   _device_data->_d_special_weights.resize(sd->_h_special_weights.size());
   _device_data->_d_special_ids.resize(sd->_h_special_ids.size());
   _device_data->_d_special_offsets.resize(sd->_h_special_offsets.size());
+  _device_data->_d_special_count.resize(sd->_h_special_count.size());
 
   _device_data->_d_atoms_vec.resize(sd->_h_atoms_vec_gro.size());
   _device_data->_d_atoms_offset.resize(sd->_h_countVector.size()+1);
@@ -63,6 +64,8 @@ bool CVFFMemoryScheduler::asyncMemoryH2D() {
                _device_data->_d_special_ids.begin());
   thrust::copy(sd->_h_special_offsets.begin(), sd->_h_special_offsets.end(),
                _device_data->_d_special_offsets.begin());
+  thrust::copy(sd->_h_special_count.begin(), sd->_h_special_count.end(),
+             _device_data->_d_special_count.begin());
 
   // atoms_vec  sourceArray
   thrust::copy(sd->_h_atoms_vec_gro.begin(), sd->_h_atoms_vec_gro.end(),

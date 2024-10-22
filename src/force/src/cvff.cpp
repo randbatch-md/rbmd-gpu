@@ -256,17 +256,17 @@ void CVFF::ComputeSpecialCoulForce()
   CHECK_RUNTIME(MEMSET(_d_total_e_specialcoul, 0, sizeof(rbmd::Real)));
 
   //
-  auto atom_id_to_idx =
-  LinkedCellLocator::GetInstance().GetLinkedCell()->_atom_id_to_idx;
 
   op::ComputeSpecialCoulForceOp<device::DEVICE_GPU> special_coul_force_op;
   special_coul_force_op(_device_data->_d_box,_num_atoms,_qqr2e,
-    thrust::raw_pointer_cast(atom_id_to_idx.data()),
+  thrust::raw_pointer_cast(_device_data->_d_atoms_id.data()),
     thrust::raw_pointer_cast(_device_data->_d_atoms_vec.data()),
     thrust::raw_pointer_cast(_device_data->_d_atoms_offset.data()),
     thrust::raw_pointer_cast(_device_data->_d_atoms_count.data()),
     thrust::raw_pointer_cast(_device_data->_d_special_ids.data()),
     thrust::raw_pointer_cast(_device_data->_d_special_weights.data()),
+    thrust::raw_pointer_cast(_device_data->_d_special_offsets.data()),
+    thrust::raw_pointer_cast(_device_data->_d_special_count.data()),
     thrust::raw_pointer_cast(_device_data->_d_charge.data()),
     thrust::raw_pointer_cast(_device_data->_d_px.data()),
     thrust::raw_pointer_cast(_device_data->_d_py.data()),

@@ -40,6 +40,7 @@ class DeviceData {
   thrust::device_vector<rbmd::Real> _d_special_weights;
   thrust::device_vector<rbmd::Id> _d_special_ids;
   thrust::device_vector<rbmd::Id> _d_special_offsets;
+  thrust::device_vector<rbmd::Id> _d_special_count;
 
   thrust::device_vector<rbmd::Id> _d_atoms_vec;
   thrust::device_vector<rbmd::Id> _d_atoms_offset;

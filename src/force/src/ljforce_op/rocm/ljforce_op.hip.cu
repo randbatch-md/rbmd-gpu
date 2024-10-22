@@ -1462,12 +1462,14 @@ void CoulCutForce_rcs_erf(
        Box* box,
        const rbmd::Id num_atoms,
        const rbmd::Real qqr2e,
-       const rbmd::Id* atom_id_to_idx,
+       const rbmd::Id* atoms_id,
        const rbmd::Id*  atoms_vec,
        const rbmd::Id*  atoms_offset,
        const rbmd::Id*  atom_count,
        const rbmd::Id*  special_ids,
        const rbmd::Real*  special_weights,
+       const rbmd::Id*  special_offset,
+       const rbmd::Id*  special_count,
        const rbmd::Real* charge,
        const rbmd::Real* px,
        const rbmd::Real* py,
@@ -1488,34 +1490,38 @@ void CoulCutForce_rcs_erf(
           unsigned int tid1 = blockIdx.x * blockDim.x + threadIdx.x;
           if (tid1 < num_atoms)
           {
-            rbmd::Real charge_i = charge[tid1];
-            rbmd::Real x1 = px[tid1];
-            rbmd::Real y1 = py[tid1];
-            rbmd::Real z1 = pz[tid1];
-            rbmd::Id id = atom_id_to_idx[tid1];
-            rbmd::Id  num_offset = atoms_offset[id];  // 每个原子的 group 数量
-            rbmd::Id  num_components = special_ids[tid1];
-            //printf("tid1 %i num_offset %i\n",tid1 ,num_offset);
-             //printf("id %i num_offset %i\n",id ,num_offset);
-            if (num_offset < 3)
+            rbmd::Id id = atoms_id[tid1];
+            if(atom_count[id] < 3 )
             {
-              sum_fx = sum_fy = sum_fz = 0.0;
-              sum_energy_special_coul = 0.0;
+              sum_fx=sum_fx=sum_fx=0.0;
+              sum_energy_special_coul=0.0;
             }
             else
             {
+              rbmd::Real charge_i = charge[id];
+              rbmd::Real x1 = px[id];
+              rbmd::Real y1 = py[id];
+              rbmd::Real z1 = pz[id];
+              rbmd::Id  num_offset = atoms_offset[id];
+              rbmd::Id  num_components = special_offset[id];
+              //printf("tid1 %i id %i\n",tid1,id);
+              //printf("tid1 %i id %i num_offset %i\n",tid1 ,id,num_offset);
+              //printf("id %i num_offset %i\n",id ,num_offset);
+              //printf("id %i num_components %i\n",id ,num_components);
+              //printf(" id %i  px[id] %f  tid %i  px[tid1] %f\n", id , px[id] ,
+              //tid1 ,px[tid1]);
               for (rbmd::Id j = 0; j < atom_count[id]; ++j)
               {
-                rbmd::Id tid2 = atoms_vec[num_offset + j];
-               // printf("atom_count %i tid2 %i\n",atom_count[id] ,tid2);
+                rbmd::Id id2 = atoms_vec[num_offset + j];
+                //printf("atom_count %i tid2 %i\n",atom_count[id] ,tid2);
 
-                if (tid1 == tid2)
+                if (id == id2)
                   continue;
 
-                rbmd::Real charge_j = charge[tid2];
-                rbmd::Real x2 = px[tid2];
-                rbmd::Real y2 = py[tid2];
-                rbmd::Real z2 = pz[tid2];
+                rbmd::Real charge_j = charge[id2];
+                rbmd::Real x2 = px[id2];
+                rbmd::Real y2 = py[id2];
+                rbmd::Real z2 = pz[id2];
 
                 rbmd::Real x12 = x2 - x1;
                 rbmd::Real y12 = y2 - y1;
@@ -1527,16 +1533,16 @@ void CoulCutForce_rcs_erf(
                 rbmd::Real force_component = -qqr2e * charge_i * charge_j / dis_ij3;
                 rbmd::Real energy_atom = 0.5 * qqr2e * charge_i * charge_j / dis_ij;
 
-                rbmd::Real weight = 0.0;
-                // for (rbmd::Id k = 0; k < num_components; ++k)
-                // {
-                //   if (special_ids[k] == tid2)
-                //   {
-                //     weight = special_weights[k];
-                //     break;
-                //   }
-                // }
-
+                rbmd::Real weight = 1.0;
+                for (rbmd::Id k = 0; k < special_count[id]; ++k)
+                {
+                  //printf("special_count %i tid22 %i\n",special_count[id] ,special_ids[num_components+k]);
+                  if (special_ids[num_components+k] == id2)
+                  {
+                    weight = special_weights[num_components+k];
+                    //printf("weight %f\n", weight);
+                  }
+                }
                 sum_fx += (1.0 - weight) * force_component * x12;
                 sum_fy += (1.0 - weight) * force_component * y12;
                 sum_fz += (1.0 - weight) * force_component * z12;
@@ -1544,13 +1550,13 @@ void CoulCutForce_rcs_erf(
                 //printf(" energy_special_coul %f\n" ,sum_energy_special_coul);
               }
             }
-            //printf(" force %f %f %f\n" ,sum_fx,sum_fy,sum_fz);
 
+            //printf(" force %f %f %f\n" ,sum_fx,sum_fy,sum_fz);
             fx[tid1] = sum_fx;
             fy[tid1] = sum_fy;
             fz[tid1] = sum_fz;
 
-            rbmd::Real block_sum_especial_coul =hipcub::BlockReduce<rbmd::Real, BLOCK_SIZE>
+            rbmd::Real block_sum_especial_coul = hipcub::BlockReduce<rbmd::Real, BLOCK_SIZE>
             (temp_storage).Sum(sum_energy_special_coul);
 
             if (threadIdx.x == 0) {
@@ -2329,12 +2335,14 @@ hipcub::BlockReduce<rbmd::Real, BLOCK_SIZE>(temp_storage).Sum(local_energy_dihed
        Box* box,
        const rbmd::Id num_atoms,
        const rbmd::Real qqr2e,
-       const rbmd::Id* atom_id_to_idx,
+       const rbmd::Id* atoms_id,
        const rbmd::Id*  atoms_vec,
        const rbmd::Id*  atoms_offset,
        const rbmd::Id*  atom_count,
        const rbmd::Id*  special_ids,
        const rbmd::Real*  special_weights,
+       const rbmd::Id*  special_offset,
+       const rbmd::Id*  special_count,
        const rbmd::Real* charge,
        const rbmd::Real* px,
        const rbmd::Real* py,
@@ -2347,8 +2355,9 @@ hipcub::BlockReduce<rbmd::Real, BLOCK_SIZE>(temp_storage).Sum(local_energy_dihed
           unsigned int blocks_per_grid = (num_atoms + BLOCK_SIZE - 1) / BLOCK_SIZE;
 
           CHECK_KERNEL(ComputeSpecialCoulForce <<<blocks_per_grid, BLOCK_SIZE, 0, 0 >>>
-                  (box,num_atoms,qqr2e,atom_id_to_idx,atoms_vec,atoms_offset,atom_count,
-                    special_ids,special_weights,charge,px, py, pz, fx, fy, fz,total_especial_coul));
+                  (box,num_atoms,qqr2e,atoms_id,atoms_vec,atoms_offset,atom_count,
+                    special_ids,special_weights,special_offset,special_count,
+                    charge,px, py, pz, fx, fy, fz,total_especial_coul));
       }
 
 //

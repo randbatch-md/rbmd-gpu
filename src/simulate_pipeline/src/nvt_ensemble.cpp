@@ -36,33 +36,33 @@ void NVTensemble::Presolve() {
 }
 
 void NVTensemble::Solve() {
-  auto start = std::chrono::high_resolution_clock::now();
-
-  _velocity_controller->Update();
-
-  _position_controller->Update();
-
-  bool use_shake;
-  if (true == use_shake)
-  {
-    _shake_controller->ShakeA();
-  }
-
-  _force_controller->Execute();
-
-  _velocity_controller->Update();
-
-  if (true == use_shake)
-  {
-    _shake_controller->ShakeB();
-  }
-  _temperature_controller->Update();
-
-  CHECK_RUNTIME(hipDeviceSynchronize());
-  auto end = std::chrono::high_resolution_clock::now();
-  std::chrono::duration<rbmd::Real> duration = end - start;
-
-  std::cout << "time pre step "<< duration.count() << "秒" << std::endl;
+  // auto start = std::chrono::high_resolution_clock::now();
+  //
+  // _velocity_controller->Update();
+  //
+  // _position_controller->Update();
+  //
+  // bool use_shake;
+  // if (true == use_shake)
+  // {
+  //   _shake_controller->ShakeA();
+  // }
+  //
+  // _force_controller->Execute();
+  //
+  // _velocity_controller->Update();
+  //
+  // if (true == use_shake)
+  // {
+  //   _shake_controller->ShakeB();
+  // }
+  // _temperature_controller->Update();
+  //
+  // CHECK_RUNTIME(hipDeviceSynchronize());
+  // auto end = std::chrono::high_resolution_clock::now();
+  // std::chrono::duration<rbmd::Real> duration = end - start;
+  //
+  // std::cout << "time pre step "<< duration.count() << "秒" << std::endl;
 }
 
 void NVTensemble::Postsolve() {}

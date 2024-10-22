@@ -25,6 +25,7 @@ class FullStructureData : public BasicStructureData {
   std::vector<rbmd::Real>  _h_special_weights;
   std::vector<rbmd::Id> _h_special_ids;
   std::vector<rbmd::Id>  _h_special_offsets;
+  std::vector<rbmd::Id>  _h_special_count;
 
   //
  std::vector<rbmd::Id> _h_atoms_vec_gro;

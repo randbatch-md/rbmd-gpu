@@ -415,7 +415,7 @@ int AtomicReader::ReadDihedrals(const rbmd::Id& num_dihedrals)
 
 void AtomicReader::SetSpecialBonds()
 {
-  std::vector<rbmd::Real>  special_bonds{1,1,1};
+  std::vector<rbmd::Real>  special_bonds{0,0,0};
 
   //   auto special_bonds =
   //     DataManager::getInstance().getConfigData()->Get<std::vector<rbmd::Real>>
@@ -503,6 +503,7 @@ void AtomicReader::SetSpecialBonds()
   weights = special_weights;
   ids = special_ids;
   offsets = special_offsets;
+  data->_h_special_count = offsets;
 
    //cpu上运行
   std::vector<rbmd::Id> cumulative_offsets;
