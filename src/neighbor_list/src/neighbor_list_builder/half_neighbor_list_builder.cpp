@@ -73,11 +73,17 @@ void HalfNeighborListBuilder::EstimateNeighborsList() {
       _neighbor_list->_h_total_max_neighbor_num);
   InitNeighborListIndices();
   this->should_realloc = false;
+  // std::cout << "total real neighbor  :  " <<
+  // thrust::reduce(_neighbor_list->_d_neighbor_num.begin(),_neighbor_list->_d_neighbor_num.end())
+  // << std::endl; std::cout  << "total max neighbor  :  " <<
+  // _neighbor_list->_h_total_max_neighbor_num << std::endl; std::cout <<
+  // "调试的atom idx 861 : " << "  real neighbor : "
+  // << _neighbor_list->_d_neighbor_num[861] <<  "  max neighbor : " <<
+  // _neighbor_list->_d_max_neighbor_num[861] << std::endl;
 }
 
-bool HalfNeighborListBuilder::GenerateNeighborsList() {
-  CHECK_RUNTIME(
-      MEMCPY(_d_should_realloc, &(this->should_realloc), sizeof(bool), H2D));
+rbmd::Id HalfNeighborListBuilder::GenerateNeighborsList() {
+  CHECK_RUNTIME(MEMCPY( _d_should_realloc, &(this->should_realloc),sizeof(rbmd::Id), H2D));
   op::GenerateHalfNeighborListOp<device::DEVICE_GPU>
       generate_half_neighbor_list_op;
   generate_half_neighbor_list_op(
@@ -95,8 +101,7 @@ bool HalfNeighborListBuilder::GenerateNeighborsList() {
       thrust::raw_pointer_cast(this->_neighbor_list->_d_neighbors.data()),
       _d_box, _d_should_realloc,
       thrust::raw_pointer_cast(_linked_cell->_neighbor_cell.data()),
-      _neighbor_cell_num, _without_pbc);
-  CHECK_RUNTIME(
-      MEMCPY(&(this->should_realloc), _d_should_realloc, sizeof(bool), D2H));
+      _neighbor_cell_num,_without_pbc);
+  CHECK_RUNTIME(MEMCPY(&(this->should_realloc), _d_should_realloc, sizeof(rbmd::Id), D2H));
   return this->should_realloc;
 }
