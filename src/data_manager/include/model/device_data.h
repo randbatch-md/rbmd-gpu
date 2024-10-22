@@ -59,6 +59,11 @@ class DeviceData {
   thrust::device_vector<rbmd::Id> _d_dihedral_id2;
   thrust::device_vector<rbmd::Id> _d_dihedral_id3;
 
+  /// Processing data
+  thrust::device_vector<rbmd::Id> _d_special_source_array;
+  thrust::device_vector<rbmd::Id> _d_special_offsets_array;
+
+
   ///< force on device>
   /// mass
   thrust::device_vector<rbmd::Real> _d_mass;
@@ -125,8 +130,6 @@ class DeviceData {
   thrust::device_vector<rbmd::Real> _d_virial_xz;
   thrust::device_vector<rbmd::Real> _d_virial_yz;
   //
-  thrust::device_vector<rbmd::Real> _d_evdwl;
-
   thrust::device_vector<rbmd::Real> _d_charge;
 
   // box in device

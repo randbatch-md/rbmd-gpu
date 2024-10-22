@@ -19,17 +19,14 @@ class FullStructureData : public BasicStructureData {
   rbmd::Id* _h_bond_id1;
   
   //special
-  // rbmd::Real* _h_special_weights;
-  // rbmd::Id* _h_special_ids;
-  // rbmd::Id* _h_special_offsets;
-  std::vector<rbmd::Real>  _h_special_weights;
-  std::vector<rbmd::Id> _h_special_ids;
-  std::vector<rbmd::Id>  _h_special_offsets;
-  std::vector<rbmd::Id>  _h_special_count;
+  rbmd::Real* _h_special_weights;
+  rbmd::Id* _h_special_ids;
+  rbmd::Id* _h_special_offsets;
+  rbmd::Id* _h_special_offset_count;
 
   //
- std::vector<rbmd::Id> _h_atoms_vec_gro;
- std::vector<rbmd::Id> _h_countVector;
+ rbmd::Id*  _h_atoms_vec_gro;
+ rbmd::Id*  _h_countVector;
 
   /// angle
   rbmd::Id* _h_angle_type;
@@ -43,4 +40,7 @@ class FullStructureData : public BasicStructureData {
   rbmd::Id* _h_dihedral_id1;
   rbmd::Id* _h_dihedral_id2;
   rbmd::Id* _h_dihedral_id3;
+
+  //rbmd::Id* _h_special_source_array;
+  //rbmd::Id* _h_special_offsets_array;
 };

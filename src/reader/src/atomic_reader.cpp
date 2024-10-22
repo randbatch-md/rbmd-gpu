@@ -209,8 +209,10 @@ int AtomicReader::ReadAtoms(const rbmd::Id& atoms_num) {
                         data->_h_pz[index];
                     types[index] = atom_type - 1;
                     data->_h_molecules_id[index] = molecules_id - 1;
-                  MolecularMapInsert(data->_h_molecules_id[index], ids[index]);
-                  AtomstoMolecular(ids[index], data->_h_molecules_id[index]);
+                    MolecularMapInsert(data->_h_molecules_id[index], ids[index]);
+                    AtomsMapInsert(types[index], ids[index]);
+                    AtomstoMolecular(ids[index], data->_h_molecules_id[index]);
+                    SetMolecularGroup();
                     ++num;
                     /*std::cout << atom_id << " " << data->_h_molecules_id[index] << " " << types[index] << " " <<
                     data->_h_charge[index]  << " " << data->_h_px[index] << " " <<
@@ -219,7 +221,7 @@ int AtomicReader::ReadAtoms(const rbmd::Id& atoms_num) {
                 _line_start = &_mapped_memory[_locate];
             }
         }
-      SetMolecularGroup();
+      //SetMolecularGroup();
     }
   } catch (const std::exception& e) {
     // log
@@ -227,6 +229,78 @@ int AtomicReader::ReadAtoms(const rbmd::Id& atoms_num) {
   }
 
   return 0;
+}
+void AtomicReader::MolecularMapInsert(const rbmd::Id& key, const rbmd::Id& value)
+{
+    auto it = _molecular_map.find(key);
+    if (it != _molecular_map.end())
+    {
+        it->second.push_back(value);
+    }
+    else
+    {
+        _molecular_map.insert(std::make_pair(key, std::vector<rbmd::Id>{ value }));
+    }
+}
+
+void AtomicReader::AtomsMapInsert(const rbmd::Id& key, const rbmd::Id& value)
+{
+    auto it = _atoms_map.find(key);
+    if (it != _atoms_map.end())
+    {
+        it->second.push_back(value);
+    }
+    else
+    {
+        _atoms_map.insert(std::make_pair(key, std::vector<rbmd::Id>{ value }));
+    }
+
+}
+
+void AtomicReader::AtomstoMolecular(const rbmd::Id& key, const rbmd::Id& value)
+{
+    auto it = _atom_to_molecular_map.find(key);
+    if (it != _atom_to_molecular_map.end())
+    {
+        it->second = value;
+    }
+    else
+    {
+        _atom_to_molecular_map.insert(std::make_pair(key, value));
+    }
+}
+
+void AtomicReader::SetMolecularGroup()
+{
+    //
+    std::vector<std::vector<rbmd::Id>> atoms_gro;
+    auto& ids = _md_data._structure_data->_h_atoms_id;
+    for (int index=0;index< sizeof(ids);index++)
+    {
+        const auto atom_id = ids[index];
+        auto molecular_id = _atom_to_molecular_map[atom_id];
+        auto atoms_vec = _molecular_map[molecular_id];
+        atoms_gro.emplace_back(atoms_vec);
+    }
+
+    std::vector<rbmd::Id> atoms_vec_gro;
+    std::vector<rbmd::Id> countVector;
+    for (const std::vector<rbmd::Id>& innerVector : atoms_gro)
+    {
+        //��ƽ��
+        atoms_vec_gro.insert(atoms_vec_gro.end(), innerVector.begin(), innerVector.end());
+        //��������
+        countVector.push_back(innerVector.size());
+    }
+    auto& full_structure_data = _md_data._structure_data;
+    FullStructureData* data =
+        dynamic_cast<FullStructureData*>(full_structure_data.get());
+    // HIP_CHECK(
+    //     MALLOCHOST(&(data->_h_special_source_array), atoms_vec_gro.size() * sizeof(rbmd::Id)));
+    // HIP_CHECK(
+    //     MALLOCHOST(&(data->_h_special_offsets_array), atoms_vec_gro.size() * sizeof(rbmd::Id)));
+    data->_h_atoms_vec_gro = atoms_vec_gro.data();
+    data->_h_countVector = countVector.data();
 }
 
 int AtomicReader::ReadVelocity(const rbmd::Id& atoms_num) {
@@ -415,30 +489,24 @@ int AtomicReader::ReadDihedrals(const rbmd::Id& num_dihedrals)
 
 void AtomicReader::SetSpecialBonds()
 {
-  std::vector<rbmd::Real>  special_bonds{0,0,0};
-
-  //   auto special_bonds =
-  //     DataManager::getInstance().getConfigData()->Get<std::vector<rbmd::Real>>
-  // ("special_bonds", "hyper_parameters", "extend");
-
-
-    auto& num_atoms = *(_md_data._structure_info_data->_num_atoms);
-
+    auto special_bonds = DataManager::getInstance().getConfigData()->GetArray<rbmd::Real>("special_bonds", "hyper_parameters", "extend");
     auto& full_structure_data = _md_data._structure_data;
     FullStructureData* data = dynamic_cast<FullStructureData*>(full_structure_data.get());
     auto& weights = data->_h_special_weights;
     auto& ids = data->_h_special_ids;
     auto& offsets = data->_h_special_offsets;
+    auto& special_offset_count = data->_h_special_offset_count;
 
     std::vector<rbmd::Real> special_weights;
     std::vector<rbmd::Id> special_ids;
     std::vector<rbmd::Id> special_offsets;
+    auto& ids_atoms = _md_data._structure_data->_h_atoms_id;
+    auto num_atoms = *(_md_data._structure_info_data->_num_atoms);
 
-    auto ids_atoms = _md_data._structure_data->_h_atoms_id;
-    for (int i =0; i< num_atoms;i++)
+    for (int i =0;i< num_atoms;i++) //
     {
         auto atoms_id = ids_atoms[i];
-        //??��???????
+        //没有成键的部分
         if (_special_map.find(atoms_id) == _special_map.end())
         {
             special_weights.push_back(1.0);
@@ -447,12 +515,12 @@ void AtomicReader::SetSpecialBonds()
             continue;
         }
 
-        //????????
+        //成键的部分
         rbmd::Id offset = 0;
         auto link_0 = _special_map.equal_range(atoms_id);
         for (auto it0 = link_0.first; it0 != link_0.second; ++it0)
         {
-            //???????
+            //一级连接
             int key_1 = it0->second;
             special_weights.push_back(special_bonds[0]);
             special_ids.push_back(key_1);
@@ -461,7 +529,7 @@ void AtomicReader::SetSpecialBonds()
             if (_special_map.find(key_1) == _special_map.end())
                 continue;
 
-            //????????
+            //二级链接
             auto link_1 = _special_map.equal_range(key_1);
             for (auto it1 = link_1.first; it1 != link_1.second; ++it1)
             {
@@ -476,7 +544,7 @@ void AtomicReader::SetSpecialBonds()
                 if (_special_map.find(key_2) == _special_map.end())
                     continue;
 
-                //????????
+                //三级连接
                 auto link_2 = _special_map.equal_range(key_2);
                 for (auto it2 = link_2.first; it2 != link_2.second; ++it2)
                 {
@@ -493,29 +561,25 @@ void AtomicReader::SetSpecialBonds()
 
         special_offsets.push_back(offset);
     }
-    // HIP_CHECK(MALLOCHOST(&weights, special_weights.size() * sizeof(rbmd::Real)));
-    // HIP_CHECK(MALLOCHOST(&ids, special_ids.size() * sizeof(rbmd::Id)));
-    // HIP_CHECK(MALLOCHOST(&offsets, special_offsets.size() * sizeof(rbmd::Id)));
-    // weights = special_weights.data();
-    // ids = special_ids.data();
-    // offsets = special_offsets.data();
-  //
-  weights = special_weights;
-  ids = special_ids;
-  offsets = special_offsets;
-  data->_h_special_count = offsets;
+    HIP_CHECK(MALLOCHOST(&weights, special_weights.size() * sizeof(rbmd::Real)));
+    HIP_CHECK(MALLOCHOST(&ids, special_ids.size() * sizeof(rbmd::Id)));
+    HIP_CHECK(MALLOCHOST(&offsets, (special_offsets.size()+1) * sizeof(rbmd::Id)));
+    HIP_CHECK(MALLOCHOST(&special_offset_count, special_offsets.size() * sizeof(rbmd::Id)));
+    weights = special_weights.data();
+    ids = special_ids.data();
+    special_offset_count = special_offsets.data();
 
-   //cpu上运行
-  std::vector<rbmd::Id> cumulative_offsets;
-  cumulative_offsets.push_back(0); // 初始偏移量为0
+    //cpu上运行 前缀和
+    std::vector<rbmd::Id> cumulative_offsets;
+    cumulative_offsets.push_back(0); // 初始偏移量为0
 
-  for (size_t i = 0; i < offsets.size(); ++i)
-  {
-    cumulative_offsets.push_back(cumulative_offsets.back() + offsets[i]);
-  }
-  offsets = cumulative_offsets;
+    for (size_t i = 0; i < special_offsets.size(); ++i)
+    {
+      cumulative_offsets.push_back(cumulative_offsets.back() + special_offsets[i]);
+    }
+    offsets = cumulative_offsets.data();
 
-  // //cuda上运行
+  // //cuda上运行 前缀和
   // // 创建 device 端的偏移数组并分配空间
   // thrust::device_vector<rbmd::Id> d_special_offsets(offsets.size());
   // thrust::copy(offsets.begin(), offsets.end(), d_special_offsets.begin());
@@ -525,84 +589,22 @@ void AtomicReader::SetSpecialBonds()
   // d_offsets.resize(d_special_offsets.size() + 1); // 比原始数组多一个元素
   // d_offsets[0] = 0; // 初始偏移量
   // thrust::exclusive_scan(d_special_offsets.begin(), d_special_offsets.end(), d_offsets.begin() + 1);
-  //
 
-
-  // for (int i = 0; i < ids.size(); ++i)
-  // {
-  //   std::cout << i << " " << "ids: " <<ids[i]<<  std::endl;
-  // }
-  // for (int i = 0; i < special_weights.size(); ++i)
-  // {
-  //   std::cout << i << " " << "special_weights: "<<  special_weights[i]<<  std::endl;
-  // }
-  // for (int i = 0; i < offsets.size(); ++i)
-  // {
-  //   std::cout << i << " " << "offsets: "<< offsets[i]<<  std::endl;
-  // }
-
-}
-
-void AtomicReader::MolecularMapInsert(rbmd::Id& key, rbmd::Id& value)
-{
-  auto it = _molecular_map.find(key);
-  if (it != _molecular_map.end())
+  for (int i = 0; i < special_ids.size(); ++i)
   {
-    it->second.push_back(value);
+    std::cout << i << " " << "ids: " <<ids[i]<<  std::endl;
   }
-  else
+  for (int i = 0; i < special_weights.size(); ++i)
   {
-    _molecular_map.insert(std::make_pair(key,std::vector<int>{ value }));
+    std::cout << i << " " << "special_weights: "<<  weights[i]<<  std::endl;
   }
-}
-
-void AtomicReader::AtomstoMolecular(rbmd::Id& key, rbmd::Id& value)
-{
-  auto it = _atom_to_molecular_map.find(key);
-  if (it != _atom_to_molecular_map.end())
+  for (int i = 0; i < cumulative_offsets.size(); ++i)
   {
-    it->second = value;
+    std::cout << i << " " << "offsets: "<< offsets[i]<<  std::endl;
   }
-  else
+  for (int i = 0; i < special_offsets.size(); ++i)
   {
-    _atom_to_molecular_map.insert(std::make_pair(key, value));
+    std::cout << i << " " << "special_offset_count: "<< special_offset_count[i]<<  std::endl;
   }
-}
-
-void AtomicReader::SetMolecularGroup()
-{
-  auto& full_structure_data = _md_data._structure_data;
-  FullStructureData* data =
-            dynamic_cast<FullStructureData*>(full_structure_data.get());
-
-  auto& atoms_id = _md_data._structure_data->_h_atoms_id;
-  auto& num_atoms = *(_md_data._structure_info_data->_num_atoms);
-  std::vector<std::vector<rbmd::Id>> atoms_gro;
-  for (int i =0;i < num_atoms;++i )
-  {
-    auto atoms_id_single = atoms_id[i];
-    auto molecular_id = _atom_to_molecular_map[atoms_id_single];
-    auto atoms_vec = _molecular_map[molecular_id];
-    atoms_gro.emplace_back(atoms_vec);
-  }
-
-  //
-  for (const std::vector<rbmd::Id>& innerVector : atoms_gro)
-  {
-    //扁平化
-    data->_h_atoms_vec_gro.insert(data->_h_atoms_vec_gro.end(),
-      innerVector.begin(), innerVector.end());
-    //计数数组
-    data->_h_countVector.push_back(innerVector.size());
-  }
-
-  // for (int i = 0; i < data->_h_atoms_vec_gro.size(); ++i)
-  // {
-  //   std::cout<< i << " "<< data->_h_atoms_vec_gro[i] << std::endl;
-  // }
-  // for (int i = 0; i < data->_h_countVector.size(); ++i)
-  // {
-  //   std::cout<<  i << " " << data->_h_countVector[i] << std::endl;
-  // }
 
 }

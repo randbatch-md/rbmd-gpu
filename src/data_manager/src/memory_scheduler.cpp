@@ -114,10 +114,6 @@ bool MemoryScheduler::asyncMemoryH2D() {
   _device_data->_d_force_angle_y.resize(num_atoms);
   _device_data->_d_force_angle_z.resize(num_atoms);
 
-  // cpoy evdwl
-  _device_data->_d_evdwl.resize(num_atoms);
-  // thrust::copy(h_evdwl, h_evdwl + num_atoms, _device_data->_d_evdwl.begin());
-
   /// copy other
   _device_data->_d_atoms_id.resize(num_atoms);
   _device_data->_d_atoms_type.resize(num_atoms);

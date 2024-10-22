@@ -254,12 +254,14 @@ void CVFF::ComputeSpecialCoulForce()
 {
   rbmd::Real h_total_e_specialcoul = 0.0;
   CHECK_RUNTIME(MEMSET(_d_total_e_specialcoul, 0, sizeof(rbmd::Real)));
-
+  auto _atom_id_to_idx =
+    LinkedCellLocator::GetInstance().GetLinkedCell()->_atom_id_to_idx;
   //
 
   op::ComputeSpecialCoulForceOp<device::DEVICE_GPU> special_coul_force_op;
   special_coul_force_op(_device_data->_d_box,_num_atoms,_qqr2e,
   thrust::raw_pointer_cast(_device_data->_d_atoms_id.data()),
+  thrust::raw_pointer_cast(_atom_id_to_idx.data()),
     thrust::raw_pointer_cast(_device_data->_d_atoms_vec.data()),
     thrust::raw_pointer_cast(_device_data->_d_atoms_offset.data()),
     thrust::raw_pointer_cast(_device_data->_d_atoms_count.data()),
