@@ -49,7 +49,8 @@ class ConfigData : public Object {
     try {
       if (json_node.isMember(key)) {
         return json_node[key].as<T>();
-      } else {
+      }
+      else {
         throw std::runtime_error("no key named: " + key);
       }
     } catch (const std::exception&) {
@@ -58,6 +59,35 @@ class ConfigData : public Object {
       throw;
     }
   }
+
+  template <typename T, typename... Args>
+  T GetJudge(std::string key, Args&&... args) {
+        Json::Value json_node = _json_node;
+
+        auto getNode = [this, &json_node](const auto& arg) {
+            if (json_node[arg].isObject()) {
+                json_node = json_node[arg];
+            } else {
+                //_console->error("{} is not a object!", arg);
+                return;
+            }
+        };
+
+        (getNode(std::forward<Args>(args)), ...);
+
+        try {
+            if (json_node.isMember(key)) {
+                return json_node[key].as<T>();
+            }
+            else {
+                return (T)NULL;
+            }
+        } catch (const std::exception&) {
+            // log
+            //_console->error("no key named: {}", key);
+            throw;
+        }
+    }
 
   template <typename T, typename... Args>
   std::vector<T> GetVector(std::string key, Args&&... args) {

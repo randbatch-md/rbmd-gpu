@@ -16,15 +16,21 @@ NVTensemble::NVTensemble()
 {
 	_position_controller = std::make_shared<DefaultPositionController>(); 
 	_velocity_controller = std::make_shared<DefaultVelocityController>(); 
-	_force_controller = std::make_shared<LJCutCoulKspaceForce>(); // todo �Զ���forcetype =
+	_force_controller = std::make_shared<LJCutCoulKspaceForce>(); // todo: force_type  json file
 	_temperature_controller = std::make_shared<BerendsenController>();
+    _shake_controller = std::make_shared<ShakeController>();
+
 }
 
 void NVTensemble::Init() {
   _position_controller->Init();
   _velocity_controller->Init();
   _temperature_controller->Init();
-
+  bool use_shake = DataManager::getInstance().getConfigData()->GetJudge<bool>( "fix_shake", "hyper_parameters", "extend");
+  if (use_shake)
+  {
+      _shake_controller->Init();
+  }
   _force_controller->Init();
   _force_controller->Execute();
 }
@@ -38,8 +44,8 @@ void NVTensemble::Solve() {
 
   _position_controller->Update();
 
-  bool use_shake = DataManager::getInstance().getConfigData()->Get<bool>( "fix_shake", "hyper_parameters", "extend");
-  if (true == use_shake)
+  bool use_shake = DataManager::getInstance().getConfigData()->GetJudge<bool>( "fix_shake", "hyper_parameters", "extend");
+  if (use_shake)
   {
     _shake_controller->ShakeA();
   }
@@ -48,7 +54,7 @@ void NVTensemble::Solve() {
 
   _velocity_controller->Update();
 
-  if (true == use_shake)
+  if (use_shake)
   {
     _shake_controller->ShakeB();
   }

@@ -16,13 +16,13 @@ void DefaultPositionController::Init() {
 }
 
 void DefaultPositionController::Update() {
-  bool available_shake = false;
+  bool available_shake = false;//TODO: json file to judge
   if (available_shake) {
-    bool shake = false;
+    bool shake = DataManager::getInstance().getConfigData()->GetJudge<bool>( "fix_shake", "hyper_parameters", "extend");
     if (shake) {
-      //_device_data->_shake_vx = _device_data->_d_px;
-      //_device_data->_shake_vy = _device_data->_d_py;
-      //_device_data->_shake_vz = _device_data->_d_pz;
+        thrust::copy(_device_data->_d_px.begin(), _device_data->_d_px.end(), _device_data->_d_px.begin());
+        thrust::copy(_device_data->_d_py.begin(), _device_data->_d_py.end(), _device_data->_d_py.begin());
+        thrust::copy(_device_data->_d_pz.begin(), _device_data->_d_pz.end(), _device_data->_d_pz.begin());
     }
     op::UpdatePositionOp<device::DEVICE_GPU> update_position_op;
     update_position_op(_num_atoms, _dt, (*_structure_info_data->_range)[0][0],
@@ -37,7 +37,9 @@ void DefaultPositionController::Update() {
                        thrust::raw_pointer_cast(_device_data->_d_px.data()),
                        thrust::raw_pointer_cast(_device_data->_d_py.data()),
                        thrust::raw_pointer_cast(_device_data->_d_pz.data()));
-  } else {
+  }
+    else
+    {
     op::UpdatePositionFlagOp<device::DEVICE_GPU> update_position_op;
     update_position_op(_num_atoms, _dt, _device_data->_d_box,
                        (*_structure_info_data->_range)[0][0],

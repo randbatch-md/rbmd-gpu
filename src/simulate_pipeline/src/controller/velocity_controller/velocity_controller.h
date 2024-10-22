@@ -11,12 +11,12 @@ class VelocityController {
   VelocityController() {
     this->_device_data =
         DataManager::getInstance()
-            .getDeviceData();  // todo ×î¿ªÊ¼µÄ³õÊ¼»¯´ý¶¨
+            .getDeviceData();  // todo ï¿½î¿ªÊ¼ï¿½Ä³ï¿½Ê¼ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
                                // _device_data(std::make_shared<DeviceData>())
     this->_structure_info_data =
         DataManager::getInstance()
             .getMDData()
-            ->_structure_info_data;  //  todo ×î¿ªÊ¼µÄ³õÊ¼»¯´ý¶¨
+            ->_structure_info_data;  //  todo ï¿½î¿ªÊ¼ï¿½Ä³ï¿½Ê¼ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
                                      //  _structure_info_data(std::make_shared<StructureInfoData>())
   };
 

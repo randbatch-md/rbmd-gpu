@@ -1,7 +1,7 @@
 #include "default_velocity_controller.h"
 
 #include <thrust/device_ptr.h>
-
+#include <thrust/copy.h>
 #include "data_manager.h"
 #include "device_types.h"
 #include "neighbor_list/include/linked_cell/linked_cell_locator.h"
@@ -34,11 +34,13 @@ void DefaultVelocityController::Init() {
 }
 
 void DefaultVelocityController::Update() {
-  bool shake = false;
+  bool shake = DataManager::getInstance().getConfigData()->GetJudge<bool>( "fix_shake", "hyper_parameters", "extend");
   if (shake) {
-     //_device_data->_d_shake_vx = _device_data->_d_vx;
-     //_device_data->_d_shake_vy = _device_data->_d_vy;
-     //_device_data->_d_shake_vz = _device_data->_d_vz;
+      thrust::copy(_device_data->_d_vx.begin(), _device_data->_d_vx.end(), _device_data->_d_shake_vx.begin());
+      thrust::copy(_device_data->_d_vy.begin(), _device_data->_d_vy.end(), _device_data->_d_shake_vy.begin());
+      thrust::copy(_device_data->_d_vz.begin(), _device_data->_d_vz.end(), _device_data->_d_shake_vz.begin());
+      //thrust::host_vector<rbmd::Real> host_shake_vx = _device_data->_d_shake_vx;
+      //for (const auto& value : host_shake_vx) {std::cout << value << " ";}
   }
 
   op::UpdateVelocityOp<device::DEVICE_GPU> update_velocity_op;

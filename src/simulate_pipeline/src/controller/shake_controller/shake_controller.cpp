@@ -60,14 +60,14 @@ void ShakeController::ShakeA()
               thrust::raw_pointer_cast(_device_data->_d_flagX.data()),
               thrust::raw_pointer_cast(_device_data->_d_flagY.data()),
               thrust::raw_pointer_cast(_device_data->_d_flagZ.data())); // TODO:FLAG & locator
-    
-    // _device_data->_d_vx = _d_device_data->_shake_vx;
-    // _device_data->_d_vy = _d_device_data->_shake_vy;
-    // _device_data->_d_vz = _d_device_data->_shake_vz;
-    
-    // _device_data->_d_px = _d_device_data->_shake_px;
-    // _device_data->_d_py = _d_device_data->_shake_py;
-    // _device_data->_d_pz = _d_device_data->_shake_pz;
+
+    thrust::copy(_device_data->_d_shake_vx.begin(), _device_data->_d_shake_vx.end(), _device_data->_d_vx.begin());
+    thrust::copy(_device_data->_d_shake_vy.begin(), _device_data->_d_shake_vy.end(), _device_data->_d_vy.begin());
+    thrust::copy(_device_data->_d_shake_vz.begin(), _device_data->_d_shake_vz.end(), _device_data->_d_vz.begin());
+
+    thrust::copy(_device_data->_d_shake_px.begin(), _device_data->_d_shake_px.end(), _device_data->_d_px.begin());
+    thrust::copy(_device_data->_d_shake_py.begin(), _device_data->_d_shake_py.end(), _device_data->_d_py.begin());
+    thrust::copy(_device_data->_d_shake_pz.begin(), _device_data->_d_shake_pz.end(), _device_data->_d_pz.begin());
 }
 
 void ShakeController::ShakeB() 
