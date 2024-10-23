@@ -406,7 +406,6 @@ void CoulCutForce_rcs_erf(
 		const rbmd::Real cut_off,
 		const rbmd::Id num_atoms,
 		const rbmd::Id* atoms_type,
-		const rbmd::Id* molecular_type,
 		const rbmd::Real* sigma,
 		const rbmd::Real* eps,
 		const rbmd::Id* start_id,
@@ -433,7 +432,6 @@ void CoulCutForce_rcs_erf(
 		if (tid1 < num_atoms)
 		{
 			rbmd::Id typei = atoms_type[tid1];
-			rbmd::Id molecular_id_i = molecular_type[tid1];
 			rbmd::Real eps_i = eps[typei];
 			rbmd::Real sigma_i = sigma[typei];
 
@@ -447,7 +445,6 @@ void CoulCutForce_rcs_erf(
 
 				rbmd::Id tid2 = id_verletlist[j];
 				rbmd::Id typej = atoms_type[tid2];
-				rbmd::Id molecular_id_j = molecular_type[tid2];
 				rbmd::Real eps_j = eps[typej];
 				rbmd::Real sigma_j = sigma[typej];
 
@@ -461,9 +458,6 @@ void CoulCutForce_rcs_erf(
 				rbmd::Real px12 = x2 - x1;
 				rbmd::Real py12 = y2 - y1;
 				rbmd::Real pz12 = z2 - z1;
-				//if (molecular_id_i == molecular_id_j)
-				//continue;
-
 				MinImageDistance(box, px12, py12, pz12);
 
 				rbmd::Real force_lj, fpair;
@@ -611,7 +605,6 @@ void CoulCutForce_rcs_erf(
 		const rbmd::Id neighbor_sample_num,
 		const rbmd::Id pice_num,
 		const rbmd::Id* atoms_type,
-		const rbmd::Id* molecular_type,
 		const rbmd::Real* sigma,
 		const rbmd::Real* eps,
 		const rbmd::Id* start_id,
@@ -644,7 +637,6 @@ void CoulCutForce_rcs_erf(
 		if (tid1 < num_atoms)
 		{
 			rbmd::Id typei = atoms_type[tid1];
-			rbmd::Id molecular_id_i = molecular_type[tid1];
 			rbmd::Real eps_i = eps[typei];
 			rbmd::Real sigma_i = sigma[typei];
 
@@ -653,15 +645,12 @@ void CoulCutForce_rcs_erf(
 			rbmd::Real z1 = pz[tid1];
 
 			rbmd::Real fs_ij, fcs_ij;
-
-
 			//rs
 			for (rbmd::Id j = start_id[tid1]; j < end_id[tid1]; ++j)
 			{
 
 				rbmd::Id tid2 = id_verletlist[j];
 				rbmd::Id typej = atoms_type[tid2];
-				rbmd::Id molecular_id_j = molecular_type[tid2];
 				rbmd::Real eps_j = eps[typej];
 				rbmd::Real sigma_j = sigma[typej];
 
@@ -675,8 +664,6 @@ void CoulCutForce_rcs_erf(
 				rbmd::Real px12 = x2 - x1;
 				rbmd::Real py12 = y2 - y1;
 				rbmd::Real pz12 = z2 - z1;
-				//if (molecular_id_i == molecular_id_j)
-					//continue;
 
 				MinImageDistance(box, px12, py12, pz12);
 
@@ -695,7 +682,6 @@ void CoulCutForce_rcs_erf(
 
 				rbmd::Id tid2 = id_random_neighbor[tid1 * neighbor_sample_num + jj];
 				rbmd::Id typej = atoms_type[tid2];
-				rbmd::Id molecular_id_j = molecular_type[tid2];
 				rbmd::Real eps_j = eps[typej];
 				rbmd::Real sigma_j = sigma[typej];
 
@@ -709,9 +695,6 @@ void CoulCutForce_rcs_erf(
 				rbmd::Real px12 = x2 - x1;
 				rbmd::Real py12 = y2 - y1;
 				rbmd::Real pz12 = z2 - z1;
-				//if (molecular_id_i == molecular_id_j)
-					//continue;
-
 				MinImageDistance(box, px12, py12, pz12);
 
 				//compute the force_rcs
@@ -760,7 +743,6 @@ void CoulCutForce_rcs_erf(
 		const rbmd::Real cut_off,
 		const rbmd::Id num_atoms,
 		const rbmd::Id* atoms_type,
-		const rbmd::Id* molecular_type,
 		const rbmd::Real* sigma,
 		const rbmd::Real* eps,
 		const rbmd::Id* start_id,
@@ -779,7 +761,6 @@ void CoulCutForce_rcs_erf(
 		if (tid1 < num_atoms)
 		{
 			rbmd::Id typei = atoms_type[tid1];
-			rbmd::Id molecular_id_i = molecular_type[tid1];
 			rbmd::Real eps_i = eps[typei];
 			rbmd::Real sigma_i = sigma[typei];
 
@@ -792,7 +773,6 @@ void CoulCutForce_rcs_erf(
 
 				rbmd::Id tid2 = id_verletlist[j];
 				rbmd::Id typej = atoms_type[tid2];
-				rbmd::Id molecular_id_j = molecular_type[tid2];
 				rbmd::Real eps_j = eps[typej];
 				rbmd::Real sigma_j = sigma[typej];
 
@@ -806,9 +786,6 @@ void CoulCutForce_rcs_erf(
 				rbmd::Real px12 = x2 - x1;
 				rbmd::Real py12 = y2 - y1;
 				rbmd::Real pz12 = z2 - z1;
-				//if (molecular_id_i == molecular_id_j)
-					//continue;
-
 				MinImageDistance(box, px12, py12, pz12);
 
 				rbmd::Real force_lj;
@@ -836,7 +813,116 @@ void CoulCutForce_rcs_erf(
 		const rbmd::Real qqr2e,
 		const rbmd::Id* atoms_type,
 		const rbmd::Id* atoms_id,
-		const rbmd::Id* molecular_id,
+		const rbmd::Real* sigma,
+		const rbmd::Real* eps,
+		const rbmd::Id* start_id,
+		const rbmd::Id* end_id,
+		const rbmd::Id* id_verletlist,
+		const rbmd::Real* charge,
+		const rbmd::Real* px,
+		const rbmd::Real* py,
+		const rbmd::Real* pz,
+		rbmd::Real* fx,
+		rbmd::Real* fy,
+		rbmd::Real* fz,
+		rbmd::Real* total_evdwl,
+		rbmd::Real* total_ecoul)
+	{
+	  __shared__ typename hipcub::BlockReduce<rbmd::Real, BLOCK_SIZE>::TempStorage
+        temp_storage_elj;
+	  __shared__ typename hipcub::BlockReduce<rbmd::Real, BLOCK_SIZE>::TempStorage
+        temp_storage_ecoul;
+		rbmd::Real sum_fx = 0;
+		rbmd::Real sum_fy = 0;
+		rbmd::Real sum_fz = 0;
+
+		rbmd::Real sum_elj = 0;
+		rbmd::Real sum_ecoul = 0;
+
+		unsigned int tid1 = blockIdx.x * blockDim.x + threadIdx.x;
+		if (tid1 < num_atoms)
+		{
+		        rbmd::Id atom_id1 = atoms_id[tid1];
+
+			rbmd::Id typei = atoms_type[tid1];
+			rbmd::Real eps_i = eps[typei];
+			rbmd::Real sigma_i = sigma[typei];
+			rbmd::Real charge_i = charge[tid1];
+
+			rbmd::Real x1 = px[tid1];
+			rbmd::Real y1 = py[tid1];
+			rbmd::Real z1 = pz[tid1];
+
+
+			for (int j = start_id[tid1]; j < end_id[tid1]; ++j)
+			{
+
+				rbmd::Id tid2 = id_verletlist[j];
+				rbmd::Id typej = atoms_type[tid2];
+				rbmd::Real eps_j = eps[typej];
+				rbmd::Real sigma_j = sigma[typej];
+				rbmd::Real charge_j = charge[tid2];
+
+				//mix
+				rbmd::Real eps_ij = SQRT(eps_i * eps_j);
+				rbmd::Real sigma_ij = (sigma_i + sigma_j) / 2;
+
+				rbmd::Real x2 = px[tid2];
+				rbmd::Real y2 = py[tid2];
+				rbmd::Real z2 = pz[tid2];
+				rbmd::Real px12 = x2 - x1;
+				rbmd::Real py12 = y2 - y1;
+				rbmd::Real pz12 = z2 - z1;
+				MinImageDistance(box, px12, py12, pz12);
+
+			        //erf
+			        rbmd::Real  dis = SQRT(px12*px12+py12*py12+pz12*pz12);
+			        rbmd::Id index_table_pij = erf_table->Extract(dis);
+			        rbmd::Real  table_pij = erf_table->TableGnearValue(dis,index_table_pij);
+
+				rbmd::Real force_lj, force_coul, force_pair;
+				rbmd::Real energy_lj, energy_coul;
+
+				//lj cut
+				lj126(cut_off, px12, py12, pz12, eps_ij, sigma_ij, force_lj, energy_lj);
+
+				//Coul cut
+				CoulCutForce(cut_off, alpha, qqr2e, charge_i, charge_j, px12, py12, pz12, force_coul, energy_coul);
+
+				force_pair = force_lj + force_coul;
+
+				sum_fx += force_pair * px12;
+				sum_fy += force_pair * py12;
+				sum_fz += force_pair * pz12;
+
+				sum_elj += energy_lj;
+				sum_ecoul += energy_coul;
+			}
+
+			fx[tid1] = sum_fx;
+			fy[tid1] = sum_fy;
+			fz[tid1] = sum_fz;
+			//printf("--------test---fx[tid1]:%f---\n",fx[tid1]);
+		  rbmd::Real block_sum_elj =
+                          hipcub::BlockReduce<rbmd::Real, BLOCK_SIZE>(temp_storage_elj).Sum(sum_elj);
+		  rbmd::Real block_sum_ecoul =
+                         hipcub::BlockReduce<rbmd::Real, BLOCK_SIZE>(temp_storage_ecoul).Sum(sum_ecoul);
+
+		  if (threadIdx.x == 0) {
+		    atomicAdd(total_evdwl, block_sum_elj);
+		    atomicAdd(total_ecoul, block_sum_ecoul);
+		  }
+		}
+	}
+
+	__global__ void ComputeSpecialLJCutCoulForce(
+		Box* box,ERFTable* erf_table,
+		const rbmd::Real cut_off,
+		const rbmd::Id num_atoms,
+		const rbmd::Real alpha,
+		const rbmd::Real qqr2e,
+		const rbmd::Id* atoms_type,
+		const rbmd::Id* atoms_id,
 		const rbmd::Real* sigma,
 		const rbmd::Real* eps,
 		const rbmd::Id* start_id,
@@ -874,7 +960,6 @@ void CoulCutForce_rcs_erf(
 		        rbmd::Id  num_components = special_offset[atom_id1];
 
 			rbmd::Id typei = atoms_type[tid1];
-			rbmd::Id molecular_id_i = molecular_id[tid1];
 			rbmd::Real eps_i = eps[typei];
 			rbmd::Real sigma_i = sigma[typei];
 			rbmd::Real charge_i = charge[tid1];
@@ -888,8 +973,9 @@ void CoulCutForce_rcs_erf(
 			{
 
 				rbmd::Id tid2 = id_verletlist[j];
+			        rbmd::Id atom_id2 = atoms_id[tid2];
+
 				rbmd::Id typej = atoms_type[tid2];
-				rbmd::Id molecular_id_j = molecular_id[tid2];
 				rbmd::Real eps_j = eps[typej];
 				rbmd::Real sigma_j = sigma[typej];
 				rbmd::Real charge_j = charge[tid2];
@@ -904,9 +990,6 @@ void CoulCutForce_rcs_erf(
 				rbmd::Real px12 = x2 - x1;
 				rbmd::Real py12 = y2 - y1;
 				rbmd::Real pz12 = z2 - z1;
-				//if (molecular_id_i == molecular_id_j)
-				//continue;
-
 				MinImageDistance(box, px12, py12, pz12);
 
 			        //erf
@@ -923,7 +1006,8 @@ void CoulCutForce_rcs_erf(
 			         rbmd::Real weight = 1.0;
 			         for (rbmd::Id k = 0; k < special_count[atom_id1]; ++k)
 			         {
-			           if (special_ids[num_components+k] == tid2)
+			           rbmd::Id special_id = special_ids[num_components+k];
+			           if (special_id == atom_id2)
 			           {
 			             weight = special_weights[num_components+k];
 			             //printf("weight %f\n", weight);
@@ -969,7 +1053,6 @@ void CoulCutForce_rcs_erf(
 		const rbmd::Real alpha,
 		const rbmd::Real qqr2e,
 		const rbmd::Id* atoms_type,
-		const rbmd::Id* molecular_type,
 		const rbmd::Real* sigma,
 		const rbmd::Real* eps,
 		const rbmd::Id* start_id,
@@ -994,7 +1077,6 @@ void CoulCutForce_rcs_erf(
 		if (tid1 < num_atoms)
 		{
 			rbmd::Id typei = atoms_type[tid1];
-			rbmd::Id molecular_id_i = molecular_type[tid1];
 			rbmd::Real eps_i = eps[typei];
 			rbmd::Real sigma_i = sigma[typei];
 			rbmd::Real charge_i = charge[tid1];
@@ -1009,7 +1091,6 @@ void CoulCutForce_rcs_erf(
 
 				rbmd::Id tid2 = id_verletlist[j];
 				rbmd::Id typej = atoms_type[tid2];
-				rbmd::Id molecular_id_j = molecular_type[tid2];
 				rbmd::Real eps_j = eps[typej];
 				rbmd::Real sigma_j = sigma[typej];
 				rbmd::Real charge_j = charge[tid2];
@@ -1024,9 +1105,6 @@ void CoulCutForce_rcs_erf(
 				rbmd::Real px12 = x2 - x1;
 				rbmd::Real py12 = y2 - y1;
 				rbmd::Real pz12 = z2 - z1;
-				//if (molecular_id_i == molecular_id_j)
-				//continue;
-
 				MinImageDistance(box, px12, py12, pz12);
 
 			        //erf
@@ -1061,6 +1139,122 @@ void CoulCutForce_rcs_erf(
 		}
 	}
 
+	__global__ void ComputeSpecialLJCutCoulEnergy(
+		Box* box,ERFTable* erf_table,
+		const rbmd::Real cut_off,
+		const rbmd::Id num_atoms,
+		const rbmd::Real alpha,
+		const rbmd::Real qqr2e,
+		const rbmd::Id* atoms_type,
+		const rbmd::Id* atoms_id,
+		const rbmd::Real* sigma,
+		const rbmd::Real* eps,
+		const rbmd::Id* start_id,
+		const rbmd::Id* end_id,
+		const rbmd::Id* id_verletlist,
+		const rbmd::Id*  special_ids,
+                const rbmd::Real*  special_weights,
+                const rbmd::Id*  special_offset,
+                const rbmd::Id*  special_count,
+		const rbmd::Real* charge,
+		const rbmd::Real* px,
+		const rbmd::Real* py,
+		const rbmd::Real* pz,
+		rbmd::Real* total_evdwl,
+		rbmd::Real* total_ecoul)
+	{
+	  __shared__ typename hipcub::BlockReduce<rbmd::Real, BLOCK_SIZE>::TempStorage
+        temp_storage_elj;
+	  __shared__ typename hipcub::BlockReduce<rbmd::Real, BLOCK_SIZE>::TempStorage
+        temp_storage_ecoul;
+
+		rbmd::Real sum_elj = 0;
+		rbmd::Real sum_ecoul = 0;
+
+		unsigned int tid1 = blockIdx.x * blockDim.x + threadIdx.x;
+		if (tid1 < num_atoms)
+		{
+		        rbmd::Id atom_id1 = atoms_id[tid1];
+		        rbmd::Id  num_components =  special_offset[atom_id1];
+
+			rbmd::Id typei = atoms_type[tid1];
+			rbmd::Real eps_i = eps[typei];
+			rbmd::Real sigma_i = sigma[typei];
+			rbmd::Real charge_i = charge[tid1];
+
+			rbmd::Real x1 = px[tid1];
+			rbmd::Real y1 = py[tid1];
+			rbmd::Real z1 = pz[tid1];
+
+
+			for (int j = start_id[tid1]; j < end_id[tid1]; ++j)
+			{
+
+				rbmd::Id tid2 = id_verletlist[j];
+			        rbmd::Id atom_id2 = atoms_id[tid2];
+
+				rbmd::Id typej = atoms_type[tid2];
+				rbmd::Real eps_j = eps[typej];
+				rbmd::Real sigma_j = sigma[typej];
+				rbmd::Real charge_j = charge[tid2];
+
+				//mix
+				rbmd::Real eps_ij = SQRT(eps_i * eps_j);
+				rbmd::Real sigma_ij = (sigma_i + sigma_j) / 2;
+
+				rbmd::Real x2 = px[tid2];
+				rbmd::Real y2 = py[tid2];
+				rbmd::Real z2 = pz[tid2];
+				rbmd::Real px12 = x2 - x1;
+				rbmd::Real py12 = y2 - y1;
+				rbmd::Real pz12 = z2 - z1;
+				MinImageDistance(box, px12, py12, pz12);
+
+			        //erf
+			        rbmd::Real  dis = SQRT(px12*px12+py12*py12+pz12*pz12);
+			        rbmd::Id index_table_pij = erf_table->Extract(dis);
+			        rbmd::Real  table_pij = erf_table->TableGnearValue(dis,index_table_pij);
+
+			        rbmd::Real force_lj, force_coul, force_pair;
+				rbmd::Real energy_lj, energy_coul;
+
+				//lj cut
+				lj126(cut_off, px12, py12, pz12, eps_ij, sigma_ij,
+				  force_lj, energy_lj);
+
+			         rbmd::Real weight = 1.0;
+			         for (rbmd::Id k = 0; k < special_count[atom_id1]; ++k)
+			         {
+			           rbmd::Id special_id = special_ids[num_components+k];
+			           if (special_id == atom_id2)
+			           {
+			             weight = special_weights[num_components+k];
+			             //printf("weight %f\n", weight);
+			           }
+			         }
+			         energy_lj   = weight * energy_lj;
+
+				//Coul cut
+				CoulCutForce_erf(cut_off, alpha, qqr2e,table_pij, charge_i, charge_j,
+				  px12, py12, pz12, force_coul, energy_coul);
+
+				sum_elj += energy_lj;
+				sum_ecoul += energy_coul;
+			}
+
+		  rbmd::Real block_sum_elj =
+                          hipcub::BlockReduce<rbmd::Real, BLOCK_SIZE>(temp_storage_elj).Sum(sum_elj);
+		  rbmd::Real block_sum_ecoul =
+                         hipcub::BlockReduce<rbmd::Real, BLOCK_SIZE>(temp_storage_ecoul).Sum(sum_ecoul);
+
+		  if (threadIdx.x == 0) {
+		    atomicAdd(total_evdwl, block_sum_elj);
+		    atomicAdd(total_ecoul, block_sum_ecoul);
+		  }
+		}
+	}
+
+
        //LJCutCoul RBL
 	__global__ void ComputeLJCutCoulRBLForce(
 		Box* box,
@@ -1073,7 +1267,6 @@ void CoulCutForce_rcs_erf(
 		const rbmd::Real alpha,
 		const rbmd::Real qqr2e,
 		const rbmd::Id* atoms_type,
-		const rbmd::Id* molecular_type,
 		const rbmd::Real* sigma,
 		const rbmd::Real* eps,
 		const rbmd::Id* start_id,
@@ -1105,7 +1298,6 @@ void CoulCutForce_rcs_erf(
 		if (tid1 < num_atoms)
 		{
 			rbmd::Id typei = atoms_type[tid1];
-			rbmd::Id molecular_id_i = molecular_type[tid1];
 			rbmd::Real eps_i = eps[typei];
 			rbmd::Real sigma_i = sigma[typei];
 		        rbmd::Real charge_i = charge[tid1];
@@ -1121,7 +1313,6 @@ void CoulCutForce_rcs_erf(
 			{
 			  rbmd::Id tid2 = id_verletlist[j];
 			  rbmd::Id typej = atoms_type[tid2];
-			  rbmd::Id molecular_id_j = molecular_type[tid2];
 			  rbmd::Real eps_j = eps[typej];
 			  rbmd::Real sigma_j = sigma[typej];
 			  rbmd::Real charge_j = charge[tid2];
@@ -1135,10 +1326,6 @@ void CoulCutForce_rcs_erf(
 			  rbmd::Real px12 = x2 - x1;
 			  rbmd::Real py12 = y2 - y1;
 			  rbmd::Real pz12 = z2 - z1;
-
-
-			  //if (molecular_id_i == molecular_id_j)
-			  	//continue;
 			  MinImageDistance(box, px12, py12, pz12);
 
 			  //erf
@@ -1166,7 +1353,6 @@ void CoulCutForce_rcs_erf(
 
 			  rbmd::Id tid2 = id_random_neighbor[tid1 * neighbor_sample_num + jj];
 			  rbmd::Id typej = atoms_type[tid2];
-			  rbmd::Id molecular_id_j = molecular_type[tid2];
 			  rbmd::Real eps_j = eps[typej];
 			  rbmd::Real sigma_j = sigma[typej];
 			  rbmd::Real charge_j = charge[tid2];
@@ -1210,6 +1396,187 @@ void CoulCutForce_rcs_erf(
 			fx[tid1] = sum_fx;
 			fy[tid1] = sum_fy;
 			fz[tid1] = sum_fz;
+		}
+	}
+
+	__global__ void ComputeSpecialLJCutCoulRBLForce(
+		Box* box,
+		ERFTable* erf_table,
+		const rbmd::Real rs,
+                const rbmd::Real rc,
+		const rbmd::Id num_atoms,
+		const rbmd::Id neighbor_sample_num,
+                const rbmd::Id pice_num,
+		const rbmd::Real alpha,
+		const rbmd::Real qqr2e,
+		const rbmd::Id* atoms_type,
+		const rbmd::Id* atoms_id,
+		const rbmd::Real* sigma,
+		const rbmd::Real* eps,
+		const rbmd::Id* start_id,
+		const rbmd::Id* end_id,
+		const rbmd::Id* id_verletlist,
+		const rbmd::Id* id_random_neighbor,
+                const rbmd::Id* random_neighbor_num,
+                const rbmd::Id*  special_ids,
+                const rbmd::Real*  special_weights,
+                const rbmd::Id*  special_offset,
+                const rbmd::Id*  special_count,
+		const rbmd::Real* charge,
+		const rbmd::Real* px,
+		const rbmd::Real* py,
+		const rbmd::Real* pz,
+		rbmd::Real* fx,
+		rbmd::Real* fy,
+		rbmd::Real* fz)
+	{
+		rbmd::Real sum_fx = 0;
+		rbmd::Real sum_fy = 0;
+		rbmd::Real sum_fz = 0;
+
+		rbmd::Real sum_fsx = 0;
+		rbmd::Real sum_fsy = 0;
+		rbmd::Real sum_fsz = 0;
+
+		rbmd::Real sum_fcsx = 0;
+		rbmd::Real sum_fcsy = 0;
+		rbmd::Real sum_fcsz = 0;
+
+		unsigned int tid1 = blockIdx.x * blockDim.x + threadIdx.x;
+		if (tid1 < num_atoms)
+		{
+		  if(tid1 == 0)
+		  {
+		        rbmd::Id  atom_id1 = atoms_id[tid1];
+		        rbmd::Id  num_components = special_offset[atom_id1];
+
+			rbmd::Id typei = atoms_type[tid1];
+			rbmd::Real eps_i = eps[typei];
+			rbmd::Real sigma_i = sigma[typei];
+		        rbmd::Real charge_i = charge[tid1];
+
+			rbmd::Real x1 = px[tid1];
+			rbmd::Real y1 = py[tid1];
+			rbmd::Real z1 = pz[tid1];
+
+			rbmd::Real fs_ij, fcs_ij;
+
+			//rs
+			for (rbmd::Id j = start_id[tid1]; j < end_id[tid1]; ++j)
+			{
+			  rbmd::Id tid2 = id_verletlist[j];
+			  rbmd::Id  atom_id2 = atoms_id[tid2];
+
+			  rbmd::Id typej = atoms_type[tid2];
+			  rbmd::Real eps_j = eps[typej];
+			  rbmd::Real sigma_j = sigma[typej];
+			  rbmd::Real charge_j = charge[tid2];
+
+			  //mix
+			  rbmd::Real eps_ij = SQRT(eps_i * eps_j);
+			  rbmd::Real sigma_ij = (sigma_i + sigma_j) / 2;
+			  rbmd::Real x2 = px[tid2];
+			  rbmd::Real y2 = py[tid2];
+			  rbmd::Real z2 = pz[tid2];
+			  rbmd::Real px12 = x2 - x1;
+			  rbmd::Real py12 = y2 - y1;
+			  rbmd::Real pz12 = z2 - z1;
+			  MinImageDistance(box, px12, py12, pz12);
+
+			  //erf
+			  rbmd::Real  dis = SQRT(px12*px12+py12*py12+pz12*pz12);
+			  rbmd::Id index_table_pij = erf_table->Extract(dis);
+			  rbmd::Real  table_pij = erf_table->TableGnearValue(dis,index_table_pij);
+
+			  //compute the force_rs
+			  rbmd::Real force_lj_rs, force_coul_rs, force_pair;
+			  lj126_rs(rs, px12, py12, pz12, eps_ij, sigma_ij,
+			    force_lj_rs);
+
+			  rbmd::Real weight = 1.0;
+			  for (rbmd::Id k = 0; k < special_count[atom_id1]; ++k)
+			  {
+			    rbmd::Id special_id = special_ids[num_components+k];
+			    if (special_id == atom_id2)
+			    {
+			      weight = special_weights[num_components+k];
+			      //printf("weight %f\n", weight);
+			    }
+			  }
+			  force_lj_rs   = weight * force_lj_rs;
+
+			  CoulCutForce_rs_erf(rs, alpha, qqr2e,table_pij,charge_i, charge_j,
+			    px12, py12, pz12, force_coul_rs);
+
+			  fs_ij = force_lj_rs + force_coul_rs;
+			  sum_fsx += fs_ij * px12;
+			  sum_fsy += fs_ij * py12;
+			  sum_fsz += fs_ij * pz12;
+			}
+
+			//rcs
+			rbmd::Id real_random_num = random_neighbor_num[tid1];
+			for (rbmd::Id jj = 0; jj < real_random_num; ++jj)
+			{
+
+			  rbmd::Id tid2 = id_random_neighbor[tid1 * neighbor_sample_num + jj];
+			  rbmd::Id typej = atoms_type[tid2];
+			  rbmd::Real eps_j = eps[typej];
+			  rbmd::Real sigma_j = sigma[typej];
+			  rbmd::Real charge_j = charge[tid2];
+
+			  //mix
+			  rbmd::Real eps_ij = SQRT(eps_i * eps_j);
+			  rbmd::Real sigma_ij = (sigma_i + sigma_j) / 2;
+			  rbmd::Real x2 = px[tid2];
+			  rbmd::Real y2 = py[tid2];
+			  rbmd::Real z2 = pz[tid2];
+			  rbmd::Real px12 = x2 - x1;
+			  rbmd::Real py12 = y2 - y1;
+			  rbmd::Real pz12 = z2 - z1;
+			  //if (molecular_id_i == molecular_id_j)
+			  	//continue;
+			  MinImageDistance(box, px12, py12, pz12);
+
+			  //erf
+			  rbmd::Real  dis = SQRT(px12*px12+py12*py12+pz12*pz12);
+			  rbmd::Id index_table_pij = erf_table->Extract(dis);
+			  rbmd::Real  table_pij = erf_table->TableGnearValue(dis,index_table_pij);
+
+			  //compute the force_rcs
+			  rbmd::Real force_lj_rcs, force_coul_rcs, force_pair;
+			  lj126_rcs(rc, rs, pice_num, px12, py12, pz12,
+			    eps_ij, sigma_ij, force_lj_rcs);
+
+			  rbmd::Real weight = 1.0;
+			  for (rbmd::Id k = 0; k < special_count[atom_id1]; ++k)
+			  {
+			    if (special_ids[num_components+k] == tid2)
+			    {
+			      weight = special_weights[num_components+k];
+			      //printf("weight %f\n", weight);
+			    }
+			  }
+			  force_lj_rcs   = weight * force_lj_rcs;
+
+			  CoulCutForce_rcs_erf(rc,rs, pice_num, alpha, qqr2e,table_pij,
+			    charge_i, charge_j, px12, py12, pz12, force_coul_rcs);
+			  fcs_ij = force_lj_rcs+force_coul_rcs;
+
+			  sum_fcsx += fcs_ij * px12;
+			  sum_fcsy += fcs_ij * py12;
+			  sum_fcsz += fcs_ij * pz12;
+			}
+
+			//total force = fs + fcs
+			sum_fx = sum_fsx + sum_fcsx;
+			sum_fy = sum_fsy + sum_fcsy;
+			sum_fz = sum_fsz + sum_fcsz;
+
+			fx[tid1] = sum_fx;
+			fy[tid1] = sum_fy;
+			fz[tid1] = sum_fz;
+		  }
 		}
 	}
 
@@ -1511,83 +1878,82 @@ void CoulCutForce_rcs_erf(
           unsigned int tid1 = blockIdx.x * blockDim.x + threadIdx.x;
           if (tid1 < num_atoms)
           {
-            rbmd::Id atom_id1 = atoms_id[tid1];
-            //rbmd::Id id1 = atom_id_to_idx[atom_id1]; //idx
-            if(atom_count[atom_id1] < 3 )
-            {
-              sum_fx=sum_fx=sum_fx=0.0;
-              sum_energy_special_coul=0.0;
-            }
-            else
-            {
-              rbmd::Real charge_i = charge[atom_id1];
-              rbmd::Real x1 = px[atom_id1];
-              rbmd::Real y1 = py[atom_id1];
-              rbmd::Real z1 = pz[atom_id1];
-              rbmd::Id  num_offset = atoms_offset[atom_id1];
-              rbmd::Id  num_components = special_offset[atom_id1];
-              //printf("tid1 %i id %i\n",tid1,id);
-              //printf("tid1 %i id %i num_offset %i\n",tid1 ,id,num_offset);
-              //printf("id %i num_offset %i\n",id ,num_offset);
-              //printf("id %i num_components %i\n",id ,num_components);
-              //printf(" id %i  px[id] %f  tid %i  px[tid1] %f\n", id , px[id] ,
-              //tid1 ,px[tid1]);
-              for (rbmd::Id j = 0; j < atom_count[atom_id1]; ++j)
+              rbmd::Id atom_id1 = atoms_id[tid1];
+              rbmd::Id id1 = atom_id_to_idx[atom_id1]; //idx
+              if(atom_count[atom_id1] < 3 )
               {
-                rbmd::Id atom_id2 = atoms_vec[num_offset + j];
-               // rbmd::Id id2= atom_id_to_idx[atom_id2]; //idx
-                //printf("atom_count %i id2 %i\n",atom_count[atom_id1] ,id2);
-
-                if (atom_id1 == atom_id2)
-                  continue;
-
-                rbmd::Real charge_j = charge[atom_id2];
-                rbmd::Real x2 = px[atom_id2];
-                rbmd::Real y2 = py[atom_id2];
-                rbmd::Real z2 = pz[atom_id2];
-
-                rbmd::Real x12 = x2 - x1;
-                rbmd::Real y12 = y2 - y1;
-                rbmd::Real z12 = z2 - z1;
-                MinImageDistance(box, x12, y12, z12);
-
-                rbmd::Real dis_ij = SQRT(x12*x12+y12*y12+z12*z12);
-                rbmd::Real dis_ij3 = POW(dis_ij, 3.0);
-                rbmd::Real force_component = -qqr2e * charge_i * charge_j / dis_ij3;
-                rbmd::Real energy_atom = 0.5 * qqr2e * charge_i * charge_j / dis_ij;
-
-                rbmd::Real weight = 1.0;
-                for (rbmd::Id k = 0; k < special_count[atom_id1]; ++k)
-                {
-                  //printf("special_count %i tid22 %i\n",special_count[id] ,special_ids[num_components+k]);
-                  if (special_ids[num_components+k] == atom_id2)
-                  {
-                    weight = special_weights[num_components+k];
-                    //printf("weight %f\n", weight);
-                  }
-                }
-                sum_fx += (1.0 - weight) * force_component * x12;
-                sum_fy += (1.0 - weight) * force_component * y12;
-                sum_fz += (1.0 - weight) * force_component * z12;
-                sum_energy_special_coul += (1.0 - weight) * energy_atom;
-                //printf(" sum_fx %f sum_fy %f sum_fz %f\n" ,sum_fx,sum_fy,sum_fz);
+                sum_fx=sum_fx=sum_fx=0.0;
+                sum_energy_special_coul=0.0;
               }
-            }
+              else
+              {
+                rbmd::Real charge_i = charge[id1];
+                rbmd::Real x1 = px[id1];
+                rbmd::Real y1 = py[id1];
+                rbmd::Real z1 = pz[id1];
+                rbmd::Id  num_offset = atoms_offset[atom_id1];
+                rbmd::Id  num_components = special_offset[atom_id1];
+                //printf("tid1 %i id %i\n",tid1,id);
+                //printf("tid1 %i id %i num_offset %i\n",atom_id1 ,id,num_offset);
+                //printf("atom_id1 %i num_offset %i\n",atom_id1 ,num_offset);
+                //printf("atom_id1 %i num_components %i\n",atom_id1 ,num_components);
+                //printf(" id %i  px[id] %f  tid %i  px[tid1] %f\n", id , px[id] ,
+                //tid1 ,px[tid1]);
+                for (rbmd::Id j = 0; j < atom_count[atom_id1]; ++j)
+                {
+                  rbmd::Id atom_id2 = atoms_vec[num_offset + j];
+                  rbmd::Id id2= atom_id_to_idx[atom_id2]; //idx
+                  //printf("atom_id2 %i id2 %i\n",atom_id2 ,id2);
 
-            //printf(" force %f %f %f\n" ,sum_fx,sum_fy,sum_fz);
-            fx[atom_id1] = sum_fx;
-            fy[atom_id1] = sum_fy;
-            fz[atom_id1] = sum_fz;
-            //
-            rbmd::Real block_sum_especial_coul = hipcub::BlockReduce<rbmd::Real, BLOCK_SIZE>
-  (temp_storage).Sum(sum_energy_special_coul);
+                  if (atom_id1 == atom_id2)
+                    continue;
 
-            if (threadIdx.x == 0) {
-              atomicAdd(total_especial_coul, block_sum_especial_coul);
-            }
-            //atomicAdd(total_especial_coul, sum_energy_special_coul);
-         }
+                  rbmd::Real charge_j = charge[id2];
+                  rbmd::Real x2 = px[id2];
+                  rbmd::Real y2 = py[id2];
+                  rbmd::Real z2 = pz[id2];
 
+                  rbmd::Real x12 = x2 - x1;
+                  rbmd::Real y12 = y2 - y1;
+                  rbmd::Real z12 = z2 - z1;
+                  MinImageDistance(box, x12, y12, z12);
+
+                  rbmd::Real dis_ij = SQRT(x12*x12+y12*y12+z12*z12);
+                  rbmd::Real dis_ij3 = POW(dis_ij, 3.0);
+                  rbmd::Real force_component = -qqr2e * charge_i * charge_j / dis_ij3;
+                  rbmd::Real energy_atom = 0.5 * qqr2e * charge_i * charge_j / dis_ij;
+
+                  rbmd::Real weight = 1.0;
+                  for (rbmd::Id k = 0; k < special_count[atom_id1]; ++k)
+                  {
+                    rbmd::Id special_id = special_ids[num_components+k];
+                    //printf("special_id %i atom_id2 %i\n",special_id ,atom_id2);
+                    if (special_id == atom_id2)
+                    {
+                      weight = special_weights[num_components+k];
+                      //printf("weight %f\n", weight);
+                    }
+                  }
+                  sum_fx += (1.0 - weight) * force_component * x12;
+                  sum_fy += (1.0 - weight) * force_component * y12;
+                  sum_fz += (1.0 - weight) * force_component * z12;
+                  sum_energy_special_coul += (1.0 - weight) * energy_atom;
+                  //printf(" sum_fx %f sum_fy %f sum_fz %f\n" ,sum_fx,sum_fy,sum_fz);
+                }
+              }
+
+              //printf(" force %f %f %f\n" ,sum_fx,sum_fy,sum_fz);
+              fx[id1] = sum_fx;
+              fy[id1] = sum_fy;
+              fz[id1] = sum_fz;
+              //
+              rbmd::Real block_sum_especial_coul = hipcub::BlockReduce<rbmd::Real, BLOCK_SIZE>
+              (temp_storage).Sum(sum_energy_special_coul);
+
+              if (threadIdx.x == 0) {
+                atomicAdd(total_especial_coul, block_sum_especial_coul);
+              }
+          }
        }
 
        __global__ void ComputeBondForce(
@@ -1605,7 +1971,6 @@ void CoulCutForce_rcs_erf(
        rbmd::Real* fx,
        rbmd::Real* fy,
        rbmd::Real* fz,
-       rbmd::Id* atom_ids_out,
        rbmd::Real* energy_bond)
         {
 	  __shared__ typename hipcub::BlockReduce<rbmd::Real, BLOCK_SIZE>::TempStorage
@@ -1616,86 +1981,77 @@ void CoulCutForce_rcs_erf(
 	  unsigned int tid1 = blockIdx.x * blockDim.x + threadIdx.x;
 	  if (tid1 < num_bonds)
 	  {
-	    rbmd::Id bondi = bondlisti[tid1];
-	    rbmd::Id bondj = bondlistj[tid1];
-	    rbmd::Id bondii = atom_id_to_idx[bondi];
-	    rbmd::Id bondjj = atom_id_to_idx[bondj];
-	  // printf("--------test--tid1:%i---bondi:%i--bondj:%i\n",
-	    // tid1,bondi,bondj);
+	    // if(tid1 == 0)
+	    // {
+	      rbmd::Id bondi = bondlisti[tid1];
+	      rbmd::Id bondj = bondlistj[tid1];
+	      rbmd::Id bondii = atom_id_to_idx[bondi];
+	      rbmd::Id bondjj = atom_id_to_idx[bondj];
 
-	   //printf("--------test--tid1:%i---idx_bondi:%i---idx_bondj:%i\n"
-	    // ,tid1,atom_id_to_idx[bondi],atom_id_to_idx[bondj]);
-	    rbmd::Id bondtype = bond_type[tid1];
-	    rbmd::Real k = bond_coeffs_k[bondtype];
-	    rbmd::Real equilibrium_bond = bond_coeffs_equilibrium[bondtype];
-	    //printf("--------test---bondtype:%i---bond_coeffs_k:%f---equilibrium_bond:%f\n",
-             // bondtype,k,equilibrium_bond);
+	      rbmd::Id bondtype = bond_type[tid1];
+	      rbmd::Real k = bond_coeffs_k[bondtype];
+	      rbmd::Real equilibrium_bond = bond_coeffs_equilibrium[bondtype];
+	      //printf("--------test---bondtype:%i---bond_coeffs_k:%f---equilibrium_bond:%f\n",
+               // bondtype,k,equilibrium_bond);
+	      // rbmd::Real pi_x= px[bondii];
+	      // rbmd::Real pi_y= py[bondii];
+	      // rbmd::Real pi_z= pz[bondii];
+	      //
+	      // rbmd::Real pj_x= px[bondjj];
+	      // rbmd::Real pj_y= py[bondjj];
+	      // rbmd::Real pj_z= pz[bondjj];
 
-	    rbmd::Real x12 = px[bondjj]-px[bondii];
-	    rbmd::Real y12 = py[bondjj]-py[bondii];
-	    rbmd::Real z12 = pz[bondjj]-pz[bondii];
-	    //printf("--------test---x12:%f---y12:%f---z12:%f\n",x12,y12,z12);
-	    MinImageDistance(box,x12,y12,z12);
-	    rbmd::Real  dis_12 = SQRT(x12 * x12 + y12 * y12 + z12 * z12);
-	    rbmd::Real dr = dis_12 - equilibrium_bond;
-	    rbmd::Real rk = k * dr;
+	      rbmd::Real x12 = px[bondjj]-px[bondii];
+	      rbmd::Real y12 = py[bondjj]-py[bondii];
+	      rbmd::Real z12 = pz[bondjj]-pz[bondii];
+	      MinImageDistance(box,x12,y12,z12);
+	      rbmd::Real  dis_12 = SQRT(x12 * x12 + y12 * y12 + z12 * z12);
+	      rbmd::Real dr = dis_12 - equilibrium_bond;
+	      rbmd::Real rk = k * dr;
 
-	    //energy
-	    local_energy_bond = rk * dr;
-	    //printf("--------test--dr:%f--rk:%f----local_energy_bond:%f\n"
-	     // ,dr,rk,local_energy_bond);
+	      //energy
+	      local_energy_bond = rk * dr;
+	      //printf("--------test--dr:%f--rk:%f----local_energy_bond:%f\n"
+	       // ,dr,rk,local_energy_bond);
 
-	    rbmd::Real forcebondij;
-	    if (dis_12 > 0.01)
-	      forcebondij =  -2.0 * rk / dis_12;
-	    else
-	      forcebondij = 0.0;
+	      rbmd::Real forcebondij;
+	      if (dis_12 > 0.01)
+	        forcebondij =  -2.0 * rk / dis_12;
+	      else
+	        forcebondij = 0.0;
 
-	    // // apply force to each of 2 atoms
-	    // fx[bondi] += forcebondij * x12;
-	    // fy[bondi] += forcebondij * y12;
-	    // fz[bondi] += forcebondij * z12;
-	    //
-	    // fx[bondj] -= forcebondij * x12;
-	    // fy[bondj] -= forcebondij * y12;
-	    // fz[bondj] -= forcebondij * z12;
+	      // // apply force to each of 2 atoms
+	      fx[bondii] = forcebondij * x12;
+	      fy[bondii] = forcebondij * y12;
+	      fz[bondii] = forcebondij * z12;
 
-	    // 计算作用力分量
-	    rbmd::Real fx_ij = forcebondij * x12;
-	    rbmd::Real fy_ij = forcebondij * y12;
-	    rbmd::Real fz_ij = forcebondij * z12;
-	    //printf("force_bond, %i  %f %f %f\n",tid1,fx_ij,fy_ij,fz_ij);
+	      fx[bondjj] = -forcebondij * x12;
+	      fy[bondjj] = -forcebondij * y12;
+	      fz[bondjj] = -forcebondij * z12;
 
-	    atomicAdd(&fx[bondii], fx_ij); // 将作用力添加到原子bondi
-	    atomicAdd(&fy[bondii], fy_ij);
-	    atomicAdd(&fz[bondii], fz_ij);
+	      // // 计算作用力分量
+	      // rbmd::Real fx_ij = forcebondij * x12;
+	      // rbmd::Real fy_ij = forcebondij * y12;
+	      // rbmd::Real fz_ij = forcebondij * z12;
+	      // //printf("force_bond, %i  %f %f %f\n",tid1,fx_ij,fy_ij,fz_ij);
+	      //
+	      // atomicAdd(&fx[bondii], fx_ij); // 将作用力添加到原子bondi
+	      // atomicAdd(&fy[bondii], fy_ij);
+	      // atomicAdd(&fz[bondii], fz_ij);
+	      //
+	      // atomicAdd(&fx[bondjj], -fx_ij); // 对于bondj施加相反的作用力
+	      // atomicAdd(&fy[bondjj], -fy_ij);
+	      // atomicAdd(&fz[bondjj], -fz_ij);
 
-	    atomicAdd(&fx[bondjj], -fx_ij); // 对于bondj施加相反的作用力
-	    atomicAdd(&fy[bondjj], -fy_ij);
-	    atomicAdd(&fz[bondjj], -fz_ij);
+	      rbmd::Real block_sum =
+    hipcub::BlockReduce<rbmd::Real, BLOCK_SIZE>(temp_storage).Sum(local_energy_bond);
 
-	    // // 保存bondi和bondj的力到输出数组中
-	    // atom_ids_out[2 * tid1]     = bondii;   // bondi -> bondii
-	    // fx[2 * tid1]           = fx_ij;
-	    // fy[2 * tid1]           = fy_ij;
-	    // fz[2 * tid1]           = fz_ij;
-	    //
-	    // atom_ids_out[2 * tid1 + 1] = bondjj;   // bondj -> bondjj
-	    // fx[2 * tid1 + 1]       = -fx_ij;   // 反向力
-	    // fy[2 * tid1 + 1]       = -fy_ij;
-	    // fz[2 * tid1 + 1]       = -fz_ij;
-	    rbmd::Real block_sum =
-  hipcub::BlockReduce<rbmd::Real, BLOCK_SIZE>(temp_storage).Sum(local_energy_bond);
-
-	    if (threadIdx.x == 0){
-	      atomicAdd(energy_bond, block_sum);
-	    }
+	      if (threadIdx.x == 0){
+	        atomicAdd(energy_bond, block_sum);
+	      }
+	    //}
 	}
-
       }
-
-
-
 
       //
        __global__ void ComputeAngleForce(
@@ -1723,108 +2079,131 @@ temp_storage;
 	  unsigned int tid1 = blockIdx.x * blockDim.x + threadIdx.x;
 	  if (tid1 < num_anglels)
 	  {
-	    rbmd::Id angleli = anglelisti[tid1];
-	    rbmd::Id anglelj = anglelistj[tid1];
-	    rbmd::Id anglelk = anglelistk[tid1];
-	    rbmd::Id anglelii = atom_id_to_idx[angleli];
-	    rbmd::Id angleljj = atom_id_to_idx[anglelj];
-	    rbmd::Id anglelkk = atom_id_to_idx[anglelk];
-	    //printf("--------test---angleli:%i---anglelj:%i---anglelk:%i\n",
-	     // angleli,anglelj,anglelk);
+	    // if(tid1 == 0)
+	    // {
+	      rbmd::Id angleli = anglelisti[tid1];
+	      rbmd::Id anglelj = anglelistj[tid1];
+	      rbmd::Id anglelk = anglelistk[tid1];
+	      rbmd::Id anglelii = atom_id_to_idx[angleli];
+	      rbmd::Id angleljj = atom_id_to_idx[anglelj];
+	      rbmd::Id anglelkk = atom_id_to_idx[anglelk];
 
-	    rbmd::Id angleltype = anglel_type[tid1];
-	    rbmd::Real k = anglel_coeffs_k[angleltype];
-	    rbmd::Real equilibrium_angle = anglel_coeffs_equilibrium[angleltype];
-	   // printf("--------test---angleltype:%i---k:%f---equilibrium_angle:%f\n",
-	    // angleltype,k,equilibrium_angle);
+	      rbmd::Id angleltype = anglel_type[tid1];
+	      rbmd::Real k = anglel_coeffs_k[angleltype];
+	      rbmd::Real equilibrium_angle = anglel_coeffs_equilibrium[angleltype];
+	     // printf("--------test---angleltype:%i---k:%f---equilibrium_angle:%f\n",
+	      // angleltype,k,equilibrium_angle);
+	      rbmd::Real pi_x= px[anglelii];
+	      rbmd::Real pi_y= py[anglelii];
+	      rbmd::Real pi_z= pz[anglelii];
 
-	    rbmd::Real x12 = px[anglelii]-px[angleljj];  //i j
-	    rbmd::Real y12 = py[anglelii]-py[angleljj];
-	    rbmd::Real z12 = pz[anglelii]-pz[angleljj];
-	    MinImageDistance(box,x12,y12,z12);
+	      rbmd::Real pj_x= px[angleljj];
+	      rbmd::Real pj_y= py[angleljj];
+	      rbmd::Real pj_z= pz[angleljj];
 
-	    rbmd::Real x23 = px[anglelkk]-px[angleljj]; // k j
-	    rbmd::Real y23 = py[anglelkk]-py[angleljj];
-	    rbmd::Real z23 = pz[anglelkk]-pz[angleljj];
-	    MinImageDistance(box,x23,y23,z23);
+	      rbmd::Real pk_x= px[anglelkk];
+	      rbmd::Real pk_y= py[anglelkk];
+	      rbmd::Real pk_z= pz[anglelkk];
 
-	    rbmd::Real dis_12_2 = x12 * x12 + y12 * y12 + z12 * z12;
-	    rbmd::Real  dis_12 = SQRT(dis_12_2);
 
-	    rbmd::Real dis_23_2 = x23 * x23 + y23 * y23 + z23 * z23;
-	    rbmd::Real  dis_23 = SQRT(dis_23_2);
+	      rbmd::Real x12 = px[anglelii]-px[angleljj];  //i j
+	      rbmd::Real y12 = py[anglelii]-py[angleljj];
+	      rbmd::Real z12 = pz[anglelii]-pz[angleljj];
+	      MinImageDistance(box,x12,y12,z12);
 
-	    rbmd::Real cosangle = x12*x23 + y12*y23 + z12*z23;
-	    cosangle /= dis_12 * dis_23;
+	      rbmd::Real x23 = px[anglelkk]-px[angleljj]; // k j
+	      rbmd::Real y23 = py[anglelkk]-py[angleljj];
+	      rbmd::Real z23 = pz[anglelkk]-pz[angleljj];
+	      MinImageDistance(box,x23,y23,z23);
 
-	    if (cosangle > 1.0)
-	      cosangle = 1.0;
-	    if (cosangle < -1.0)
-	      cosangle = -1.0;
-	    rbmd::Real s = SQRT(1.0 - cosangle * cosangle);
+	      rbmd::Real dis_12_2 = x12 * x12 + y12 * y12 + z12 * z12;
+	      rbmd::Real  dis_12 = SQRT(dis_12_2);
 
-	    const rbmd::Real SMALL = 0.001;
-	    if (s < SMALL)
-	      s = SMALL;
-	    s = 1.0 / s;
+	      rbmd::Real dis_23_2 = x23 * x23 + y23 * y23 + z23 * z23;
+	      rbmd::Real  dis_23 = SQRT(dis_23_2);
 
-	    rbmd::Real dtheta = ACOS(cosangle) - (equilibrium_angle * M_PI) / 180;
-	    rbmd::Real tk = k * dtheta;
+	      rbmd::Real cosangle = x12*x23 + y12*y23 + z12*z23;
+	      cosangle /= dis_12 * dis_23;
 
-	    //energy
-	    local_energy_angle += tk * dtheta;
-	    //printf("--------test--dtheta:%f--tk:%f----local_energy_angle:%f\n"
-	     // ,dtheta,tk ,local_energy_angle);
+	      if (cosangle > 1.0)
+	        cosangle = 1.0;
+	      if (cosangle < -1.0)
+	        cosangle = -1.0;
+	      rbmd::Real s = SQRT(1.0 - cosangle * cosangle);
 
-	    rbmd::Real a = -2.0 * tk * s;
-	    rbmd::Real a11 = a * cosangle / dis_12_2;
-	    rbmd::Real a12 = -a / (dis_12 * dis_23);
-	    rbmd::Real a22 = a * cosangle / dis_23_2;
+	      const rbmd::Real SMALL = 0.001;
+	      if (s < SMALL)
+	        s = SMALL;
+	      s = 1.0 / s;
 
-	    rbmd::Real force_anglei_x,force_anglei_y,force_anglei_z;
-	    rbmd::Real force_anglek_x,force_anglek_y,force_anglek_z;
-	    rbmd::Real force_anglej_x,force_anglej_y,force_anglej_z;
+	      rbmd::Real dtheta = ACOS(cosangle) - (equilibrium_angle * M_PI) / 180;
+	      rbmd::Real tk = k * dtheta;
 
-	    force_anglei_x = a11 * x12 + a12 * x23;
-	    force_anglei_y = a11 * y12 + a12 * y23;
-	    force_anglei_z = a11 * z12 + a12 * z23;
+	      //energy
+	      local_energy_angle += tk * dtheta;
+	      //printf("--------test--dtheta:%f--tk:%f----local_energy_angle:%f\n"
+	       // ,dtheta,tk ,local_energy_angle);
 
-	    force_anglek_x = a22 * x23 + a12 * x12;
-	    force_anglek_y = a22 * y23 + a12 * y12;
-	    force_anglek_z = a22 * z23 + a12 * z12;
+	      rbmd::Real a = -2.0 * tk * s;
+	      rbmd::Real a11 = a * cosangle / dis_12_2;
+	      rbmd::Real a12 = -a / (dis_12 * dis_23);
+	      rbmd::Real a22 = a * cosangle / dis_23_2;
 
-	    force_anglej_x = -(force_anglei_x+force_anglek_x);
-	    force_anglej_y = -(force_anglei_y+force_anglek_y);
-	    force_anglej_z = -(force_anglei_z+force_anglek_z);
+	      rbmd::Real force_anglei_x,force_anglei_y,force_anglei_z;
+	      rbmd::Real force_anglek_x,force_anglek_y,force_anglek_z;
+	      rbmd::Real force_anglej_x,force_anglej_y,force_anglej_z;
 
-// 	    printf("force_angle_i, %i  %f %f %f\n",tid1,
-// 	    force_anglei_x,force_anglei_y,force_anglei_z);
-//
-// 	    printf("force_angle_j, %i  %f %f %f\n",tid1,
-// force_anglej_x,force_anglej_y,force_anglej_z);
-//
-// 	    printf("force_angle_k, %i  %f %f %f\n",tid1,
-// force_anglek_x,force_anglek_y,force_anglek_z);
-	    atomicAdd(&fx[anglelii], force_anglei_x);
-	    atomicAdd(&fy[anglelii], force_anglei_y);
-	    atomicAdd(&fz[anglelii], force_anglei_z);
+	      force_anglei_x = a11 * x12 + a12 * x23;
+	      force_anglei_y = a11 * y12 + a12 * y23;
+	      force_anglei_z = a11 * z12 + a12 * z23;
 
-	    atomicAdd(&fx[anglelkk], force_anglek_x);
-	    atomicAdd(&fy[anglelkk], force_anglek_y);
-	    atomicAdd(&fz[anglelkk], force_anglek_z);
+	      force_anglek_x = a22 * x23 + a12 * x12;
+	      force_anglek_y = a22 * y23 + a12 * y12;
+	      force_anglek_z = a22 * z23 + a12 * z12;
 
-	    atomicAdd(&fx[angleljj], force_anglej_x);
-	    atomicAdd(&fy[angleljj], force_anglej_y);
-	    atomicAdd(&fz[angleljj], force_anglej_z);
+	      force_anglej_x = -(force_anglei_x+force_anglek_x);
+	      force_anglej_y = -(force_anglei_y+force_anglek_y);
+	      force_anglej_z = -(force_anglei_z+force_anglek_z);
 
-	    rbmd::Real block_sum =
-      hipcub::BlockReduce<rbmd::Real, BLOCK_SIZE>(temp_storage).Sum(local_energy_angle);
+	    fx[anglelii] = force_anglei_x;
+	    fy[anglelii] = force_anglei_y;
+	    fz[anglelii] = force_anglei_z;
 
-	    if (threadIdx.x == 0){
-	      atomicAdd(energy_angle, block_sum);
-	    }
+	    fx[anglelkk] = force_anglek_x;
+	    fy[anglelkk] = force_anglek_y;
+	    fz[anglelkk] = force_anglek_z;
+
+	    fx[angleljj] = force_anglej_x;
+	    fy[angleljj] = force_anglej_y;
+	    fz[angleljj] = force_anglej_z;
+  // 	    printf("force_angle_i, %i  %f %f %f\n",tid1,
+  // 	    force_anglei_x,force_anglei_y,force_anglei_z);
+  //
+  // 	    printf("force_angle_j, %i  %f %f %f\n",tid1,
+  // force_anglej_x,force_anglej_y,force_anglej_z);
+  //
+  // 	    printf("force_angle_k, %i  %f %f %f\n",tid1,
+  // force_anglek_x,force_anglek_y,force_anglek_z);
+	      // atomicAdd(&fx[anglelii], force_anglei_x);
+	      // atomicAdd(&fy[anglelii], force_anglei_y);
+	      // atomicAdd(&fz[anglelii], force_anglei_z);
+	      //
+	      // atomicAdd(&fx[anglelkk], force_anglek_x);
+	      // atomicAdd(&fy[anglelkk], force_anglek_y);
+	      // atomicAdd(&fz[anglelkk], force_anglek_z);
+	      //
+	      // atomicAdd(&fx[angleljj], force_anglej_x);
+	      // atomicAdd(&fy[angleljj], force_anglej_y);
+	      // atomicAdd(&fz[angleljj], force_anglej_z);
+
+	      rbmd::Real block_sum =
+        hipcub::BlockReduce<rbmd::Real, BLOCK_SIZE>(temp_storage).Sum(local_energy_angle);
+
+	      if (threadIdx.x == 0){
+	        atomicAdd(energy_angle, block_sum);
+	      }
+	    //}
 	  }
-
 	}
 
        __global__ void ComputeDihedralForce(
@@ -2024,7 +2403,6 @@ hipcub::BlockReduce<rbmd::Real, BLOCK_SIZE>(temp_storage).Sum(local_energy_dihed
 		const rbmd::Real cut_off,
 		const rbmd::Id num_atoms,
 		const rbmd::Id* atoms_type,
-		const rbmd::Id* molecular_type,
 		const rbmd::Real* sigma,
 		const rbmd::Real* eps,
 		const rbmd::Id* start_id,
@@ -2040,9 +2418,9 @@ hipcub::BlockReduce<rbmd::Real, BLOCK_SIZE>(temp_storage).Sum(local_energy_dihed
 	{
 		unsigned int blocks_per_grid = (num_atoms + BLOCK_SIZE - 1) / BLOCK_SIZE;
 
-		CHECK_KERNEL(ComputeLJForce <<<blocks_per_grid, BLOCK_SIZE, 0, 0 >>> (box, cut_off, num_atoms, atoms_type, molecular_type,
-			sigma, eps, start_id, end_id, id_verletlist, px, py, pz,
-			fx, fy, fz, total_evdwl));
+		CHECK_KERNEL(ComputeLJForce <<<blocks_per_grid, BLOCK_SIZE, 0, 0 >>>
+		  (box, cut_off, num_atoms, atoms_type,sigma, eps, start_id, end_id,
+		    id_verletlist, px, py, pz,fx, fy, fz, total_evdwl));
 	}
 
 	void LJForceVirialOp<device::DEVICE_GPU>::operator()(
@@ -2086,7 +2464,6 @@ hipcub::BlockReduce<rbmd::Real, BLOCK_SIZE>(temp_storage).Sum(local_energy_dihed
 		const rbmd::Id neighbor_sample_num,
 		const rbmd::Id pice_num,
 		const rbmd::Id* atoms_type,
-		const rbmd::Id* molecular_type,
 		const rbmd::Real* sigma,
 		const rbmd::Real* eps,
 		const rbmd::Id* start_id,
@@ -2105,9 +2482,8 @@ hipcub::BlockReduce<rbmd::Real, BLOCK_SIZE>(temp_storage).Sum(local_energy_dihed
 
 		CHECK_KERNEL(ComputeLJRBLForce <<<blocks_per_grid, BLOCK_SIZE, 0, 0 >>>
 			(box, rs, rc, num_atoms, neighbor_sample_num, pice_num,
-				atoms_type, molecular_type, sigma, eps,
-				start_id, end_id, id_verletlist, id_random_neighbor, random_neighbor_num,
-				px, py, pz, fx, fy, fz));
+			atoms_type, sigma, eps,start_id, end_id,id_verletlist,
+			id_random_neighbor, random_neighbor_num, px, py, pz, fx, fy, fz));
 	}
 
 	//RBL: Fix LJForce
@@ -2132,7 +2508,6 @@ hipcub::BlockReduce<rbmd::Real, BLOCK_SIZE>(temp_storage).Sum(local_energy_dihed
 		const rbmd::Real cut_off,
 		const rbmd::Id num_atoms,
 		const rbmd::Id* atoms_type,
-		const rbmd::Id* molecular_type,
 		const rbmd::Real* sigma,
 		const rbmd::Real* eps,
 		const rbmd::Id* start_id,
@@ -2145,7 +2520,8 @@ hipcub::BlockReduce<rbmd::Real, BLOCK_SIZE>(temp_storage).Sum(local_energy_dihed
 	{
 		unsigned int blocks_per_grid = (num_atoms + BLOCK_SIZE - 1) / BLOCK_SIZE;
 
-		CHECK_KERNEL(ComputeLJEnergy <<<blocks_per_grid, BLOCK_SIZE, 0, 0 >>> (box, cut_off, num_atoms, atoms_type, molecular_type,
+		CHECK_KERNEL(ComputeLJEnergy <<<blocks_per_grid, BLOCK_SIZE, 0, 0 >>>
+		  (box, cut_off, num_atoms, atoms_type,
 			sigma, eps, start_id, end_id, id_verletlist, px, py, pz, total_evdwl));
 	}
 
@@ -2157,16 +2533,11 @@ hipcub::BlockReduce<rbmd::Real, BLOCK_SIZE>(temp_storage).Sum(local_energy_dihed
           const rbmd::Real qqr2e,
           const rbmd::Id* atoms_type,
           const rbmd::Id* atoms_id,
-          const rbmd::Id* molecular_id,
           const rbmd::Real* sigma,
           const rbmd::Real* eps,
           const rbmd::Id* start_id,
           const rbmd::Id* end_id,
           const rbmd::Id* id_verletlist,
-          const rbmd::Id*  special_ids,
-          const rbmd::Real*  special_weights,
-          const rbmd::Id*  special_offset,
-          const rbmd::Id*  special_count,
           const rbmd::Real* charge,
           const rbmd::Real* px,
           const rbmd::Real* py,
@@ -2180,11 +2551,46 @@ hipcub::BlockReduce<rbmd::Real, BLOCK_SIZE>(temp_storage).Sum(local_energy_dihed
 		unsigned int blocks_per_grid = (num_atoms + BLOCK_SIZE - 1) / BLOCK_SIZE;
 
 		CHECK_KERNEL(ComputeLJCutCoulForce <<<blocks_per_grid, BLOCK_SIZE, 0, 0 >>>
-		  (box,erf_table, cut_off, num_atoms, alpha, qqr2e, atoms_type,atoms_id, molecular_id,
-			sigma, eps, start_id, end_id, id_verletlist,special_ids,special_weights,
-			special_offset,special_count, charge, px, py, pz,
+		  (box,erf_table, cut_off, num_atoms, alpha, qqr2e, atoms_type,atoms_id,
+			sigma, eps, start_id, end_id, id_verletlist, charge, px, py, pz,
 			fx, fy, fz, total_evdwl, total_ecoul));
 	}
+
+       void SpecialLJCutCoulForceOp<device::DEVICE_GPU>::operator()(
+         Box* box,ERFTable* erf_table,
+         const rbmd::Real cut_off,
+         const rbmd::Id num_atoms,
+         const rbmd::Real alpha,
+         const rbmd::Real qqr2e,
+         const rbmd::Id* atoms_type,
+         const rbmd::Id* atoms_id,
+         const rbmd::Real* sigma,
+         const rbmd::Real* eps,
+         const rbmd::Id* start_id,
+         const rbmd::Id* end_id,
+         const rbmd::Id* id_verletlist,
+         const rbmd::Id*  special_ids,
+         const rbmd::Real*  special_weights,
+         const rbmd::Id*  special_offset,
+         const rbmd::Id*  special_count,
+         const rbmd::Real* charge,
+         const rbmd::Real* px,
+         const rbmd::Real* py,
+         const rbmd::Real* pz,
+         rbmd::Real* fx,
+         rbmd::Real* fy,
+         rbmd::Real* fz,
+         rbmd::Real* total_evdwl,
+         rbmd::Real* total_ecoul)
+               {
+                 unsigned int blocks_per_grid = (num_atoms + BLOCK_SIZE - 1) / BLOCK_SIZE;
+
+                 CHECK_KERNEL(ComputeSpecialLJCutCoulForce <<<blocks_per_grid, BLOCK_SIZE, 0, 0 >>>
+                   (box,erf_table, cut_off, num_atoms, alpha, qqr2e, atoms_type,atoms_id,
+                         sigma, eps, start_id, end_id, id_verletlist,special_ids,special_weights,
+                         special_offset,special_count, charge, px, py, pz,
+                         fx, fy, fz, total_evdwl, total_ecoul));
+               }
 
         void LJCutCoulRBLForceOp<device::DEVICE_GPU>::operator()(
                 Box* box,ERFTable* erf_table,
@@ -2196,7 +2602,6 @@ hipcub::BlockReduce<rbmd::Real, BLOCK_SIZE>(temp_storage).Sum(local_energy_dihed
                 const rbmd::Real alpha,
                 const rbmd::Real qqr2e,
                 const rbmd::Id* atoms_type,
-                const rbmd::Id* molecular_type,
                 const rbmd::Real* sigma,
                 const rbmd::Real* eps,
                 const rbmd::Id* start_id,
@@ -2216,9 +2621,48 @@ hipcub::BlockReduce<rbmd::Real, BLOCK_SIZE>(temp_storage).Sum(local_energy_dihed
 
 	  CHECK_KERNEL(ComputeLJCutCoulRBLForce <<<blocks_per_grid, BLOCK_SIZE, 0, 0 >>>
 	    (box, erf_table,rs,rc, num_atoms,neighbor_sample_num,pice_num,alpha, qqr2e,
-	      atoms_type, molecular_type,sigma, eps, start_id, end_id, id_verletlist,
+	      atoms_type,sigma, eps, start_id, end_id, id_verletlist,
 	      id_random_neighbor, random_neighbor_num,charge, px, py, pz,fx,fy,fz));
 	}
+
+       void SpecialLJCutCoulRBLForceOp<device::DEVICE_GPU>::operator()(
+        Box* box,ERFTable* erf_table,
+        const rbmd::Real rs,
+        const rbmd::Real rc,
+        const rbmd::Id num_atoms,
+        const rbmd::Id neighbor_sample_num,
+        const rbmd::Id pice_num,
+        const rbmd::Real alpha,
+        const rbmd::Real qqr2e,
+        const rbmd::Id* atoms_type,
+        const rbmd::Id* atoms_id,
+        const rbmd::Real* sigma,
+        const rbmd::Real* eps,
+        const rbmd::Id* start_id,
+        const rbmd::Id* end_id,
+        const rbmd::Id* id_verletlist,
+        const rbmd::Id* id_random_neighbor,
+        const rbmd::Id* random_neighbor_num,
+        const rbmd::Id*  special_ids,
+        const rbmd::Real*  special_weights,
+        const rbmd::Id*  special_offset,
+        const rbmd::Id*  special_count,
+        const rbmd::Real* charge,
+        const rbmd::Real* px,
+        const rbmd::Real* py,
+        const rbmd::Real* pz,
+        rbmd::Real* fx,
+        rbmd::Real* fy,
+        rbmd::Real* fz)
+        {
+          unsigned int blocks_per_grid = (num_atoms + BLOCK_SIZE - 1) / BLOCK_SIZE;
+
+          CHECK_KERNEL(ComputeSpecialLJCutCoulRBLForce <<<blocks_per_grid, BLOCK_SIZE, 0, 0 >>>
+            (box, erf_table,rs,rc, num_atoms,neighbor_sample_num,pice_num,alpha, qqr2e,
+              atoms_type,atoms_id,sigma, eps, start_id, end_id, id_verletlist,
+              id_random_neighbor,random_neighbor_num,special_ids, special_weights,
+              special_offset,special_count,charge, px, py, pz,fx,fy,fz));
+        }
 
        void LJCutCoulEnergyOp<device::DEVICE_GPU>::operator()(
         Box* box,ERFTable* erf_table,
@@ -2227,7 +2671,6 @@ hipcub::BlockReduce<rbmd::Real, BLOCK_SIZE>(temp_storage).Sum(local_energy_dihed
         const rbmd::Real alpha,
         const rbmd::Real qqr2e,
         const rbmd::Id* atoms_type,
-        const rbmd::Id* molecular_type,
         const rbmd::Real* sigma,
         const rbmd::Real* eps,
         const rbmd::Id* start_id,
@@ -2243,10 +2686,42 @@ hipcub::BlockReduce<rbmd::Real, BLOCK_SIZE>(temp_storage).Sum(local_energy_dihed
 	  unsigned int blocks_per_grid = (num_atoms + BLOCK_SIZE - 1) / BLOCK_SIZE;
 
 	  CHECK_KERNEL(ComputeLJCutCoulEnergy <<<blocks_per_grid, BLOCK_SIZE, 0, 0 >>>
-	    (box, erf_table,cut_off, num_atoms, alpha, qqr2e, atoms_type, molecular_type,
+	    (box, erf_table,cut_off, num_atoms, alpha, qqr2e, atoms_type,
 	    sigma, eps, start_id, end_id, id_verletlist, charge, px, py, pz,
 	    total_evdwl, total_ecoul));
 	}
+
+       void SpeciaLJCutCoulEnergyOp<device::DEVICE_GPU>::operator()(
+                      Box* box,ERFTable* erf_table,
+                       const rbmd::Real cut_off,
+                       const rbmd::Id num_atoms,
+                       const rbmd::Real alpha,
+                       const rbmd::Real qqr2e,
+                       const rbmd::Id* atoms_type,
+                       const rbmd::Id* atoms_id,
+                       const rbmd::Real* sigma,
+                       const rbmd::Real* eps,
+                       const rbmd::Id* start_id,
+                       const rbmd::Id* end_id,
+                       const rbmd::Id* id_verletlist,
+                       const rbmd::Id*  special_ids,
+                       const rbmd::Real*  special_weights,
+                       const rbmd::Id*  special_offset,
+                       const rbmd::Id*  special_count,
+                       const rbmd::Real* charge,
+                       const rbmd::Real* px,
+                       const rbmd::Real* py,
+                       const rbmd::Real* pz,
+                       rbmd::Real* total_evdwl,
+                       rbmd::Real* total_ecoul)
+        {
+          unsigned int blocks_per_grid = (num_atoms + BLOCK_SIZE - 1) / BLOCK_SIZE;
+
+          CHECK_KERNEL(ComputeSpecialLJCutCoulEnergy <<<blocks_per_grid, BLOCK_SIZE, 0, 0 >>>
+            (box, erf_table,cut_off, num_atoms, alpha, qqr2e, atoms_type,atoms_id,
+            sigma, eps, start_id, end_id, id_verletlist, special_ids,special_weights,special_offset,
+            special_count,charge, px, py, pz,total_evdwl, total_ecoul));
+        }
 
 	//Charge Structure Factor
 	void ComputeChargeStructureFactorOp<device::DEVICE_GPU>::operator()(
@@ -2411,14 +2886,13 @@ hipcub::BlockReduce<rbmd::Real, BLOCK_SIZE>(temp_storage).Sum(local_energy_dihed
        rbmd::Real* fx,
        rbmd::Real* fy,
        rbmd::Real* fz,
-       rbmd::Id* atom_ids_out,
        rbmd::Real* energy_bond)
        {
 	  unsigned int blocks_per_grid = (num_bonds + BLOCK_SIZE - 1) / BLOCK_SIZE;
 
 	  CHECK_KERNEL(ComputeBondForce <<<blocks_per_grid, BLOCK_SIZE, 0, 0 >>>
                   (box, num_bonds,atom_id_to_idx,bond_coeffs_k,bond_coeffs_equilibrium,bond_type,
-                    bondlisti,bondlistj,px, py, pz, fx, fy, fz,atom_ids_out,energy_bond));
+                    bondlisti,bondlistj,px, py, pz, fx, fy, fz,energy_bond));
        }
 
 //

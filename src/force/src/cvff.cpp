@@ -131,12 +131,12 @@ void CVFF::ComputeLJCutCoulForce()
          "neighbor_sample_num", "hyper_parameters", "neighbor");
 
 
-    op::LJCutCoulRBLForceOp<device::DEVICE_GPU> lj_cut_coul_rbl_force_op;
+    op::SpecialLJCutCoulRBLForceOp<device::DEVICE_GPU> lj_cut_coul_rbl_force_op;
     lj_cut_coul_rbl_force_op(
         _device_data->_d_box,_device_data->_d_erf_table, r_core, _cut_off, _num_atoms,
         neighbor_sample_num,_rbl_list->_selection_frequency,_alpha,_qqr2e,
         thrust::raw_pointer_cast(_device_data->_d_atoms_type.data()),
-        thrust::raw_pointer_cast(_device_data->_d_molecular_id.data()),
+        thrust::raw_pointer_cast(_device_data->_d_atoms_id.data()),
         thrust::raw_pointer_cast(_device_data->_d_sigma.data()),
         thrust::raw_pointer_cast(_device_data->_d_eps.data()),
         thrust::raw_pointer_cast(_rbl_list->_start_idx.data()),
@@ -144,6 +144,10 @@ void CVFF::ComputeLJCutCoulForce()
         thrust::raw_pointer_cast(_rbl_list->_d_neighbors.data()),
         thrust::raw_pointer_cast(_rbl_list->_d_random_neighbor.data()),
         thrust::raw_pointer_cast(_rbl_list->_d_random_neighbor_num.data()),
+        thrust::raw_pointer_cast(_device_data->_d_special_ids.data()),
+        thrust::raw_pointer_cast(_device_data->_d_special_weights.data()),
+        thrust::raw_pointer_cast(_device_data->_d_special_offsets.data()),
+        thrust::raw_pointer_cast(_device_data->_d_special_count.data()),
         thrust::raw_pointer_cast(_device_data->_d_charge.data()),
         thrust::raw_pointer_cast(_device_data->_d_px.data()),
         thrust::raw_pointer_cast(_device_data->_d_py.data()),
@@ -194,11 +198,10 @@ void CVFF::ComputeLJCutCoulForce()
 
   //
   //std::cout << "_qqr2e:" << _qqr2e  <<std::endl;
-  op::LJCutCoulForceOp<device::DEVICE_GPU> lj_cut_coul_force_op;
+  op::SpecialLJCutCoulForceOp<device::DEVICE_GPU> lj_cut_coul_force_op;
   lj_cut_coul_force_op(_device_data->_d_box,_device_data->_d_erf_table, _cut_off, _num_atoms,_alpha,_qqr2e,
                   thrust::raw_pointer_cast(_device_data->_d_atoms_type.data()),
                   thrust::raw_pointer_cast(_device_data->_d_atoms_id.data()),
-                  thrust::raw_pointer_cast(_device_data->_d_molecular_id.data()),
                   thrust::raw_pointer_cast(_device_data->_d_sigma.data()),
                   thrust::raw_pointer_cast(_device_data->_d_eps.data()),
                   thrust::raw_pointer_cast(_list->_start_idx.data()),
@@ -703,15 +706,19 @@ void CVFF::ComputeLJCoulEnergy()
   CHECK_RUNTIME(MEMSET(_d_total_evdwl, 0, sizeof(rbmd::Real)));
   CHECK_RUNTIME(MEMSET(_d_total_ecoul, 0, sizeof(rbmd::Real)));
 
-  op::LJCutCoulEnergyOp<device::DEVICE_GPU> lj_cut_coul_energy_op;
+  op::SpeciaLJCutCoulEnergyOp<device::DEVICE_GPU> lj_cut_coul_energy_op;
   lj_cut_coul_energy_op(_device_data->_d_box,_device_data->_d_erf_table,_cut_off, _num_atoms,_alpha,_qqr2e,
                 thrust::raw_pointer_cast(_device_data->_d_atoms_type.data()),
-                thrust::raw_pointer_cast(_device_data->_d_molecular_id.data()),
+                thrust::raw_pointer_cast(_device_data->_d_atoms_id.data()),
                 thrust::raw_pointer_cast(_device_data->_d_sigma.data()),
                 thrust::raw_pointer_cast(_device_data->_d_eps.data()),
                 thrust::raw_pointer_cast(_list->_start_idx.data()),
                 thrust::raw_pointer_cast(_list->_end_idx.data()),
                 thrust::raw_pointer_cast(_list->_d_neighbors.data()),
+                thrust::raw_pointer_cast(_device_data->_d_special_ids.data()),
+                thrust::raw_pointer_cast(_device_data->_d_special_weights.data()),
+                thrust::raw_pointer_cast(_device_data->_d_special_offsets.data()),
+                thrust::raw_pointer_cast(_device_data->_d_special_count.data()),
                 thrust::raw_pointer_cast(_device_data->_d_charge.data()),
                 thrust::raw_pointer_cast(_device_data->_d_px.data()),
                 thrust::raw_pointer_cast(_device_data->_d_py.data()),
@@ -809,8 +816,6 @@ void CVFF::ComputeKspaceEnergy(
 
 void CVFF::ComputeBondForce()
 {
-  thrust::device_vector<rbmd::Id> atom_ids_out(_num_bonds * 2);
-
   auto _atom_id_to_idx =
     LinkedCellLocator::GetInstance().GetLinkedCell()->_atom_id_to_idx;
 
@@ -830,7 +835,6 @@ void CVFF::ComputeBondForce()
     thrust::raw_pointer_cast(_device_data->_d_force_bond_x.data()),
     thrust::raw_pointer_cast(_device_data->_d_force_bond_y.data()),
     thrust::raw_pointer_cast(_device_data->_d_force_bond_z.data()),
-    thrust::raw_pointer_cast(atom_ids_out.data()),
     _d_total_ebond);
 
   CHECK_RUNTIME(MEMCPY(&h_energy_bond,_d_total_ebond , sizeof(rbmd::Real), D2H));

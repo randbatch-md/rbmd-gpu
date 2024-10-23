@@ -67,7 +67,6 @@ void LJForce::Execute() {
         _device_data->_d_box, r_core, _cut_off, _num_atoms, neighbor_sample_num,
         _rbl_list->_selection_frequency,
         thrust::raw_pointer_cast(_device_data->_d_atoms_type.data()),
-        thrust::raw_pointer_cast(_device_data->_d_molecular_id.data()),
         thrust::raw_pointer_cast(_device_data->_d_sigma.data()),
         thrust::raw_pointer_cast(_device_data->_d_eps.data()),
         thrust::raw_pointer_cast(_rbl_list->_start_idx.data()),
@@ -124,7 +123,6 @@ void LJForce::Execute() {
     op::LJForceOp<device::DEVICE_GPU> lj_force_op;
     lj_force_op(_device_data->_d_box, _cut_off, _num_atoms,
                 thrust::raw_pointer_cast(_device_data->_d_atoms_type.data()),
-                thrust::raw_pointer_cast(_device_data->_d_molecular_id.data()),
                 thrust::raw_pointer_cast(_device_data->_d_sigma.data()),
                 thrust::raw_pointer_cast(_device_data->_d_eps.data()),
                 thrust::raw_pointer_cast(_list->_start_idx.data()),
@@ -167,7 +165,6 @@ void LJForce::ComputeLJEnergy()
   op::LJEnergyOp<device::DEVICE_GPU> lj_energy_op;
   lj_energy_op(_device_data->_d_box, _cut_off, _num_atoms,
                thrust::raw_pointer_cast(_device_data->_d_atoms_type.data()),
-               thrust::raw_pointer_cast(_device_data->_d_molecular_id.data()),
                thrust::raw_pointer_cast(_device_data->_d_sigma.data()),
                thrust::raw_pointer_cast(_device_data->_d_eps.data()),
                thrust::raw_pointer_cast(_list->_start_idx.data()),

@@ -30,4 +30,8 @@ class NoseHooverController : public TemperatureController {
   rbmd::Real _nosehooverxi;
   rbmd::Real _fmt2v;
   rbmd::Real* _d_temp_contrib;
+
+  rbmd::Real _temperature_start;
+  rbmd::Real _temperature_stop;
+  rbmd::Real _temperature_damp;
 };

@@ -14,7 +14,6 @@ namespace op
                           const rbmd::Real cut_off,
                           const rbmd::Id num_atoms,
                           const rbmd::Id* atoms_type,
-                          const rbmd::Id* molecular_type,
                           const rbmd::Real* sigma,
                           const rbmd::Real* eps,
                           const rbmd::Id* start_id,
@@ -67,7 +66,6 @@ namespace op
 			const rbmd::Id neighbor_sample_num,
 			const rbmd::Id pice_num,
 			const rbmd::Id* atoms_type,
-			const rbmd::Id* molecular_type,
 			const rbmd::Real* sigma,
 			const rbmd::Real* eps,
 			const rbmd::Id* start_id,
@@ -103,7 +101,6 @@ namespace op
 			const rbmd::Real cut_off,
 			const rbmd::Id num_atoms,
 			const rbmd::Id* atoms_type,
-			const rbmd::Id* molecular_type,
 			const rbmd::Real* sigma,
 			const rbmd::Real* eps,
 			const rbmd::Id* start_id,
@@ -125,7 +122,32 @@ namespace op
                 const rbmd::Real qqr2e,
                 const rbmd::Id* atoms_type,
                 const rbmd::Id* atoms_id,
-                const rbmd::Id* molecular_id,
+                const rbmd::Real* sigma,
+                const rbmd::Real* eps,
+                const rbmd::Id* start_id,
+                const rbmd::Id* end_id,
+                const rbmd::Id* id_verletlist,
+                const rbmd::Real* charge,
+                const rbmd::Real* px,
+                const rbmd::Real* py,
+                const rbmd::Real* pz,
+                rbmd::Real* fx,
+                rbmd::Real* fy,
+                rbmd::Real* fz,
+                rbmd::Real* total_evdwl,
+                rbmd::Real* total_ecoul);
+        };
+
+        template <typename DEVICE>
+        struct SpecialLJCutCoulForceOp
+        {
+          void operator()(Box* box,ERFTable* erf_table,
+                const rbmd::Real cut_off,
+                const rbmd::Id num_atoms,
+                const rbmd::Real alpha,
+                const rbmd::Real qqr2e,
+                const rbmd::Id* atoms_type,
+                const rbmd::Id* atoms_id,
                 const rbmd::Real* sigma,
                 const rbmd::Real* eps,
                 const rbmd::Id* start_id,
@@ -158,7 +180,6 @@ namespace op
                   const rbmd::Real alpha,
                   const rbmd::Real qqr2e,
                   const rbmd::Id* atoms_type,
-                  const rbmd::Id* molecular_type,
                   const rbmd::Real* sigma,
                   const rbmd::Real* eps,
                   const rbmd::Id* start_id,
@@ -175,6 +196,39 @@ namespace op
                   rbmd::Real* fz);
        };
 
+      template <typename DEVICE>
+      struct SpecialLJCutCoulRBLForceOp
+      {
+        void operator()(Box* box,ERFTable* erf_table,
+          const rbmd::Real rs,
+          const rbmd::Real rc,
+          const rbmd::Id num_atoms,
+          const rbmd::Id neighbor_sample_num,
+          const rbmd::Id pice_num,
+          const rbmd::Real alpha,
+          const rbmd::Real qqr2e,
+          const rbmd::Id* atoms_type,
+          const rbmd::Id* atoms_id,
+          const rbmd::Real* sigma,
+          const rbmd::Real* eps,
+          const rbmd::Id* start_id,
+          const rbmd::Id* end_id,
+          const rbmd::Id* id_verletlist,
+          const rbmd::Id* id_random_neighbor,
+          const rbmd::Id* random_neighbor_num,
+          const rbmd::Id*  special_ids,
+          const rbmd::Real*  special_weights,
+          const rbmd::Id*  special_offset,
+          const rbmd::Id*  special_count,
+          const rbmd::Real* charge,
+          const rbmd::Real* px,
+          const rbmd::Real* py,
+          const rbmd::Real* pz,
+          rbmd::Real* fx,
+          rbmd::Real* fy,
+          rbmd::Real* fz);
+      };
+
         template <typename DEVICE>
         struct LJCutCoulEnergyOp
         {
@@ -184,7 +238,6 @@ namespace op
                const rbmd::Real alpha,
                const rbmd::Real qqr2e,
                const rbmd::Id* atoms_type,
-               const rbmd::Id* molecular_type,
                const rbmd::Real* sigma,
                const rbmd::Real* eps,
                const rbmd::Id* start_id,
@@ -197,6 +250,33 @@ namespace op
                rbmd::Real* total_evdwl,
                rbmd::Real* total_ecoul);
         };
+
+       template <typename DEVICE>
+       struct SpeciaLJCutCoulEnergyOp
+       {
+         void operator()(Box* box,ERFTable* erf_table,
+              const rbmd::Real cut_off,
+              const rbmd::Id num_atoms,
+              const rbmd::Real alpha,
+              const rbmd::Real qqr2e,
+              const rbmd::Id* atoms_type,
+              const rbmd::Id* atoms_id,
+              const rbmd::Real* sigma,
+              const rbmd::Real* eps,
+              const rbmd::Id* start_id,
+              const rbmd::Id* end_id,
+              const rbmd::Id* id_verletlist,
+              const rbmd::Id*  special_ids,
+              const rbmd::Real*  special_weights,
+              const rbmd::Id*  special_offset,
+              const rbmd::Id*  special_count,
+              const rbmd::Real* charge,
+              const rbmd::Real* px,
+              const rbmd::Real* py,
+              const rbmd::Real* pz,
+              rbmd::Real* total_evdwl,
+              rbmd::Real* total_ecoul);
+       };
 
 	template <typename DEVICE>
 	struct ComputeChargeStructureFactorOp
@@ -311,7 +391,6 @@ namespace op
          rbmd::Real* fx,
          rbmd::Real* fy,
          rbmd::Real* fz,
-         rbmd::Id* atom_ids_out,
          rbmd::Real* energy_bond);
      };
 
@@ -392,7 +471,6 @@ namespace op
                           const rbmd::Real cut_off,
                           const rbmd::Id num_atoms,
                           const rbmd::Id* atoms_type,
-                          const rbmd::Id* molecular_type,
                           const rbmd::Real* sigma,
                           const rbmd::Real* eps,
                           const rbmd::Id* start_id,
@@ -445,7 +523,6 @@ namespace op
 			const rbmd::Id neighbor_sample_num,
 			const rbmd::Id pice_num,
 			const rbmd::Id* atoms_type,
-			const rbmd::Id* molecular_type,
 			const rbmd::Real* sigma,
 			const rbmd::Real* eps,
 			const rbmd::Id* start_id,
@@ -481,7 +558,6 @@ namespace op
 			const rbmd::Real cut_off,
 			const rbmd::Id num_atoms,
 			const rbmd::Id* atoms_type,
-			const rbmd::Id* molecular_type,
 			const rbmd::Real* sigma,
 			const rbmd::Real* eps,
 			const rbmd::Id* start_id,
@@ -503,7 +579,32 @@ namespace op
                 const rbmd::Real qqr2e,
                 const rbmd::Id* atoms_type,
                 const rbmd::Id* atoms_id,
-                const rbmd::Id* molecular_id,
+                const rbmd::Real* sigma,
+                const rbmd::Real* eps,
+                const rbmd::Id* start_id,
+                const rbmd::Id* end_id,
+                const rbmd::Id* id_verletlist,
+                const rbmd::Real* charge,
+                const rbmd::Real* px,
+                const rbmd::Real* py,
+                const rbmd::Real* pz,
+                rbmd::Real* fx,
+                rbmd::Real* fy,
+                rbmd::Real* fz,
+                rbmd::Real* total_evdwl,
+                rbmd::Real* total_ecoul);
+        };
+
+        template <>
+        struct SpecialLJCutCoulForceOp<device::DEVICE_GPU>
+        {
+          void operator()(Box* box,ERFTable* erf_table,
+                const rbmd::Real cut_off,
+                const rbmd::Id num_atoms,
+                const rbmd::Real alpha,
+                const rbmd::Real qqr2e,
+                const rbmd::Id* atoms_type,
+                const rbmd::Id* atoms_id,
                 const rbmd::Real* sigma,
                 const rbmd::Real* eps,
                 const rbmd::Id* start_id,
@@ -536,7 +637,6 @@ namespace op
                 const rbmd::Real alpha,
                 const rbmd::Real qqr2e,
                 const rbmd::Id* atoms_type,
-                const rbmd::Id* molecular_type,
                 const rbmd::Real* sigma,
                 const rbmd::Real* eps,
                 const rbmd::Id* start_id,
@@ -553,6 +653,40 @@ namespace op
                 rbmd::Real* fz);
      };
 
+     template <>
+     struct SpecialLJCutCoulRBLForceOp<device::DEVICE_GPU>
+     {
+       void operator()(Box* box,ERFTable* erf_table,
+        const rbmd::Real rs,
+        const rbmd::Real rc,
+        const rbmd::Id num_atoms,
+        const rbmd::Id neighbor_sample_num,
+        const rbmd::Id pice_num,
+        const rbmd::Real alpha,
+        const rbmd::Real qqr2e,
+        const rbmd::Id* atoms_type,
+        const rbmd::Id* atoms_id,
+        const rbmd::Real* sigma,
+        const rbmd::Real* eps,
+        const rbmd::Id* start_id,
+        const rbmd::Id* end_id,
+        const rbmd::Id* id_verletlist,
+        const rbmd::Id* id_random_neighbor,
+        const rbmd::Id* random_neighbor_num,
+        const rbmd::Id*  special_ids,
+        const rbmd::Real*  special_weights,
+        const rbmd::Id*  special_offset,
+        const rbmd::Id*  special_count,
+        const rbmd::Real* charge,
+        const rbmd::Real* px,
+        const rbmd::Real* py,
+        const rbmd::Real* pz,
+        rbmd::Real* fx,
+        rbmd::Real* fy,
+        rbmd::Real* fz);
+     };
+
+
        template <>
        struct LJCutCoulEnergyOp<device::DEVICE_GPU>
        {
@@ -562,7 +696,6 @@ namespace op
               const rbmd::Real alpha,
               const rbmd::Real qqr2e,
               const rbmd::Id* atoms_type,
-              const rbmd::Id* molecular_type,
               const rbmd::Real* sigma,
               const rbmd::Real* eps,
               const rbmd::Id* start_id,
@@ -575,6 +708,34 @@ namespace op
               rbmd::Real* total_evdwl,
               rbmd::Real* total_ecoul);
        };
+
+      template <>
+      struct SpeciaLJCutCoulEnergyOp<device::DEVICE_GPU>
+      {
+        void operator()(Box* box,ERFTable* erf_table,
+             const rbmd::Real cut_off,
+             const rbmd::Id num_atoms,
+             const rbmd::Real alpha,
+             const rbmd::Real qqr2e,
+             const rbmd::Id* atoms_type,
+             const rbmd::Id* atoms_id,
+             const rbmd::Real* sigma,
+             const rbmd::Real* eps,
+             const rbmd::Id* start_id,
+             const rbmd::Id* end_id,
+             const rbmd::Id* id_verletlist,
+             const rbmd::Id*  special_ids,
+             const rbmd::Real*  special_weights,
+             const rbmd::Id*  special_offset,
+             const rbmd::Id*  special_count,
+             const rbmd::Real* charge,
+             const rbmd::Real* px,
+             const rbmd::Real* py,
+             const rbmd::Real* pz,
+             rbmd::Real* total_evdwl,
+             rbmd::Real* total_ecoul);
+      };
+
 
 	template <>
 	struct ComputeChargeStructureFactorOp<device::DEVICE_GPU>
@@ -718,7 +879,6 @@ namespace op
          rbmd::Real* fx,
          rbmd::Real* fy,
          rbmd::Real* fz,
-         rbmd::Id* atom_ids_out,
          rbmd::Real* energy_bond);
      };
 

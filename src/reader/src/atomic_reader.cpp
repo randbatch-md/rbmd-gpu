@@ -212,7 +212,6 @@ int AtomicReader::ReadAtoms(const rbmd::Id& atoms_num) {
                     MolecularMapInsert(data->_h_molecules_id[index], ids[index]);
                     AtomsMapInsert(types[index], ids[index]);
                     AtomstoMolecular(ids[index], data->_h_molecules_id[index]);
-                    SetMolecularGroup();
                     ++num;
                     /*std::cout << atom_id << " " << data->_h_molecules_id[index] << " " << types[index] << " " <<
                     data->_h_charge[index]  << " " << data->_h_px[index] << " " <<
@@ -221,6 +220,7 @@ int AtomicReader::ReadAtoms(const rbmd::Id& atoms_num) {
                 _line_start = &_mapped_memory[_locate];
             }
         }
+      SetMolecularGroup();
     }
   } catch (const std::exception& e) {
     // log
@@ -303,13 +303,11 @@ void AtomicReader::SetMolecularGroup()
     HIP_CHECK(
      MALLOCHOST(&(data->_h_atoms_offset), (countVector.size()+1)* sizeof(rbmd::Id)));
 
-
     memcpy(data->_h_atoms_vec_gro, atoms_vec_gro.data(), atoms_vec_gro.size() * sizeof(rbmd::Id));
     memcpy(data->_h_count_vector, countVector.data(), countVector.size() * sizeof(rbmd::Id));
 
     std::vector<rbmd::Id> cumulative_offsets;
     cumulative_offsets.push_back(0);
-
     for (int i = 0; i < countVector.size(); ++i)
     {
       cumulative_offsets.push_back(cumulative_offsets.back() + countVector[i]); //cpu

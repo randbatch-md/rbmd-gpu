@@ -19,13 +19,21 @@ BerendsenController::~BerendsenController() {
 void BerendsenController::Init() {
   _num_atoms = *(_structure_info_data->_num_atoms);
   _temp_sum = 0;
-  _Tdamp = 50;  // �����ļ��ж�ȡ temperature [1.0,1.0,0.1]
+
+  auto temperature_array=
+  DataManager::getInstance().getConfigData()->
+GetArray<rbmd::Real>("temperature", "execution"); //[1.0,1.0,0.1]
+  _temperature_start = temperature_array[0];
+  _temperature_stop = temperature_array[1];
+  _temperature_damp = temperature_array[2];
+
   _dt =  DataManager::getInstance().getConfigData()->Get<rbmd::Real>(
           "timestep", "execution");//0.001
+
   auto unit = DataManager::getInstance().getConfigData()->Get
     <std::string>("unit", "init_configuration", "read_data");
-  UNIT unit_factor = unit_factor_map[unit];  // ����������ض�������
 
+  UNIT unit_factor = unit_factor_map[unit];
   switch (unit_factor) {
     case UNIT::LJ:
       _mvv2e = UnitFactor<UNIT::LJ>::_mvv2e;
@@ -93,9 +101,8 @@ void BerendsenController::ComputeTemp() {
 }
 
 void BerendsenController::UpdataVelocity() {
-  _temperature_targert = 298.0;
   rbmd::Real coeff_Berendsen =
-      std::sqrt(1.0 + (_dt / _Tdamp) * (_temperature_targert/ _temp - 1.0));
+      SQRT(1.0 + (_dt / _temperature_damp) * (_temperature_start/ _temp - 1.0));
 
   op::UpdataVelocityRescaleOp<device::DEVICE_GPU> updata_velocity_op;
   updata_velocity_op(_num_atoms, coeff_Berendsen,
