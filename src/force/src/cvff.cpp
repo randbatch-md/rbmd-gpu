@@ -157,13 +157,13 @@ void CVFF::ComputeLJCutCoulForce()
         thrust::raw_pointer_cast(_device_data->_d_force_ljcoul_z.data()));
 
     _corr_value_x =
-        thrust::reduce(_device_data->_d_fx.begin(), _device_data->_d_fx.end(),
+        thrust::reduce(_device_data->_d_force_ljcoul_x.begin(), _device_data->_d_force_ljcoul_x.end(),
                        0.0f, thrust::plus<rbmd::Real>()) /_num_atoms;
     _corr_value_y =
-        thrust::reduce(_device_data->_d_fy.begin(), _device_data->_d_fy.end(),
+        thrust::reduce(_device_data->_d_force_ljcoul_y.begin(), _device_data->_d_force_ljcoul_y.end(),
                        0.0f, thrust::plus<rbmd::Real>()) /_num_atoms;
     _corr_value_z =
-        thrust::reduce(_device_data->_d_fz.begin(), _device_data->_d_fz.end(),
+        thrust::reduce(_device_data->_d_force_ljcoul_z.begin(), _device_data->_d_force_ljcoul_z.end(),
                        0.0f, thrust::plus<rbmd::Real>()) /_num_atoms;
 
     // fix RBL:   rbl_force = f - corr_value
@@ -175,6 +175,26 @@ void CVFF::ComputeLJCutCoulForce()
 
     //energy
     ComputeLJCoulEnergy();
+
+    //out
+    std::vector<rbmd::Real> h_force_ljcoul_x(_num_atoms);
+    std::vector<rbmd::Real> h_force_ljcoul_y(_num_atoms);
+    std::vector<rbmd::Real> h_force_ljcoul_z(_num_atoms);
+    thrust::copy(_device_data->_d_force_ljcoul_x.begin(),
+      _device_data->_d_force_ljcoul_x.end(), h_force_ljcoul_x.begin());
+    thrust::copy(_device_data->_d_force_ljcoul_y.begin(),
+    _device_data->_d_force_ljcoul_y.end(), h_force_ljcoul_y.begin());
+
+    thrust::copy(_device_data->_d_force_ljcoul_z.begin(),
+    _device_data->_d_force_ljcoul_z.end(), h_force_ljcoul_z.begin());
+
+    std::ofstream output_file("output_force_ljcoul_RBL.txt");
+    for (size_t i = 0; i < h_force_ljcoul_x.size(); ++i)
+    {
+      output_file << i << " " << h_force_ljcoul_x[i] << " "<<h_force_ljcoul_y[i] <<" "
+      << h_force_ljcoul_z[i] << std::endl;
+    }
+    output_file.close();
 
   }
   else
@@ -236,9 +256,9 @@ void CVFF::ComputeLJCutCoulForce()
   std::ofstream outfile("ave_lj.txt", std::ios::app);
   outfile << test_current_step << " " << _ave_evdwl << std::endl;
   outfile.close();
-  }
 
-  //out
+
+    //out
     std::vector<rbmd::Real> h_force_ljcoul_x(_num_atoms);
     std::vector<rbmd::Real> h_force_ljcoul_y(_num_atoms);
     std::vector<rbmd::Real> h_force_ljcoul_z(_num_atoms);
@@ -250,13 +270,15 @@ void CVFF::ComputeLJCutCoulForce()
     thrust::copy(_device_data->_d_force_ljcoul_z.begin(),
     _device_data->_d_force_ljcoul_z.end(), h_force_ljcoul_z.begin());
 
-    std::ofstream output_file("output_force_ljcoul.txt");
+    std::ofstream output_file("output_force_ljcoul_verlet.txt");
     for (size_t i = 0; i < h_force_ljcoul_x.size(); ++i)
     {
       output_file << i << " " << h_force_ljcoul_x[i] << " "<<h_force_ljcoul_y[i] <<" "
       << h_force_ljcoul_z[i] << std::endl;
     }
     output_file.close();
+
+  }
 }
 
 void CVFF::ComputeSpecialCoulForce()

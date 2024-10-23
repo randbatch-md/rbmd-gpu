@@ -133,13 +133,13 @@ void LJCutCoulKspaceForce::ComputeLJCutCoulForce()
         thrust::raw_pointer_cast(_device_data->_d_force_ljcoul_z.data()));
 
     _corr_value_x =
-        thrust::reduce(_device_data->_d_fx.begin(), _device_data->_d_fx.end(),
+        thrust::reduce(_device_data->_d_force_ljcoul_x.begin(), _device_data->_d_force_ljcoul_x.end(),
                        0.0f, thrust::plus<rbmd::Real>()) /_num_atoms;
     _corr_value_y =
-        thrust::reduce(_device_data->_d_fy.begin(), _device_data->_d_fy.end(),
+        thrust::reduce(_device_data->_d_force_ljcoul_y.begin(), _device_data->_d_force_ljcoul_y.end(),
                        0.0f, thrust::plus<rbmd::Real>()) /_num_atoms;
     _corr_value_z =
-        thrust::reduce(_device_data->_d_fz.begin(), _device_data->_d_fz.end(),
+        thrust::reduce(_device_data->_d_force_ljcoul_z.begin(), _device_data->_d_force_ljcoul_z.end(),
                        0.0f, thrust::plus<rbmd::Real>()) /_num_atoms;
 
     // fix RBL:   rbl_force = f - corr_value

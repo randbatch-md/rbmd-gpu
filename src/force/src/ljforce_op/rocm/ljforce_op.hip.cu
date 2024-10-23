@@ -1445,8 +1445,6 @@ void CoulCutForce_rcs_erf(
 		unsigned int tid1 = blockIdx.x * blockDim.x + threadIdx.x;
 		if (tid1 < num_atoms)
 		{
-		  if(tid1 == 0)
-		  {
 		        rbmd::Id  atom_id1 = atoms_id[tid1];
 		        rbmd::Id  num_components = special_offset[atom_id1];
 
@@ -1518,8 +1516,8 @@ void CoulCutForce_rcs_erf(
 			rbmd::Id real_random_num = random_neighbor_num[tid1];
 			for (rbmd::Id jj = 0; jj < real_random_num; ++jj)
 			{
-
 			  rbmd::Id tid2 = id_random_neighbor[tid1 * neighbor_sample_num + jj];
+			  rbmd::Id atom_id2 = atoms_id[tid2];
 			  rbmd::Id typej = atoms_type[tid2];
 			  rbmd::Real eps_j = eps[typej];
 			  rbmd::Real sigma_j = sigma[typej];
@@ -1551,7 +1549,8 @@ void CoulCutForce_rcs_erf(
 			  rbmd::Real weight = 1.0;
 			  for (rbmd::Id k = 0; k < special_count[atom_id1]; ++k)
 			  {
-			    if (special_ids[num_components+k] == tid2)
+			    rbmd::Id special_id = special_ids[num_components+k];
+			    if (special_id == atom_id2)
 			    {
 			      weight = special_weights[num_components+k];
 			      //printf("weight %f\n", weight);
@@ -1577,7 +1576,6 @@ void CoulCutForce_rcs_erf(
 			fy[tid1] = sum_fy;
 			fz[tid1] = sum_fz;
 		  }
-		}
 	}
 
 	//StructureFactor
@@ -1981,8 +1979,6 @@ void CoulCutForce_rcs_erf(
 	  unsigned int tid1 = blockIdx.x * blockDim.x + threadIdx.x;
 	  if (tid1 < num_bonds)
 	  {
-	    // if(tid1 == 0)
-	    // {
 	      rbmd::Id bondi = bondlisti[tid1];
 	      rbmd::Id bondj = bondlistj[tid1];
 	      rbmd::Id bondii = atom_id_to_idx[bondi];
@@ -2021,27 +2017,27 @@ void CoulCutForce_rcs_erf(
 	        forcebondij = 0.0;
 
 	      // // apply force to each of 2 atoms
-	      fx[bondii] = forcebondij * x12;
-	      fy[bondii] = forcebondij * y12;
-	      fz[bondii] = forcebondij * z12;
-
-	      fx[bondjj] = -forcebondij * x12;
-	      fy[bondjj] = -forcebondij * y12;
-	      fz[bondjj] = -forcebondij * z12;
+	      // fx[bondii] = forcebondij * x12;
+	      // fy[bondii] = forcebondij * y12;
+	      // fz[bondii] = forcebondij * z12;
+	      //
+	      // fx[bondjj] = -forcebondij * x12;
+	      // fy[bondjj] = -forcebondij * y12;
+	      // fz[bondjj] = -forcebondij * z12;
 
 	      // // 计算作用力分量
-	      // rbmd::Real fx_ij = forcebondij * x12;
-	      // rbmd::Real fy_ij = forcebondij * y12;
-	      // rbmd::Real fz_ij = forcebondij * z12;
-	      // //printf("force_bond, %i  %f %f %f\n",tid1,fx_ij,fy_ij,fz_ij);
-	      //
-	      // atomicAdd(&fx[bondii], fx_ij); // 将作用力添加到原子bondi
-	      // atomicAdd(&fy[bondii], fy_ij);
-	      // atomicAdd(&fz[bondii], fz_ij);
-	      //
-	      // atomicAdd(&fx[bondjj], -fx_ij); // 对于bondj施加相反的作用力
-	      // atomicAdd(&fy[bondjj], -fy_ij);
-	      // atomicAdd(&fz[bondjj], -fz_ij);
+	      rbmd::Real fx_ij = forcebondij * x12;
+	      rbmd::Real fy_ij = forcebondij * y12;
+	      rbmd::Real fz_ij = forcebondij * z12;
+	      //printf("force_bond, %i  %f %f %f\n",tid1,fx_ij,fy_ij,fz_ij);
+
+	      atomicAdd(&fx[bondii], fx_ij); // 将作用力添加到原子bondi
+	      atomicAdd(&fy[bondii], fy_ij);
+	      atomicAdd(&fz[bondii], fz_ij);
+
+	      atomicAdd(&fx[bondjj], -fx_ij); // 对于bondj施加相反的作用力
+	      atomicAdd(&fy[bondjj], -fy_ij);
+	      atomicAdd(&fz[bondjj], -fz_ij);
 
 	      rbmd::Real block_sum =
     hipcub::BlockReduce<rbmd::Real, BLOCK_SIZE>(temp_storage).Sum(local_energy_bond);
@@ -2049,7 +2045,6 @@ void CoulCutForce_rcs_erf(
 	      if (threadIdx.x == 0){
 	        atomicAdd(energy_bond, block_sum);
 	      }
-	    //}
 	}
       }
 
@@ -2079,8 +2074,6 @@ temp_storage;
 	  unsigned int tid1 = blockIdx.x * blockDim.x + threadIdx.x;
 	  if (tid1 < num_anglels)
 	  {
-	    // if(tid1 == 0)
-	    // {
 	      rbmd::Id angleli = anglelisti[tid1];
 	      rbmd::Id anglelj = anglelistj[tid1];
 	      rbmd::Id anglelk = anglelistk[tid1];
@@ -2140,7 +2133,7 @@ temp_storage;
 	      rbmd::Real tk = k * dtheta;
 
 	      //energy
-	      local_energy_angle += tk * dtheta;
+	      local_energy_angle = tk * dtheta;
 	      //printf("--------test--dtheta:%f--tk:%f----local_energy_angle:%f\n"
 	       // ,dtheta,tk ,local_energy_angle);
 
@@ -2165,17 +2158,17 @@ temp_storage;
 	      force_anglej_y = -(force_anglei_y+force_anglek_y);
 	      force_anglej_z = -(force_anglei_z+force_anglek_z);
 
-	    fx[anglelii] = force_anglei_x;
-	    fy[anglelii] = force_anglei_y;
-	    fz[anglelii] = force_anglei_z;
-
-	    fx[anglelkk] = force_anglek_x;
-	    fy[anglelkk] = force_anglek_y;
-	    fz[anglelkk] = force_anglek_z;
-
-	    fx[angleljj] = force_anglej_x;
-	    fy[angleljj] = force_anglej_y;
-	    fz[angleljj] = force_anglej_z;
+	    // fx[anglelii] = force_anglei_x;
+	    // fy[anglelii] = force_anglei_y;
+	    // fz[anglelii] = force_anglei_z;
+	    //
+	    // fx[anglelkk] = force_anglek_x;
+	    // fy[anglelkk] = force_anglek_y;
+	    // fz[anglelkk] = force_anglek_z;
+	    //
+	    // fx[angleljj] = force_anglej_x;
+	    // fy[angleljj] = force_anglej_y;
+	    // fz[angleljj] = force_anglej_z;
   // 	    printf("force_angle_i, %i  %f %f %f\n",tid1,
   // 	    force_anglei_x,force_anglei_y,force_anglei_z);
   //
@@ -2184,17 +2177,17 @@ temp_storage;
   //
   // 	    printf("force_angle_k, %i  %f %f %f\n",tid1,
   // force_anglek_x,force_anglek_y,force_anglek_z);
-	      // atomicAdd(&fx[anglelii], force_anglei_x);
-	      // atomicAdd(&fy[anglelii], force_anglei_y);
-	      // atomicAdd(&fz[anglelii], force_anglei_z);
-	      //
-	      // atomicAdd(&fx[anglelkk], force_anglek_x);
-	      // atomicAdd(&fy[anglelkk], force_anglek_y);
-	      // atomicAdd(&fz[anglelkk], force_anglek_z);
-	      //
-	      // atomicAdd(&fx[angleljj], force_anglej_x);
-	      // atomicAdd(&fy[angleljj], force_anglej_y);
-	      // atomicAdd(&fz[angleljj], force_anglej_z);
+	      atomicAdd(&fx[anglelii], force_anglei_x);
+	      atomicAdd(&fy[anglelii], force_anglei_y);
+	      atomicAdd(&fz[anglelii], force_anglei_z);
+
+	      atomicAdd(&fx[anglelkk], force_anglek_x);
+	      atomicAdd(&fy[anglelkk], force_anglek_y);
+	      atomicAdd(&fz[anglelkk], force_anglek_z);
+
+	      atomicAdd(&fx[angleljj], force_anglej_x);
+	      atomicAdd(&fy[angleljj], force_anglej_y);
+	      atomicAdd(&fz[angleljj], force_anglej_z);
 
 	      rbmd::Real block_sum =
         hipcub::BlockReduce<rbmd::Real, BLOCK_SIZE>(temp_storage).Sum(local_energy_angle);
@@ -2202,7 +2195,6 @@ temp_storage;
 	      if (threadIdx.x == 0){
 	        atomicAdd(energy_angle, block_sum);
 	      }
-	    //}
 	  }
 	}
 
