@@ -61,7 +61,7 @@ void TrajectoryOutput::Execute()
             for (auto i = 0; i < _num_atoms; ++i)
             {
                 spdlog::info("{} {} {} {} {}", i + 1, h_atoms_type[i] + 1, h_px[i], h_py[i], h_pz[i]);
-            }
+
         }
         catch (const std::exception& e)
         {
