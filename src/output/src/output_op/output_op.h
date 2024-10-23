@@ -18,5 +18,5 @@ namespace op {
 //                  const rbmd::Real* mass, const rbmd::Real* fx,
 //                  const rbmd::Real* fy, const rbmd::Real* fz, rbmd::Real* vx,
 //                  rbmd::Real* vy, rbmd::Real* vz);
-};
+//};
 }  // namespace op

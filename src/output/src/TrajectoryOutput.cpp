@@ -7,12 +7,10 @@
 #include "output_op.h"
 #include <thrust/copy.h>
 
-extern int test_current_step;
-
 TrajectoryOutput::TrajectoryOutput()
 : _trajectory_file("rbmd.trj", std::ios::ate)
 , _interval(DataManager::getInstance().getConfigData()->Get<rbmd::Id>(
-    "atom_style", "init_configuration", "read_data")) {};
+    "interval", "outputs", "trajectory_out")) {};
 
 void TrajectoryOutput::Init() 
 {
@@ -36,7 +34,11 @@ void TrajectoryOutput::Execute()
             thrust::copy(_device_data->_d_pz.begin(), _device_data->_d_pz.end(), h_pz.begin());
             thrust::copy(_device_data->_d_atoms_type.begin(), _device_data->_d_atoms_type.end(), h_atoms_type.begin());
 
-            CHECK_RUNTIME(MEMCPY(&h_rang, _structure_info_data->_num_atoms, sizeof(rbmd::Range), D2H));
+            CHECK_RUNTIME(MEMCPY(&h_rang, _structure_info_data->_range, sizeof(rbmd::Range), D2H));
+
+            std::cout<<"h_rang value: "<< h_rang[0][0] << " " << h_rang[0][1] << std::endl
+                     << h_rang[1][0] << " " << h_rang[1][1] << std::endl
+                     << h_rang[2][0] << " " << h_rang[2][1] << std::endl;
 
             _trajectory_file << "ITEM: TIMESTEP" << std::endl
                              << test_current_step << std::endl
