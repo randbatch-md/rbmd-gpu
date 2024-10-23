@@ -1,0 +1,74 @@
+#include "TrajectoryOutput.h"
+#include <thrust/device_ptr.h>
+#include "data_manager.h"
+#include "device_types.h"
+#include "neighbor_list/include/linked_cell/linked_cell_locator.h"
+#include "unit_factor.h"
+#include "output_op.h"
+#include <thrust/copy.h>
+
+extern int test_current_step;
+
+TrajectoryOutput::TrajectoryOutput()
+: _trajectory_file("rbmd.trj", std::ios::ate)
+, _interval(DataManager::getInstance().getConfigData()->Get<rbmd::Id>(
+    "atom_style", "init_configuration", "read_data")) {};
+
+void TrajectoryOutput::Init() 
+{
+    _num_atoms = *(_structure_info_data->_num_atoms);
+}
+
+void TrajectoryOutput::Execute()
+{
+    if (ShouldOutput())
+    {
+        try
+        {
+            std::vector<rbmd::Real> h_px(_num_atoms);
+            std::vector<rbmd::Real> h_py(_num_atoms);
+            std::vector<rbmd::Real> h_pz(_num_atoms);
+            std::vector<rbmd::Real> h_atoms_type(_num_atoms);
+            rbmd::Range h_rang;
+
+            thrust::copy(_device_data->_d_px.begin(), _device_data->_d_px.end(), h_px.begin());
+            thrust::copy(_device_data->_d_py.begin(), _device_data->_d_py.end(), h_py.begin());
+            thrust::copy(_device_data->_d_pz.begin(), _device_data->_d_pz.end(), h_pz.begin());
+            thrust::copy(_device_data->_d_atoms_type.begin(), _device_data->_d_atoms_type.end(), h_atoms_type.begin());
+
+            CHECK_RUNTIME(MEMCPY(&h_rang, _structure_info_data->_num_atoms, sizeof(rbmd::Range), D2H));
+
+            _trajectory_file << "ITEM: TIMESTEP" << std::endl
+                             << test_current_step << std::endl
+                             << "ITEM: NUMBER OF ATOMS" << std::endl
+                             << _num_atoms << std::endl
+                             << "ITEM: BOX BOUNDS pp pp pp" << std::endl
+                             << h_rang[0][0] << " " << h_rang[0][1] << std::endl
+                             << h_rang[1][0] << " " << h_rang[1][1] << std::endl
+                             << h_rang[2][0] << " " << h_rang[2][1] << std::endl
+                             << "ITEM: ATOMS id type x y z" << std::endl;
+
+            for (auto i = 0; i < _num_atoms; ++i)
+            {
+                _trajectory_file << i + 1 << " " << h_atoms_type[i] + 1 << " " 
+                                 << h_px[i] << " " 
+                                 << h_py[1] << " "
+                                 << h_pz[2] << std::endl;
+            }
+        }
+        catch (const std::exception& e)
+        {
+            _trajectory_file.close();
+            throw std::runtime_error("TrajectoryOutput is error ");
+        }
+    }
+}
+
+bool TrajectoryOutput::ShouldOutput()
+{
+    if (test_current_step < 1)
+    {
+        return false;
+    }
+    return test_current_step % _interval == 0;
+}

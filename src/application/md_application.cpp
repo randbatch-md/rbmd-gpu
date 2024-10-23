@@ -13,7 +13,7 @@
 #include "lj_memory_scheduler.h"
 #include "cvff_memory_scheduler.h"
 #include "memory_scheduler.h"
-
+#include "output/include/TrajectoryOutput.h"
 MDApplication::MDApplication(int argc, char* argv[]) : Application(argc, argv) {
   //_system = std::make_shared<MDSystem>();
 }
@@ -59,8 +59,8 @@ int MDApplication::Execute() {
   // }
   ReadMDData();
   _simulate_pipeline = std::make_shared<NVTensemble>();
-
-  _executioner = std::make_shared<Executioner>(_simulate_pipeline);
+  _output = std::make_shared<TrajectoryOutput>();
+  _executioner = std::make_shared<Executioner>(_simulate_pipeline,_output);
 
   _executioner->Init();
 

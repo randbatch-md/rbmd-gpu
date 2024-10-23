@@ -2,9 +2,10 @@
 
 int test_current_step = 0;
 int test_num_steps;
-Executioner::Executioner(
-    /*const Json::Value& node, */ std::shared_ptr<Ensemble>& simulate_pipeline)
+Executioner::Executioner(std::shared_ptr<Ensemble>& simulate_pipeline,
+                         std::shared_ptr<Output>& output)
     : _simulate_pipeline(simulate_pipeline)
+    , _output(output)
 //_exec_node(node),
 //_time_step(_exec_node["num_steps"].asFloat()),
 //_num_steps(_exec_node["num_steps"].asInt())
@@ -17,10 +18,15 @@ Executioner::Executioner(
   _current_time = 0;
 }
 
-void Executioner::Init() { _simulate_pipeline->Init(); }
+void Executioner::Init() 
+{    
+    _simulate_pipeline->Init();
+    _output->Init();
+}
 
 int Executioner::Execute() {
   while (KeepGoing()) {
+    _output->Execute();
     _current_step++;
     _current_time += _time_step;
     test_current_step = _current_step;
