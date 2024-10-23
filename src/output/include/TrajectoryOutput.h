@@ -20,5 +20,5 @@ class TrajectoryOutput : public Output {
 
   rbmd::Id _interval;
   rbmd::Id _atom_num;
-  std::ofstream _trajectory_file;
+  // std::ofstream _trajectory_file;
 };
