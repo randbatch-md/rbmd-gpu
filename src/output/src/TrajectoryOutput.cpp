@@ -72,9 +72,10 @@ void TrajectoryOutput::Execute()
 
 bool TrajectoryOutput::ShouldOutput()
 {
-    if (test_current_step < 1)
-    {
-        return false;
-    }
+    // include the original date of step = 0;
+    //if (test_current_step < 1)
+    //{
+    //    return false;
+    //}
     return test_current_step % _interval == 0;
 }
