@@ -7,6 +7,7 @@ bool CVFFMemoryScheduler::asyncMemoryH2D() {
   }
 
   auto& num_atoms_type = *(_structure_info_data->_num_atoms_type);
+  auto& num_atoms = *(_structure_info_data->_num_atoms);
   auto& num_bonds = *(_structure_info_data->_num_bonds);
   auto& num_bonds_type = *(_structure_info_data->_num_bounds_type);
   auto& num_angles = *(_structure_info_data->_num_angles);
@@ -17,6 +18,7 @@ bool CVFFMemoryScheduler::asyncMemoryH2D() {
   auto fd = std::dynamic_pointer_cast<CVFFForceFieldData>(_force_field_data);
 
   /// copy data
+  _device_data->_d_molecular_id.resize(num_bonds);
   _device_data->_d_bond_type.resize(num_bonds);
   _device_data->_d_bond_id0.resize(num_bonds);
   _device_data->_d_bond_id1.resize(num_bonds);
@@ -29,7 +31,25 @@ bool CVFFMemoryScheduler::asyncMemoryH2D() {
   _device_data->_d_dihedral_id1.resize(num_dihedrals);
   _device_data->_d_dihedral_id2.resize(num_dihedrals);
   _device_data->_d_dihedral_id3.resize(num_dihedrals);
+  _device_data->_d_charge.resize(num_atoms);
+  _device_data->_d_special_source_array.resize(*(sd->_num_special_source_array));
+  _device_data->_d_special_offsets_array.resize(*(sd->_num_special_offsets_array));
+  _device_data->_d_special_weights.resize(*(sd->_num_special_weights));
+  _device_data->_d_special_ids.resize(*(sd->_num_special_ids));
+  _device_data->_d_special_offsets.resize(*(sd->_num_special_offsets));
 
+  thrust::copy(sd->_h_special_source_array, sd->_h_special_source_array + *(sd->_num_special_source_array),
+      _device_data->_d_special_source_array.begin());
+  thrust::copy(sd->_h_special_offsets_array, sd->_h_special_offsets_array + *(sd->_num_special_offsets_array),
+      _device_data->_d_special_offsets_array.begin());
+
+  /// charge
+  thrust::copy(sd->_h_charge, sd->_h_charge + num_atoms,
+      _device_data->_d_charge.begin());
+
+  /// molecular id
+  thrust::copy(sd->_h_molecules_id, sd->_h_molecules_id + num_atoms,
+               _device_data->_d_molecular_id.begin());
   /// bond
   thrust::copy(sd->_h_bond_type, sd->_h_bond_type + num_bonds,
                _device_data->_d_bond_type.begin());
@@ -37,6 +57,14 @@ bool CVFFMemoryScheduler::asyncMemoryH2D() {
                _device_data->_d_bond_id0.begin());
   thrust::copy(sd->_h_bond_id1, sd->_h_bond_id1 + num_bonds,
                _device_data->_d_bond_id1.begin());
+
+  ///special
+  thrust::copy(sd->_h_special_weights, sd->_h_special_weights + *(sd->_num_special_weights),
+      _device_data->_d_special_weights.begin());
+  thrust::copy(sd->_h_special_ids, sd->_h_special_ids + *(sd->_num_special_ids),
+      _device_data->_d_special_ids.begin());
+  thrust::copy(sd->_h_special_offsets, sd->_h_special_offsets + *(sd->_num_special_offsets),
+      _device_data->_d_special_offsets.begin());
 
   /// angle
   thrust::copy(sd->_h_angle_type, sd->_h_angle_type + num_angles,

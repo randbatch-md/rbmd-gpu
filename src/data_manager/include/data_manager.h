@@ -31,10 +31,12 @@ class DataManager {
    */
   DataManager()
       : _config_data(std::make_shared<ConfigData>("rbmd.json")),
-        _md_data(std::make_shared<MDData>()),
+        //_md_data(std::make_shared<MDData>(_config_data->Get<std::string>("atom_style", "init_configuration", "read_data"), _config_data->Get<std::string>("type", "hyper_parameters", "force_field"))),
         _device_data(std::make_shared<DeviceData>())
         //, _memory_scheduler(std::make_shared<MemoryScheduler>())
-        {};  // �����ʼ����_config_data ԭ����DataManager() = default;
+        {
+            _md_data = std::make_shared<MDData>(_config_data->Get<std::string>("atom_style", "init_configuration", "read_data"), _config_data->Get<std::string>("type", "hyper_parameters", "force_field"));
+        };  // �����ʼ����_config_data ԭ����DataManager() = default;
 
   ~DataManager() = default;
 

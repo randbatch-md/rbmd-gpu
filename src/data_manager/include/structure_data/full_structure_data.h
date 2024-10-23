@@ -12,10 +12,22 @@ class FullStructureData : public BasicStructureData {
     return true;
   }
 
+  rbmd::Id* _h_molecules_id;
   /// bond
   rbmd::Id* _h_bond_type;
   rbmd::Id* _h_bond_id0;
   rbmd::Id* _h_bond_id1;
+  
+  //special
+  rbmd::Real* _h_special_weights;
+  rbmd::Id* _h_special_ids;
+  rbmd::Id* _h_special_offsets;
+
+  rbmd::Id* _num_special_weights;
+  rbmd::Id* _num_special_ids;
+  rbmd::Id* _num_special_offsets;
+  rbmd::Id* _num_special_source_array;
+  rbmd::Id* _num_special_offsets_array;
 
   /// angle
   rbmd::Id* _h_angle_type;
@@ -29,4 +41,7 @@ class FullStructureData : public BasicStructureData {
   rbmd::Id* _h_dihedral_id1;
   rbmd::Id* _h_dihedral_id2;
   rbmd::Id* _h_dihedral_id3;
+
+  rbmd::Id* _h_special_source_array;
+  rbmd::Id* _h_special_offsets_array;
 };

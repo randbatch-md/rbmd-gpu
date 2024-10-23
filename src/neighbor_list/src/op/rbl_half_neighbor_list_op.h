@@ -4,7 +4,7 @@
 #include "model/box.h"
 namespace op {
 template <typename DEVICE>
-struct GenerateRblFullNeighborListOp {
+struct GenerateRblHalfNeighborListOp {
   void operator()(rbmd::Id* per_atom_cell_id,
                   rbmd::Id* in_atom_list_start_index,
                   rbmd::Id* in_atom_list_end_index,
@@ -15,11 +15,11 @@ struct GenerateRblFullNeighborListOp {
                   rbmd::Id* neighbors, rbmd::Id neighbor_sample_num,
                   rbmd::Id* random_neighbors, rbmd::Id* random_neighbors_num,
                   Box* d_box, rbmd::Id* should_realloc, rbmd::Id* neighbor_cell,
-                  rbmd::Id neighbor_cell_num,rbmd::Id selection_frequency);
+                  rbmd::Id neighbor_cell_num, rbmd::Id selection_frequency);
 };
 
 template <>
-struct GenerateRblFullNeighborListOp<device::DEVICE_GPU> {
+struct GenerateRblHalfNeighborListOp<device::DEVICE_GPU> {
   void operator()(rbmd::Id* per_atom_cell_id,
                   rbmd::Id* in_atom_list_start_index,
                   rbmd::Id* in_atom_list_end_index,
@@ -30,7 +30,7 @@ struct GenerateRblFullNeighborListOp<device::DEVICE_GPU> {
                   rbmd::Id* neighbors, rbmd::Id neighbor_sample_num,
                   rbmd::Id* random_neighbors, rbmd::Id* random_neighbors_num,
                   Box* d_box, rbmd::Id* should_realloc, rbmd::Id* neighbor_cell,
-                  rbmd::Id neighbor_cell_num,rbmd::Id selection_frequency);
+                  rbmd::Id neighbor_cell_num, rbmd::Id selection_frequency);
 };
 
 }  // namespace op

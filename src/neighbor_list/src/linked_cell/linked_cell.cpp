@@ -114,47 +114,28 @@ void LinkedCell::SyncHToD() {
 }
 
 void LinkedCell::SortAtomsByCellKey() {
-  thrust::device_vector<rbmd::Id> per_atom_cell_id_copy{};
-  per_atom_cell_id_copy = _per_atom_cell_id;
-  thrust::stable_sort_by_key(per_atom_cell_id_copy.begin(),
-                             per_atom_cell_id_copy.end(),
-                             _device_data->_d_atoms_id.begin());
+  // 使用 zip_iterator 组合多个数组
+  auto zip_begin = thrust::make_zip_iterator(thrust::make_tuple(
+      _device_data->_d_atoms_id.begin(),
+      _device_data->_d_atoms_type.begin(),
+      _device_data->_d_px.begin(),
+      _device_data->_d_py.begin(),
+      _device_data->_d_pz.begin(),
+      _device_data->_d_vx.begin(),
+      _device_data->_d_vy.begin(),
+      _device_data->_d_vz.begin(),
+      _device_data->_d_charge.begin()
+  ));
+
+  // 一次性排序所有数据
+  thrust::stable_sort_by_key(_per_atom_cell_id.begin(),
+                             _per_atom_cell_id.end(),
+                             zip_begin);
+
+  // 执行 MapAtomidToIdxOp
   op::MapAtomidToIdxOp<device::DEVICE_GPU> map_atomid_to_idx_op;
   map_atomid_to_idx_op(thrust::raw_pointer_cast(_atom_id_to_idx.data()),
                        raw_ptr(_device_data->_d_atoms_id), _total_atoms_num);
-  per_atom_cell_id_copy = _per_atom_cell_id;
-  thrust::stable_sort_by_key(per_atom_cell_id_copy.begin(),
-                             per_atom_cell_id_copy.end(),
-                             _device_data->_d_atoms_type.begin());
-  per_atom_cell_id_copy = _per_atom_cell_id;
-  thrust::stable_sort_by_key(per_atom_cell_id_copy.begin(),
-                             per_atom_cell_id_copy.end(),
-                             _device_data->_d_px.begin());
-  per_atom_cell_id_copy = _per_atom_cell_id;
-  thrust::stable_sort_by_key(per_atom_cell_id_copy.begin(),
-                             per_atom_cell_id_copy.end(),
-                             _device_data->_d_py.begin());
-  per_atom_cell_id_copy = _per_atom_cell_id;
-  thrust::stable_sort_by_key(per_atom_cell_id_copy.begin(),
-                             per_atom_cell_id_copy.end(),
-                             _device_data->_d_pz.begin());
-  per_atom_cell_id_copy = _per_atom_cell_id;
-  thrust::stable_sort_by_key(per_atom_cell_id_copy.begin(),
-                             per_atom_cell_id_copy.end(),
-                             _device_data->_d_vx.begin());
-  per_atom_cell_id_copy = _per_atom_cell_id;
-  thrust::stable_sort_by_key(per_atom_cell_id_copy.begin(),
-                             per_atom_cell_id_copy.end(),
-                             _device_data->_d_vy.begin());
-
-  per_atom_cell_id_copy = _per_atom_cell_id;
-  thrust::stable_sort_by_key(per_atom_cell_id_copy.begin(), per_atom_cell_id_copy.end(),
-                             _device_data->_d_vz.begin());
-  // //charge
-  per_atom_cell_id_copy = _per_atom_cell_id;
-  thrust::stable_sort_by_key(per_atom_cell_id_copy.begin(),
-                             per_atom_cell_id_copy.end(),
-                             _device_data->_d_charge.begin());
 }
 
 void LinkedCell::AllocDeviceMemory() {
