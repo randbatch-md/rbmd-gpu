@@ -62,6 +62,7 @@ public:
   void ComputeBondForce(); //Harmonic
   void ComputeAngleForce(); //Harmonic
   void ComputeDihedralForce(); //Harmonic
+  void ReduceByKey();
 
 private:
   rbmd::Id _num_atoms;

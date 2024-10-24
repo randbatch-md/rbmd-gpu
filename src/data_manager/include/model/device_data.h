@@ -117,9 +117,18 @@ class DeviceData {
   thrust::device_vector<rbmd::Real> _d_force_bond_y;
   thrust::device_vector<rbmd::Real> _d_force_bond_z;
 
+  thrust::device_vector<rbmd::Id> _d_temp_atom_ids;
+  thrust::device_vector<rbmd::Real> _d_temp_forces_bondx;
+  thrust::device_vector<rbmd::Real> _d_temp_forces_bondy;
+  thrust::device_vector<rbmd::Real> _d_temp_forces_bondz;
+
   thrust::device_vector<rbmd::Real> _d_force_angle_x;
   thrust::device_vector<rbmd::Real> _d_force_angle_y;
   thrust::device_vector<rbmd::Real> _d_force_angle_z;
+
+  thrust::device_vector<rbmd::Real> _d_force_dihedral_x;
+  thrust::device_vector<rbmd::Real> _d_force_dihedral_y;
+  thrust::device_vector<rbmd::Real> _d_force_dihedral_z;
 
 
 

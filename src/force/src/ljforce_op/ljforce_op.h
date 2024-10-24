@@ -391,6 +391,7 @@ namespace op
          rbmd::Real* fx,
          rbmd::Real* fy,
          rbmd::Real* fz,
+         rbmd::Id* temp_atom_ids,
          rbmd::Real* energy_bond);
      };
 
@@ -422,12 +423,15 @@ namespace op
        void operator()(
          Box* box,
          const rbmd::Id num_dihedrals,
-         const rbmd::Id num_atoms,
+         const rbmd::Id* atom_id_to_idx,
          const rbmd::Real* dihedral_coeffs_k,
          const rbmd::Id* dihedral_coeffs_sign ,
          const rbmd::Id* dihedral_coeffs_multiplicity ,
          const rbmd::Id* dihedral_type,
-         const int4* dihedrallist,
+         const rbmd::Id* dihedrallisti,
+         const rbmd::Id* dihedrallistj,
+         const rbmd::Id* dihedrallistk,
+         const rbmd::Id* dihedrallistw,
          const rbmd::Real* px,
          const rbmd::Real* py,
          const rbmd::Real* pz,
@@ -879,6 +883,7 @@ namespace op
          rbmd::Real* fx,
          rbmd::Real* fy,
          rbmd::Real* fz,
+         rbmd::Id* temp_atom_ids,
          rbmd::Real* energy_bond);
      };
 
@@ -910,12 +915,15 @@ namespace op
       void operator()(
         Box* box,
         const rbmd::Id num_dihedrals,
-        const rbmd::Id num_atoms,
+        const rbmd::Id* atom_id_to_idx,
         const rbmd::Real* dihedral_coeffs_k,
         const rbmd::Id* dihedral_coeffs_sign ,
         const rbmd::Id* dihedral_coeffs_multiplicity ,
         const rbmd::Id* dihedral_type,
-        const int4* dihedrallist,
+        const rbmd::Id* dihedrallisti,
+        const rbmd::Id* dihedrallistj,
+        const rbmd::Id* dihedrallistk,
+        const rbmd::Id* dihedrallistw,
         const rbmd::Real* px,
         const rbmd::Real* py,
         const rbmd::Real* pz,

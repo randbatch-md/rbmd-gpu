@@ -1,6 +1,7 @@
 #include "cvff.h"
 
 #include <thrust/device_ptr.h>
+#include "thrust/sort.h"
 
 #include "../../common/device_types.h"
 #include "../../common/rbmd_define.h"
@@ -176,25 +177,25 @@ void CVFF::ComputeLJCutCoulForce()
     //energy
     ComputeLJCoulEnergy();
 
-    //out
-    std::vector<rbmd::Real> h_force_ljcoul_x(_num_atoms);
-    std::vector<rbmd::Real> h_force_ljcoul_y(_num_atoms);
-    std::vector<rbmd::Real> h_force_ljcoul_z(_num_atoms);
-    thrust::copy(_device_data->_d_force_ljcoul_x.begin(),
-      _device_data->_d_force_ljcoul_x.end(), h_force_ljcoul_x.begin());
-    thrust::copy(_device_data->_d_force_ljcoul_y.begin(),
-    _device_data->_d_force_ljcoul_y.end(), h_force_ljcoul_y.begin());
-
-    thrust::copy(_device_data->_d_force_ljcoul_z.begin(),
-    _device_data->_d_force_ljcoul_z.end(), h_force_ljcoul_z.begin());
-
-    std::ofstream output_file("output_force_ljcoul_RBL.txt");
-    for (size_t i = 0; i < h_force_ljcoul_x.size(); ++i)
-    {
-      output_file << i << " " << h_force_ljcoul_x[i] << " "<<h_force_ljcoul_y[i] <<" "
-      << h_force_ljcoul_z[i] << std::endl;
-    }
-    output_file.close();
+    // //out
+    // std::vector<rbmd::Real> h_force_ljcoul_x(_num_atoms);
+    // std::vector<rbmd::Real> h_force_ljcoul_y(_num_atoms);
+    // std::vector<rbmd::Real> h_force_ljcoul_z(_num_atoms);
+    // thrust::copy(_device_data->_d_force_ljcoul_x.begin(),
+    //   _device_data->_d_force_ljcoul_x.end(), h_force_ljcoul_x.begin());
+    // thrust::copy(_device_data->_d_force_ljcoul_y.begin(),
+    // _device_data->_d_force_ljcoul_y.end(), h_force_ljcoul_y.begin());
+    // thrust::copy(_device_data->_d_force_ljcoul_z.begin(),
+    // _device_data->_d_force_ljcoul_z.end(), h_force_ljcoul_z.begin());
+    //
+    // thrust::host_vector<rbmd::Real> h_atoms_id = _device_data->_d_atoms_id;
+    // std::ofstream output_file("output_force_special_lj_RBL.txt");
+    // for (size_t i = 0; i < h_force_ljcoul_x.size(); ++i)
+    // {
+    //   output_file << h_atoms_id[i]<< " " << h_force_ljcoul_x[i] << " "<<h_force_ljcoul_y[i] <<" "
+    //   << h_force_ljcoul_z[i] << std::endl;
+    // }
+    // output_file.close();
 
   }
   else
@@ -249,34 +250,35 @@ void CVFF::ComputeLJCutCoulForce()
 
 
   std::cout << "test_current_step:" << test_current_step <<  " ,"
-  << "average_vdwl_energy:" << _ave_evdwl << " " << "average_coul_energy_old:" <<
+  << "average_energy_vdwl:" << _ave_evdwl << " " << "average_coul_energy_old:" <<
     _ave_ecoul  << std::endl;
 
   //out
-  std::ofstream outfile("ave_lj.txt", std::ios::app);
+  std::ofstream outfile("ave_energy_lj.txt", std::ios::app);
   outfile << test_current_step << " " << _ave_evdwl << std::endl;
   outfile.close();
 
 
-    //out
-    std::vector<rbmd::Real> h_force_ljcoul_x(_num_atoms);
-    std::vector<rbmd::Real> h_force_ljcoul_y(_num_atoms);
-    std::vector<rbmd::Real> h_force_ljcoul_z(_num_atoms);
-    thrust::copy(_device_data->_d_force_ljcoul_x.begin(),
-      _device_data->_d_force_ljcoul_x.end(), h_force_ljcoul_x.begin());
-    thrust::copy(_device_data->_d_force_ljcoul_y.begin(),
-    _device_data->_d_force_ljcoul_y.end(), h_force_ljcoul_y.begin());
-
-    thrust::copy(_device_data->_d_force_ljcoul_z.begin(),
-    _device_data->_d_force_ljcoul_z.end(), h_force_ljcoul_z.begin());
-
-    std::ofstream output_file("output_force_ljcoul_verlet.txt");
-    for (size_t i = 0; i < h_force_ljcoul_x.size(); ++i)
-    {
-      output_file << i << " " << h_force_ljcoul_x[i] << " "<<h_force_ljcoul_y[i] <<" "
-      << h_force_ljcoul_z[i] << std::endl;
-    }
-    output_file.close();
+    // //out
+    // std::vector<rbmd::Real> h_force_ljcoul_x(_num_atoms);
+    // std::vector<rbmd::Real> h_force_ljcoul_y(_num_atoms);
+    // std::vector<rbmd::Real> h_force_ljcoul_z(_num_atoms);
+    // thrust::copy(_device_data->_d_force_ljcoul_x.begin(),
+    //   _device_data->_d_force_ljcoul_x.end(), h_force_ljcoul_x.begin());
+    // thrust::copy(_device_data->_d_force_ljcoul_y.begin(),
+    // _device_data->_d_force_ljcoul_y.end(), h_force_ljcoul_y.begin());
+    //
+    // thrust::copy(_device_data->_d_force_ljcoul_z.begin(),
+    // _device_data->_d_force_ljcoul_z.end(), h_force_ljcoul_z.begin());
+    //
+    // thrust::host_vector<rbmd::Real> h_atoms_id = _device_data->_d_atoms_id;
+    // std::ofstream output_file("output_force_special_lj_verlet.txt");
+    // for (size_t i = 0; i < h_force_ljcoul_x.size(); ++i)
+    // {
+    //   output_file << h_atoms_id[i] << " " << h_force_ljcoul_x[i] << " "<<h_force_ljcoul_y[i] <<" "
+    //   << h_force_ljcoul_z[i] << std::endl;
+    // }
+    // output_file.close();
 
   }
 }
@@ -315,36 +317,37 @@ void CVFF::ComputeSpecialCoulForce()
 
   // 打印累加后的总能量
   std::cout << "test_current_step:" << test_current_step <<  " ,"<<
-    "average_specialcoul_energy:" << _ave_e_specialcoul << " ,"
-  <<"average_ecoul_energy:" << _ave_ecoul << std::endl;
+    "average_energy_specialcoul:" << _ave_e_specialcoul << " ,"
+  <<"average_energy_ecoul:" << _ave_ecoul << std::endl;
 
 
   //out
-  std::ofstream outfile("ave_special_coul.txt", std::ios::app);
+  std::ofstream outfile("ave_energy_special_coul.txt", std::ios::app);
   outfile << test_current_step << " "
   << _ave_e_specialcoul << " " << _ave_ecoul<<  std::endl;
   outfile.close();
 
-  //out
-  std::vector<rbmd::Real> h_specialcoulx(_num_atoms);
-  std::vector<rbmd::Real> h_specialcouly(_num_atoms);
-  std::vector<rbmd::Real> h_specialcoulz(_num_atoms);
-
-  thrust::copy(_device_data->_d_force_specialcoul_x.begin(),
-    _device_data->_d_force_specialcoul_x.end(), h_specialcoulx.begin());
-  thrust::copy(_device_data->_d_force_specialcoul_y.begin(),
-  _device_data->_d_force_specialcoul_y.end(), h_specialcouly.begin());
-  thrust::copy(_device_data->_d_force_specialcoul_z.begin(),
-  _device_data->_d_force_specialcoul_z.end(), h_specialcoulz.begin());
-
-  std::ofstream output_file1("output_force_specialcoul.txt");
-  for (size_t i = 0; i < h_specialcoulx.size(); ++i)
-  {
-    output_file1  << i << " "
-    << h_specialcoulx[i] << " " << h_specialcouly[i]  << " " << h_specialcoulz[i]
-    << std::endl;
-  }
-  output_file1.close();
+  // //out
+  // std::vector<rbmd::Real> h_specialcoulx(_num_atoms);
+  // std::vector<rbmd::Real> h_specialcouly(_num_atoms);
+  // std::vector<rbmd::Real> h_specialcoulz(_num_atoms);
+  //
+  // thrust::copy(_device_data->_d_force_specialcoul_x.begin(),
+  //   _device_data->_d_force_specialcoul_x.end(), h_specialcoulx.begin());
+  // thrust::copy(_device_data->_d_force_specialcoul_y.begin(),
+  // _device_data->_d_force_specialcoul_y.end(), h_specialcouly.begin());
+  // thrust::copy(_device_data->_d_force_specialcoul_z.begin(),
+  // _device_data->_d_force_specialcoul_z.end(), h_specialcoulz.begin());
+  //
+  // thrust::host_vector<rbmd::Real> h_atoms_id = _device_data->_d_atoms_id;
+  // std::ofstream output_file1("output_force_special_coul.txt");
+  // for (size_t i = 0; i < h_specialcoulx.size(); ++i)
+  // {
+  //   output_file1  << h_atoms_id[i] << " "
+  //   << h_specialcoulx[i] << " " << h_specialcouly[i]  << " " << h_specialcoulz[i]
+  //   << std::endl;
+  // }
+  // output_file1.close();
 
 }
 void CVFF::ComputeKspaceForce()
@@ -516,9 +519,9 @@ void CVFF::ComputeChargeStructureFactorEwald(
 
   //out
    std::cout << "test_current_step:" << test_current_step <<  " ,"
-   << "ave_energy_ewald:" << _ave_ekspace << std::endl;
+   << "average_energy_ewald:" << _ave_ekspace << std::endl;
 
-  std::ofstream outfile("ave_ewald.txt", std::ios::app);
+  std::ofstream outfile("ave_energy_ewald.txt", std::ios::app);
   outfile << test_current_step << " "<< _ave_ekspace << std::endl;
   outfile.close();
 }
@@ -552,25 +555,26 @@ void CVFF::ComputeEwlad()
     CHECK_RUNTIME(FREE(value_Re_array));
     CHECK_RUNTIME(FREE(value_Im_array));
 
-  //out
-  std::vector<rbmd::Real> h_force_ewald_x(_num_atoms);
-  std::vector<rbmd::Real> h_force_ewald_y(_num_atoms);
-  std::vector<rbmd::Real> h_force_ewald_z(_num_atoms);
-  thrust::copy(_device_data->_d_force_ewald_x.begin(),
-    _device_data->_d_force_ewald_x.end(), h_force_ewald_x.begin());
-  thrust::copy(_device_data->_d_force_ewald_y.begin(),
-  _device_data->_d_force_ewald_y.end(), h_force_ewald_y.begin());
-
-  thrust::copy(_device_data->_d_force_ewald_z.begin(),
-  _device_data->_d_force_ewald_z.end(), h_force_ewald_z.begin());
-
-  std::ofstream output_file("output_force_ewald.txt");
-  for (size_t i = 0; i < h_force_ewald_x.size(); ++i)
-  {
-    output_file << i << " " << h_force_ewald_x[i] << " "<<h_force_ewald_y[i] <<" "
-    << h_force_ewald_z[i] << std::endl;
-  }
-  output_file.close();
+  // //out
+  // std::vector<rbmd::Real> h_force_ewald_x(_num_atoms);
+  // std::vector<rbmd::Real> h_force_ewald_y(_num_atoms);
+  // std::vector<rbmd::Real> h_force_ewald_z(_num_atoms);
+  // thrust::copy(_device_data->_d_force_ewald_x.begin(),
+  //   _device_data->_d_force_ewald_x.end(), h_force_ewald_x.begin());
+  // thrust::copy(_device_data->_d_force_ewald_y.begin(),
+  // _device_data->_d_force_ewald_y.end(), h_force_ewald_y.begin());
+  //
+  // thrust::copy(_device_data->_d_force_ewald_z.begin(),
+  // _device_data->_d_force_ewald_z.end(), h_force_ewald_z.begin());
+  //
+  // thrust::host_vector<rbmd::Real> h_atoms_id = _device_data->_d_atoms_id;
+  // std::ofstream output_file("output_force_ewald.txt");
+  // for (size_t i = 0; i < h_force_ewald_x.size(); ++i)
+  // {
+  //   output_file << h_atoms_id[i]<< " " << h_force_ewald_x[i] << " "<<h_force_ewald_y[i] <<" "
+  //   << h_force_ewald_z[i] << std::endl;
+  // }
+  // output_file.close();
 }
 
 void CVFF::ERFinit()
@@ -657,9 +661,9 @@ void CVFF::ComputeChargeStructureFactorRBE(
 
     //out
    std::cout << "test_current_step:" << test_current_step <<  " ,"
-   << "ave_energy_rbe:" << _ave_ekspace << std::endl;
+   << "average_energy_rbe:" << _ave_ekspace << std::endl;
 
-  std::ofstream outfile("ave_rbe.txt", std::ios::app);
+  std::ofstream outfile("ave_energy_rbe.txt", std::ios::app);
   outfile << test_current_step << " "<< _ave_ekspace << std::endl;
   outfile.close();
 }
@@ -688,25 +692,26 @@ void CVFF::ComputeRBE()
         thrust::raw_pointer_cast(_device_data->_d_force_ewald_y.data()),
         thrust::raw_pointer_cast(_device_data->_d_force_ewald_z.data()));
 
-  //out
-  std::vector<rbmd::Real> h_force_ewald_x(_num_atoms);
-  std::vector<rbmd::Real> h_force_ewald_y(_num_atoms);
-  std::vector<rbmd::Real> h_force_ewald_z(_num_atoms);
-  thrust::copy(_device_data->_d_force_ewald_x.begin(),
-    _device_data->_d_force_ewald_x.end(), h_force_ewald_x.begin());
-  thrust::copy(_device_data->_d_force_ewald_y.begin(),
-  _device_data->_d_force_ewald_y.end(), h_force_ewald_y.begin());
-
-  thrust::copy(_device_data->_d_force_ewald_z.begin(),
-  _device_data->_d_force_ewald_z.end(), h_force_ewald_z.begin());
-
-  std::ofstream output_file("output_force_rbe.txt");
-  for (size_t i = 0; i < h_force_ewald_x.size(); ++i)
-  {
-    output_file << "i:" << i << " " << h_force_ewald_x[i] << " "<<h_force_ewald_y[i] <<" "
-    << h_force_ewald_z[i] << std::endl;
-  }
-  output_file.close();
+  // //out
+  // std::vector<rbmd::Real> h_force_ewald_x(_num_atoms);
+  // std::vector<rbmd::Real> h_force_ewald_y(_num_atoms);
+  // std::vector<rbmd::Real> h_force_ewald_z(_num_atoms);
+  // thrust::copy(_device_data->_d_force_ewald_x.begin(),
+  //   _device_data->_d_force_ewald_x.end(), h_force_ewald_x.begin());
+  // thrust::copy(_device_data->_d_force_ewald_y.begin(),
+  // _device_data->_d_force_ewald_y.end(), h_force_ewald_y.begin());
+  //
+  // thrust::copy(_device_data->_d_force_ewald_z.begin(),
+  // _device_data->_d_force_ewald_z.end(), h_force_ewald_z.begin());
+  //
+  // thrust::host_vector<rbmd::Real> h_atoms_id = _device_data->_d_atoms_id;
+  // std::ofstream output_file("output_force_rbe.txt");
+  // for (size_t i = 0; i < h_force_ewald_x.size(); ++i)
+  // {
+  //   output_file  << h_atoms_id[i] << " " << h_force_ewald_x[i] << " "<<h_force_ewald_y[i] <<" "
+  //   << h_force_ewald_z[i] << std::endl;
+  // }
+  // output_file.close();
 }
 
 void CVFF::ComputeLJCoulEnergy()
@@ -754,11 +759,11 @@ void CVFF::ComputeLJCoulEnergy()
   _ave_ecoul = h_total_ecoul/_num_atoms;
 
   std::cout << "test_current_step:" << test_current_step <<  " ,"
-  << "average_vdwl_energy:" << _ave_evdwl << " ," <<  "average_coul_energy:" << _ave_ecoul << std::endl;
+  << "average_energy_vdwl:" << _ave_evdwl  << std::endl;
 
   //out
-  std::ofstream outfile("ave_ljcoul_rbl.txt", std::ios::app);
-  outfile << test_current_step << " " << _ave_evdwl  << " "<< _ave_ecoul << std::endl;
+  std::ofstream outfile("ave_energy_specia_lj_rbl.txt", std::ios::app);
+  outfile << test_current_step << " " << _ave_evdwl << std::endl;
   outfile.close();
 }
 
@@ -844,6 +849,13 @@ void CVFF::ComputeBondForce()
   rbmd::Real h_energy_bond = 0.0;
   CHECK_RUNTIME(MEMSET(_d_total_ebond, 0, sizeof(rbmd::Real)));
 
+  thrust::fill(_device_data->_d_force_bond_x.begin(),
+    _device_data->_d_force_bond_x.end(), 0.0f);
+  thrust::fill(_device_data->_d_force_bond_y.begin(),
+    _device_data->_d_force_bond_y.end(), 0.0f);
+  thrust::fill(_device_data->_d_force_bond_z.begin(),
+    _device_data->_d_force_bond_z.end(), 0.0f);
+
   op::ComputeBondForceOp<device::DEVICE_GPU> bond_force_op;
   bond_force_op(_device_data->_d_box,_num_bonds,thrust::raw_pointer_cast(_atom_id_to_idx.data()),
     thrust::raw_pointer_cast(_device_data->_d_bond_coeffs_k.data()),
@@ -857,6 +869,7 @@ void CVFF::ComputeBondForce()
     thrust::raw_pointer_cast(_device_data->_d_force_bond_x.data()),
     thrust::raw_pointer_cast(_device_data->_d_force_bond_y.data()),
     thrust::raw_pointer_cast(_device_data->_d_force_bond_z.data()),
+    thrust::raw_pointer_cast(_device_data->_d_temp_atom_ids.data()),
     _d_total_ebond);
 
   CHECK_RUNTIME(MEMCPY(&h_energy_bond,_d_total_ebond , sizeof(rbmd::Real), D2H));
@@ -865,30 +878,34 @@ void CVFF::ComputeBondForce()
   _ave_ebond = h_energy_bond/_num_bonds;
 
   std::cout << "test_current_step:" << test_current_step <<  " ,"
-  << "average_bond_energy:" << _ave_ebond  << std::endl;
+  << "average_energy_bond:" << _ave_ebond  << std::endl;
 
-  //append force bond
-  //TODO
   //out
-  std::vector<rbmd::Real> h_force_bondx(_num_atoms);
-  std::vector<rbmd::Real> h_force_bondy(_num_atoms);
-  std::vector<rbmd::Real> h_force_bondz(_num_atoms);
+  std::ofstream outfile("ave_energy_bond.txt", std::ios::app);
+  outfile << test_current_step << " " << _ave_ebond << std::endl;
+  outfile.close();
 
-  thrust::copy(_device_data->_d_force_bond_x.begin(),
-    _device_data->_d_force_bond_x.end(), h_force_bondx.begin());
-  thrust::copy(_device_data->_d_force_bond_y.begin(),
-  _device_data->_d_force_bond_y.end(), h_force_bondy.begin());
-  thrust::copy(_device_data->_d_force_bond_z.begin(),
-  _device_data->_d_force_bond_z.end(), h_force_bondz.begin());
+  // //append force bond
+  // std::vector<rbmd::Real> h_force_bondx(_num_atoms);
+  // std::vector<rbmd::Real> h_force_bondy(_num_atoms);
+  // std::vector<rbmd::Real> h_force_bondz(_num_atoms);
+  //
+  // thrust::copy(_device_data->_d_force_bond_x.begin(),
+  //   _device_data->_d_force_bond_x.end(), h_force_bondx.begin());
+  // thrust::copy(_device_data->_d_force_bond_y.begin(),
+  // _device_data->_d_force_bond_y.end(), h_force_bondy.begin());
+  // thrust::copy(_device_data->_d_force_bond_z.begin(),
+  // _device_data->_d_force_bond_z.end(), h_force_bondz.begin());
+  //
+  //  thrust::host_vector<rbmd::Real> h_atoms_id = _device_data->_d_atoms_id;
+  // std::ofstream output_file("output_force_bond_atomadd.txt");
+  // for (size_t i = 0; i < h_force_bondx.size(); ++i)
+  // {
+  //   output_file  << h_atoms_id[i] << " "<< h_force_bondx[i] << " "
+  //   << h_force_bondy[i]  << " " << h_force_bondz[i] << std::endl;
+  // }
+  // output_file.close();
 
-  std::ofstream output_file("output_force_bond.txt");
-  for (size_t i = 0; i < h_force_bondx.size(); ++i)
-  {
-    output_file  << i << " "
-    << h_force_bondx[i] << " " << h_force_bondy[i]  << " " << h_force_bondz[i]
-    << std::endl;
-  }
-  output_file.close();
 }
 
 void CVFF::ComputeAngleForce()
@@ -921,53 +938,70 @@ void CVFF::ComputeAngleForce()
   _ave_eangle = h_energy_bond/_num_angles;
 
   std::cout << "test_current_step:" << test_current_step <<  " ," <<
-    "average_angle_energy:" << _ave_eangle << std::endl;
+    "average_energy_angle:" << _ave_eangle << std::endl;
 
-  //append force angle
-  //TODO
   //out
-  std::vector<rbmd::Real> h_force_anglex(_num_atoms);
-  std::vector<rbmd::Real> h_force_angley(_num_atoms);
-  std::vector<rbmd::Real> h_force_anglez(_num_atoms);
+  std::ofstream outfile("ave_energy_angle.txt", std::ios::app);
+  outfile << test_current_step << " " << _ave_eangle << std::endl;
+  outfile.close();
 
-  thrust::copy(_device_data->_d_force_angle_x.begin(),
-    _device_data->_d_force_angle_x.end(), h_force_anglex.begin());
-  thrust::copy(_device_data->_d_force_angle_y.begin(),
-  _device_data->_d_force_angle_y.end(), h_force_angley.begin());
-  thrust::copy(_device_data->_d_force_angle_z.begin(),
-  _device_data->_d_force_angle_z.end(), h_force_anglez.begin());
-
-  std::ofstream output_file("output_force_angle.txt");
-  for (size_t i = 0; i < h_force_anglex.size(); ++i)
-  {
-    output_file << i << " "
-    << h_force_anglex[i] << " " << h_force_angley[i]  << " " << h_force_anglez[i]
-    << std::endl;
-  }
-  output_file.close();
+  // //append force angle
+  // std::vector<rbmd::Real> h_force_anglex(_num_atoms);
+  // std::vector<rbmd::Real> h_force_angley(_num_atoms);
+  // std::vector<rbmd::Real> h_force_anglez(_num_atoms);
+  //
+  // thrust::copy(_device_data->_d_force_angle_x.begin(),
+  //   _device_data->_d_force_angle_x.end(), h_force_anglex.begin());
+  // thrust::copy(_device_data->_d_force_angle_y.begin(),
+  // _device_data->_d_force_angle_y.end(), h_force_angley.begin());
+  // thrust::copy(_device_data->_d_force_angle_z.begin(),
+  // _device_data->_d_force_angle_z.end(), h_force_anglez.begin());
+  //
+  // thrust::host_vector<rbmd::Real> h_atoms_id = _device_data->_d_atoms_id;
+  // std::ofstream output_file("output_force_angle.txt");
+  // for (size_t i = 0; i < h_force_anglex.size(); ++i)
+  // {
+  //   output_file << h_atoms_id[i]<< " "
+  //   << h_force_anglex[i] << " " << h_force_angley[i]  << " " << h_force_anglez[i]
+  //   << std::endl;
+  // }
+  // output_file.close();
 
 }
 
 void CVFF::ComputeDihedralForce()
 {
-  thrust::device_vector<int4> dihedral_list;
+  thrust::fill(_device_data->_d_force_dihedral_x.begin(),
+    _device_data->_d_force_dihedral_x.end(), 0.0f);
+  thrust::fill(_device_data->_d_force_dihedral_y.begin(),
+    _device_data->_d_force_dihedral_y.end(), 0.0f);
+  thrust::fill(_device_data->_d_force_dihedral_z.begin(),
+    _device_data->_d_force_dihedral_z.end(), 0.0f);
+
+  //thrust::device_vector<int4> dihedral_list;
+  auto atom_id_to_idx =
+    LinkedCellLocator::GetInstance().GetLinkedCell()->_atom_id_to_idx;
 
   rbmd::Real h_energy_dihedral= 0.0;
   CHECK_RUNTIME(MEMSET(_d_total_edihedral, 0, sizeof(rbmd::Real)));
 
   op::ComputeDihedralForceOp<device::DEVICE_GPU> dihedral_force_op;
-  dihedral_force_op(_device_data->_d_box,_num_dihedral,_num_atoms,
+  dihedral_force_op(_device_data->_d_box,_num_dihedral,
+    thrust::raw_pointer_cast(atom_id_to_idx.data()),
     thrust::raw_pointer_cast(_device_data->_d_dihedral_coeffs_k.data()),
     thrust::raw_pointer_cast(_device_data->_d_dihedral_coeffs_sign.data()),
     thrust::raw_pointer_cast(_device_data->_d_dihedral_coeffs_multiplicity.data()),
     thrust::raw_pointer_cast(_device_data->_d_dihedral_type.data()),
-    thrust::raw_pointer_cast(dihedral_list.data()),
+    thrust::raw_pointer_cast(_device_data->_d_dihedral_id0.data()),
+    thrust::raw_pointer_cast(_device_data->_d_dihedral_id1.data()),
+    thrust::raw_pointer_cast(_device_data->_d_dihedral_id2.data()),
+    thrust::raw_pointer_cast(_device_data->_d_dihedral_id3.data()),
     thrust::raw_pointer_cast(_device_data->_d_px.data()),
     thrust::raw_pointer_cast(_device_data->_d_py.data()),
     thrust::raw_pointer_cast(_device_data->_d_pz.data()),
-    thrust::raw_pointer_cast(_device_data->_d_fx.data()),
-    thrust::raw_pointer_cast(_device_data->_d_fy.data()),
-    thrust::raw_pointer_cast(_device_data->_d_fz.data()),
+    thrust::raw_pointer_cast(_device_data->_d_force_dihedral_x.data()),
+    thrust::raw_pointer_cast(_device_data->_d_force_dihedral_y.data()),
+    thrust::raw_pointer_cast(_device_data->_d_force_dihedral_z.data()),
     _d_total_edihedral);
 
   CHECK_RUNTIME(MEMCPY(&h_energy_dihedral,_d_total_edihedral , sizeof(rbmd::Real), D2H));
@@ -978,6 +1012,71 @@ void CVFF::ComputeDihedralForce()
   std::cout << "test_current_step:" << test_current_step <<  " ,"
    << "average_dihedral_energy:" << _ave_dihedral << std::endl;
 
+  //out
+  std::ofstream outfile("ave_energy_dihedral.txt", std::ios::app);
+  outfile << test_current_step << " " << _ave_dihedral << std::endl;
+  outfile.close();
+
+
+  //append force dihedral
+  std::vector<rbmd::Real> h_force_dihedralx(_num_atoms);
+  std::vector<rbmd::Real> h_force_dihedraly(_num_atoms);
+  std::vector<rbmd::Real> h_force_dihedralz(_num_atoms);
+
+  thrust::copy(_device_data->_d_force_dihedral_x.begin(),
+    _device_data->_d_force_dihedral_x.end(), h_force_dihedralx.begin());
+  thrust::copy(_device_data->_d_force_dihedral_y.begin(),
+  _device_data->_d_force_dihedral_y.end(), h_force_dihedraly.begin());
+  thrust::copy(_device_data->_d_force_dihedral_z.begin(),
+  _device_data->_d_force_dihedral_z.end(), h_force_dihedralz.begin());
+
+  thrust::host_vector<rbmd::Real> h_atoms_id = _device_data->_d_atoms_id;
+  std::ofstream output_file("output_force_dihedral.txt");
+  for (size_t i = 0; i < h_force_dihedralx.size(); ++i)
+  {
+    output_file << h_atoms_id[i]<< " "
+    << h_force_dihedralx[i] << " " << h_force_dihedraly[i]  << " " << h_force_dihedralz[i]
+    << std::endl;
+  }
+  output_file.close();
+
+}
+
+void CVFF::ReduceByKey()
+{
+  // 先对 temp_atom_ids 和 temp_forces_x 进行排序
+  thrust::sort_by_key(_device_data->_d_temp_atom_ids.begin(),
+    _device_data->_d_temp_atom_ids.end(), _device_data->_d_temp_forces_bondx.begin());
+  thrust::sort_by_key(_device_data->_d_temp_atom_ids.begin(),
+    _device_data->_d_temp_atom_ids.end(), _device_data->_d_temp_forces_bondy.begin());
+  thrust::sort_by_key(_device_data->_d_temp_atom_ids.begin(),
+    _device_data->_d_temp_atom_ids.end(), _device_data->_d_temp_forces_bondz.begin());
+
+  thrust::device_vector<rbmd::Id> reduce_atom_ids_x;
+  thrust::device_vector<rbmd::Id> reduce_atom_ids_y;
+  thrust::device_vector<rbmd::Id> reduce_atom_ids_z;
+  reduce_atom_ids_x.resize(_num_atoms);
+  reduce_atom_ids_y.resize(_num_atoms);
+  reduce_atom_ids_z.resize(_num_atoms);
+
+    thrust::reduce_by_key(
+      _device_data->_d_temp_atom_ids.begin(), _device_data->_d_temp_atom_ids.end(),
+      _device_data->_d_temp_forces_bondx.begin(),   // 输入的 x 方向力
+      reduce_atom_ids_x.begin(),   // 按键聚合后的原子id
+      _device_data->_d_force_bond_x.begin()    // 聚合后的 x 方向力
+    );
+    thrust::reduce_by_key(
+      _device_data->_d_temp_atom_ids.begin(), _device_data->_d_temp_atom_ids.end(),
+      _device_data->_d_temp_forces_bondy.begin(),
+      reduce_atom_ids_y.begin(),
+      _device_data->_d_force_bond_y.begin()
+    );
+    thrust::reduce_by_key(
+      _device_data->_d_temp_atom_ids.begin(), _device_data->_d_temp_atom_ids.end(),
+      _device_data->_d_temp_forces_bondz.begin(),
+      reduce_atom_ids_z.begin(),
+      _device_data->_d_force_bond_z.begin()
+     );
 }
 
 

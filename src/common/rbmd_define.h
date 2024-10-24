@@ -22,7 +22,7 @@
 
 #ifndef TARGET_DCU
 #define MIN_NBNUM \
-(96)  /// CUDA AMD6800xt 96 DCU 128   TODO kernel us it  can use warpSize?
+(128)  /// CUDA AMD6800xt 96 DCU 128   TODO kernel us it  can use warpSize?
 #define WARP_SIZE (32)  /// CUDA AMD6800xt 32  DCU 64   TODO
 #else
 #define MIN_NBNUM (128)
