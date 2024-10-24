@@ -44,9 +44,6 @@ void TrajectoryOutput::Execute()
 
             CHECK_RUNTIME(MEMCPY(&h_rang, _structure_info_data->_range, sizeof(rbmd::Range), D2H));
 
-            std::cout<<"h_rang value: "<< h_rang[0][0] << " " << h_rang[0][1] << std::endl
-                     << h_rang[1][0] << " " << h_rang[1][1] << std::endl
-                     << h_rang[2][0] << " " << h_rang[2][1] << std::endl;
 
             spdlog::info("ITEM: TIMESTEP");
             spdlog::info("{}", test_current_step);
@@ -61,7 +58,7 @@ void TrajectoryOutput::Execute()
             for (auto i = 0; i < _num_atoms; ++i)
             {
                 spdlog::info("{} {} {} {} {}", i + 1, h_atoms_type[i] + 1, h_px[i], h_py[i], h_pz[i]);
-
+            }
         }
         catch (const std::exception& e)
         {
