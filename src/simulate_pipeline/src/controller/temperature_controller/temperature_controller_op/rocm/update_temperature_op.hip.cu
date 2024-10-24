@@ -92,10 +92,41 @@ __global__ void UpdataVelocityBerendsen(const rbmd::Id num_atoms,
   }
 }
 
-void ComputeTemperatureOp<device::DEVICE_GPU>::operator()(
-    const rbmd::Id num_atoms, const rbmd::Real mvv2e,
-    const rbmd::Id* atoms_type, const rbmd::Real* mass, const rbmd::Real* vx,
-    const rbmd::Real* vy, const rbmd::Real* vz, rbmd::Real* temp_contrib)
+__global__
+	void UpdataForceLangevin(const rbmd::Id num_atoms,
+		                     const rbmd::Real gaussian_x,
+		                     const rbmd::Real gaussian_y,
+		                     const rbmd::Real gaussian_z,
+		                     const rbmd::Real kbT,
+		                     const rbmd::Real gamma,
+		                     const rbmd::Real dt,
+		                     const rbmd::Real* mass,
+		                     const rbmd::Real* vx,
+		                     const rbmd::Real* vy,
+		                     const rbmd::Real* vz,
+		                     rbmd::Real* fx,
+		                     rbmd::Real* fy,
+		                     rbmd::Real* fz)
+	{
+		int tid = threadIdx.x + blockIdx.x * blockDim.x;
+
+		if (tid < num_atoms)
+		{
+			fx[tid] = fx[tid] - mass[tid] * gamma * vx[tid] + sqrt(2.0 * mass[tid] * gamma * kbT / dt) * gaussian_x;
+			fy[tid] = fy[tid] - mass[tid] * gamma * vy[tid] + sqrt(2.0 * mass[tid] * gamma * kbT / dt) * gaussian_y;
+			fz[tid] = fz[tid] - mass[tid] * gamma * vz[tid] + sqrt(2.0 * mass[tid] * gamma * kbT / dt) * gaussian_z;
+		}
+	}
+
+
+void ComputeTemperatureOp<device::DEVICE_GPU>::operator()(const rbmd::Id num_atoms,
+		                                                  const rbmd::Real mvv2e,
+														  const rbmd::Id* atoms_type,
+		                                                  const rbmd::Real* mass,
+		                                                  const rbmd::Real* vx,
+		                                                  const rbmd::Real* vy,
+		                                                  const rbmd::Real* vz,
+		                                                  rbmd::Real* temp_contrib)
 
 {
   unsigned int blocks_per_grid = (num_atoms + BLOCK_SIZE - 1) / BLOCK_SIZE;
@@ -125,8 +156,28 @@ void UpdataVelocityNoseHooverOp<device::DEVICE_GPU>::operator()(
 void UpdataVelocityBerendsenOp<device::DEVICE_GPU>::operator()(
     const rbmd::Id num_atoms, const rbmd::Real coeff_Berendsen, rbmd::Real* vx,
     rbmd::Real* vy, rbmd::Real* vz) {
-  unsigned int blocks_per_grid = (num_atoms + BLOCK_SIZE - 1) / BLOCK_SIZE;
-  CHECK_KERNEL(UpdataVelocityBerendsen<<<blocks_per_grid, BLOCK_SIZE, 0, 0>>>(
-      num_atoms, coeff_Berendsen, vx, vy, vz));
+    unsigned int blocks_per_grid = (num_atoms + BLOCK_SIZE - 1) / BLOCK_SIZE;
+    CHECK_KERNEL(UpdataVelocityBerendsen <<<blocks_per_grid, BLOCK_SIZE, 0, 0 >>> (
+        num_atoms, coeff_Berendsen, vx, vy, vz));
 }
+
+void UpdataForceLangevinOp<device::DEVICE_GPU>::operator()(const rbmd::Id num_atoms,
+	                                                       const rbmd::Real gaussian_x,
+	                                                       const rbmd::Real gaussian_y,
+	                                                       const rbmd::Real gaussian_z,
+	                                                       const rbmd::Real kbT,
+	                                                       const rbmd::Real gamma,
+	                                                       const rbmd::Real dt,
+	                                                       const rbmd::Real* mass,
+	                                                       const rbmd::Real* vx,
+	                                                       const rbmd::Real* vy,
+	                                                       const rbmd::Real* vz,
+	                                                       rbmd::Real* fx,
+	                                                       rbmd::Real* fy,
+	                                                       rbmd::Real* fz)
+	{
+		unsigned int blocks_per_grid = (num_atoms + BLOCK_SIZE - 1) / BLOCK_SIZE;
+		CHECK_KERNEL(UpdataForceLangevin <<<blocks_per_grid, BLOCK_SIZE, 0, 0 >>> (num_atoms, gaussian_x, gaussian_y, gaussian_z, kbT, gamma, dt, mass, vx, vy, vz, fx, fy, fz));
+	}
+
 }  // namespace op

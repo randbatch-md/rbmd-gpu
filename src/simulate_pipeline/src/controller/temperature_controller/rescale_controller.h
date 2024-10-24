@@ -13,7 +13,7 @@ class RescaleController : public TemperatureController {
   /**
    * @brief Calculate the current stage temperature
    */
-  void ComputeTemp();
+  void ComputeTemp()override;
 
   /**
    * @brief Update current speed through temperature

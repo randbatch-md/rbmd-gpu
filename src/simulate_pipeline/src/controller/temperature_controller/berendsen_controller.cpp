@@ -40,7 +40,7 @@ void BerendsenController::Init() {
 }
 
 void BerendsenController::Update() {
-  ComputeTemp();
+  //ComputeTemp();
 
   UpdataVelocity();
 }
