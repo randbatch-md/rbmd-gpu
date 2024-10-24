@@ -41,7 +41,7 @@ void LangevinController::Init() {
 void LangevinController::Update() {
   ComputeTemp();
 
-  UpdataVelocity();
+  UpdataForce();
 }
 
 void LangevinController::ComputeTemp()
@@ -118,7 +118,7 @@ rbmd::Real LangevinController:: FetchSample_1D(const bool& random, const rbmd::R
         } while (U1 < epsilon);
         U2 = RandomValue(0.0, 1.0);
         std::vector<rbmd::Real> ChooseSample{ 0.0, 0.0 };
-        ChooseSample[0] = sigma * std::sqrt(-2.0 * std::log(U1)) * std::cos(2 * std::_Pi * U2) + mu;
+        ChooseSample[0] = sigma * std::sqrt(-2.0 * std::log(U1)) * std::cos(2 * M_PI * U2) + mu;
         //ChooseSample[1] = sigma * vtkm::Sqrt(-2.0 * vtkm::Log(U1)) * sin(2 * vtkm::Pi() * U2) + mu;
         return ChooseSample[0];
     }
@@ -127,7 +127,7 @@ rbmd::Real LangevinController:: FetchSample_1D(const bool& random, const rbmd::R
         U1 = 0.5;
         U2 = 0.5;
         std::vector<rbmd::Real> ChooseSample{ 0.0, 0.0 };
-        ChooseSample[0] = sigma * std::sqrt(-2.0 * std::log(U1)) * std::cos(2 * std::_Pi * U2) + mu;
+        ChooseSample[0] = sigma * std::sqrt(-2.0 * std::log(U1)) * std::cos(2 * M_PI * U2) + mu;
         //ChooseSample[1] = sigma * vtkm::Sqrt(-2.0 * vtkm::Log(U1)) * sin(2 * vtkm::Pi() * U2) + mu;
         return ChooseSample[0];
     }
@@ -136,6 +136,6 @@ rbmd::Real LangevinController:: FetchSample_1D(const bool& random, const rbmd::R
 rbmd::Real LangevinController::RandomValue(const rbmd::Real& Min, const rbmd::Real& Max)
 {
     std::mt19937 gen(std::random_device{}());
-    std::uniform_real_distribution<T> dis(Min, Max);
+    std::uniform_real_distribution<rbmd::Real> dis(Min, Max);
     return dis(gen);
 };
