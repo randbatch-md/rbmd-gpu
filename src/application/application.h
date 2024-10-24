@@ -11,7 +11,7 @@ class BaseReader;
 // class JsonParser;
 class Executioner;
 class Ensemble;
-
+class Output;
 class Application : public Object {
  public:
   /**
@@ -36,6 +36,7 @@ class Application : public Object {
   // std::shared_ptr<System> _system;
   std::vector<std::shared_ptr<Ensemble>> _simulate_pipelines;
   std::shared_ptr<Ensemble> _simulate_pipeline;
+  std::shared_ptr<Output> _output;
 
   std::vector<Json::Value> _simulate_nodes;
 

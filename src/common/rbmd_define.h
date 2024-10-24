@@ -17,14 +17,18 @@
 #define MIN(x, y) (((x) < (y)) ? (x) : (y))
 #define BLOCK_SIZE (256)
 #define MAX_GPU_STREAMS (6)
-#ifdef AMD_CUDA
+#define RBMD_TRUE (1)
+#define RBMD_FALSE (0)
+
+#ifndef TARGET_DCU
 #define MIN_NBNUM \
-  (96)  /// CUDA AMD6800xt 96 DCU 128   TODO kernel us it  can use warpSize?
+(96)  /// CUDA AMD6800xt 96 DCU 128   TODO kernel us it  can use warpSize?
 #define WARP_SIZE (32)  /// CUDA AMD6800xt 32  DCU 64   TODO
 #else
 #define MIN_NBNUM (128)
 #define WARP_SIZE (64)
 #endif
+
 #if USE_DOUBLE
 typedef double3 Real3;
 typedef double2 Real2;
@@ -36,6 +40,12 @@ typedef double2 Real2;
 #define SQRT sqrt
 #define ERF erf
 #define EXP exp
+#define COS cos
+#define SIN sin
+#define ROUND round
+#define LOG log
+#define ABS fabs
+#define ACOS acos
 #else
 typedef float3 Real3;
 typedef float2 Real2;
@@ -47,6 +57,13 @@ typedef float2 Real2;
 #define SQRT sqrtf
 #define ERF erff
 #define EXP expf
+#define COS cosf
+#define SIN sinf
+#define ROUND roundf
+#define LOG logf
+#define ABS fabsf
+#define ACOS acosf
+
 #endif
 
 #if USE_64BIT_IDS

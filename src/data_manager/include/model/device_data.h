@@ -3,6 +3,7 @@
 
 #include "../common/types.h"
 #include "box.h"
+#include "../common/erf_table.h"
 
 class DeviceData {
  public:
@@ -36,6 +37,11 @@ class DeviceData {
   thrust::device_vector<rbmd::Id> _d_bond_id0;
   thrust::device_vector<rbmd::Id> _d_bond_id1;
 
+  ///special
+  thrust::device_vector<rbmd::Real> _d_special_weights;
+  thrust::device_vector<rbmd::Id> _d_special_ids;
+  thrust::device_vector<rbmd::Id> _d_special_offsets;
+
   /// angle
   thrust::device_vector<rbmd::Id> _d_angle_type;
   thrust::device_vector<rbmd::Id> _d_angle_id0;
@@ -48,6 +54,11 @@ class DeviceData {
   thrust::device_vector<rbmd::Id> _d_dihedral_id1;
   thrust::device_vector<rbmd::Id> _d_dihedral_id2;
   thrust::device_vector<rbmd::Id> _d_dihedral_id3;
+
+  /// Processing data
+  thrust::device_vector<rbmd::Id> _d_special_source_array;
+  thrust::device_vector<rbmd::Id> _d_special_offsets_array;
+
 
   ///< force on device>
   /// mass
@@ -86,6 +97,15 @@ class DeviceData {
   thrust::device_vector<rbmd::Real> _d_fy;
   thrust::device_vector<rbmd::Real> _d_fz;
 
+  thrust::device_vector<rbmd::Real> _d_force_ljcoul_x;
+  thrust::device_vector<rbmd::Real> _d_force_ljcoul_y;
+  thrust::device_vector<rbmd::Real> _d_force_ljcoul_z;
+
+  thrust::device_vector<rbmd::Real> _d_force_ewald_x;
+  thrust::device_vector<rbmd::Real> _d_force_ewald_y;
+  thrust::device_vector<rbmd::Real> _d_force_ewald_z;
+
+
   thrust::device_vector<rbmd::Real> _d_virial_xx;
   thrust::device_vector<rbmd::Real> _d_virial_yy;
   thrust::device_vector<rbmd::Real> _d_virial_zz;
@@ -99,5 +119,6 @@ class DeviceData {
 
   // box in device
   Box* _d_box;
-  ~DeviceData() { CHECK_RUNTIME(FREE(_d_box)); }
+  ERFTable* _d_erf_table;
+  ~DeviceData() { CHECK_RUNTIME(FREE(_d_box));CHECK_RUNTIME(FREE(_d_erf_table)); }
 };

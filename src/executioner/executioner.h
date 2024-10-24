@@ -5,13 +5,13 @@
 #include "common/types.h"
 #include "json/reader.h"
 #include "json/value.h"
-
+#include "../output/include/output.h"
 extern int test_current_step;
 
 class Executioner : public Object {
  public:
-  Executioner(/*const Json::Value& node, */ std::shared_ptr<Ensemble>&
-                  simulate_pipeline);
+  Executioner(std::shared_ptr<Ensemble>&simulate_pipeline,
+			  std::shared_ptr<Output>& output);
   virtual ~Executioner() = default;
 
  public:
@@ -22,7 +22,7 @@ class Executioner : public Object {
  protected:
   // Json::Value _exec_node;
   std::shared_ptr<Ensemble>& _simulate_pipeline;
-
+  std::shared_ptr<Output>& _output;
   float _time_step;
   float _current_time;
 

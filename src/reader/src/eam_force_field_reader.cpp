@@ -31,7 +31,8 @@
 //			if (_mapped_memory[_locate] == '\n')
 //			{
 //				auto line = std::string(_line_start,
-//&_mapped_memory[_locate]); 				std::istringstream iss(line);
+//&_mapped_memory[_locate]); 				std::istringstream
+//iss(line);
 //
 //				if (line.find("Atoms") != std::string::npos)
 //				{
@@ -39,7 +40,7 @@
 //					std::cout << "Atoms" << std::endl;
 //				}
 //				else if (line.find("Velocities") !=
-//std::string::npos)
+// std::string::npos)
 //				{
 //					ReadVelocity(num_atoms);
 //				}
@@ -62,15 +63,15 @@
 //	auto& info = _md_data._structure_info_data;
 //	auto& data = _md_data._structure_data;
 //	HIP_CHECK(hipHostMalloc(&(data->_h_atoms_id),
-//info->_num_atoms*sizeof(rbmd::Id)));
+// info->_num_atoms*sizeof(rbmd::Id)));
 //	HIP_CHECK(hipHostMalloc(&(data->_h_atoms_type), info->_num_atoms *
-//sizeof(rbmd::Id))); 	HIP_CHECK(hipHostMalloc(&(data->_h_px),
-//info->_num_atoms*sizeof(rbmd::Id))); 	HIP_CHECK(hipHostMalloc(&(data->_h_py),
-//info->_num_atoms*sizeof(rbmd::Id))); 	HIP_CHECK(hipHostMalloc(&(data->_h_pz),
-//info->_num_atoms*sizeof(rbmd::Id))); 	HIP_CHECK(hipHostMalloc(&(data->_h_vx),
-//info->_num_atoms*sizeof(rbmd::Id))); 	HIP_CHECK(hipHostMalloc(&(data->_h_vy),
-//info->_num_atoms*sizeof(rbmd::Id))); 	HIP_CHECK(hipHostMalloc(&(data->_h_vz),
-//info->_num_atoms*sizeof(rbmd::Id)));
+// sizeof(rbmd::Id))); 	HIP_CHECK(hipHostMalloc(&(data->_h_px),
+// info->_num_atoms*sizeof(rbmd::Id)));
+// HIP_CHECK(hipHostMalloc(&(data->_h_py), info->_num_atoms*sizeof(rbmd::Id)));
+// HIP_CHECK(hipHostMalloc(&(data->_h_pz), info->_num_atoms*sizeof(rbmd::Id)));
+// HIP_CHECK(hipHostMalloc(&(data->_h_vx), info->_num_atoms*sizeof(rbmd::Id)));
+// HIP_CHECK(hipHostMalloc(&(data->_h_vy), info->_num_atoms*sizeof(rbmd::Id)));
+// HIP_CHECK(hipHostMalloc(&(data->_h_vz), info->_num_atoms*sizeof(rbmd::Id)));
 // }
 //
 // int EAMForceFieldReader::ReadAtoms(const rbmd::Id& atoms_num)
@@ -88,8 +89,8 @@
 //			if (_mapped_memory[_locate] == '\n')
 //			{
 //				auto line = std::string(_line_start,
-//&_mapped_memory[_locate]); 				std::istringstream iss(line); 				if
-//(rbmd::IsLegalLine(line))
+//&_mapped_memory[_locate]); 				std::istringstream
+//iss(line); 				if (rbmd::IsLegalLine(line))
 //				{
 //					iss >> atom_id;
 //					auto index = atom_id - 1;
@@ -101,7 +102,7 @@
 //>>_md_data._structure_data->_h_pz[index];
 //					++num;
 //					std::cout << atom_id << " " <<
-//types[index] << " " << _md_data._structure_data->_h_px[index] << " " <<
+// types[index] << " " << _md_data._structure_data->_h_px[index] << " " <<
 //_md_data._structure_data->_h_py[index] << " " <<
 //_md_data._structure_data->_h_pz[index] << std::endl;
 //				}
@@ -131,8 +132,8 @@
 //			if (_mapped_memory[_locate] == '\n')
 //			{
 //				auto line = std::string(_line_start,
-//&_mapped_memory[_locate]); 				std::istringstream iss(line); 				if
-//(rbmd::IsLegalLine(line))
+//&_mapped_memory[_locate]); 				std::istringstream
+//iss(line); 				if (rbmd::IsLegalLine(line))
 //				{
 //					iss >> atom_id;
 //					auto index = atom_id - 1;

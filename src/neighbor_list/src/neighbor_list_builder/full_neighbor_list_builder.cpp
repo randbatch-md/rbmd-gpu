@@ -34,11 +34,11 @@ std::shared_ptr<NeighborList> FullNeighborListBuilder::Build() {
   _linked_cell->ComputeCellRangesIndices();
   if (should_realloc) {
     // 好像就第一入口调用了  todo move to init?
-    this->EstimateNeighborsList();
+    EstimateNeighborsList();
   }
   // 索引没有问题
-  if (GenerateNeighborsList()) {
-    this->EstimateNeighborsList();
+  if (GenerateNeighborsList()==RBMD_TRUE) {
+    EstimateNeighborsList();
     GenerateNeighborsList();
   }
   return _neighbor_list;
@@ -99,9 +99,9 @@ void FullNeighborListBuilder::EstimateNeighborsList() {
   this->should_realloc = false;
 }
 
-bool FullNeighborListBuilder::GenerateNeighborsList() {
+rbmd::Id FullNeighborListBuilder::GenerateNeighborsList() {
   CHECK_RUNTIME(
-      MEMCPY(_d_should_realloc, &(this->should_realloc), sizeof(bool), H2D));
+      MEMCPY(_d_should_realloc, &(this->should_realloc), sizeof(rbmd::Id), H2D));
   op::GenerateFullNeighborListOp<device::DEVICE_GPU>
       generate_full_neighbor_list_op;
   generate_full_neighbor_list_op(
@@ -121,6 +121,6 @@ bool FullNeighborListBuilder::GenerateNeighborsList() {
       thrust::raw_pointer_cast(_linked_cell->_neighbor_cell.data()),
       _neighbor_cell_num);
   CHECK_RUNTIME(
-      MEMCPY(&(this->should_realloc), _d_should_realloc, sizeof(bool), D2H));
+      MEMCPY(&(this->should_realloc), _d_should_realloc, sizeof(rbmd::Id), D2H));
   return this->should_realloc;
 }

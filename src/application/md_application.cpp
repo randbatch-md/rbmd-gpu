@@ -11,8 +11,9 @@
 #include "../simulate_pipeline/include/nvt_ensemble.h"
 #include "executioner.h"
 #include "lj_memory_scheduler.h"
+#include "cvff_memory_scheduler.h"
 #include "memory_scheduler.h"
-
+#include "output/include/TrajectoryOutput.h"
 MDApplication::MDApplication(int argc, char* argv[]) : Application(argc, argv) {
   //_system = std::make_shared<MDSystem>();
 }
@@ -31,9 +32,9 @@ int MDApplication::Execute() {
   //		return -1;
   //	}
   //	//_executioner =
-  //std::make_shared<Executioner>(_parser->GetJsonNode("execution"), _system);
+  // std::make_shared<Executioner>(_parser->GetJsonNode("execution"), _system);
   //	//_executioner =
-  //std::make_shared<Executioner>(_config_data->GetJsonNode("execution"),
+  // std::make_shared<Executioner>(_config_data->GetJsonNode("execution"),
   //_simulate_pipelines);
   //
   //	for (size_t i = 0; i < _simulate_pipelines.size(); i++)
@@ -58,8 +59,8 @@ int MDApplication::Execute() {
   // }
   ReadMDData();
   _simulate_pipeline = std::make_shared<NVTensemble>();
-
-  _executioner = std::make_shared<Executioner>(_simulate_pipeline);
+  _output = std::make_shared<TrajectoryOutput>();
+  _executioner = std::make_shared<Executioner>(_simulate_pipeline,_output);
 
   _executioner->Init();
 
@@ -122,8 +123,17 @@ int MDApplication::ReadMDData() {
   std::shared_ptr<MDData> md_data = DataManager::getInstance().getMDData();
   reader = std::make_shared<AtomicReader>("rbmd.data", *md_data);
   reader->Execute();
-  std::shared_ptr<LJMemoryScheduler> lj_memory_scheduler =
-      std::make_shared<LJMemoryScheduler>();
-  DataManager::getInstance().Fill2Device(lj_memory_scheduler);
+
+  std::shared_ptr<MemoryScheduler> memory_scheduler;
+  auto force_type = DataManager::getInstance().getConfigData()->Get<std::string>("type", "hyper_parameters", "force_field");
+  if ("CVFF" == force_type) {
+      memory_scheduler = std::make_shared<CVFFMemoryScheduler>();
+  }
+  else
+  {
+      memory_scheduler = std::make_shared<LJMemoryScheduler>();
+  }
+
+  DataManager::getInstance().Fill2Device(memory_scheduler);
   return 0;
 }
