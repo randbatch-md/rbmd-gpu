@@ -364,25 +364,6 @@ void CVFF::ComputeKspaceForce()
 
 void CVFF::SumForces()
 {
-
-  // thrust::transform(
-  //     _device_data->_d_force_ljcoul_x.begin(), _device_data->_d_force_ljcoul_x.end(),
-  //     _device_data->_d_force_ewald_x.begin(),
-  //     _device_data->_d_fx.begin(), // 将结果存回到 _d_fx 中
-  //     thrust::plus<rbmd::Real>());
-  //
-  // thrust::transform(
-  //     _device_data->_d_force_ljcoul_y.begin(), _device_data->_d_force_ljcoul_y.end(),
-  //     _device_data->_d_force_ewald_y.begin(),
-  //     _device_data->_d_fy.begin(), // 将结果存回到 _d_fy 中
-  //     thrust::plus<rbmd::Real>());
-  //
-  // thrust::transform(
-  //     _device_data->_d_force_ljcoul_z.begin(), _device_data->_d_force_ljcoul_z.end(),
-  //     _device_data->_d_force_ewald_z.begin(),
-  //     _device_data->_d_fz.begin(), // 将结果存回到 _d_fz 中
-  //     thrust::plus<rbmd::Real>());
-
   thrust::transform(
     thrust::make_zip_iterator(thrust::make_tuple(
         _device_data->_d_force_ljcoul_x.begin(),

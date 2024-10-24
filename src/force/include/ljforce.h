@@ -19,7 +19,6 @@ class LJForce : public Force {
   std::shared_ptr<BaseNeighborListBuilder> _neighbor_list_builder;
   std::shared_ptr<NeighborList> _rbl_list;
   std::shared_ptr<NeighborList> _list;
-  Box box;
 
   rbmd::Real _corr_value_x;
   rbmd::Real _corr_value_y;
