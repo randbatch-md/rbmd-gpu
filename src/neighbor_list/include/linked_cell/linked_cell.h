@@ -68,6 +68,21 @@ class LinkedCell {
 
   void SortAtomsByCellKey();
 
+  /**
+   * 由于SortAtomsByCellKey做了映射，读取文件计算键角力(在邻居力计算之后)需要将Id进行一次映射。调用这个函数。
+   * @param d_target 需要映射的原子ID的数组
+   * TODO 并行考虑范围问题？
+   */
+  template <typename T>
+  void MapAtomId(thrust::device_vector<T>& d_target);
+
+  /**
+   * 由于SortAtomsByCellKey做了映射,如果计算键力角力在构建邻居列表之前(或同时)，这力加和时需要调用这个函数
+   * @param d_target 键角力数组
+   */
+  template <typename T>
+ void MapAtomIdForce(thrust::device_vector<T>& d_target);
+
  private:
   LinkedCellDeviceDataPtr* _linked_cell_device_data_ptr = nullptr;
   std::shared_ptr<DeviceData> _device_data;

@@ -2140,11 +2140,13 @@ temp_storage;
             rbmd::Id dihedralw = dihedrallistw[tid1];
 
             rbmd::Id dihedralii = atom_id_to_idx[dihedrali];
-            rbmd::Id dihedraljj = atom_id_to_idx[dihedrali];
-            rbmd::Id dihedralkk = atom_id_to_idx[dihedrali];
-            rbmd::Id dihedralww = atom_id_to_idx[dihedrali];
+            rbmd::Id dihedraljj = atom_id_to_idx[dihedralj];
+            rbmd::Id dihedralkk = atom_id_to_idx[dihedralk];
+            rbmd::Id dihedralww = atom_id_to_idx[dihedralw];
             rbmd::Real cos_shift, sin_shift;
-            if (dihedral_coeffs_sign[tid1] == 1)
+
+            rbmd::Id dihedraltype = dihedral_type[tid1];
+            if (dihedral_coeffs_sign[dihedraltype] == 1)
             {
               cos_shift = 1.0;
               sin_shift = 0.0;
@@ -2155,9 +2157,7 @@ temp_storage;
               sin_shift = 0.0;
             }
 
-            rbmd::Id bondtype = dihedral_type[tid1];
-            rbmd::Real k = dihedral_coeffs_k[bondtype];
-
+            rbmd::Real k = dihedral_coeffs_k[dihedraltype];
             rbmd::Real x12 = px[dihedralii]-px[dihedraljj];  // i j =vb1
             rbmd::Real y12 = py[dihedralii]-py[dihedraljj];
             rbmd::Real z12 = pz[dihedralii]-pz[dihedraljj];
@@ -2206,7 +2206,7 @@ temp_storage;
             if (c > 1.0) c = 1.0;
             if (c < -1.0)  c = -1.0;
 
-            rbmd::Id m = dihedral_coeffs_multiplicity[tid1];
+            rbmd::Id m = dihedral_coeffs_multiplicity[dihedraltype];
             rbmd::Real p = 1.0;
             rbmd::Real ddf1, df1;
             ddf1 = df1 = 0.0;
@@ -2230,7 +2230,7 @@ temp_storage;
             }
 
             //energy
-            local_energy_dihedral += k * p;
+            local_energy_dihedral = k * p;
 
             rbmd::Real fg = x12 * x23m + y12 * y23m + z12 * z23m;
             rbmd::Real hg = x34 * x23m + y34 * y23m + z34 * z23m;
@@ -2278,23 +2278,22 @@ temp_storage;
             force_dihedralk_y = -sy2 - force_dihedralw_y;
             force_dihedralk_z = -sz2 - force_dihedralw_z;
 
-            atomicAdd(&fx[dihedrali], force_dihedrali_x);
-            atomicAdd(&fy[dihedrali], force_dihedrali_y);
-            atomicAdd(&fz[dihedrali], force_dihedrali_z);
+            atomicAdd(&fx[dihedralii], force_dihedrali_x);
+            atomicAdd(&fy[dihedralii], force_dihedrali_y);
+            atomicAdd(&fz[dihedralii], force_dihedrali_z);
 
-            atomicAdd(&fx[dihedralj], force_dihedralj_x);
-            atomicAdd(&fy[dihedralj], force_dihedralj_y);
-            atomicAdd(&fz[dihedralj], force_dihedralj_z);
+            atomicAdd(&fx[dihedraljj], force_dihedralj_x);
+            atomicAdd(&fy[dihedraljj], force_dihedralj_y);
+            atomicAdd(&fz[dihedraljj], force_dihedralj_z);
 
-            atomicAdd(&fx[dihedralw], force_dihedralw_x);
-            atomicAdd(&fy[dihedralw], force_dihedralw_y);
-            atomicAdd(&fz[dihedralw], force_dihedralw_z);
+            atomicAdd(&fx[dihedralww], force_dihedralw_x);
+            atomicAdd(&fy[dihedralww], force_dihedralw_y);
+            atomicAdd(&fz[dihedralww], force_dihedralw_z);
 
-            atomicAdd(&fx[dihedralk], force_dihedralk_x);
-            atomicAdd(&fy[dihedralk], force_dihedralk_y);
-            atomicAdd(&fz[dihedralk], force_dihedralk_z);
+            atomicAdd(&fx[dihedralkk], force_dihedralk_x);
+            atomicAdd(&fy[dihedralkk], force_dihedralk_y);
+            atomicAdd(&fz[dihedralkk], force_dihedralk_z);
           }
-
           rbmd::Real block_sum =
         hipcub::BlockReduce<rbmd::Real, BLOCK_SIZE>(temp_storage).Sum(local_energy_dihedral);
 
@@ -2303,6 +2302,23 @@ temp_storage;
           }
        }
 
+        __global__ void AddForce(
+        const rbmd::Id num_atoms,
+        const rbmd::Real* input_fx,
+        const rbmd::Real* input_fy,
+        const rbmd::Real* input_fz,
+        rbmd::Real* fx,
+        rbmd::Real* fy,
+        rbmd::Real* fz)
+        {
+          unsigned int tid1 = blockIdx.x * blockDim.x + threadIdx.x;
+          if (tid1 < num_atoms)
+          {
+            fx[tid1] = fx[tid1] + input_fx[tid1];
+            fy[tid1] = fy[tid1] + input_fy[tid1];
+            fz[tid1] = fz[tid1] + input_fz[tid1];
+          }
+        }
 
         /////////////////////
 	//verlet-list: LJForce
@@ -2859,8 +2875,23 @@ temp_storage;
                     dihedral_coeffs_sign,dihedral_coeffs_multiplicity,dihedral_type,
                     dihedrallisti,dihedrallistj,dihedrallistk,dihedrallistw,
                     px, py, pz, fx, fy, fz,energy_dihedral));
-
        }
+
+      void AddForceOp<device::DEVICE_GPU>::operator()(
+        const rbmd::Id num_atoms,
+        const rbmd::Real* input_fx,
+        const rbmd::Real* input_fy,
+        const rbmd::Real* input_fz,
+        rbmd::Real* fx,
+        rbmd::Real* fy,
+        rbmd::Real* fz)
+        {
+          unsigned int blocks_per_grid = (num_atoms + BLOCK_SIZE - 1) / BLOCK_SIZE;
+
+          CHECK_KERNEL(AddForce <<<blocks_per_grid, BLOCK_SIZE, 0, 0 >>>
+                  (num_atoms, input_fx, input_fy, input_fz, fx, fy, fz));
+        }
+
 
 }
 

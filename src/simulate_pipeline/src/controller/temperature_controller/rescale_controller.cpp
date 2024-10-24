@@ -47,7 +47,7 @@ GetArray<rbmd::Real>("temperature", "execution"); //[1.0,1.0,0.1]
 }
 
 void RescaleController::Update() {
-  ComputeTemp();
+  //ComputeTemp();
 
   UpdataVelocity();
 }

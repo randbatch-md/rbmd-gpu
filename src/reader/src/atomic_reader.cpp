@@ -488,7 +488,7 @@ int AtomicReader::ReadDihedrals(const rbmd::Id& num_dihedrals)
                     dihedral_id2[dihedral_id_value - 1] = dihedral_id2_value - 1;
                     dihedral_id3[dihedral_id_value - 1] = dihedral_id3_value - 1;
                     ++num;
-                    //std::cout << dihedral_type_value << " " <<dihedral_id0_value << " " << dihedral_id1_value << " " << dihedral_id2_value << " " << dihedral_id3_value<< std::endl;
+                   // std::cout << dihedral_type_value << " " <<dihedral_id0_value << " " << dihedral_id1_value << " " << dihedral_id2_value << " " << dihedral_id3_value<< std::endl;
                 }
                 _line_start = &_mapped_memory[_locate];
             }

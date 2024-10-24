@@ -15,14 +15,13 @@
 
 NVTensemble::NVTensemble()
 {
-	_position_controller = std::make_shared<DefaultPositionController>(); 
-	_velocity_controller = std::make_shared<DefaultVelocityController>(); 
-	_force_controller = std::make_shared<CVFF>(); // todo �Զ���forcetype =
-	_temperature_controller = std::make_shared<RescaleController>();
+  _position_controller = std::make_shared<DefaultPositionController>();
+  _velocity_controller = std::make_shared<DefaultVelocityController>();
+  _force_controller = std::make_shared<CVFF>(); // TODO: json file forcetype
+  _temperature_controller = std::make_shared<BerendsenController>();
 }
 
 void NVTensemble::Init() {
-  // ���Լ�������ı����ڸ��Ե�init�����ʼ����
   _position_controller->Init();
   _velocity_controller->Init();
   _temperature_controller->Init();
@@ -42,7 +41,7 @@ void NVTensemble::Solve() {
 
   _position_controller->Update();
 
-  bool use_shake;
+  bool use_shake = false; //TODO: json file
   if (true == use_shake)
   {
     _shake_controller->ShakeA();
@@ -50,12 +49,23 @@ void NVTensemble::Solve() {
 
   _force_controller->Execute();
 
+  if ("LANGEVIN"==DataManager::getInstance().getConfigData()->Get<std::string>("temp_ctrl_type", "execution"))
+  {
+	  _temperature_controller->Update();
+  }
+
   _velocity_controller->Update();
 
   if (true == use_shake)
   {
     _shake_controller->ShakeB();
   }
+
+  _temperature_controller->ComputeTemp();
+
+  if ("LANGEVIN" == DataManager::getInstance().getConfigData()->Get<std::string>("temp_ctrl_type", "execution"))
+	  return;
+
   _temperature_controller->Update();
 
   CHECK_RUNTIME(hipDeviceSynchronize());

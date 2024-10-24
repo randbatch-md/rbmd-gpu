@@ -63,12 +63,13 @@ public:
   void ComputeAngleForce(); //Harmonic
   void ComputeDihedralForce(); //Harmonic
   void ReduceByKey();
+  void tuple_apply();
 
 private:
   rbmd::Id _num_atoms;
   rbmd::Id _num_bonds;
   rbmd::Id _num_angles;
-  rbmd::Id _num_dihedral;
+  rbmd::Id _num_dihedrals;
   std::shared_ptr<BaseNeighborListBuilder> _rbl_neighbor_list_builder;
   std::shared_ptr<BaseNeighborListBuilder> _neighbor_list_builder;
   std::shared_ptr<NeighborList> _rbl_list;

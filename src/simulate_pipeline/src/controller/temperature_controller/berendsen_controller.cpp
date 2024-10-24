@@ -49,7 +49,7 @@ GetArray<rbmd::Real>("temperature", "execution"); //[1.0,1.0,0.1]
 }
 
 void BerendsenController::Update() {
-  ComputeTemp();
+  //ComputeTemp();
 
   UpdataVelocity();
 }

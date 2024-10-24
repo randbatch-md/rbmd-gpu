@@ -420,24 +420,24 @@ namespace op
      struct ComputeDihedralForceOp
      {
        void operator()(
-         Box* box,
-         const rbmd::Id num_dihedrals,
-         const rbmd::Id* atom_id_to_idx,
-         const rbmd::Real* dihedral_coeffs_k,
-         const rbmd::Id* dihedral_coeffs_sign ,
-         const rbmd::Id* dihedral_coeffs_multiplicity ,
-         const rbmd::Id* dihedral_type,
-         const rbmd::Id* dihedrallisti,
-         const rbmd::Id* dihedrallistj,
-         const rbmd::Id* dihedrallistk,
-         const rbmd::Id* dihedrallistw,
-         const rbmd::Real* px,
-         const rbmd::Real* py,
-         const rbmd::Real* pz,
-         rbmd::Real* fx,
-         rbmd::Real* fy,
-         rbmd::Real* fz,
-         rbmd::Real* energy_dihedral);
+       Box* box,
+       const rbmd::Id num_dihedrals,
+       const rbmd::Id* atom_id_to_idx,
+       const rbmd::Real* dihedral_coeffs_k,
+       const rbmd::Id* dihedral_coeffs_sign ,
+       const rbmd::Id* dihedral_coeffs_multiplicity ,
+       const rbmd::Id* dihedral_type,
+       const rbmd::Id* dihedrallisti,
+       const rbmd::Id* dihedrallistj,
+       const rbmd::Id* dihedrallistk,
+       const rbmd::Id* dihedrallistw,
+       const rbmd::Real* px,
+       const rbmd::Real* py,
+       const rbmd::Real* pz,
+       rbmd::Real* fx,
+       rbmd::Real* fy,
+       rbmd::Real* fz,
+       rbmd::Real* energy_dihedral);
      };
 
      template <typename DEVICE>
@@ -465,6 +465,19 @@ namespace op
          rbmd::Real* fz,
          rbmd::Real* total_especial_coul);
      };
+
+      template <typename DEVICE>
+      struct AddForceOp
+      {
+        void operator()(
+                const rbmd::Id num_atoms,
+                const rbmd::Real* input_fx,
+                const rbmd::Real* input_fy,
+                const rbmd::Real* input_fz,
+                rbmd::Real* fx,
+                rbmd::Real* fy,
+                rbmd::Real* fz);
+      };
 
         // // // // // // // // // // // // // // // // // // //
         template <>
@@ -929,6 +942,19 @@ namespace op
         rbmd::Real* fy,
         rbmd::Real* fz,
         rbmd::Real* energy_dihedral);
+    };
+
+    template <>
+    struct AddForceOp<device::DEVICE_GPU>
+    {
+      void operator()(
+              const rbmd::Id num_atoms,
+              const rbmd::Real* input_fx,
+              const rbmd::Real* input_fy,
+              const rbmd::Real* input_fz,
+              rbmd::Real* fx,
+              rbmd::Real* fy,
+              rbmd::Real* fz);
     };
 
 

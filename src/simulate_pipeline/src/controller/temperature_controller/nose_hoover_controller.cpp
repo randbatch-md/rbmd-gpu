@@ -51,7 +51,7 @@ void NoseHooverController::Init() {
 }
 
 void NoseHooverController::Update() {
-  ComputeTemp();
+  //ComputeTemp();
 
   UpdataVelocity();
 }

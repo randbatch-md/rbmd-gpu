@@ -10,6 +10,7 @@
 #include "ljforce_op/ljforce_op.h"
 #include "../common/RBEPSample.h"
 #include "../common/erf_table.h"
+#include "../common/tuple.h"
 #include "neighbor_list/include/linked_cell/linked_cell_locator.h"
 #include "neighbor_list/include/neighbor_list_builder/half_neighbor_list_builder.h"
 #include "neighbor_list/include/neighbor_list_builder/full_neighbor_list_builder.h"
@@ -49,6 +50,7 @@ void CVFF::Init()
     _num_atoms = *(_structure_info_data->_num_atoms);
     _num_bonds = *(_structure_info_data->_num_bonds);
     _num_angles = *(_structure_info_data->_num_angles);
+   _num_dihedrals = *(_structure_info_data->_num_dihedrals);
     _corr_value_x = 0;
     _corr_value_y = 0;
     _corr_value_z = 0;
@@ -104,6 +106,7 @@ void CVFF::Execute()
 
   ComputeBondForce();
   ComputeAngleForce();
+  ComputeDihedralForce();
   SumForces();
 }
 
@@ -287,6 +290,7 @@ void CVFF::ComputeSpecialCoulForce()
 {
   rbmd::Real h_total_e_specialcoul = 0.0;
   CHECK_RUNTIME(MEMSET(_d_total_e_specialcoul, 0, sizeof(rbmd::Real)));
+
   auto _atom_id_to_idx =
     LinkedCellLocator::GetInstance().GetLinkedCell()->_atom_id_to_idx;
   //
@@ -364,68 +368,21 @@ void CVFF::ComputeKspaceForce()
 
 void CVFF::SumForces()
 {
-  thrust::transform(
-    thrust::make_zip_iterator(thrust::make_tuple(
-        _device_data->_d_force_ljcoul_x.begin(),
-        _device_data->_d_force_specialcoul_x.begin(),
-        _device_data->_d_force_ewald_x.begin(),
-        _device_data->_d_force_bond_x.begin(),
-        _device_data->_d_force_angle_x.begin())),
-    thrust::make_zip_iterator(thrust::make_tuple(
-        _device_data->_d_force_ljcoul_x.end(),
-        _device_data->_d_force_specialcoul_x.end(),
-        _device_data->_d_force_ewald_x.end(),
-        _device_data->_d_force_bond_x.end(),
-        _device_data->_d_force_angle_x.end())),
-    _device_data->_d_fx.begin(),
-    [] __device__ (thrust::tuple<rbmd::Real, rbmd::Real, rbmd::Real,
-      rbmd::Real, rbmd::Real> forces) {
-        return thrust::get<0>(forces) + thrust::get<1>(forces) +
-               thrust::get<2>(forces) + thrust::get<3>(forces)+
-                 thrust::get<4>(forces);
-    });
 
-  thrust::transform(
-  thrust::make_zip_iterator(thrust::make_tuple(
-      _device_data->_d_force_ljcoul_y.begin(),
-      _device_data->_d_force_specialcoul_y.begin(),
-      _device_data->_d_force_ewald_y.begin(),
-      _device_data->_d_force_bond_y.begin(),
-      _device_data->_d_force_angle_y.begin())),
-  thrust::make_zip_iterator(thrust::make_tuple(
-      _device_data->_d_force_ljcoul_y.end(),
-      _device_data->_d_force_specialcoul_y.end(),
-      _device_data->_d_force_ewald_y.end(),
-      _device_data->_d_force_bond_y.end(),
-      _device_data->_d_force_angle_y.end())),
-  _device_data->_d_fy.begin(),
-  [] __device__ (thrust::tuple<rbmd::Real, rbmd::Real, rbmd::Real,
-    rbmd::Real,rbmd::Real> forces) {
-      return thrust::get<0>(forces) + thrust::get<1>(forces) +
-             thrust::get<2>(forces) + thrust::get<3>(forces)+
-               thrust::get<4>(forces);
-  });
+  sum_all_forces(_device_data->_d_fx,_device_data->_d_force_ljcoul_x,
+                  _device_data->_d_force_specialcoul_x,_device_data->_d_force_ewald_x,
+                  _device_data->_d_force_bond_x,_device_data->_d_force_angle_x,
+                  _device_data->_d_force_dihedral_x);
 
-  thrust::transform(
-  thrust::make_zip_iterator(thrust::make_tuple(
-      _device_data->_d_force_ljcoul_z.begin(),
-      _device_data->_d_force_specialcoul_z.begin(),
-      _device_data->_d_force_ewald_z.begin(),
-      _device_data->_d_force_bond_z.begin(),
-      _device_data->_d_force_angle_z.begin())),
-  thrust::make_zip_iterator(thrust::make_tuple(
-      _device_data->_d_force_ljcoul_z.end(),
-      _device_data->_d_force_specialcoul_z.end(),
-      _device_data->_d_force_ewald_z.end(),
-      _device_data->_d_force_bond_z.end(),
-      _device_data->_d_force_angle_z.end())),
-  _device_data->_d_fz.begin(),
-  [] __device__ (thrust::tuple<rbmd::Real, rbmd::Real, rbmd::Real,
-    rbmd::Real,rbmd::Real> forces) {
-      return thrust::get<0>(forces) + thrust::get<1>(forces) +
-             thrust::get<2>(forces) + thrust::get<3>(forces)+
-               thrust::get<4>(forces);
-  });
+  sum_all_forces(_device_data->_d_fy,_device_data->_d_force_ljcoul_y,
+                _device_data->_d_force_specialcoul_y,_device_data->_d_force_ewald_y,
+                _device_data->_d_force_bond_y,_device_data->_d_force_angle_y,
+                _device_data->_d_force_dihedral_y);
+
+  sum_all_forces(_device_data->_d_fz,_device_data->_d_force_ljcoul_z,
+                _device_data->_d_force_specialcoul_z,_device_data->_d_force_ewald_z,
+                _device_data->_d_force_bond_z,_device_data->_d_force_angle_z,
+                _device_data->_d_force_dihedral_z);
 
 }
 
@@ -967,7 +924,7 @@ void CVFF::ComputeDihedralForce()
   CHECK_RUNTIME(MEMSET(_d_total_edihedral, 0, sizeof(rbmd::Real)));
 
   op::ComputeDihedralForceOp<device::DEVICE_GPU> dihedral_force_op;
-  dihedral_force_op(_device_data->_d_box,_num_dihedral,
+  dihedral_force_op(_device_data->_d_box,_num_dihedrals,
     thrust::raw_pointer_cast(atom_id_to_idx.data()),
     thrust::raw_pointer_cast(_device_data->_d_dihedral_coeffs_k.data()),
     thrust::raw_pointer_cast(_device_data->_d_dihedral_coeffs_sign.data()),
@@ -988,7 +945,7 @@ void CVFF::ComputeDihedralForce()
   CHECK_RUNTIME(MEMCPY(&h_energy_dihedral,_d_total_edihedral , sizeof(rbmd::Real), D2H));
 
   // 打印累加后的总能量
-  _ave_dihedral = h_energy_dihedral/_num_dihedral;
+  _ave_dihedral = h_energy_dihedral/_num_dihedrals;
 
   std::cout << "test_current_step:" << test_current_step <<  " ,"
    << "average_dihedral_energy:" << _ave_dihedral << std::endl;

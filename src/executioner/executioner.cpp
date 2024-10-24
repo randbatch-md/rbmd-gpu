@@ -2,25 +2,33 @@
 
 int test_current_step = 0;
 int test_num_steps;
-Executioner::Executioner(
-    /*const Json::Value& node, */ std::shared_ptr<Ensemble>& simulate_pipeline)
+Executioner::Executioner(std::shared_ptr<Ensemble>& simulate_pipeline,
+                         std::shared_ptr<Output>& output)
     : _simulate_pipeline(simulate_pipeline)
+    , _output(output)
 //_exec_node(node),
 //_time_step(_exec_node["num_steps"].asFloat()),
 //_num_steps(_exec_node["num_steps"].asInt())
 {
-  _time_step = DataManager::getInstance().getConfigData()->Get<rbmd::Real>(
+    _time_step = DataManager::getInstance().getConfigData()->Get<rbmd::Real>(
           "timestep", "execution");//0.001
-  _num_steps = DataManager::getInstance().getConfigData()->Get<rbmd::Real>(
-          "num_steps", "execution");//10000
-  test_num_steps = _num_steps;
-  _current_time = 0;
+    _num_steps = DataManager::getInstance().getConfigData()->Get<rbmd::Real>(
+            "num_steps", "execution");//10000
+    test_num_steps = _num_steps;
+    _current_time = 0;
+    _current_step = 0;
+
 }
 
-void Executioner::Init() { _simulate_pipeline->Init(); }
+void Executioner::Init() 
+{    
+    _simulate_pipeline->Init();
+    _output->Init();
+}
 
 int Executioner::Execute() {
   while (KeepGoing()) {
+    _output->Execute();
     _current_step++;
     _current_time += _time_step;
     test_current_step = _current_step;

@@ -21,6 +21,7 @@ class TemperatureController {
    */
   virtual void Update() = 0;
 
+  virtual void ComputeTemp() {};
   /**
    * @brief Parameters and objects required for initializing the temperature
    * controller
