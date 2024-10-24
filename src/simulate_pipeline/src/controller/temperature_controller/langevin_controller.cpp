@@ -39,7 +39,7 @@ void LangevinController::Init() {
 }
 
 void LangevinController::Update() {
-  ComputeTemp();
+  //ComputeTemp();
 
   UpdataForce();
 }

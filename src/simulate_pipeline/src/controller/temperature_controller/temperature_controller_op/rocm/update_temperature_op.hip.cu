@@ -92,21 +92,21 @@ __global__ void UpdataVelocityBerendsen(const rbmd::Id num_atoms,
   }
 }
 
-	__global__
-		void UpdataForceLangevin(const rbmd::Id num_atoms,
-			                     const rbmd::Real gaussian_x,
-			                     const rbmd::Real gaussian_y,
-			                     const rbmd::Real gaussian_z,
-			                     const rbmd::Real kbT,
-			                     const rbmd::Real gamma,
-			                     const rbmd::Real dt,
-			                     const rbmd::Real* mass,
-			                     const rbmd::Real* vx,
-			                     const rbmd::Real* vy,
-			                     const rbmd::Real* vz,
-			                     rbmd::Real* fx,
-			                     rbmd::Real* fy,
-			                     rbmd::Real* fz)
+__global__
+	void UpdataForceLangevin(const rbmd::Id num_atoms,
+		                     const rbmd::Real gaussian_x,
+		                     const rbmd::Real gaussian_y,
+		                     const rbmd::Real gaussian_z,
+		                     const rbmd::Real kbT,
+		                     const rbmd::Real gamma,
+		                     const rbmd::Real dt,
+		                     const rbmd::Real* mass,
+		                     const rbmd::Real* vx,
+		                     const rbmd::Real* vy,
+		                     const rbmd::Real* vz,
+		                     rbmd::Real* fx,
+		                     rbmd::Real* fy,
+		                     rbmd::Real* fz)
 	{
 		int tid = threadIdx.x + blockIdx.x * blockDim.x;
 
@@ -119,14 +119,14 @@ __global__ void UpdataVelocityBerendsen(const rbmd::Id num_atoms,
 	}
 
 
-	void ComputeTemperatureOp<device::DEVICE_GPU>::operator()(const rbmd::Id num_atoms,
-			                                                  const rbmd::Real mvv2e,
-															  const rbmd::Id* atoms_type,
-			                                                  const rbmd::Real* mass,
-			                                                  const rbmd::Real* vx,
-			                                                  const rbmd::Real* vy,
-			                                                  const rbmd::Real* vz,
-			                                                  rbmd::Real* temp_contrib)
+void ComputeTemperatureOp<device::DEVICE_GPU>::operator()(const rbmd::Id num_atoms,
+		                                                  const rbmd::Real mvv2e,
+														  const rbmd::Id* atoms_type,
+		                                                  const rbmd::Real* mass,
+		                                                  const rbmd::Real* vx,
+		                                                  const rbmd::Real* vy,
+		                                                  const rbmd::Real* vz,
+		                                                  rbmd::Real* temp_contrib)
 
 {
   unsigned int blocks_per_grid = (num_atoms + BLOCK_SIZE - 1) / BLOCK_SIZE;
@@ -160,20 +160,21 @@ void UpdataVelocityBerendsenOp<device::DEVICE_GPU>::operator()(
     CHECK_KERNEL(UpdataVelocityBerendsen <<<blocks_per_grid, BLOCK_SIZE, 0, 0 >>> (
         num_atoms, coeff_Berendsen, vx, vy, vz));
 }
-	void UpdataForceLangevinOp<device::DEVICE_GPU>::operator()(const rbmd::Id num_atoms,
-		                                                       const rbmd::Real gaussian_x,
-		                                                       const rbmd::Real gaussian_y,
-		                                                       const rbmd::Real gaussian_z,
-		                                                       const rbmd::Real kbT,
-		                                                       const rbmd::Real gamma,
-		                                                       const rbmd::Real dt,
-		                                                       const rbmd::Real* mass,
-		                                                       const rbmd::Real* vx,
-		                                                       const rbmd::Real* vy,
-		                                                       const rbmd::Real* vz,
-		                                                       rbmd::Real* fx,
-		                                                       rbmd::Real* fy,
-		                                                       rbmd::Real* fz)
+
+void UpdataForceLangevinOp<device::DEVICE_GPU>::operator()(const rbmd::Id num_atoms,
+	                                                       const rbmd::Real gaussian_x,
+	                                                       const rbmd::Real gaussian_y,
+	                                                       const rbmd::Real gaussian_z,
+	                                                       const rbmd::Real kbT,
+	                                                       const rbmd::Real gamma,
+	                                                       const rbmd::Real dt,
+	                                                       const rbmd::Real* mass,
+	                                                       const rbmd::Real* vx,
+	                                                       const rbmd::Real* vy,
+	                                                       const rbmd::Real* vz,
+	                                                       rbmd::Real* fx,
+	                                                       rbmd::Real* fy,
+	                                                       rbmd::Real* fz)
 	{
 		unsigned int blocks_per_grid = (num_atoms + BLOCK_SIZE - 1) / BLOCK_SIZE;
 		CHECK_KERNEL(UpdataForceLangevin <<<blocks_per_grid, BLOCK_SIZE, 0, 0 >>> (num_atoms, gaussian_x, gaussian_y, gaussian_z, kbT, gamma, dt, mass, vx, vy, vz, fx, fy, fz));
