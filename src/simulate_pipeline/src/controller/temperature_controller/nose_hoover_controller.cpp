@@ -19,9 +19,19 @@ void NoseHooverController::Init() {
   _num_atoms = *(_structure_info_data->_num_atoms);
   _temp_sum = 0;
   _nosehooverxi = 0;
-  _dt = 0.001;  // ÅäÖÃÎÄ¼þÖÐ¶ÁÈ¡
-  auto unit = "LJ";
-  UNIT unit_factor = unit_factor_map[unit];  // ÕâÀï¿ÉÄÜÓÐÖØ¶¨ÒåÒþ»¼
+
+  auto temperature_array=
+  DataManager::getInstance().getConfigData()->
+   GetArray<rbmd::Real>("temperature", "execution"); //[1.0,1.0,0.1]
+  _temperature_start = temperature_array[0];
+  _temperature_stop = temperature_array[1];
+  _temperature_damp = temperature_array[2];
+
+  _dt = DataManager::getInstance().getConfigData()->Get<rbmd::Real>(
+          "timestep", "execution");//0.001
+  auto unit = DataManager::getInstance().getConfigData()->Get
+    <std::string>("unit", "init_configuration", "read_data");
+  UNIT unit_factor = unit_factor_map[unit];  // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ø¶ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 
   switch (unit_factor) {
     case UNIT::LJ:
@@ -84,8 +94,6 @@ void NoseHooverController::ComputeTemp() {
 }
 
 void NoseHooverController::UpdataVelocity() {
-  rbmd::Real kbT = 1;  // ÅäÖÃÎÄ¼þ»ñÈ¡
-
   op::UpdataVelocityNoseHooverOp<device::DEVICE_GPU>
       updata_velocity_nose_hoover_op;
   updata_velocity_nose_hoover_op(
@@ -99,5 +107,5 @@ void NoseHooverController::UpdataVelocity() {
       thrust::raw_pointer_cast(_device_data->_d_vy.data()),
       thrust::raw_pointer_cast(_device_data->_d_vz.data()));
 
-  _nosehooverxi += 0.5 * _dt * (_temp / kbT - 1.0) / (std::pow(10.0, -1) * _dt);
+  _nosehooverxi += 0.5 * _dt * (_temp / _temperature_start - 1.0) / (std::pow(10.0, -1) * _dt);
 }

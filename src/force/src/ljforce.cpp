@@ -39,11 +39,20 @@ void LJForce::Init() {
         "type", "hyper_parameters", "neighbor");
 }
 
-void LJForce::Execute() {
-
-
+void LJForce::Execute()
+{
   if (_neighbor_type == "RBL")  // RBL
   {
+    ComputeLJRBL();
+  }
+  else  //
+  {
+    ComputeLJVerlet();
+  }
+}
+
+void LJForce::ComputeLJRBL()
+{
     // rbl_neighbor_list_build
     auto start = std::chrono::high_resolution_clock::now();
     _rbl_list = _rbl_neighbor_list_builder->Build();
@@ -67,7 +76,6 @@ void LJForce::Execute() {
         _device_data->_d_box, r_core, _cut_off, _num_atoms, neighbor_sample_num,
         _rbl_list->_selection_frequency,
         thrust::raw_pointer_cast(_device_data->_d_atoms_type.data()),
-        thrust::raw_pointer_cast(_device_data->_d_molecular_id.data()),
         thrust::raw_pointer_cast(_device_data->_d_sigma.data()),
         thrust::raw_pointer_cast(_device_data->_d_eps.data()),
         thrust::raw_pointer_cast(_rbl_list->_start_idx.data()),
@@ -101,58 +109,56 @@ void LJForce::Execute() {
 
     //energy
     ComputeLJEnergy();
-  }
+}
 
-  else  //
-  {
-    // neighbor_list_build
-    auto start = std::chrono::high_resolution_clock::now();
-    _list = _neighbor_list_builder->Build();
+void LJForce::ComputeLJVerlet()
+{
+  // neighbor_list_build
+  auto start = std::chrono::high_resolution_clock::now();
+  _list = _neighbor_list_builder->Build();
 
-    auto end = std::chrono::high_resolution_clock::now();
+  auto end = std::chrono::high_resolution_clock::now();
 
-    std::chrono::duration<rbmd::Real> duration = end - start;
-    std::cout << "构建verlet-list耗时" << duration.count() << "秒" << std::endl;
+  std::chrono::duration<rbmd::Real> duration = end - start;
+  std::cout << "构建verlet-list耗时" << duration.count() << "秒" << std::endl;
 
-    //
+  //
 
-    rbmd::Real h_total_evdwl = 0.0;
+  rbmd::Real h_total_evdwl = 0.0;
 
-    CHECK_RUNTIME(MEMSET(_d_total_evdwl, 0, sizeof(rbmd::Real)));
+  CHECK_RUNTIME(MEMSET(_d_total_evdwl, 0, sizeof(rbmd::Real)));
 
-    // compute LJForce
-    op::LJForceOp<device::DEVICE_GPU> lj_force_op;
-    lj_force_op(_device_data->_d_box, _cut_off, _num_atoms,
-                thrust::raw_pointer_cast(_device_data->_d_atoms_type.data()),
-                thrust::raw_pointer_cast(_device_data->_d_molecular_id.data()),
-                thrust::raw_pointer_cast(_device_data->_d_sigma.data()),
-                thrust::raw_pointer_cast(_device_data->_d_eps.data()),
-                thrust::raw_pointer_cast(_list->_start_idx.data()),
-                thrust::raw_pointer_cast(_list->_end_idx.data()),
-                thrust::raw_pointer_cast(_list->_d_neighbors.data()),
-                thrust::raw_pointer_cast(_device_data->_d_px.data()),
-                thrust::raw_pointer_cast(_device_data->_d_py.data()),
-                thrust::raw_pointer_cast(_device_data->_d_pz.data()),
-                thrust::raw_pointer_cast(_device_data->_d_fx.data()),
-                thrust::raw_pointer_cast(_device_data->_d_fy.data()),
-                thrust::raw_pointer_cast(_device_data->_d_fz.data()),
-                _d_total_evdwl);
+  // compute LJForce
+  op::LJForceOp<device::DEVICE_GPU> lj_force_op;
+  lj_force_op(_device_data->_d_box, _cut_off, _num_atoms,
+              thrust::raw_pointer_cast(_device_data->_d_atoms_type.data()),
+              thrust::raw_pointer_cast(_device_data->_d_sigma.data()),
+              thrust::raw_pointer_cast(_device_data->_d_eps.data()),
+              thrust::raw_pointer_cast(_list->_start_idx.data()),
+              thrust::raw_pointer_cast(_list->_end_idx.data()),
+              thrust::raw_pointer_cast(_list->_d_neighbors.data()),
+              thrust::raw_pointer_cast(_device_data->_d_px.data()),
+              thrust::raw_pointer_cast(_device_data->_d_py.data()),
+              thrust::raw_pointer_cast(_device_data->_d_pz.data()),
+              thrust::raw_pointer_cast(_device_data->_d_fx.data()),
+              thrust::raw_pointer_cast(_device_data->_d_fy.data()),
+              thrust::raw_pointer_cast(_device_data->_d_fz.data()),
+              _d_total_evdwl);
 
-    CHECK_RUNTIME(
-        MEMCPY(&h_total_evdwl, _d_total_evdwl, sizeof(rbmd::Real), D2H));
+  CHECK_RUNTIME(
+      MEMCPY(&h_total_evdwl, _d_total_evdwl, sizeof(rbmd::Real), D2H));
 
-    // 打印累加后的总能量
-    rbmd::Real ave_evdwl = h_total_evdwl / _num_atoms;
-    std::cout << "test_current_step:" << test_current_step << " "
-              << "average_vdwl_energy:" << ave_evdwl << std::endl;
+  // 打印累加后的总能量
+  rbmd::Real ave_evdwl = h_total_evdwl / _num_atoms;
+  std::cout << "test_current_step:" << test_current_step << " "
+            << "average_vdwl_energy:" << ave_evdwl << std::endl;
 
-    std::cout << "out of force execute" << std::endl;
+  std::cout << "out of force execute" << std::endl;
 
-    // out
-    std::ofstream outfile("ave_evdwl.txt", std::ios::app);
-    outfile << test_current_step << " " << ave_evdwl << std::endl;
-    outfile.close();
-  }
+  // out
+  std::ofstream outfile("ave_evdwl.txt", std::ios::app);
+  outfile << test_current_step << " " << ave_evdwl << std::endl;
+  outfile.close();
 }
 
 void LJForce::ComputeLJEnergy()
@@ -167,7 +173,6 @@ void LJForce::ComputeLJEnergy()
   op::LJEnergyOp<device::DEVICE_GPU> lj_energy_op;
   lj_energy_op(_device_data->_d_box, _cut_off, _num_atoms,
                thrust::raw_pointer_cast(_device_data->_d_atoms_type.data()),
-               thrust::raw_pointer_cast(_device_data->_d_molecular_id.data()),
                thrust::raw_pointer_cast(_device_data->_d_sigma.data()),
                thrust::raw_pointer_cast(_device_data->_d_eps.data()),
                thrust::raw_pointer_cast(_list->_start_idx.data()),

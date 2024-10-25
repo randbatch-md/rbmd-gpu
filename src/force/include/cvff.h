@@ -15,6 +15,9 @@ public:
   void  Execute() override;
 
   void ComputeLJCutCoulForce();
+  void ComputeLJVerlet() ;
+  void ComputeLJRBL();
+
   void ComputeKspaceForce();
   void SumForces();
 
@@ -28,7 +31,7 @@ public:
           rbmd::Real* value_Im_array);
   void ComputeEwlad();//Ewald
 
-  void ERFinit();
+  void ERFInit();
   void RBEInit(Box* box,rbmd::Real alpha,rbmd::Id RBE_P);
   void ComputeChargeStructureFactorRBE(
          Box* box,
@@ -62,23 +65,24 @@ public:
   void ComputeBondForce(); //Harmonic
   void ComputeAngleForce(); //Harmonic
   void ComputeDihedralForce(); //Harmonic
+  void ReduceByKey();
 
 private:
   rbmd::Id _num_atoms;
   rbmd::Id _num_bonds;
   rbmd::Id _num_angles;
-  rbmd::Id _num_dihedral;
+  rbmd::Id _num_dihedrals;
   std::shared_ptr<BaseNeighborListBuilder> _rbl_neighbor_list_builder;
   std::shared_ptr<BaseNeighborListBuilder> _neighbor_list_builder;
   std::shared_ptr<NeighborList> _rbl_list;
   std::shared_ptr<NeighborList> _list;
-  Box box;
 
   rbmd::Real _corr_value_x;
   rbmd::Real _corr_value_y;
   rbmd::Real _corr_value_z;
   rbmd::Real* _d_total_evdwl;
   rbmd::Real* _d_total_ecoul;
+  rbmd::Real* _d_total_e_specialcoul;
   rbmd::Real* _d_total_ebond;
   rbmd::Real*  _d_total_eangle;
   rbmd::Real*  _d_total_edihedral;
@@ -86,6 +90,7 @@ private:
   //energy
   rbmd::Real _ave_evdwl;
   rbmd::Real _ave_ecoul;
+  rbmd::Real _ave_e_specialcoul;
   rbmd::Real _ave_self_energy;
   rbmd::Real _ave_ekspace;
   rbmd::Real _ave_ebond;
