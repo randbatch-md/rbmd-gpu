@@ -39,7 +39,7 @@ void RescaleController::Init() {
 }
 
 void RescaleController::Update() {
-  ComputeTemp();
+  //ComputeTemp();
 
   UpdataVelocity();
 }
