@@ -19,7 +19,6 @@ class DefaultPositionController : public PositionController {
   void SetCenterTargetPositions();
 
  private:
-  rbmd::Id _num_atoms;
   rbmd::Real _dt;
   std::string _init_type;
 };

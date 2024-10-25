@@ -7,13 +7,9 @@
 
 DefaultPositionController::DefaultPositionController(){};
 
-void DefaultPositionController::Init() {
-  // auto atom_style = _config_data->Get<std::string>("atom_style",
-  // "init_configuration", "read_data");
-
-  _dt = DataManager::getInstance().getConfigData()->Get<rbmd::Real>(
-          "timestep", "execution");//0.001
-  _num_atoms = *(_structure_info_data->_num_atoms);
+void DefaultPositionController::Init() 
+{
+  _dt = DataManager::getInstance().getConfigData()->Get<rbmd::Real>("timestep", "execution");//0.001
 }
 
 void DefaultPositionController::Update() {
@@ -26,7 +22,7 @@ void DefaultPositionController::Update() {
       //_device_data->_shake_vz = _device_data->_d_pz;
     }
     op::UpdatePositionOp<device::DEVICE_GPU> update_position_op;
-    update_position_op(_num_atoms, _dt, _device_data->_d_box,
+    update_position_op(*(_structure_info_data->_num_atoms), _dt, _device_data->_d_box,
                        thrust::raw_pointer_cast(_device_data->_d_vx.data()),
                        thrust::raw_pointer_cast(_device_data->_d_vy.data()),
                        thrust::raw_pointer_cast(_device_data->_d_vz.data()),
@@ -35,7 +31,7 @@ void DefaultPositionController::Update() {
                        thrust::raw_pointer_cast(_device_data->_d_pz.data()));
   } else {
     op::UpdatePositionFlagOp<device::DEVICE_GPU> update_position_op;
-    update_position_op(_num_atoms, _dt, _device_data->_d_box,
+    update_position_op(*(_structure_info_data->_num_atoms), _dt, _device_data->_d_box,
                        thrust::raw_pointer_cast(_device_data->_d_vx.data()),
                        thrust::raw_pointer_cast(_device_data->_d_vy.data()),
                        thrust::raw_pointer_cast(_device_data->_d_vz.data()),

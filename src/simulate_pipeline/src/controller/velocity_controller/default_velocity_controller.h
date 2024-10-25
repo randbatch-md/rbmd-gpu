@@ -10,7 +10,6 @@ class DefaultVelocityController : public VelocityController {
   void Update() override;
 
  private:
-  rbmd::Id _num_atoms;
   rbmd::Real _dt;
   rbmd::Real _fmt2v;
 };
