@@ -133,7 +133,6 @@ void LinkedCell::SortAtomsByCellKey() {
   map_atomid_to_idx_op(thrust::raw_pointer_cast(_atom_id_to_idx.data()),
                        raw_ptr(_device_data->_d_atoms_id), _total_atoms_num);
 }
-
 template <typename T>
 void LinkedCell::MapAtomId(thrust::device_vector<T>& d_target) {
   auto* d_atom_id_to_idx = thrust::raw_pointer_cast(_atom_id_to_idx.data());

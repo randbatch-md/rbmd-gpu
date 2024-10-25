@@ -212,7 +212,6 @@ int AtomicReader::ReadAtoms(const rbmd::Id& atoms_num) {
                     MolecularMapInsert(data->_h_molecules_id[index], ids[index]);
                     AtomsMapInsert(types[index], ids[index]);
                     AtomstoMolecular(ids[index], data->_h_molecules_id[index]);
-                    SetMolecularGroup();
                     ++num;
                     /*std::cout << atom_id << " " << data->_h_molecules_id[index] << " " << types[index] << " " <<
                     data->_h_charge[index]  << " " << data->_h_px[index] << " " <<
@@ -221,7 +220,7 @@ int AtomicReader::ReadAtoms(const rbmd::Id& atoms_num) {
                 _line_start = &_mapped_memory[_locate];
             }
         }
-
+      SetMolecularGroup();
     }
   } catch (const std::exception& e) {
     // log
@@ -296,16 +295,28 @@ void AtomicReader::SetMolecularGroup()
     auto& full_structure_data = _md_data._structure_data;
     FullStructureData* data =
         dynamic_cast<FullStructureData*>(full_structure_data.get());
+
     HIP_CHECK(
-        MALLOCHOST(&(data->_h_special_source_array), atoms_vec_gro.size() * sizeof(rbmd::Id)));
+        MALLOCHOST(&(data->_h_atoms_vec_gro), atoms_vec_gro.size() * sizeof(rbmd::Id)));
     HIP_CHECK(
-        MALLOCHOST(&(data->_h_special_offsets_array), countVector.size() * sizeof(rbmd::Id)));
-    HIP_CHECK(MALLOCHOST(&(data->_num_special_source_array), sizeof(rbmd::Id)));
-    HIP_CHECK(MALLOCHOST(&(data->_num_special_offsets_array), sizeof(rbmd::Id)));
-    data->_h_special_source_array = atoms_vec_gro.data();
-    data->_h_special_offsets_array = countVector.data();
-    *(data->_num_special_source_array) = atoms_vec_gro.size();
-    *(data->_num_special_offsets_array) = countVector.size();
+        MALLOCHOST(&(data->_h_count_vector), countVector.size() * sizeof(rbmd::Id)));
+    HIP_CHECK(
+     MALLOCHOST(&(data->_h_atoms_offset), (countVector.size()+1)* sizeof(rbmd::Id)));
+
+    memcpy(data->_h_atoms_vec_gro, atoms_vec_gro.data(), atoms_vec_gro.size() * sizeof(rbmd::Id));
+    memcpy(data->_h_count_vector, countVector.data(), countVector.size() * sizeof(rbmd::Id));
+
+    std::vector<rbmd::Id> cumulative_offsets;
+    cumulative_offsets.push_back(0);
+    for (int i = 0; i < countVector.size(); ++i)
+    {
+      cumulative_offsets.push_back(cumulative_offsets.back() + countVector[i]); //cpu
+    }
+    memcpy(data->_h_atoms_offset, cumulative_offsets.data(), cumulative_offsets.size() * sizeof(rbmd::Id));
+
+    data->_num_atoms_vec_gro = atoms_vec_gro.size();
+    data->_num_count_vector = countVector.size();
+    data->_num_atoms_offset = cumulative_offsets.size();
 }
 
 int AtomicReader::ReadVelocity(const rbmd::Id& atoms_num) {
@@ -340,23 +351,23 @@ int AtomicReader::ReadVelocity(const rbmd::Id& atoms_num) {
   return 0;
 }
 
-int AtomicReader::ReadBond(const rbmd::Id& atoms_num) {
+int AtomicReader::ReadBond(const rbmd::Id& num_bonds) {
     try {
         auto& full_structure_data = _md_data._structure_data;
         FullStructureData* data = dynamic_cast<FullStructureData*>(full_structure_data.get());
         auto& bond_type = data->_h_bond_type;
         auto& bond_id0 = data->_h_bond_id0;
         auto& bond_id1 = data->_h_bond_id1;
-        HIP_CHECK(MALLOCHOST(&bond_type, atoms_num * sizeof(rbmd::Id)))
-        HIP_CHECK(MALLOCHOST(&bond_id0, atoms_num * sizeof(rbmd::Id)))
-        HIP_CHECK(MALLOCHOST(&bond_id1, atoms_num * sizeof(rbmd::Id)));
+        HIP_CHECK(MALLOCHOST(&bond_type, num_bonds * sizeof(rbmd::Id)))
+        HIP_CHECK(MALLOCHOST(&bond_id0, num_bonds * sizeof(rbmd::Id)))
+        HIP_CHECK(MALLOCHOST(&bond_id1, num_bonds * sizeof(rbmd::Id)));
         rbmd::Id bound_id_value;
         rbmd::Id bound_type_value;
         rbmd::Real bond_id0_value;
         rbmd::Real bond_id1_value;
 
         _line_start = &_mapped_memory[_locate];
-        for (auto num = 0; _locate < _file_size && num < atoms_num; ++_locate)
+        for (auto num = 0; _locate < _file_size && num < num_bonds; ++_locate)
         {
             if (_mapped_memory[_locate] == '\n')
             {
@@ -390,7 +401,7 @@ int AtomicReader::ReadBond(const rbmd::Id& atoms_num) {
     return 0;
 }
 
-int AtomicReader::ReadAngle(const rbmd::Id& atoms_num)
+int AtomicReader::ReadAngle(const rbmd::Id& num_angles)
 {
     try {
         auto& full_structure_data = _md_data._structure_data;
@@ -399,10 +410,10 @@ int AtomicReader::ReadAngle(const rbmd::Id& atoms_num)
         auto& angle_id0 = data->_h_angle_id0;
         auto& angle_id1 = data->_h_angle_id1;
         auto& angle_id2 = data->_h_angle_id2;
-        HIP_CHECK(MALLOCHOST(&angle_type, atoms_num * sizeof(rbmd::Id)))
-        HIP_CHECK(MALLOCHOST(&angle_id0, atoms_num * sizeof(rbmd::Id)));
-        HIP_CHECK(MALLOCHOST(&angle_id1, atoms_num * sizeof(rbmd::Id)))
-        HIP_CHECK(MALLOCHOST(&angle_id2, atoms_num * sizeof(rbmd::Id)));
+        HIP_CHECK(MALLOCHOST(&angle_type, num_angles * sizeof(rbmd::Id)))
+        HIP_CHECK(MALLOCHOST(&angle_id0, num_angles * sizeof(rbmd::Id)));
+        HIP_CHECK(MALLOCHOST(&angle_id1, num_angles * sizeof(rbmd::Id)))
+        HIP_CHECK(MALLOCHOST(&angle_id2, num_angles * sizeof(rbmd::Id)));
         rbmd::Id angle_id_value;
         rbmd::Id angle_type_value;
         rbmd::Real angle_id0_value;
@@ -410,7 +421,7 @@ int AtomicReader::ReadAngle(const rbmd::Id& atoms_num)
         rbmd::Real angle_id2_value;
 
         _line_start = &_mapped_memory[_locate];
-        for (auto num = 0; _locate < _file_size && num < atoms_num; ++_locate)
+        for (auto num = 0; _locate < _file_size && num < num_angles; ++_locate)
         {
             if (_mapped_memory[_locate] == '\n')
             {
@@ -439,7 +450,7 @@ int AtomicReader::ReadAngle(const rbmd::Id& atoms_num)
     return 0;
 }
 
-int AtomicReader::ReadDihedrals(const rbmd::Id& atoms_num)
+int AtomicReader::ReadDihedrals(const rbmd::Id& num_dihedrals)
 {
     try {
         auto& full_structure_data = _md_data._structure_data;
@@ -449,11 +460,11 @@ int AtomicReader::ReadDihedrals(const rbmd::Id& atoms_num)
         auto& dihedral_id1 = data->_h_dihedral_id1;
         auto& dihedral_id2 = data->_h_dihedral_id2;
         auto& dihedral_id3 = data->_h_dihedral_id3;
-        HIP_CHECK(MALLOCHOST(&dihedral_type, atoms_num * sizeof(rbmd::Id)));
-        HIP_CHECK(MALLOCHOST(&dihedral_id0, atoms_num * sizeof(rbmd::Id)));
-        HIP_CHECK(MALLOCHOST(&dihedral_id1, atoms_num * sizeof(rbmd::Id)));
-        HIP_CHECK(MALLOCHOST(&dihedral_id2, atoms_num * sizeof(rbmd::Id)));
-        HIP_CHECK(MALLOCHOST(&dihedral_id3, atoms_num * sizeof(rbmd::Id)));
+        HIP_CHECK(MALLOCHOST(&dihedral_type, num_dihedrals * sizeof(rbmd::Id)));
+        HIP_CHECK(MALLOCHOST(&dihedral_id0, num_dihedrals * sizeof(rbmd::Id)));
+        HIP_CHECK(MALLOCHOST(&dihedral_id1, num_dihedrals * sizeof(rbmd::Id)));
+        HIP_CHECK(MALLOCHOST(&dihedral_id2, num_dihedrals * sizeof(rbmd::Id)));
+        HIP_CHECK(MALLOCHOST(&dihedral_id3, num_dihedrals * sizeof(rbmd::Id)));
         rbmd::Id dihedral_id_value;
         rbmd::Id dihedral_type_value;
         rbmd::Id dihedral_id0_value;
@@ -462,7 +473,7 @@ int AtomicReader::ReadDihedrals(const rbmd::Id& atoms_num)
         rbmd::Id dihedral_id3_value;
 
         _line_start = &_mapped_memory[_locate];
-        for (auto num = 0; _locate < _file_size && num < atoms_num; ++_locate)
+        for (auto num = 0; _locate < _file_size && num < num_dihedrals; ++_locate)
         {
             if (_mapped_memory[_locate] == '\n')
             {
@@ -477,7 +488,7 @@ int AtomicReader::ReadDihedrals(const rbmd::Id& atoms_num)
                     dihedral_id2[dihedral_id_value - 1] = dihedral_id2_value - 1;
                     dihedral_id3[dihedral_id_value - 1] = dihedral_id3_value - 1;
                     ++num;
-                    //std::cout << dihedral_type_value << " " <<dihedral_id0_value << " " << dihedral_id1_value << " " << dihedral_id2_value << " " << dihedral_id3_value<< std::endl;
+                   // std::cout << dihedral_type_value << " " <<dihedral_id0_value << " " << dihedral_id1_value << " " << dihedral_id2_value << " " << dihedral_id3_value<< std::endl;
                 }
                 _line_start = &_mapped_memory[_locate];
             }
@@ -494,12 +505,15 @@ int AtomicReader::ReadDihedrals(const rbmd::Id& atoms_num)
 
 void AtomicReader::SetSpecialBonds()
 {
-    auto special_bonds = DataManager::getInstance().getConfigData()->GetArray<rbmd::Real>("special_bonds", "hyper_parameters", "extend");
+    auto special_bonds = DataManager::getInstance().getConfigData()->
+  GetArray<rbmd::Real>("special_bonds", "hyper_parameters", "extend");
+
     auto& full_structure_data = _md_data._structure_data;
     FullStructureData* data = dynamic_cast<FullStructureData*>(full_structure_data.get());
     auto& weights = data->_h_special_weights;
     auto& ids = data->_h_special_ids;
     auto& offsets = data->_h_special_offsets;
+    auto& special_offset_count = data->_h_special_offset_count;
 
     std::vector<rbmd::Real> special_weights;
     std::vector<rbmd::Id> special_ids;
@@ -564,17 +578,28 @@ void AtomicReader::SetSpecialBonds()
 
         special_offsets.push_back(offset);
     }
+
     HIP_CHECK(MALLOCHOST(&weights, special_weights.size() * sizeof(rbmd::Real)));
     HIP_CHECK(MALLOCHOST(&ids, special_ids.size() * sizeof(rbmd::Id)));
-    HIP_CHECK(MALLOCHOST(&offsets, special_offsets.size() * sizeof(rbmd::Id)));
-    HIP_CHECK(MALLOCHOST(&(data->_num_special_weights), sizeof(rbmd::Id)));
-    HIP_CHECK(MALLOCHOST(&(data->_num_special_ids), sizeof(rbmd::Id)));
-    HIP_CHECK(MALLOCHOST(&(data->_num_special_offsets), sizeof(rbmd::Id)));
-    weights = special_weights.data();
-    ids = special_ids.data();
-    offsets = special_offsets.data();
-    *(data->_num_special_weights) = special_weights.size();
-    *(data->_num_special_ids) = special_ids.size();
-    *(data->_num_special_offsets) = special_offsets.size();
+    HIP_CHECK(MALLOCHOST(&offsets, (special_offsets.size()+1) * sizeof(rbmd::Id)));
+    HIP_CHECK(MALLOCHOST(&special_offset_count, special_offsets.size() * sizeof(rbmd::Id)));
 
+    memcpy(weights, special_weights.data(), special_weights.size() * sizeof(rbmd::Real));
+    memcpy(ids, special_ids.data(), special_ids.size() * sizeof(rbmd::Id));
+    memcpy(special_offset_count, special_offsets.data(), special_offsets.size() * sizeof(rbmd::Id));
+
+    //cpu上运行 前缀和
+    std::vector<rbmd::Id> cumulative_offsets;
+    cumulative_offsets.push_back(0); // 初始偏移量为0
+
+    for (size_t i = 0; i < special_offsets.size(); ++i)
+    {
+      cumulative_offsets.push_back(cumulative_offsets.back() + special_offsets[i]);
+    }
+    memcpy(offsets, cumulative_offsets.data(), cumulative_offsets.size() * sizeof(rbmd::Id));
+
+    data->_num_special_weights = special_weights.size();
+    data->_num_special_ids = special_ids.size();
+    data->_num_special_offset_count = special_offsets.size();
+    data->_num_special_offsets =cumulative_offsets.size() ;
 }

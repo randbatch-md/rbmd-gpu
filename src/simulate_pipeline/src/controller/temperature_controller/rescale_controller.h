@@ -27,4 +27,8 @@ class RescaleController : public TemperatureController {
   rbmd::Real _temp_sum;
   rbmd::Real _temp;
   rbmd::Real* _d_temp_contrib;
+
+  rbmd::Real _temperature_start;
+  rbmd::Real _temperature_stop;
+  rbmd::Real _temperature_damp;
 };

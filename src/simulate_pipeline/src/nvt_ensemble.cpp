@@ -2,11 +2,11 @@
 
 #include <chrono>  // 添加计时功能的库
 
-#include "berendsen_controller.h"
 #include "default_position_controller.h"
 #include "default_velocity_controller.h"
 #include "ljforce.h"
 #include "lj_cut_coul_kspace_force.h"
+#include "cvff.h"
 #include "rescale_controller.h"
 #include "berendsen_controller.h"
 #include "nose_hoover_controller.h"
@@ -14,12 +14,10 @@
 
 NVTensemble::NVTensemble()
 {
-	_position_controller = std::make_shared<DefaultPositionController>(); 
-	_velocity_controller = std::make_shared<DefaultVelocityController>(); 
-	//_force_controller = std::make_shared<LJCutCoulKspaceForce>(); // TODO: json file forcetype
-
-    _force_controller = std::make_shared<LJForce>(); // TODO: json file forcetype
-	_temperature_controller = std::make_shared<BerendsenController>();
+  _position_controller = std::make_shared<DefaultPositionController>();
+  _velocity_controller = std::make_shared<DefaultVelocityController>();
+  _force_controller = std::make_shared<CVFF>(); // TODO: json file forcetype
+  _temperature_controller = std::make_shared<BerendsenController>();
 }
 
 void NVTensemble::Init() {
@@ -42,7 +40,7 @@ void NVTensemble::Solve() {
 
   _position_controller->Update();
 
-  bool use_shake = false; //TODO: json file 
+  bool use_shake = false; //TODO: json file
   if (true == use_shake)
   {
     _shake_controller->ShakeA();
