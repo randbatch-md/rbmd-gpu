@@ -20,12 +20,9 @@ class NoseHooverController : public TemperatureController {
   void UpdataVelocity();
 
  private:
-  rbmd::Id _num_atoms;
   rbmd::Real _dt;
   rbmd::Real _mvv2e;
   rbmd::Real _kB;
-  rbmd::Real _temp_sum;
-  rbmd::Real _temp;
 
   rbmd::Real _nosehooverxi;
   rbmd::Real _fmt2v;

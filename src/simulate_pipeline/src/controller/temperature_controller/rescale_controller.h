@@ -21,11 +21,8 @@ class RescaleController : public TemperatureController {
   void UpdataVelocity();
 
  private:
-  rbmd::Id _num_atoms;
   rbmd::Real _mvv2e;
   rbmd::Real _kB;
-  rbmd::Real _temp_sum;
-  rbmd::Real _temp;
   rbmd::Real* _d_temp_contrib;
 
   rbmd::Real _temperature_start;

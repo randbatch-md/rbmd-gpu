@@ -16,8 +16,6 @@ NoseHooverController::~NoseHooverController() {
 };
 
 void NoseHooverController::Init() {
-  _num_atoms = *(_structure_info_data->_num_atoms);
-  _temp_sum = 0;
   _nosehooverxi = 0;
 
   auto temperature_array=
@@ -57,47 +55,52 @@ void NoseHooverController::Update() {
 }
 
 void NoseHooverController::ComputeTemp() {
-  //_temp_sum = 0;
-  //
-  // rbmd::Real* temp_contrib;
-  // CHECK_RUNTIME(MALLOC(&temp_contrib, sizeof(rbmd::Real)));
-  // CHECK_RUNTIME(MEMCPY(temp_contrib, &_temp_sum, sizeof(rbmd::Real), H2D));
-  CHECK_RUNTIME(MEMSET(_d_temp_contrib, 0, sizeof(rbmd::Real)));
-  op::ComputeTemperatureOp<device::DEVICE_GPU> compute_temperature_op;
-  compute_temperature_op(
-      _num_atoms, _mvv2e,
-      thrust::raw_pointer_cast(_device_data->_d_atoms_type.data()),
-      thrust::raw_pointer_cast(_device_data->_d_mass.data()),
-      thrust::raw_pointer_cast(_device_data->_d_vx.data()),
-      thrust::raw_pointer_cast(_device_data->_d_vy.data()),
-      thrust::raw_pointer_cast(_device_data->_d_vz.data()), _d_temp_contrib);
+    extern int test_current_step;
+    rbmd::Id num_atoms = *(_structure_info_data->_num_atoms);
 
-  CHECK_RUNTIME(MEMCPY(&_temp_sum, _d_temp_contrib, sizeof(rbmd::Real), D2H));
+    CHECK_RUNTIME(MEMSET(_d_temp_contrib, 0, sizeof(rbmd::Real)));
 
-  bool available_shake = false;
+    op::ComputeTemperatureOp<device::DEVICE_GPU> compute_temperature_op;
+    compute_temperature_op(num_atoms, _mvv2e,
+        thrust::raw_pointer_cast(_device_data->_d_atoms_type.data()),
+        thrust::raw_pointer_cast(_device_data->_d_mass.data()),
+        thrust::raw_pointer_cast(_device_data->_d_vx.data()),
+        thrust::raw_pointer_cast(_device_data->_d_vy.data()),
+        thrust::raw_pointer_cast(_device_data->_d_vz.data()), _d_temp_contrib);
 
-  if (available_shake)  // H2O / NACl / EAM ...
-  {
-    bool shake = true;
-    if (shake) {
-      _temp = 0.5 * _temp_sum / ((3 * _num_atoms - _num_atoms - 3) * _kB / 2.0);
-    } else {
-      _temp = 0.5 * _temp_sum / ((3 * _num_atoms - 3) * _kB / 2.0);
+    CHECK_RUNTIME(MEMCPY(&_temp_sum, _d_temp_contrib, sizeof(rbmd::Real), D2H));
+
+    bool available_shake = false;
+
+    if (available_shake)  // H2O / NACl / EAM ...
+    {
+        bool shake = true;
+        if (shake) {
+            _temp = 0.5 * _temp_sum / ((3 * num_atoms - num_atoms - 3) * _kB / 2.0);
+        }
+        else {
+            _temp = 0.5 * _temp_sum / ((3 * num_atoms - 3) * _kB / 2.0);
+        }
     }
-  } else  // PEO
-  {
-    _temp = 0.5 * _temp_sum / ((3 * _num_atoms - 3) * _kB / 2.0);
-  }
+    else  // PEO
+    {
+        _temp = 0.5 * _temp_sum / ((3 * num_atoms - 3) * _kB / 2.0);
+    }
 
-  std::cout << "_temp=" << _temp << std::endl;
-  // CHECK_RUNTIME(FREE(temp_contrib));
+    std::cout << "_temp=" << _temp << std::endl;
+    // out
+    std::ofstream outfile("temp.txt", std::ios::app);
+    outfile << test_current_step << " " << _temp << std::endl;
+    outfile.close();
+
+    // CHECK_RUNTIME(FREE(temp_contrib));
 }
 
 void NoseHooverController::UpdataVelocity() {
   op::UpdataVelocityNoseHooverOp<device::DEVICE_GPU>
       updata_velocity_nose_hoover_op;
   updata_velocity_nose_hoover_op(
-      _num_atoms, _dt, _fmt2v, _nosehooverxi,
+      *(_structure_info_data->_num_atoms), _dt, _fmt2v, _nosehooverxi,
       thrust::raw_pointer_cast(_device_data->_d_atoms_type.data()),
       thrust::raw_pointer_cast(_device_data->_d_mass.data()),
       thrust::raw_pointer_cast(_device_data->_d_fx.data()),
