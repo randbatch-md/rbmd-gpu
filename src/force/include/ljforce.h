@@ -9,9 +9,12 @@ class LJForce : public Force {
   LJForce();
   virtual ~LJForce();
 
-	void Init() override;
-	void  Execute() override;
-        void ComputeLJEnergy();
+ void Init() override;
+ void  Execute() override;
+ void ComputeLJEnergy();
+
+ void ComputeLJVerlet();
+ void ComputeLJRBL() ;
 
  private:
   rbmd::Id _num_atoms;

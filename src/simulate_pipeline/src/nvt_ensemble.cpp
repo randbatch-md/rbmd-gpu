@@ -2,7 +2,6 @@
 
 #include <chrono>  // 添加计时功能的库
 
-#include "berendsen_controller.h"
 #include "default_position_controller.h"
 #include "default_velocity_controller.h"
 #include "ljforce.h"

@@ -36,7 +36,6 @@ set(src
 ./src/common/unit_factor.cpp
 ./src/common/RBEPSample.h
 ./src/common/erf_table.h
-./src/common/tuple.h
 ${output_srcs})
 
 include_directories("${CMAKE_CURRENT_LIST_DIR}/src")

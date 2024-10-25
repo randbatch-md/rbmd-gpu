@@ -76,7 +76,7 @@ void LJCutCoulKspaceForce::Init()
     _Kmax = DataManager::getInstance().getConfigData()->Get<rbmd::Id>(
 "kmax", "hyper_parameters", "coulomb");
     _num_k =  POW(2 * _Kmax + 1,3.0) - 1;
-    ERFinit();
+    ERFInit();
     RBEInit(_device_data->_d_box,_alpha,_RBE_P);
 }
 
@@ -89,10 +89,19 @@ void LJCutCoulKspaceForce::Execute()
 
 void LJCutCoulKspaceForce::ComputeLJCutCoulForce()
 {
-
   //
   if ("RBL" ==_neighbor_type)
   {
+    ComputeLJRBL();
+  }
+  else
+  {
+    ComputeLJVerlet();
+  }
+}
+
+void LJCutCoulKspaceForce::ComputeLJRBL()
+{
     // rbl_neighbor_list_build
     auto start = std::chrono::high_resolution_clock::now();
     _rbl_list = _rbl_neighbor_list_builder->Build();
@@ -151,11 +160,11 @@ void LJCutCoulKspaceForce::ComputeLJCutCoulForce()
 
     //energy
     ComputeLJCoulEnergy();
+}
 
-  }
-  else
-  {
-      //neighbor_list_build
+void LJCutCoulKspaceForce::ComputeLJVerlet()
+{
+  //neighbor_list_build
   auto start = std::chrono::high_resolution_clock::now();
   _list = _neighbor_list_builder->Build();
 
@@ -204,7 +213,6 @@ void LJCutCoulKspaceForce::ComputeLJCutCoulForce()
   std::ofstream outfile("ave_ljcoul.txt", std::ios::app);
   outfile << test_current_step << " " << _ave_evdwl  << " "<< _ave_ecoul << std::endl;
   outfile.close();
-  }
 }
 
 void LJCutCoulKspaceForce::ComputeKspaceForce()
@@ -221,24 +229,14 @@ void LJCutCoulKspaceForce::ComputeKspaceForce()
 
 void LJCutCoulKspaceForce::SumForces()
 {
+  TransformForces(_device_data->_d_fx,_device_data->_d_force_ljcoul_x,
+    _device_data->_d_force_ewald_x);
 
-  thrust::transform(
-      _device_data->_d_force_ljcoul_x.begin(), _device_data->_d_force_ljcoul_x.end(),
-      _device_data->_d_force_ewald_x.begin(),
-      _device_data->_d_fx.begin(), // 将结果存回到 _d_fx 中
-      thrust::plus<rbmd::Real>());
+  TransformForces(_device_data->_d_fy,_device_data->_d_force_ljcoul_y,
+    _device_data->_d_force_ewald_y);
 
-  thrust::transform(
-      _device_data->_d_force_ljcoul_y.begin(), _device_data->_d_force_ljcoul_y.end(),
-      _device_data->_d_force_ewald_y.begin(),
-      _device_data->_d_fy.begin(), // 将结果存回到 _d_fy 中
-      thrust::plus<rbmd::Real>());
-
-  thrust::transform(
-      _device_data->_d_force_ljcoul_z.begin(), _device_data->_d_force_ljcoul_z.end(),
-      _device_data->_d_force_ewald_z.begin(),
-      _device_data->_d_fz.begin(), // 将结果存回到 _d_fz 中
-      thrust::plus<rbmd::Real>());
+  TransformForces(_device_data->_d_fz,_device_data->_d_force_ljcoul_z,
+    _device_data->_d_force_ewald_z);
 }
 
 void LJCutCoulKspaceForce::ComputeChargeStructureFactorEwald(
@@ -349,7 +347,7 @@ void LJCutCoulKspaceForce::ComputeEwlad()
     CHECK_RUNTIME(FREE(value_Im_array));
 }
 
-void LJCutCoulKspaceForce::ERFinit()
+void LJCutCoulKspaceForce::ERFInit()
 {
   _device_data->_d_erf_table->init();
 }

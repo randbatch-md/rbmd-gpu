@@ -15,6 +15,9 @@ public:
   void  Execute() override;
 
   void ComputeLJCutCoulForce();
+  void ComputeLJVerlet();
+  void ComputeLJRBL();
+
   void ComputeKspaceForce();
   void SumForces();
 
@@ -28,7 +31,7 @@ public:
           rbmd::Real* value_Im_array);
   void ComputeEwlad();//Ewald
 
-  void ERFinit();
+  void ERFInit();
   void RBEInit(Box* box,rbmd::Real alpha,rbmd::Id RBE_P);
   void ComputeChargeStructureFactorRBE(
          Box* box,

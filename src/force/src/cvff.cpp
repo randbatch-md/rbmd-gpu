@@ -10,7 +10,6 @@
 #include "ljforce_op/ljforce_op.h"
 #include "../common/RBEPSample.h"
 #include "../common/erf_table.h"
-#include "../common/tuple.h"
 #include "neighbor_list/include/linked_cell/linked_cell_locator.h"
 #include "neighbor_list/include/neighbor_list_builder/half_neighbor_list_builder.h"
 #include "neighbor_list/include/neighbor_list_builder/full_neighbor_list_builder.h"
@@ -94,7 +93,7 @@ void CVFF::Init()
     _Kmax = DataManager::getInstance().getConfigData()->Get<rbmd::Id>(
 "kmax", "hyper_parameters", "coulomb");
     _num_k =  POW(2 * _Kmax + 1,3.0) - 1;
-    ERFinit();
+    ERFInit();
     RBEInit(_device_data->_d_box,_alpha,_RBE_P);
 }
 
@@ -106,16 +105,24 @@ void CVFF::Execute()
 
   ComputeBondForce();
   ComputeAngleForce();
-  ComputeDihedralForce();
+  //ComputeDihedralForce();
   SumForces();
 }
 
 void CVFF::ComputeLJCutCoulForce()
 {
-
-  //
   if ("RBL" ==_neighbor_type)
   {
+    ComputeLJRBL();
+  }
+  else
+  {
+    ComputeLJVerlet();
+  }
+}
+
+void CVFF::ComputeLJRBL()
+{
     // rbl_neighbor_list_build
     auto start = std::chrono::high_resolution_clock::now();
     _rbl_list = _rbl_neighbor_list_builder->Build();
@@ -199,11 +206,11 @@ void CVFF::ComputeLJCutCoulForce()
     //   << h_force_ljcoul_z[i] << std::endl;
     // }
     // output_file.close();
+}
 
-  }
-  else
-  {
-      //neighbor_list_build
+void CVFF::ComputeLJVerlet()
+{
+  //neighbor_list_build
   auto start = std::chrono::high_resolution_clock::now();
   _list = _neighbor_list_builder->Build();
 
@@ -282,8 +289,6 @@ void CVFF::ComputeLJCutCoulForce()
     //   << h_force_ljcoul_z[i] << std::endl;
     // }
     // output_file.close();
-
-  }
 }
 
 void CVFF::ComputeSpecialCoulForce()
@@ -354,6 +359,7 @@ void CVFF::ComputeSpecialCoulForce()
   // output_file1.close();
 
 }
+
 void CVFF::ComputeKspaceForce()
 {
   if("RBE" == _coulomb_type)
@@ -368,22 +374,20 @@ void CVFF::ComputeKspaceForce()
 
 void CVFF::SumForces()
 {
-
-  sum_all_forces(_device_data->_d_fx,_device_data->_d_force_ljcoul_x,
+  TransformForces(_device_data->_d_fx,_device_data->_d_force_ljcoul_x,
                   _device_data->_d_force_specialcoul_x,_device_data->_d_force_ewald_x,
                   _device_data->_d_force_bond_x,_device_data->_d_force_angle_x,
                   _device_data->_d_force_dihedral_x);
 
-  sum_all_forces(_device_data->_d_fy,_device_data->_d_force_ljcoul_y,
+  TransformForces(_device_data->_d_fy,_device_data->_d_force_ljcoul_y,
                 _device_data->_d_force_specialcoul_y,_device_data->_d_force_ewald_y,
                 _device_data->_d_force_bond_y,_device_data->_d_force_angle_y,
                 _device_data->_d_force_dihedral_y);
 
-  sum_all_forces(_device_data->_d_fz,_device_data->_d_force_ljcoul_z,
+  TransformForces(_device_data->_d_fz,_device_data->_d_force_ljcoul_z,
                 _device_data->_d_force_specialcoul_z,_device_data->_d_force_ewald_z,
                 _device_data->_d_force_bond_z,_device_data->_d_force_angle_z,
                 _device_data->_d_force_dihedral_z);
-
 }
 
 void CVFF::ComputeChargeStructureFactorEwald(
@@ -515,7 +519,7 @@ void CVFF::ComputeEwlad()
   // output_file.close();
 }
 
-void CVFF::ERFinit()
+void CVFF::ERFInit()
 {
   _device_data->_d_erf_table->init();
 }
@@ -853,6 +857,13 @@ void CVFF::ComputeAngleForce()
 
   rbmd::Real h_energy_bond = 0.0;
   CHECK_RUNTIME(MEMSET(_d_total_eangle, 0, sizeof(rbmd::Real)));
+
+  // thrust::fill(_device_data->_d_force_angle_x.begin(),
+  // _device_data->_d_force_angle_x.end(), 0.0f);
+  // thrust::fill(_device_data->_d_force_angle_y.begin(),
+  //   _device_data->_d_force_angle_y.end(), 0.0f);
+  // thrust::fill(_device_data->_d_force_angle_z.begin(),
+  //   _device_data->_d_force_angle_z.end(), 0.0f);
 
   op::ComputeAngleForceOp<device::DEVICE_GPU> angle_force_op;
   angle_force_op(_device_data->_d_box,_num_angles,thrust::raw_pointer_cast(atom_id_to_idx.data()),

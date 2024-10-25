@@ -159,3 +159,35 @@ static void ReductionSum(T *d_src_array, T *d_dst, rbmd::Id size) {
                                           static_cast<int>(size)));
   CHECK_RUNTIME(FREE(temp));
 }
+
+
+template<typename Tuple, std::size_t... I>
+__device__ rbmd::Real SumTuple(const Tuple& forces_tuple, std::index_sequence<I...>) {
+  return (thrust::get<I>(forces_tuple) + ...);
+}
+
+
+template<typename Result, typename... Forces>
+void SumforcesDirection(Result& result, Forces&... forces)
+{
+
+  auto zip_begin = thrust::make_zip_iterator(thrust::make_tuple(forces.begin()...));
+  auto zip_end = thrust::make_zip_iterator(thrust::make_tuple(forces.end()...));
+
+  thrust::transform(
+      zip_begin, zip_end, result.begin(),
+      [] __device__ (auto forces_tuple) {
+          constexpr std::size_t num_forces = thrust::tuple_size<decltype(forces_tuple)>::value;
+          return SumTuple(forces_tuple, std::make_index_sequence<num_forces>{});
+      }
+  );
+}
+
+template<typename... Forces>
+void TransformForces(
+    thrust::device_vector<rbmd::Real>& result_f,
+    Forces&... forces)
+{
+  SumforcesDirection(result_f, forces...);
+}
+

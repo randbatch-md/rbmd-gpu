@@ -864,7 +864,7 @@ void CoulCutForce_rcs_erf(
 	        force_lj, energy_lj);
 
 	      //Coul cut
-	      CoulCutForce(cut_off, alpha, qqr2e, charge_i, charge_j,
+	      CoulCutForce_erf(cut_off, alpha, qqr2e, table_pij,charge_i, charge_j,
 	        px12, py12, pz12, force_coul, energy_coul);
 
 	      force_pair = force_lj + force_coul;
@@ -1236,11 +1236,9 @@ void CoulCutForce_rcs_erf(
 		rbmd::Real sum_fx = 0;
 		rbmd::Real sum_fy = 0;
 		rbmd::Real sum_fz = 0;
-
 		rbmd::Real sum_fsx = 0;
 		rbmd::Real sum_fsy = 0;
 		rbmd::Real sum_fsz = 0;
-
 		rbmd::Real sum_fcsx = 0;
 		rbmd::Real sum_fcsy = 0;
 		rbmd::Real sum_fcsz = 0;
@@ -1256,9 +1254,6 @@ void CoulCutForce_rcs_erf(
 			rbmd::Real x1 = px[tid1];
 			rbmd::Real y1 = py[tid1];
 			rbmd::Real z1 = pz[tid1];
-
-			rbmd::Real fs_ij, fcs_ij;
-
 			//rs
 			for (rbmd::Id j = start_id[tid1]; j < end_id[tid1]; ++j)
 			{
@@ -1285,11 +1280,14 @@ void CoulCutForce_rcs_erf(
 			  rbmd::Real  table_pij = erf_table->TableGnearValue(dis,index_table_pij);
 
 			  //compute the force_rs
-			  rbmd::Real force_lj_rs, force_coul_rs, force_pair;
+			  rbmd::Real force_lj_rs, force_coul_rs;
+			  rbmd::Real fs_ij;
+
 			  lj126_rs(rs, px12, py12, pz12, eps_ij, sigma_ij,
 			    force_lj_rs);
 			  CoulCutForce_rs_erf(rs, alpha, qqr2e,table_pij,charge_i, charge_j,
 			    px12, py12, pz12, force_coul_rs);
+
 
 			  fs_ij = force_lj_rs + force_coul_rs;
 			  sum_fsx += fs_ij * px12;
@@ -1317,8 +1315,6 @@ void CoulCutForce_rcs_erf(
 			  rbmd::Real px12 = x2 - x1;
 			  rbmd::Real py12 = y2 - y1;
 			  rbmd::Real pz12 = z2 - z1;
-			  //if (molecular_id_i == molecular_id_j)
-			  	//continue;
 			  MinImageDistance(box, px12, py12, pz12);
 
 			  //erf
@@ -1327,9 +1323,12 @@ void CoulCutForce_rcs_erf(
 			  rbmd::Real  table_pij = erf_table->TableGnearValue(dis,index_table_pij);
 
 			  //compute the force_rcs
-			  rbmd::Real force_lj_rcs, force_coul_rcs, force_pair;
+			  rbmd::Real force_lj_rcs, force_coul_rcs;
+			  rbmd::Real  fcs_ij;
+
 			  lj126_rcs(rc, rs, pice_num, px12, py12, pz12,
 			    eps_ij, sigma_ij, force_lj_rcs);
+
 			  CoulCutForce_rcs_erf(rc,rs, pice_num, alpha, qqr2e,table_pij,
 			    charge_i, charge_j, px12, py12, pz12, force_coul_rcs);
 			  fcs_ij = force_lj_rcs+force_coul_rcs;
@@ -1405,7 +1404,6 @@ void CoulCutForce_rcs_erf(
 	    rbmd::Real x1 = px[tid1];
 	    rbmd::Real y1 = py[tid1];
 	    rbmd::Real z1 = pz[tid1];
-	    rbmd::Real fs_ij, fcs_ij;
 	    //rs
 	    for (rbmd::Id j = start_id[tid1]; j < end_id[tid1]; ++j)
 	    {
@@ -1432,20 +1430,21 @@ void CoulCutForce_rcs_erf(
 	      rbmd::Real  table_pij = erf_table->TableGnearValue(dis,index_table_pij);
 
 	      //compute the force_rs
-	      rbmd::Real force_lj_rs, force_coul_rs, force_pair;
+	      rbmd::Real force_lj_rs, force_coul_rs;
+	      rbmd::Real fs_ij;
 	      lj126_rs(rs, px12, py12, pz12, eps_ij, sigma_ij,
 		     force_lj_rs);
 
-	        rbmd::Real weight = 1.0;
-	        for (rbmd::Id k = 0; k < special_count[atom_id1]; ++k)
+	      rbmd::Real weight = 1.0;
+	      for (rbmd::Id k = 0; k < special_count[atom_id1]; ++k)
+	      {
+	        rbmd::Id special_id = special_ids[num_components+k];
+	        if (special_id == atom_id2)
 	        {
-	          rbmd::Id special_id = special_ids[num_components+k];
-	          if (special_id == atom_id2)
-	          {
-	            weight = special_weights[num_components+k];
-	            //printf("weight %f\n", weight);
-	          }
+	          weight = special_weights[num_components+k];
+	          //printf("weight %f\n", weight);
 	        }
+	      }
 	      force_lj_rs = weight * force_lj_rs;
 
 	      CoulCutForce_rs_erf(rs, alpha, qqr2e,table_pij,charge_i, charge_j,
@@ -1485,27 +1484,27 @@ void CoulCutForce_rcs_erf(
               rbmd::Real  table_pij = erf_table->TableGnearValue(dis,index_table_pij);
 
               //compute the force_rcs
-              rbmd::Real force_lj_rcs, force_coul_rcs, force_pair;
-		  lj126_rcs(rc, rs, pice_num, px12, py12, pz12,
+              rbmd::Real force_lj_rcs, force_coul_rcs;
+              rbmd::Real fcs_ij;
+              lj126_rcs(rc, rs, pice_num, px12, py12, pz12,
 		    eps_ij, sigma_ij, force_lj_rcs);
 
-	       rbmd::Real weight = 1.0;
-	       for (rbmd::Id k = 0; k < special_count[atom_id1]; ++k)
-	       {
-	         rbmd::Id special_id = special_ids[num_components+k];
-	         if (special_id == atom_id2)
-	         {
-	           weight = special_weights[num_components+k];
-	           //printf("weight %f\n", weight);
-	         }
-	       }
+              rbmd::Real weight = 1.0;
+              for (rbmd::Id k = 0; k < special_count[atom_id1]; ++k)
+              {
+	        rbmd::Id special_id = special_ids[num_components+k];
+	        if (special_id == atom_id2)
+	        {
+	          weight = special_weights[num_components+k];
+	          //printf("weight %f\n", weight);
+	        }
+              }
               force_lj_rcs = weight * force_lj_rcs;
 
               CoulCutForce_rcs_erf(rc,rs, pice_num, alpha, qqr2e,table_pij,
 	         charge_i, charge_j, px12, py12, pz12, force_coul_rcs);
 
               fcs_ij = force_lj_rcs + force_coul_rcs;
-
               sum_fcsx += fcs_ij * px12;
               sum_fcsy += fcs_ij * py12;
               sum_fcsz += fcs_ij * pz12;
