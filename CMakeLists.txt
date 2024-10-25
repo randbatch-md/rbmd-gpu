@@ -28,7 +28,7 @@ include_directories(${CMAKE_CURRENT_LIST_DIR}/src/common)
 file(GLOB_RECURSE output_srcs ./src/output/*.cpp ./src/output/*.cu)
 set(src
 ./src/main.cpp
-./src/executioner/executioner.cpp
+#./src/executioner/executioner.cpp
 ./src/Utilities/string_util.cpp
 ./src/application/application.cpp
 ./src/application/md_application.cpp
@@ -42,7 +42,7 @@ include_directories("${CMAKE_CURRENT_LIST_DIR}/src")
 include_directories("${CMAKE_CURRENT_LIST_DIR}/src/Utilities")
 include_directories("${CMAKE_CURRENT_LIST_DIR}/src/parser")
 include_directories("${CMAKE_CURRENT_LIST_DIR}/src/application")
-include_directories("${CMAKE_CURRENT_LIST_DIR}/src/executioner")
+#include_directories("${CMAKE_CURRENT_LIST_DIR}/src/executioner")
 include_directories("${CMAKE_CURRENT_LIST_DIR}/src/common")
 include_directories("${CMAKE_CURRENT_LIST_DIR}/src/output")
 

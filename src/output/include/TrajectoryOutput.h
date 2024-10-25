@@ -1,5 +1,4 @@
 #pragma once
-#include "../executioner/executioner.h"
 #include "output.h"
 #include <iostream>
 #include <fstream>

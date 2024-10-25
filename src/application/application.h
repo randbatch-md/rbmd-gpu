@@ -5,11 +5,12 @@
 #include "../common/object.h"
 #include "../data_manager/include/config_data.h"
 #include "ensemble.h"
+#include "simulate.h"
 class CommandLine;
 class BaseReader;
 // class System;
 // class JsonParser;
-class Executioner;
+//class Simulate;
 class Ensemble;
 class Output;
 class Application : public Object {
@@ -42,5 +43,5 @@ class Application : public Object {
 
   std::shared_ptr<ConfigData> _config_data;
 
-  std::shared_ptr<Executioner> _executioner;
+  std::shared_ptr<Simulate> _simulate;
 };

@@ -1,6 +1,6 @@
 #pragma once
 #include "temperature_controller.h"
-#include "../executioner/executioner.h"
+#include "simulate.h"
 
 class LangevinController : public TemperatureController
 {

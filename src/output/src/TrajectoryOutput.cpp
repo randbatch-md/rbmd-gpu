@@ -10,6 +10,7 @@
 #include <spdlog/async.h>
 #include <spdlog/sinks/basic_file_sink.h>
 #include "box.h"
+#include "simulate.h"
 
 TrajectoryOutput::TrajectoryOutput()
 : _interval(DataManager::getInstance().getConfigData()->Get<rbmd::Id>("interval", "outputs", "trajectory_out"))

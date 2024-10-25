@@ -51,8 +51,8 @@ set(depends_name   "hip::device" "roc::rocthrust" PkgConfig::JSONCPP PkgConfig::
 cpp_library(
 name ${PROJECT_NAME}
 depends_include ${include_dir}
-depends_link_dir ${link_dirs}
-depends_name ${depend_names}
+depends_link_dir ${link_dir}
+depends_name ${depends_name}
 )
 set(LIB_DIR ${CMAKE_CURRENT_LIST_DIR}/../lib)
 target_link_libraries(${PROJECT_NAME} force)
