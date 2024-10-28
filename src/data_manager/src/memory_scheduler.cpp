@@ -14,6 +14,7 @@ MemoryScheduler::MemoryScheduler()
 
 bool MemoryScheduler::asyncMemoryH2D() {
   auto& num_atoms = *(_structure_info_data->_num_atoms);
+  auto& num_bonds = *(_structure_info_data->_num_bonds);
 
   auto& h_px = _structure_data->_h_px;
   auto& h_py = _structure_data->_h_py;
@@ -45,10 +46,6 @@ bool MemoryScheduler::asyncMemoryH2D() {
   _device_data->_d_px.resize(num_atoms);
   _device_data->_d_py.resize(num_atoms);
   _device_data->_d_pz.resize(num_atoms);
-  _device_data->_d_shake_px.resize(num_atoms);
-  _device_data->_d_shake_py.resize(num_atoms);
-  _device_data->_d_shake_pz.resize(num_atoms);
-
   thrust::copy(h_px, h_px + num_atoms, _device_data->_d_px.begin());
   thrust::copy(h_py, h_py + num_atoms, _device_data->_d_py.begin());
   thrust::copy(h_pz, h_pz + num_atoms, _device_data->_d_pz.begin());
@@ -65,11 +62,6 @@ bool MemoryScheduler::asyncMemoryH2D() {
   _device_data->_d_vx.resize(num_atoms);
   _device_data->_d_vy.resize(num_atoms);
   _device_data->_d_vz.resize(num_atoms);
-
-  _device_data->_d_shake_vx.resize(num_atoms);
-  _device_data->_d_shake_vy.resize(num_atoms);
-  _device_data->_d_shake_vz.resize(num_atoms);
-
   thrust::copy(h_vx, h_vx + num_atoms, _device_data->_d_vx.begin());
   thrust::copy(h_vy, h_vy + num_atoms, _device_data->_d_vy.begin());
   thrust::copy(h_vz, h_vz + num_atoms, _device_data->_d_vz.begin());
@@ -98,6 +90,11 @@ bool MemoryScheduler::asyncMemoryH2D() {
   _device_data->_d_force_ljcoul_y.resize(num_atoms);
   _device_data->_d_force_ljcoul_z.resize(num_atoms);
 
+  _device_data->_d_force_specialcoul_x.resize(num_atoms);
+  _device_data->_d_force_specialcoul_y.resize(num_atoms);
+  _device_data->_d_force_specialcoul_z.resize(num_atoms);
+
+
   _device_data->_d_force_ewald_x.resize(num_atoms);
   _device_data->_d_force_ewald_y.resize(num_atoms);
   _device_data->_d_force_ewald_z.resize(num_atoms);
@@ -109,9 +106,23 @@ bool MemoryScheduler::asyncMemoryH2D() {
   _device_data->_d_virial_xy.resize(num_atoms);
   _device_data->_d_virial_yz.resize(num_atoms);
 
-  // cpoy evdwl
-  _device_data->_d_evdwl.resize(num_atoms);
-  // thrust::copy(h_evdwl, h_evdwl + num_atoms, _device_data->_d_evdwl.begin());
+  //bond
+  _device_data->_d_force_bond_x.resize(num_atoms);
+  _device_data->_d_force_bond_y.resize(num_atoms);
+  _device_data->_d_force_bond_z.resize(num_atoms);
+
+  _device_data-> _d_temp_atom_ids.resize(num_bonds * 2);
+  _device_data->_d_temp_forces_bondx.resize(num_bonds * 2);
+  _device_data->_d_temp_forces_bondy.resize(num_bonds * 2);
+  _device_data->_d_temp_forces_bondz.resize(num_bonds * 2);
+  //angle
+  _device_data->_d_force_angle_x.resize(num_atoms);
+  _device_data->_d_force_angle_y.resize(num_atoms);
+  _device_data->_d_force_angle_z.resize(num_atoms);
+  //dihedral
+  _device_data->_d_force_dihedral_x.resize(num_atoms);
+  _device_data->_d_force_dihedral_y.resize(num_atoms);
+  _device_data->_d_force_dihedral_z.resize(num_atoms);
 
   /// copy other
   _device_data->_d_atoms_id.resize(num_atoms);

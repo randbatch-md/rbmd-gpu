@@ -11,12 +11,12 @@ class VelocityController {
   VelocityController() {
     this->_device_data =
         DataManager::getInstance()
-            .getDeviceData();  // todo 锟筋开始锟侥筹拷始锟斤拷锟斤拷锟斤拷
+            .getDeviceData();  // todo 最开始的初始化待定
                                // _device_data(std::make_shared<DeviceData>())
     this->_structure_info_data =
         DataManager::getInstance()
             .getMDData()
-            ->_structure_info_data;  //  todo 锟筋开始锟侥筹拷始锟斤拷锟斤拷锟斤拷
+            ->_structure_info_data;  //  todo 最开始的初始化待定
                                      //  _structure_info_data(std::make_shared<StructureInfoData>())
   };
 

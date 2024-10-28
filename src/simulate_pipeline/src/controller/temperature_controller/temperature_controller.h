@@ -10,9 +10,9 @@
 class TemperatureController {
  public:
   TemperatureController()
-      : _device_data(DataManager::getInstance().getDeviceData()),
-        _structure_info_data(
-            DataManager::getInstance().getMDData()->_structure_info_data){};
+      : _device_data(DataManager::getInstance().getDeviceData())
+      ,_structure_info_data(DataManager::getInstance().getMDData()->_structure_info_data)
+      , _temp_sum(0){};
 
   virtual ~TemperatureController() = default;
 
@@ -21,6 +21,7 @@ class TemperatureController {
    */
   virtual void Update() = 0;
 
+  virtual void ComputeTemp() {};
   /**
    * @brief Parameters and objects required for initializing the temperature
    * controller
@@ -30,4 +31,7 @@ class TemperatureController {
  protected:
   std::shared_ptr<StructureInfoData> _structure_info_data;
   std::shared_ptr<DeviceData> _device_data;
+
+  rbmd::Real _temp_sum;
+  rbmd::Real _temp;
 };

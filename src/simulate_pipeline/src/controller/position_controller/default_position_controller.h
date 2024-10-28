@@ -1,7 +1,7 @@
 #pragma once
 #include <string>
 
-#include "../executioner/executioner.h"
+#include "simulate.h"
 #include "position_controller.h"
 
 class DefaultPositionController : public PositionController {
@@ -19,7 +19,6 @@ class DefaultPositionController : public PositionController {
   void SetCenterTargetPositions();
 
  private:
-  rbmd::Id _num_atoms;
   rbmd::Real _dt;
   std::string _init_type;
 };

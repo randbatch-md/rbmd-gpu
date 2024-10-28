@@ -17,14 +17,18 @@
 #define MIN(x, y) (((x) < (y)) ? (x) : (y))
 #define BLOCK_SIZE (256)
 #define MAX_GPU_STREAMS (6)
-#ifdef AMD_CUDA
+#define RBMD_TRUE (1)
+#define RBMD_FALSE (0)
+
+#ifndef TARGET_DCU
 #define MIN_NBNUM \
-  (96)  /// CUDA AMD6800xt 96 DCU 128   TODO kernel us it  can use warpSize?
+(128)  /// CUDA AMD6800xt 96 DCU 128   TODO kernel us it  can use warpSize?
 #define WARP_SIZE (32)  /// CUDA AMD6800xt 32  DCU 64   TODO
 #else
 #define MIN_NBNUM (128)
 #define WARP_SIZE (64)
 #endif
+
 #if USE_DOUBLE
 typedef double3 Real3;
 typedef double2 Real2;
@@ -45,9 +49,6 @@ typedef double2 Real2;
 #else
 typedef float3 Real3;
 typedef float2 Real2;
-typedef int3 Id3;
-typedef int2 Id2;
-
 #define make_Real3 make_float3
 #define make_Real2 make_float2
 #define POW powf
@@ -158,3 +159,35 @@ static void ReductionSum(T *d_src_array, T *d_dst, rbmd::Id size) {
                                           static_cast<int>(size)));
   CHECK_RUNTIME(FREE(temp));
 }
+
+
+template<typename Tuple, std::size_t... I>
+__device__ rbmd::Real SumTuple(const Tuple& forces_tuple, std::index_sequence<I...>) {
+  return (thrust::get<I>(forces_tuple) + ...);
+}
+
+
+template<typename Result, typename... Forces>
+void SumforcesDirection(Result& result, Forces&... forces)
+{
+
+  auto zip_begin = thrust::make_zip_iterator(thrust::make_tuple(forces.begin()...));
+  auto zip_end = thrust::make_zip_iterator(thrust::make_tuple(forces.end()...));
+
+  thrust::transform(
+      zip_begin, zip_end, result.begin(),
+      [] __device__ (auto forces_tuple) {
+          constexpr std::size_t num_forces = thrust::tuple_size<decltype(forces_tuple)>::value;
+          return SumTuple(forces_tuple, std::make_index_sequence<num_forces>{});
+      }
+  );
+}
+
+template<typename... Forces>
+void TransformForces(
+    thrust::device_vector<rbmd::Real>& result_f,
+    Forces&... forces)
+{
+  SumforcesDirection(result_f, forces...);
+}
+
