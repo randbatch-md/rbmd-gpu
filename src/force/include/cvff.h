@@ -68,18 +68,14 @@ public:
   void ReduceByKey();
 
 private:
-  rbmd::Id _num_atoms;
-  rbmd::Id _num_bonds;
-  rbmd::Id _num_angles;
-  rbmd::Id _num_dihedrals;
   std::shared_ptr<BaseNeighborListBuilder> _rbl_neighbor_list_builder;
   std::shared_ptr<BaseNeighborListBuilder> _neighbor_list_builder;
   std::shared_ptr<NeighborList> _rbl_list;
   std::shared_ptr<NeighborList> _list;
 
-  rbmd::Real _corr_value_x;
-  rbmd::Real _corr_value_y;
-  rbmd::Real _corr_value_z;
+  rbmd::Real _corr_value_x = 0;
+  rbmd::Real _corr_value_y = 0;
+  rbmd::Real _corr_value_z = 0;
   rbmd::Real* _d_total_evdwl;
   rbmd::Real* _d_total_ecoul;
   rbmd::Real* _d_total_e_specialcoul;
@@ -88,14 +84,14 @@ private:
   rbmd::Real*  _d_total_edihedral;
 
   //energy
-  rbmd::Real _ave_evdwl;
-  rbmd::Real _ave_ecoul;
-  rbmd::Real _ave_e_specialcoul;
-  rbmd::Real _ave_self_energy;
-  rbmd::Real _ave_ekspace;
-  rbmd::Real _ave_ebond;
-  rbmd::Real _ave_eangle;
-  rbmd::Real _ave_dihedral;
+  rbmd::Real _ave_evdwl = 0;
+  rbmd::Real _ave_ecoul = 0;
+  rbmd::Real _ave_e_specialcoul = 0;
+  rbmd::Real _ave_self_energy = 0;
+  rbmd::Real _ave_ekspace = 0;
+  rbmd::Real _ave_ebond = 0;
+  rbmd::Real _ave_eangle = 0;
+  rbmd::Real _ave_dihedral = 0;
 
 
   //RBL

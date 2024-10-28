@@ -61,23 +61,22 @@ public:
         rbmd::Real& ave_ekspace);   //Ewald  Energy
 
 private:
-  rbmd::Id _num_atoms;
   std::shared_ptr<BaseNeighborListBuilder> _rbl_neighbor_list_builder;
   std::shared_ptr<BaseNeighborListBuilder> _neighbor_list_builder;
   std::shared_ptr<NeighborList> _rbl_list;
   std::shared_ptr<NeighborList> _list;
 
-  rbmd::Real _corr_value_x;
-  rbmd::Real _corr_value_y;
-  rbmd::Real _corr_value_z;
+  rbmd::Real _corr_value_x = 0.0;
+  rbmd::Real _corr_value_y = 0.0;
+  rbmd::Real _corr_value_z = 0.0;
   rbmd::Real* _d_total_evdwl;
   rbmd::Real* _d_total_ecoul;
 
   //energy
-  rbmd::Real _ave_evdwl;
-  rbmd::Real _ave_ecoul;
-  rbmd::Real _ave_self_energy;
-  rbmd::Real _ave_ekspace;
+  rbmd::Real _ave_evdwl= 0.0;
+  rbmd::Real _ave_ecoul= 0.0;
+  rbmd::Real _ave_self_energy= 0.0;
+  rbmd::Real _ave_ekspace= 0.0;
 
 
   //RBL
