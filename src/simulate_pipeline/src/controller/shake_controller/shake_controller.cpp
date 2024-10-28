@@ -39,12 +39,6 @@ void ShakeController::ShakeA()
     op::ShakeAOp<device::DEVICE_GPU> shakeA_op;
     shakeA_op(_num_angle,_dt,_fmt2v,
               _device_data->_d_box,
-              (*_structure_info_data->_range)[0][0],
-              (*_structure_info_data->_range)[1][0],
-              (*_structure_info_data->_range)[2][0],
-              (*_structure_info_data->_range)[0][1],
-              (*_structure_info_data->_range)[1][1],
-              (*_structure_info_data->_range)[2][1],
               thrust::raw_pointer_cast(_device_data->_d_mass.data()),
               thrust::raw_pointer_cast(_device_data->_d_atoms_type.data()),
               thrust::raw_pointer_cast(_device_data->_d_angle_id_vec.data()),//TODO: qw:Real3 is ok?
@@ -72,8 +66,23 @@ void ShakeController::ShakeA()
 
 void ShakeController::ShakeB() 
 {
+    op::ShakeBOp<device::DEVICE_GPU> shakeB_op;
+    shakeB_op(_num_angle,_dt,_fmt2v,
+              _device_data->_d_box,
+              thrust::raw_pointer_cast(_device_data->_d_mass.data()),
+              thrust::raw_pointer_cast(_device_data->_d_atoms_type.data()),
+              thrust::raw_pointer_cast(_device_data->_d_angle_id_vec.data()),//TODO: qw:Real3 is ok?
+              thrust::raw_pointer_cast(_device_data->_d_px.data()),
+              thrust::raw_pointer_cast(_device_data->_d_py.data()),
+              thrust::raw_pointer_cast(_device_data->_d_pz.data()),
+              thrust::raw_pointer_cast(_device_data->_d_shake_vx.data()),
+              thrust::raw_pointer_cast(_device_data->_d_shake_vy.data()),
+              thrust::raw_pointer_cast(_device_data->_d_shake_vz.data()),
+              thrust::raw_pointer_cast(_device_data->_d_fx.data()),
+              thrust::raw_pointer_cast(_device_data->_d_fy.data()),
+              thrust::raw_pointer_cast(_device_data->_d_fz.data())); // TODO:FLAG & locator
 
- // _device_data->_d_vx = _d_device_data->_shake_vx;
- // _device_data->_d_vy = _d_device_data->_shake_vy;
- // _device_data->_d_vz = _d_device_data->_shake_vz;
+    thrust::copy(_device_data->_d_shake_vx.begin(), _device_data->_d_shake_vx.end(), _device_data->_d_vx.begin());
+    thrust::copy(_device_data->_d_shake_vy.begin(), _device_data->_d_shake_vy.end(), _device_data->_d_vy.begin());
+    thrust::copy(_device_data->_d_shake_vz.begin(), _device_data->_d_shake_vz.end(), _device_data->_d_vz.begin());
 }
