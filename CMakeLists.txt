@@ -11,67 +11,89 @@ if(NOT CMAKE_BUILD_TYPE)
 	message(STATUS "Set CMAKE_BUILD_TYPE \"Release\".")
 endif()
 
+add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/cmake)
+get_property(cmake_dir GLOBAL PROPERTY CUSTOME_CMAKE_DIR)
+
 #option
-include("${CMAKE_CURRENT_LIST_DIR}/cmake/option.cmake")
+include("${cmake_dir}/option.cmake")
 
 #hip setting
-include("${CMAKE_CURRENT_LIST_DIR}/cmake/hip_setting.cmake")
+include("${cmake_dir}/hip_setting.cmake")
 
 #sub directory
-add_subdirectory(./src)
-add_subdirectory(./tools)
+add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/tools)
+add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/src)
+include_directories(${CMAKE_CURRENT_LIST_DIR}/src/common)
 
-set(src 
+file(GLOB_RECURSE output_srcs ./src/output/*.cpp ./src/output/*.cu)
+set(src
 ./src/main.cpp
-./src/system/md_system.cpp
-./src/executioner/executioner.cpp
-./src/reader/mmap_reader.cpp
-./src/reader/atomic_reader.cpp
-./src/reader/potential_reader.cpp
-./src/reader/structure_reader.cpp
+#./src/executioner/executioner.cpp
 ./src/Utilities/string_util.cpp
 ./src/application/application.cpp
 ./src/application/md_application.cpp
-#./src/op/near_force/direct_truncation/direct_truncation_op.cpp
-#./src/op/near_force/direct_truncation/rocm/direct_truncation_op.hip.cu
-./src/parser/command_line.cpp)
+./src/parser/command_line.cpp
+./src/common/unit_factor.cpp
+./src/common/RBEPSample.h
+./src/common/erf_table.h
+${output_srcs})
 
-#include
 include_directories("${CMAKE_CURRENT_LIST_DIR}/src")
-include_directories("${CMAKE_CURRENT_LIST_DIR}/src/reader")
-include_directories("${CMAKE_CURRENT_LIST_DIR}/src/model")
 include_directories("${CMAKE_CURRENT_LIST_DIR}/src/Utilities")
 include_directories("${CMAKE_CURRENT_LIST_DIR}/src/parser")
 include_directories("${CMAKE_CURRENT_LIST_DIR}/src/application")
-include_directories("${CMAKE_CURRENT_LIST_DIR}/src/system")
-include_directories("${CMAKE_CURRENT_LIST_DIR}/src/executioner")
-include_directories("${CMAKE_CURRENT_LIST_DIR}/src/op")
+#include_directories("${CMAKE_CURRENT_LIST_DIR}/src/executioner")
+include_directories("${CMAKE_CURRENT_LIST_DIR}/src/common")
+include_directories("${CMAKE_CURRENT_LIST_DIR}/src/output")
 
-#tool include
-get_property(var GLOBAL PROPERTY TOOLS_INCLUDE_PATH)
-foreach(tool_include_path ${var})
-	include_directories(${tool_include_path})
+
+file(GLOB_RECURSE all_include_dirs
+    "${CMAKE_CURRENT_LIST_DIR}/src/*.h"
+)
+
+set(include_dirs)
+foreach(header_file ${all_include_dirs})
+    get_filename_component(dir ${header_file} DIRECTORY)
+    list(APPEND include_dirs ${dir})
+endforeach()
+list(REMOVE_DUPLICATES include_dirs)
+
+include_directories(${include_dirs})
+
+# �����ҵ������о�̬�⵽��ִ���ļ�
+file(GLOB tools_path ${CMAKE_CURRENT_LIST_DIR}/tools/*.tar.gz)
+
+foreach(tool_path ${tools_path})
+	get_filename_component(toolname ${tool_path} NAME)
+	get_filename_component(tooldir ${tool_path} PATH)
+	string(REGEX REPLACE "\\.tar\\.gz$" "" toolname_without_ext ${toolname})
+	set(TOOL_INSTALL_PATH ${tooldir}/${CMAKE_SYSTEM_NAME}/${CMAKE_BUILD_TYPE}/${toolname_without_ext})
+	list(APPEND CMAKE_PREFIX_PATH ${TOOL_INSTALL_PATH})
 endforeach()
 
+find_package(PkgConfig REQUIRED)
+pkg_check_modules(JSONCPP REQUIRED jsoncpp IMPORTED_TARGET GLOBAL)
+pkg_check_modules(SPDLOG REQUIRED spdlog IMPORTED_TARGET GLOBAL)
+pkg_check_modules(CXXOPTS REQUIRED cxxopts IMPORTED_TARGET GLOBAL)
+
+
+
+
+
+
+# ��ӿ�ִ���ļ�
 add_executable(${PROJECT_NAME} ${src})
 
-#tool link
-get_property(var GLOBAL PROPERTY TOOLS_LINK_PATH)
-foreach(tool_link_path ${var})
-	target_link_directories(${PROJECT_NAME} PUBLIC ${tool_link_path})
-endforeach()
+# ���ÿ��ļ���·��
+set(LIB_DIR ${CMAKE_CURRENT_LIST_DIR}/lib)
 
-#target_link_directories(${PROJECT_NAME} PUBLIC ${CMAKE_BINARY_DIR}/src)
+# ����Ҫ���ҵĿ����б�
+set(LIBRARY_NAMES
+		data_manager
+		reader
+		neighbor_list
+		force
+		simulate_pipeline
+)
 
-target_link_libraries(${PROJECT_NAME} PRIVATE 
-jsoncpp 
-spdlog
-hip::device
-device_rocm) 
-
-#set target property
-include("./cmake/set_target_property.cmake")
-
-#print property
-#include(CMakePrintHelpers)
-#cmake_print_properties(TARGETS ${PROJECT_NAME} PROPERTIES COMPILE_DEFINITIONS)
+target_link_libraries(${PROJECT_NAME} PUBLIC ${LIBRARY_NAMES} PkgConfig::JSONCPP PkgConfig::SPDLOG PkgConfig::CXXOPTS)

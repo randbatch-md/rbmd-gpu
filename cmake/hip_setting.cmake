@@ -27,5 +27,14 @@ endif()
 include_directories(${HIP_INCLUDE_DIRS})
 link_directories(${HIP_LIBRARIES})
 
-set(CMAKE_CXX_COMPILER ${HIP_HIPCC_EXECUTABLE})
-set(CMAKE_CXX_LINKER ${HIP_HIPCC_EXECUTABLE})
+message("HIP_HIPCC_EXECUTABLE:${HIP_HIPCC_EXECUTABLE}")
+#set(CMAKE_CXX_COMPILER ${HIP_HIPCC_EXECUTABLE})
+#set(CMAKE_CXX_LINKER ${HIP_HIPCC_EXECUTABLE})
+
+#rocthrust
+find_package(rocthrust REQUIRED)
+if(rocthrust_FOUND)
+	message("rochthrust: ${rocthrust_DIR}")
+	message("rochthrust include directories: ${rocthrust_INCLUDE_DIRS}")
+	message("rochthrust libraries: ${rocthrust_LIBRARIES}")
+endif()
