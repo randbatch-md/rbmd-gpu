@@ -11,21 +11,22 @@
 DefaultVelocityController::DefaultVelocityController(){};
 
 void DefaultVelocityController::Init() {
-  _num_atoms = *(_structure_info_data->_num_atoms);
 
-  _dt = 0.001;
-  auto unit = "LJ";
+  _dt = DataManager::getInstance().getConfigData()->Get<rbmd::Real>(
+          "timestep", "execution");//0.001
+  auto unit  = DataManager::getInstance().getConfigData()->Get
+    <std::string>("unit", "init_configuration", "read_data");
   UNIT unit_factor = unit_factor_map[unit];
 
   switch (unit_factor) {
     case UNIT::METAL:
-      _fmt2v = UnitFactor<UNIT::METAL>::_kb;
+      _fmt2v = UnitFactor<UNIT::METAL>::_fmt2v;
       break;
     case UNIT::LJ:
-      _fmt2v = UnitFactor<UNIT::LJ>::_kb;
+      _fmt2v = UnitFactor<UNIT::LJ>::_fmt2v;
       break;
     case UNIT::REAL:
-      _fmt2v = UnitFactor<UNIT::REAL>::_kb;
+      _fmt2v = UnitFactor<UNIT::REAL>::_fmt2v;
       break;
     default:
       break;
@@ -42,7 +43,7 @@ void DefaultVelocityController::Update() {
 
   op::UpdateVelocityOp<device::DEVICE_GPU> update_velocity_op;
   update_velocity_op(
-      _num_atoms, _dt, _fmt2v,
+      *(_structure_info_data->_num_atoms), _dt, _fmt2v,
       thrust::raw_pointer_cast(_device_data->_d_atoms_type.data()),
       thrust::raw_pointer_cast(_device_data->_d_mass.data()),
       thrust::raw_pointer_cast(_device_data->_d_fx.data()),

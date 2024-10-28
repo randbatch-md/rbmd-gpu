@@ -1,22 +1,15 @@
 #include "md_application.h"
-
 #include "command_line.h"
-// #include "md_system.h"
 #include "atomic_reader.h"
-// #include "JsonParser.h"
 #include <memory>
-
 #include "../simulate_pipeline/include/npt_ensemble.h"
 #include "../simulate_pipeline/include/nve_ensemble.h"
 #include "../simulate_pipeline/include/nvt_ensemble.h"
-#include "executioner.h"
 #include "lj_memory_scheduler.h"
 #include "cvff_memory_scheduler.h"
 #include "memory_scheduler.h"
-
-MDApplication::MDApplication(int argc, char* argv[]) : Application(argc, argv) {
-  //_system = std::make_shared<MDSystem>();
-}
+#include "output/include/TrajectoryOutput.h"
+MDApplication::MDApplication(int argc, char* argv[]) : Application(argc, argv) {}
 
 int MDApplication::Execute() {
   // try
@@ -59,12 +52,12 @@ int MDApplication::Execute() {
   // }
   ReadMDData();
   _simulate_pipeline = std::make_shared<NVTensemble>();
+  _output = std::make_shared<TrajectoryOutput>();
+  _simulate = std::make_shared<Simulate>(_simulate_pipeline,_output);
+  
+  _simulate->Init();
 
-  _executioner = std::make_shared<Executioner>(_simulate_pipeline);
-
-  _executioner->Init();
-
-  _executioner->Execute();
+  _simulate->Execute();
 
   return 0;
 }

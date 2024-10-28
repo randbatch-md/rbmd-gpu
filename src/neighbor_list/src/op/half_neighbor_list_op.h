@@ -26,8 +26,7 @@ struct EstimateHalfNeighborListOp {
                   rbmd::Id total_atom_num, rbmd::Real* px, rbmd::Real* py,
                   rbmd::Real* pz, rbmd::Id* neighbour_num,
                   rbmd::Id* max_neighbour_num, Box* box,
-                  rbmd::Id* neighbor_cell, rbmd::Id neighbor_cell_num,
-                  bool without_pbc);
+                  rbmd::Id* neighbor_cell, rbmd::Id neighbor_cell_num,bool without_pbc_or_rbl);
 };
 
 template <typename DEVICE>
@@ -38,9 +37,8 @@ struct GenerateHalfNeighborListOp {
                   rbmd::Id total_atom_num, rbmd::Real* px, rbmd::Real* py,
                   rbmd::Real* pz, rbmd::Id* max_neighbor_num,
                   rbmd::Id* neighbor_start, rbmd::Id* neighbor_end,
-                  rbmd::Id* neighbors, Box* d_box, bool* should_realloc,
-                  rbmd::Id* neighbor_cell, rbmd::Id neighbor_cell_num,
-                  bool without_pbc);
+                  rbmd::Id* neighbors, Box* d_box, rbmd::Id* should_realloc,
+                  rbmd::Id* neighbor_cell, rbmd::Id neighbor_cell_num,bool without_pbc);
 };
 
 template <>
@@ -58,8 +56,7 @@ struct EstimateHalfNeighborListOp<device::DEVICE_GPU> {
                   rbmd::Id total_atom_num, rbmd::Real* px, rbmd::Real* py,
                   rbmd::Real* pz, rbmd::Id* neighbour_num,
                   rbmd::Id* max_neighbour_num, Box* box,
-                  rbmd::Id* neighbor_cell, rbmd::Id neighbor_cell_num,
-                  bool without_pbc);
+                  rbmd::Id* neighbor_cell, rbmd::Id neighbor_cell_num,bool without_pbc_or_rbl);
 };
 
 template <>
@@ -70,9 +67,8 @@ struct GenerateHalfNeighborListOp<device::DEVICE_GPU> {
                   rbmd::Id total_atom_num, rbmd::Real* px, rbmd::Real* py,
                   rbmd::Real* pz, rbmd::Id* max_neighbor_num,
                   rbmd::Id* neighbor_start, rbmd::Id* neighbor_end,
-                  rbmd::Id* neighbors, Box* d_box, bool* should_realloc,
-                  rbmd::Id* neighbor_cell, rbmd::Id neighbor_cell_num,
-                  bool without_pbc);
+                  rbmd::Id* neighbors, Box* d_box, rbmd::Id* should_realloc,
+                  rbmd::Id* neighbor_cell, rbmd::Id neighbor_cell_num,bool without_pbc);
 };
 
 }  // namespace op

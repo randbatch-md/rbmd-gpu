@@ -69,10 +69,10 @@ void RblFullNeighborListBuilder::GetRblParams() {
 #pragma endregion
 }
 
-bool RblFullNeighborListBuilder::GenerateNeighborsList() {
+rbmd::Id RblFullNeighborListBuilder::GenerateNeighborsList() {
   GetRblParams();
   CHECK_RUNTIME(
-      MEMCPY(_d_should_realloc, &(this->should_realloc), sizeof(bool), H2D));
+      MEMCPY(_d_should_realloc, &(this->should_realloc), sizeof(rbmd::Id), H2D));
   op::GenerateRblFullNeighborListOp<device::DEVICE_GPU>
       generate_rbl_full_neighbor_list_op;
   generate_rbl_full_neighbor_list_op(
@@ -98,6 +98,6 @@ bool RblFullNeighborListBuilder::GenerateNeighborsList() {
       thrust::raw_pointer_cast(_linked_cell->_neighbor_cell.data()),
       _neighbor_cell_num, _selection_frequency);
   CHECK_RUNTIME(
-      MEMCPY(&(this->should_realloc), _d_should_realloc, sizeof(bool), D2H));
+      MEMCPY(&(this->should_realloc), _d_should_realloc, sizeof(rbmd::Id), D2H));
   return this->should_realloc;
 }
