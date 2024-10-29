@@ -18,7 +18,7 @@ get_property(cmake_dir GLOBAL PROPERTY CUSTOME_CMAKE_DIR)
 include("${cmake_dir}/option.cmake")
 
 #hip setting
-include("${cmake_dir}/hip_setting.cmake")
+include("${cmake_dir}/gpu_setting.cmake")
 
 #sub directory
 add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/tools)

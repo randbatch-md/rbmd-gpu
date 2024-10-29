@@ -42,31 +42,13 @@ pkg_check_modules(JSONCPP REQUIRED jsoncpp IMPORTED_TARGET GLOBAL)
 pkg_check_modules(SPDLOG REQUIRED spdlog IMPORTED_TARGET GLOBAL)
 #pkg_check_modules(CXXOPTS REQUIRED cxxopts IMPORTED_TARGET GLOBAL)
 
-if(USE_ROCM)
-	set(include_dir ${include_dirs} ${TOOLS_INCLUDE_PATH} ${rocthrust_INCLUDE_DIRS} ${SPDLOG_INCLUDE_DIRS} ${JSONCPP_INCLUDE_DIRS} "../common")  # ${jsoncpp_INCLUDE_DIRS}
-	set(link_dir  ${TOOLS_LINK_PATH} ${rocthrust_LIBRARIES} ${SPDLOG_LIBRARY_DIRS} ${JSONCPP_LIBRARY_DIRS})  # ${jsoncpp_LIBRARIES}
-	set(depends_name "roc::rocthrust" PkgConfig::JSONCPP PkgConfig::SPDLOG)
+set(include_dir ${include_dirs} ${TOOLS_INCLUDE_PATH} ${rocthrust_INCLUDE_DIRS} ${SPDLOG_INCLUDE_DIRS} ${JSONCPP_INCLUDE_DIRS} "../common")  # ${jsoncpp_INCLUDE_DIRS}
+set(link_dir  ${TOOLS_LINK_PATH} ${rocthrust_LIBRARIES} ${SPDLOG_LIBRARY_DIRS} ${JSONCPP_LIBRARY_DIRS})  # ${jsoncpp_LIBRARIES}
+set(depends_name "roc::rocthrust" PkgConfig::JSONCPP PkgConfig::SPDLOG)
 
-	cpp_library(
-	name ${PROJECT_NAME}
-	depends_include ${include_dir}
-	depends_link_dir ${link_dir}
-	depends_name ${depends_name}
-	)
-endif()
-
-if(USE_CUDA)
-	message("cuda include: ${CMAKE_CUDA_TOOLKIT_INCLUDE_DIRECTORIES}")
-	set(include_dir ${CMAKE_CUDA_TOOLKIT_INCLUDE_DIRECTORIES} ${include_dirs} ${TOOLS_INCLUDE_PATH} ${SPDLOG_INCLUDE_DIRS} ${JSONCPP_INCLUDE_DIRS} "../common")  # ${jsoncpp_INCLUDE_DIRS}
-	set(link_dir  ${TOOLS_LINK_PATH} ${SPDLOG_LIBRARY_DIRS} ${JSONCPP_LIBRARY_DIRS})  # ${jsoncpp_LIBRARIES}
-	set(depends_name  PkgConfig::JSONCPP PkgConfig::SPDLOG)
-
-	cpp_library(
-	name ${PROJECT_NAME}
-	depends_include ${include_dir}
-	depends_link_dir ${link_dir}
-	depends_name ${depends_name}
-	)
-
-	set_target_properties(${PROJECT_NAME} PROPERTIES CUDA_SEPARABLE_COMPILATION ON)
-endif()
+cpp_library(
+name ${PROJECT_NAME}
+depends_include ${include_dir}
+depends_link_dir ${link_dir}
+depends_name ${depends_name}
+)
