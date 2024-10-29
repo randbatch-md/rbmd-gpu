@@ -6,15 +6,14 @@
 #include "neighbor_list/include/linked_cell/linked_cell_locator.h"
 #include "unit_factor.h"
 #include "shake_controller_op.h"
-
+#include <thrust/copy.h>
+#define DEBUG
 ShakeController::ShakeController() 
     : _device_data(DataManager::getInstance().getDeviceData())
     , _structure_info_data(DataManager::getInstance().getMDData()->_structure_info_data) {};
 
 void ShakeController::Init()
 {
-    _num_angle = *(_structure_info_data->_num_angles);
-
     _dt = DataManager::getInstance().getConfigData()->Get<rbmd::Real>( "timestep", "execution"); // TODO: Json file
     auto unit = DataManager::getInstance().getConfigData()->Get<std::string>( "unit", "init_configuration", "read_data");
     UNIT unit_factor = unit_factor_map[unit];
@@ -36,8 +35,28 @@ void ShakeController::Init()
 
 void ShakeController::ShakeA() 
 {
+    std::cout<<"---------ShakeA内部计算前--------------"<<std::endl;
+    std::vector<rbmd::Real> h_vx0(300);
+    std::vector<rbmd::Real> h_px0(300);
+    std::vector<rbmd::Real> h_shakeA_vx0(300);
+    std::vector<rbmd::Real> h_shakeA_px0(300);
+    thrust::copy(_device_data->_d_vx.begin(), _device_data->_d_vx.end(), h_vx0.begin());
+    thrust::copy(_device_data->_d_px.begin(), _device_data->_d_px.end(), h_px0.begin());
+    thrust::copy(_device_data->_d_shake_vx.begin(), _device_data->_d_shake_vx.end(), h_shakeA_vx0.begin());
+    thrust::copy(_device_data->_d_shake_px.begin(), _device_data->_d_shake_px.end(), h_shakeA_px0.begin());
+
+    for (int j = 0; j < 10; ++j) {std::cout<<h_vx0[j]<<" , ";}
+    std::cout<<std::endl;
+    for (int j = 0; j < 10; ++j) {std::cout<<h_px0[j]<<" , ";}
+    std::cout<<std::endl;
+
+    for (int j = 0; j < 10; ++j) {std::cout<< h_shakeA_vx0[j]<<" , ";}
+    std::cout<<std::endl;
+    for (int j = 0; j < 10; ++j) {std::cout<< h_shakeA_px0[j]<<" , ";}
+    std::cout<<std::endl;
+
     op::ShakeAOp<device::DEVICE_GPU> shakeA_op;
-    shakeA_op(_num_angle,_dt,_fmt2v,
+    shakeA_op(*(_structure_info_data->_num_angles),_dt,_fmt2v,
               _device_data->_d_box,
               thrust::raw_pointer_cast(_device_data->_d_mass.data()),
               thrust::raw_pointer_cast(_device_data->_d_atoms_type.data()),
@@ -55,6 +74,29 @@ void ShakeController::ShakeA()
               thrust::raw_pointer_cast(_device_data->_d_flagY.data()),
               thrust::raw_pointer_cast(_device_data->_d_flagZ.data())); // TODO:FLAG & locator
 
+#ifdef DEBUG
+    std::cout<<std::endl;
+    std::cout<<"---------ShakeA内部计算后--------------"<<std::endl;
+  std::vector<rbmd::Real> h_vx(300);
+  std::vector<rbmd::Real> h_px(300);
+  std::vector<rbmd::Real> h_shakeA_vx(300);
+  std::vector<rbmd::Real> h_shakeA_px(300);
+  thrust::copy(_device_data->_d_vx.begin(), _device_data->_d_vx.end(), h_vx.begin());
+  thrust::copy(_device_data->_d_px.begin(), _device_data->_d_px.end(), h_px.begin());
+  thrust::copy(_device_data->_d_shake_vx.begin(), _device_data->_d_shake_vx.end(), h_shakeA_vx.begin());
+  thrust::copy(_device_data->_d_shake_px.begin(), _device_data->_d_shake_px.end(), h_shakeA_px.begin());
+
+  for (int j = 0; j < 10; ++j) {std::cout<<h_vx[j]<<" , ";}
+  std::cout<<std::endl;
+  for (int j = 0; j < 10; ++j) {std::cout<<h_px[j]<<" , ";}
+  std::cout<<std::endl;
+
+  for (int j = 0; j < 10; ++j) {std::cout<< h_shakeA_vx[j]<<" , ";}
+  std::cout<<std::endl;
+  for (int j = 0; j < 10; ++j) {std::cout<< h_shakeA_px[j]<<" , ";}
+  std::cout<<std::endl;
+#endif
+
     thrust::copy(_device_data->_d_shake_vx.begin(), _device_data->_d_shake_vx.end(), _device_data->_d_vx.begin());
     thrust::copy(_device_data->_d_shake_vy.begin(), _device_data->_d_shake_vy.end(), _device_data->_d_vy.begin());
     thrust::copy(_device_data->_d_shake_vz.begin(), _device_data->_d_shake_vz.end(), _device_data->_d_vz.begin());
@@ -67,7 +109,7 @@ void ShakeController::ShakeA()
 void ShakeController::ShakeB() 
 {
     op::ShakeBOp<device::DEVICE_GPU> shakeB_op;
-    shakeB_op(_num_angle,_dt,_fmt2v,
+    shakeB_op(*(_structure_info_data->_num_angles),_dt,_fmt2v,
               _device_data->_d_box,
               thrust::raw_pointer_cast(_device_data->_d_mass.data()),
               thrust::raw_pointer_cast(_device_data->_d_atoms_type.data()),

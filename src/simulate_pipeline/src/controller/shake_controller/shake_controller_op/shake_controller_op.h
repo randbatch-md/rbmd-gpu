@@ -29,9 +29,9 @@ namespace op {
 
     template <typename DEVICE>
     struct ShakeBOp {
-        void operator()(const rbmd::Id num_angle,
-                        const rbmd::Real dt,
-                        const rbmd::Real fmt2v,
+        void operator()(rbmd::Id num_angle,
+                        rbmd::Real dt,
+                        rbmd::Real fmt2v,
                         Box* box,
                         const rbmd::Real* mass,
                         const rbmd::Id* atoms_type,
@@ -49,9 +49,9 @@ namespace op {
 
     template <>
     struct ShakeAOp<device::DEVICE_GPU> {
-      void operator()(const rbmd::Id num_angle,
-                      const rbmd::Real dt,
-                      const rbmd::Real fmt2v,
+      void operator()(rbmd::Id num_angle,
+                      rbmd::Real dt,
+                      rbmd::Real fmt2v,
                       Box* box,
                       const rbmd::Real* mass,
                       const rbmd::Id* atoms_type,

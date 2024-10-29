@@ -108,6 +108,9 @@ __global__ void ShakeA(const rbmd::Id num_angle,
     shake_position_2.y = shake_py[id_2] + shake_vy[id_2] * dt + 0.5 * dt * dt * fy[id_2] / mass[atoms_type[id_2]] * fmt2v;
     shake_position_2.z = shake_pz[id_2] + shake_vz[id_2] * dt + 0.5 * dt * dt * fz[id_2] / mass[atoms_type[id_2]] * fmt2v;
 
+        printf("tid为：%d----输出结果为：%f, %f, %f \n",shake_position_0.x,shake_position_1.x,shake_position_2.x);
+
+
     rbmd::Real bond1 = 1.0;
     rbmd::Real bond2 = 1.0;
     rbmd::Real bond12 = SQRT(bond1 * bond1 + bond2 * bond2 - 2.0 * bond1 * bond2 * COS((109.4700 / 180.0) * M_PIf));

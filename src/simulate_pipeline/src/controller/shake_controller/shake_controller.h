@@ -17,7 +17,6 @@ protected:
   std::shared_ptr<StructureInfoData> _structure_info_data;
   std::shared_ptr<DeviceData> _device_data;
 
-  rbmd::Id _num_angle;
   rbmd::Real _dt;
   rbmd::Real _fmt2v;
 

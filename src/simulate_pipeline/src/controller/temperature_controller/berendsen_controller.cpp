@@ -66,11 +66,11 @@ void BerendsenController::ComputeTemp() {
 
   CHECK_RUNTIME(MEMCPY(&_temp_sum, _d_temp_contrib, sizeof(rbmd::Real), D2H));
 
-  bool available_shake = false;
+  bool available_shake = true; //TODO: need to judge
 
   if (available_shake)  // H2O / NACl / EAM ...
   {
-    bool shake = true;
+    bool shake = DataManager::getInstance().getConfigData()->GetJudge<bool>( "fix_shake", "hyper_parameters", "extend");
     if (shake) {
       _temp = 0.5 * _temp_sum / ((3 * num_atoms - num_atoms - 3) * _kB / 2.0);
     } else {

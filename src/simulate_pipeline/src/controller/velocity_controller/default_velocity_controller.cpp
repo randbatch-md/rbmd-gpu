@@ -7,6 +7,7 @@
 #include "neighbor_list/include/linked_cell/linked_cell_locator.h"
 #include "unit_factor.h"
 #include "update_velocity_op.h"
+#include <thrust/copy.h>
 
 DefaultVelocityController::DefaultVelocityController(){};
 
@@ -39,6 +40,26 @@ void DefaultVelocityController::Update() {
       thrust::copy(_device_data->_d_vx.begin(), _device_data->_d_vx.end(), _device_data->_d_shake_vx.begin());
       thrust::copy(_device_data->_d_vy.begin(), _device_data->_d_vy.end(), _device_data->_d_shake_vy.begin());
       thrust::copy(_device_data->_d_vz.begin(), _device_data->_d_vz.end(), _device_data->_d_shake_vz.begin());
+
+      std::cout<<"---------更新速度内部--------------"<<std::endl;
+      std::vector<rbmd::Real> h_vx(300);
+      std::vector<rbmd::Real> h_px(300);
+      std::vector<rbmd::Real> h_shakeA_vx(300);
+      std::vector<rbmd::Real> h_shakeA_px(300);
+      thrust::copy(_device_data->_d_vx.begin(), _device_data->_d_vx.end(), h_vx.begin());
+      thrust::copy(_device_data->_d_px.begin(), _device_data->_d_px.end(), h_px.begin());
+      thrust::copy(_device_data->_d_shake_vx.begin(), _device_data->_d_shake_vx.end(), h_shakeA_vx.begin());
+      thrust::copy(_device_data->_d_shake_px.begin(), _device_data->_d_shake_px.end(), h_shakeA_px.begin());
+
+      for (int j = 0; j < 10; ++j) {std::cout<<h_vx[j]<<" , ";}
+      std::cout<<std::endl;
+      for (int j = 0; j < 10; ++j) {std::cout<<h_px[j]<<" , ";}
+      std::cout<<std::endl;
+
+      for (int j = 0; j < 10; ++j) {std::cout<< h_shakeA_vx[j]<<" , ";}
+      std::cout<<std::endl;
+      for (int j = 0; j < 10; ++j) {std::cout<< h_shakeA_px[j]<<" , ";}
+      std::cout<<std::endl;
   }
 
   op::UpdateVelocityOp<device::DEVICE_GPU> update_velocity_op;
