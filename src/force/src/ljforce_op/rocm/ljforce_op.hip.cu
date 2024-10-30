@@ -1270,24 +1270,36 @@ __global__ void ComputeChargeStructureFactor(
 
 // Charge Structure  Factor on Pnumber
 __global__ void ComputePnumberChargeStructureFactor(
-    Box* box, const rbmd::Id num_atoms, const rbmd::Id p_number,
-    const rbmd::Real* charge, const rbmd::Real* p_sample_x,
-    const rbmd::Real* p_sample_y, const rbmd::Real* p_sample_z,
-    const rbmd::Real* px, const rbmd::Real* py, const rbmd::Real* pz,
-    rbmd::Real* density_real, rbmd::Real* density_imag) {
+    Box* __restrict__ box, const rbmd::Id num_atoms, const rbmd::Id p_number,
+    const rbmd::Real* __restrict__ charge, const rbmd::Real* __restrict__ p_sample_x,
+    const rbmd::Real* __restrict__ p_sample_y, const rbmd::Real* __restrict__ p_sample_z,
+    const rbmd::Real* __restrict__ px, const rbmd::Real* __restrict__ py, const rbmd::Real* __restrict__ pz,
+    rbmd::Real* __restrict__ density_real, rbmd::Real* __restrict__ density_imag) {
   unsigned int tid1 = blockIdx.x * blockDim.x + threadIdx.x;
+  __shared__ rbmd::Real shared_px[BLOCK_SIZE];
+  __shared__ rbmd::Real shared_py[BLOCK_SIZE];
+  __shared__ rbmd::Real shared_pz[BLOCK_SIZE];
+  __shared__ rbmd::Real shared_charge[BLOCK_SIZE];
+
   if (tid1 < num_atoms) {
-    rbmd::Real chargei = charge[tid1];
-    rbmd::Real p_x = px[tid1];
-    rbmd::Real p_y = py[tid1];
-    rbmd::Real p_z = pz[tid1];
+    if (threadIdx.x < BLOCK_SIZE) {
+      shared_px[threadIdx.x] = __ldg(&px[tid1]);
+      shared_py[threadIdx.x] = __ldg(&py[tid1]);
+      shared_pz[threadIdx.x] = __ldg(&pz[tid1]);
+      shared_charge[threadIdx.x] = __ldg(&charge[tid1]);
+    }
+    __syncthreads();
+    rbmd::Real chargei = shared_charge[threadIdx.x];
+    rbmd::Real p_x = shared_px[threadIdx.x];
+    rbmd::Real p_y = shared_py[threadIdx.x];
+    rbmd::Real p_z = shared_pz[threadIdx.x];
 
     for (rbmd::Id i = 0; i < p_number; i++) {
       rbmd::Id index = tid1 + i * num_atoms;
 
-      rbmd::Real k_x = p_sample_x[i];
-      rbmd::Real k_y = p_sample_y[i];
-      rbmd::Real k_z = p_sample_z[i];
+      rbmd::Real k_x = __ldg(&p_sample_x[i]);
+      rbmd::Real k_y = __ldg(&p_sample_y[i]);
+      rbmd::Real k_z = __ldg(&p_sample_z[i]);
       k_x = 2 * M_PI * k_x / box->_length[0];
       k_y = 2 * M_PI * k_y / box->_length[1];
       k_z = 2 * M_PI * k_z / box->_length[2];
