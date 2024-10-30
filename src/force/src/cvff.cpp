@@ -117,6 +117,8 @@ void CVFF::ComputeLJRBL()
     std::cout << "构建RBL邻居列表耗时" << duration.count() << "秒" << std::endl;
 
     // compute force
+    auto start_rbl_force = std::chrono::high_resolution_clock::now();
+
     const auto r_core =
       DataManager::getInstance().getConfigData()->Get<rbmd::Real>(
           "r_core", "hyper_parameters", "neighbor");
@@ -168,8 +170,12 @@ void CVFF::ComputeLJRBL()
                         thrust::raw_pointer_cast(_device_data->_d_force_ljcoul_y.data()),
                         thrust::raw_pointer_cast(_device_data->_d_force_ljcoul_z.data()));
 
+  auto end_rbl_force = std::chrono::high_resolution_clock::now();
+  std::chrono::duration<rbmd::Real> duration_rbl_force = end_rbl_force - start_rbl_force;
+  std::cout << "计算 RBL_lj 力耗时" << duration_rbl_force.count() << "秒" << std::endl;
+
     //energy
-    ComputeLJCoulEnergy();
+    //ComputeLJCoulEnergy();
 
     // //out
     // std::vector<rbmd::Real> h_force_ljcoul_x(num_atoms);
@@ -204,6 +210,7 @@ void CVFF::ComputeLJVerlet()
   std::cout << "构建verlet-list耗时" << duration.count() << "秒" << std::endl;
 
   //
+  auto start_verlet_force = std::chrono::high_resolution_clock::now();
 
   rbmd::Real h_total_evdwl = 0.0;
   rbmd::Real h_total_ecoul = 0.0;
@@ -235,6 +242,10 @@ void CVFF::ComputeLJVerlet()
                   thrust::raw_pointer_cast(_device_data->_d_force_ljcoul_z.data()),
                   _d_total_evdwl,_d_total_ecoul);
 
+  auto end_verlet_force = std::chrono::high_resolution_clock::now();
+  std::chrono::duration<rbmd::Real> duration_verlet_force = end_verlet_force - start_verlet_force;
+  std::cout << "计算 verlet_lj 力耗时" << duration_verlet_force.count() << "秒" << std::endl;
+
   CHECK_RUNTIME(MEMCPY(&h_total_evdwl,_d_total_evdwl , sizeof(rbmd::Real), D2H));
   CHECK_RUNTIME(MEMCPY(&h_total_ecoul,_d_total_ecoul , sizeof(rbmd::Real), D2H));
 
@@ -247,10 +258,10 @@ void CVFF::ComputeLJVerlet()
   << "average_energy_vdwl:" << _ave_evdwl << " " << "average_coul_energy_old:" <<
     _ave_ecoul  << std::endl;
 
-  //out
-  std::ofstream outfile("ave_energy_lj.txt", std::ios::app);
-  outfile << test_current_step << " " << _ave_evdwl << std::endl;
-  outfile.close();
+  // //out
+  // std::ofstream outfile("ave_energy_lj.txt", std::ios::app);
+  // outfile << test_current_step << " " << _ave_evdwl << std::endl;
+  // outfile.close();
 
 
     // //out
@@ -277,6 +288,8 @@ void CVFF::ComputeLJVerlet()
 
 void CVFF::ComputeSpecialCoulForce()
 {
+  auto start = std::chrono::high_resolution_clock::now();
+
   rbmd::Real h_total_e_specialcoul = 0.0;
   CHECK_RUNTIME(MEMSET(_d_total_e_specialcoul, 0, sizeof(rbmd::Real)));
 
@@ -304,6 +317,10 @@ void CVFF::ComputeSpecialCoulForce()
     thrust::raw_pointer_cast(_device_data->_d_force_specialcoul_z.data()),
     _d_total_e_specialcoul);
 
+  auto end = std::chrono::high_resolution_clock::now();
+  std::chrono::duration<rbmd::Real> duration = end - start;
+  std::cout << "计算 special_coul 力耗时" << duration.count() << "秒" << std::endl;
+
   CHECK_RUNTIME(MEMCPY(&h_total_e_specialcoul,_d_total_e_specialcoul , sizeof(rbmd::Real), D2H));
 
   _ave_e_specialcoul = h_total_e_specialcoul/num_atoms;
@@ -315,11 +332,11 @@ void CVFF::ComputeSpecialCoulForce()
   <<"average_energy_ecoul:" << _ave_ecoul << std::endl;
 
 
-  //out
-  std::ofstream outfile("ave_energy_special_coul.txt", std::ios::app);
-  outfile << test_current_step << " "
-  << _ave_e_specialcoul << " " << _ave_ecoul<<  std::endl;
-  outfile.close();
+  // //out
+  // std::ofstream outfile("ave_energy_special_coul.txt", std::ios::app);
+  // outfile << test_current_step << " "
+  // << _ave_e_specialcoul << " " << _ave_ecoul<<  std::endl;
+  // outfile.close();
 
   // //out
   // std::vector<rbmd::Real> h_specialcoulx(num_atoms);
@@ -455,6 +472,8 @@ void CVFF::ComputeChargeStructureFactorEwald(
 
 void CVFF::ComputeEwlad()
 {
+    auto start = std::chrono::high_resolution_clock::now();
+    //
     auto num_atoms = *(_structure_info_data->_num_atoms);
     rbmd::Real* value_Re_array;
     rbmd::Real* value_Im_array;
@@ -482,6 +501,10 @@ void CVFF::ComputeEwlad()
 
     CHECK_RUNTIME(FREE(value_Re_array));
     CHECK_RUNTIME(FREE(value_Im_array));
+
+  auto end = std::chrono::high_resolution_clock::now();
+  std::chrono::duration<rbmd::Real> duration = end - start;
+  std::cout << "计算Ewald耗时" << duration.count() << "秒" << std::endl;
 
   // //out
   // std::vector<rbmd::Real> h_force_ewald_x(num_atoms);
@@ -578,27 +601,28 @@ void CVFF::ComputeChargeStructureFactorRBE(
     rhok_image_atom.begin(),psamplekey_out.begin(), rhok_image_redue.begin(),
     thrust::equal_to<rbmd::Id>(),thrust::plus<rbmd::Real>());
 
-  //energy
-
-  //charge self energy//
-  ComputeSelfEnergy(alpha,qqr2e,_ave_self_energy);
-
-  //kspace energy
-  ComputeKspaceEnergy(_device_data->_d_box, num_atoms, Kmax,
-      alpha, qqr2e ,_ave_ekspace);
-  _ave_ekspace = _ave_ekspace +_ave_self_energy;
-
-    //out
-   std::cout << "test_current_step:" << test_current_step <<  " ,"
-   << "average_energy_rbe:" << _ave_ekspace << std::endl;
-
-  std::ofstream outfile("ave_energy_rbe.txt", std::ios::app);
-  outfile << test_current_step << " "<< _ave_ekspace << std::endl;
-  outfile.close();
+  // //energy
+  //
+  // //charge self energy//
+  // ComputeSelfEnergy(alpha,qqr2e,_ave_self_energy);
+  //
+  // //kspace energy
+  // ComputeKspaceEnergy(_device_data->_d_box, num_atoms, Kmax,
+  //     alpha, qqr2e ,_ave_ekspace);
+  // _ave_ekspace = _ave_ekspace +_ave_self_energy;
+  //
+  //   //out
+  //  std::cout << "test_current_step:" << test_current_step <<  " ,"
+  //  << "average_energy_rbe:" << _ave_ekspace << std::endl;
+  //
+  // std::ofstream outfile("ave_energy_rbe.txt", std::ios::app);
+  // outfile << test_current_step << " "<< _ave_ekspace << std::endl;
+  // outfile.close();
 }
 
 void CVFF::ComputeRBE()
 {
+  auto start = std::chrono::high_resolution_clock::now();
   //
   auto num_atoms = *(_structure_info_data->_num_atoms);
   _rhok_real_redue.resize(_RBE_P);
@@ -622,6 +646,10 @@ void CVFF::ComputeRBE()
         thrust::raw_pointer_cast(_device_data->_d_force_ewald_x.data()),
         thrust::raw_pointer_cast(_device_data->_d_force_ewald_y.data()),
         thrust::raw_pointer_cast(_device_data->_d_force_ewald_z.data()));
+
+  auto end = std::chrono::high_resolution_clock::now();
+  std::chrono::duration<rbmd::Real> duration = end - start;
+  std::cout << "计算RBE耗时" << duration.count() << "秒" << std::endl;
 
   // //out
   // std::vector<rbmd::Real> h_force_ewald_x(num_atoms);
@@ -814,10 +842,10 @@ void CVFF::ComputeBondForce()
   std::cout << "test_current_step:" << test_current_step <<  " ,"
   << "average_energy_bond:" << _ave_ebond  << std::endl;
 
-  //out
-  std::ofstream outfile("ave_energy_bond.txt", std::ios::app);
-  outfile << test_current_step << " " << _ave_ebond << std::endl;
-  outfile.close();
+  // //out
+  // std::ofstream outfile("ave_energy_bond.txt", std::ios::app);
+  // outfile << test_current_step << " " << _ave_ebond << std::endl;
+  // outfile.close();
 
   // //append force bond
   // std::vector<rbmd::Real> h_force_bondx(num_atoms);
@@ -883,10 +911,10 @@ void CVFF::ComputeAngleForce()
   std::cout << "test_current_step:" << test_current_step <<  " ," <<
     "average_energy_angle:" << _ave_eangle << std::endl;
 
-  //out
-  std::ofstream outfile("ave_energy_angle.txt", std::ios::app);
-  outfile << test_current_step << " " << _ave_eangle << std::endl;
-  outfile.close();
+  // //out
+  // std::ofstream outfile("ave_energy_angle.txt", std::ios::app);
+  // outfile << test_current_step << " " << _ave_eangle << std::endl;
+  // outfile.close();
 
   // //append force angle
   // std::vector<rbmd::Real> h_force_anglex(num_atoms);
