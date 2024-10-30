@@ -43,25 +43,17 @@ class Box {
   rbmd::Id ALIGN(ALIGN_SIZE(rbmd::Id, 3)) _box_width_as_cell_units[3]{};
 };
 
-static __host__ __device__ __forceinline__ void MinImageDistance(Box* box,
-                                                          rbmd::Real& dx,
-                                                          rbmd::Real& dy,
-                                                          rbmd::Real& dz) {
+static __host__ __device__ __forceinline__ void MinImageDistance(
+    Box* box, rbmd::Real& dx, rbmd::Real& dy, rbmd::Real& dz) {
   if (box->_type == Box::BoxType::ORTHOGONAL) {
     if (box->_pbc_x) {
-      if (ABS(dx) > box->_length[0] * 0.5) {
-        dx -= (dx > 0 ? box->_length[0] : -box->_length[0]);
-      }
+      dx -= box->_length[0] * RINT(dx * box->_length_inv[0]);
     }
     if (box->_pbc_y) {
-      if (ABS(dy) > box->_length[1] * 0.5) {
-        dy -= (dy > 0 ? box->_length[1] : -box->_length[1]);
-      }
+      dy -= box->_length[1] * RINT(dy * box->_length_inv[1]);
     }
     if (box->_pbc_z) {
-      if (ABS(dz) > box->_length[2] * 0.5) {
-        dz -= (dz > 0 ? box->_length[2] : -box->_length[2]);
-      }
+      dz -= box->_length[2] * RINT(dz * box->_length_inv[2]);
     }
   }
   // TODO else: tri
