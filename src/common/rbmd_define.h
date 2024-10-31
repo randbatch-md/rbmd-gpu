@@ -1,10 +1,10 @@
 #pragma once
-
 #if defined(__CUDA)
     #include <cuda_runtime.h>
     #include <cuda_runtime_api.h>
     #include <thrust/device_vector.h>
     #include <cub/cub.cuh>
+    #include<cmath>
 #elif defined (__ROCM)
     #include <hip/hip_runtime.h>
     #include <hip/hip_runtime_api.h>
@@ -88,7 +88,7 @@ typedef int3 Int3;
 #define ALIGN_SIZE(type, n) \
   ((sizeof(type) > 4) ? NEXT_POWER_OF_TWO(n) * 8 : NEXT_POWER_OF_TWO(n) * 4)
 
-#if defined(__GNUC__)  // GCC
+#if defined(__GNUC__) || defined(__CUDA)  // GCC
 #define IS_POWER_OF_TWO(x) (((x) & ((x) - 1)) == 0)
 #define NEXT_POWER_OF_TWO(n)      \
   ((n) == 0 ? 1                   \
@@ -129,6 +129,11 @@ typedef int3 Int3;
     #define D2D cudaMemcpyDeviceToDevice
     #define FREE cudaFree
     #define MEMSET cudaMemset
+    #define REDUCE cub::DeviceReduce::Sum
+    #define ERROR_T cudaError_t
+    #define SUCCESS cudaSuccess
+    #define GETERRORSTRING cudaGetErrorString
+    #define GETERRORNAME cudaGetErrorName
 #elif defined (__ROCM)
     #define MALLOC hipMalloc
     #define MALLOCHOST hipHostMalloc
@@ -139,6 +144,11 @@ typedef int3 Int3;
     #define D2D hipMemcpyDeviceToDevice
     #define FREE hipFree
     #define MEMSET hipMemset
+    #define REDUCE hipcub::DeviceReduce::Sum
+    #define ERROR_T hipError_t
+    #define SUCCESS hipSuccess
+    #define GETERRORSTRING hipGetErrorString
+    #define GETERRORNAME cudaGetErrorName
 #endif
 
 
@@ -147,16 +157,17 @@ static T *raw_ptr(thrust::device_vector<T> &vec) {
   return thrust::raw_pointer_cast(vec.data());
 }
 
-#define CHECK_RUNTIME(call) CheckHipRuntime(call, #call, __LINE__, __FILE__)
 
-static bool CheckHipRuntime(hipError_t e, const char *call, int line,
-                            const char *file) {
-  if (e != hipSuccess) {
-    printf("CUDA Runtime error %s # %s, code = %s [ %d ] in file %s:%d", call,
-           hipGetErrorString(e), hipGetErrorName(e), e, file, line);
-    return false;
-  }
-  return true;
+#define CHECK_RUNTIME(call) CheckRunTime(call, #call, __LINE__, __FILE__)
+static bool CheckRunTime(ERROR_T e, const char* call, int line,
+    const char* file)
+{
+    if (e != SUCCESS) {
+        printf("Runtime error %s # %s, code = %s [ %d ] in file %s:%d", call,
+            GETERRORSTRING(e), GETERRORNAME(e), e, file, line);
+        return false;
+    }
+    return true;
 }
 
 #define CHECK_KERNEL(...)                                               \
@@ -170,17 +181,18 @@ static bool CheckHipRuntime(hipError_t e, const char *call, int line,
     }                                                                   \
   } while (0);
 
+
 template <typename T>
 // d_src_array input array  d_dst outputnum size：input array size
-static void ReductionSum(T *d_src_array, T *d_dst, rbmd::Id size) {
-  void *temp = nullptr;
-  size_t temp_bytes = 0;
-  CHECK_RUNTIME(hipcub::DeviceReduce::Sum(temp, temp_bytes, d_src_array, d_dst,
-                                          static_cast<int>(size)));
-  CHECK_RUNTIME(MALLOC(&temp, temp_bytes));
-  CHECK_RUNTIME(hipcub::DeviceReduce::Sum(temp, temp_bytes, d_src_array, d_dst,
-                                          static_cast<int>(size)));
-  CHECK_RUNTIME(FREE(temp));
+static void ReductionSum(T* d_src_array, T* d_dst, rbmd::Id size) {
+    //void* temp = nullptr;
+    //size_t temp_bytes = 0;
+    //CHECK_RUNTIME(REDUCE(temp, temp_bytes, d_src_array, d_dst,
+    //    static_cast<int>(size)));
+    //CHECK_RUNTIME(MALLOC(&temp, temp_bytes));
+    //CHECK_RUNTIME(REDUCE(temp, temp_bytes, d_src_array, d_dst,
+    //    static_cast<int>(size)));
+    //CHECK_RUNTIME(FREE(temp));
 }
 
 
@@ -213,4 +225,3 @@ void TransformForces(
 {
   SumforcesDirection(result_f, forces...);
 }
-
