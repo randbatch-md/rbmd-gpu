@@ -121,7 +121,7 @@ typedef int3 Int3;
 
 #if defined (__CUDA)
     #define MALLOC cudaMalloc
-    #define MALLOCHOST cudaHostMalloc
+    #define MALLOCHOST(ptr, size) cudaHostAlloc((void**)ptr, size,cudaHostAllocDefault)
     #define MEMCPY cudaMemcpy
     #define H2D cudaMemcpyHostToDevice
     #define H2H cudaMemcpyHostToHost

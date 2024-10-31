@@ -8,7 +8,7 @@ get_property(sppdlog_link GLOBAL PROPERTY SPDLOG_LINK_PATH)
 #get_property(data_manager_include GLOBAL PROPERTY DATA_MANAGER_INCLUDE_PATH)
 get_property(library_link GLOBAL PROPERTY LIBRARY_DIR)
 
-set(INCLUDE_DIR "../data_manager/include")
+set(INCLUDE_DIR "../data_manager/include" "../common")
 set(LINK_DIR  ${library_link})
 set(DEPENDS_NAME  "data_manager")
 #message(WARNING  "sppdlog_link: ${sppdlog_link}")
