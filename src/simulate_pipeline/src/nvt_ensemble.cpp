@@ -67,7 +67,7 @@ void NVTensemble::Solve() {
 
   _temperature_controller->Update();
 
-  CHECK_RUNTIME(hipDeviceSynchronize());
+  CHECK_RUNTIME(DEVICESYNC());
   auto end = std::chrono::high_resolution_clock::now();
   std::chrono::duration<rbmd::Real> duration = end - start;
 

@@ -36,17 +36,20 @@ pkg_check_modules(JSONCPP REQUIRED jsoncpp IMPORTED_TARGET GLOBAL)
 pkg_check_modules(SPDLOG REQUIRED spdlog IMPORTED_TARGET GLOBAL)
 #pkg_check_modules(CXXOPTS REQUIRED cxxopts IMPORTED_TARGET GLOBAL)
 
-set(include_dir ${include_dirs} ${TOOLS_INCLUDE_PATH} ${rocthrust_INCLUDE_DIRS} ${SPDLOG_INCLUDE_DIRS} ${JSONCPP_INCLUDE_DIRS} ${hipcub_INCLUDE_DIRS} ${HIP_INCLUDE_DIRS} "../common" "../data_manager/include" "../force/include")  # ${jsoncpp_INCLUDE_DIRS}
-set(link_dir  ${TOOLS_LINK_PATH} ${rocthrust_LIBRARIES} ${hipcub_LIBRARIES} ${HIP_LIBRARIES} ${SPDLOG_LIBRARY_DIRS} ${JSONCPP_LIBRARY_DIRS})  # ${jsoncpp_LIBRARIES}
-set(depends_name   "hip::device" "roc::rocthrust" PkgConfig::JSONCPP PkgConfig::SPDLOG)
+set(INCLUDE_DIRS)
+set(LINK_NAME)
+set(LINK_DIRS)
+if(USE_ROCM)
+	set(INCLUDE_DIRS ${rocthrust_INCLUDE_DIRS} ${HIP_INCLUDE_DIRS})
+	set(LINK_NAME "hip::device" "roc::rocthrust")
+    set(LINK_DIRS ${rocthrust_LIBRARIES} ${HIP_LIBRARIES})
+elseif(USE_CUDA)
+	set(INCLUDE_DIRS ${CMAKE_CUDA_TOOLKIT_INCLUDE_DIRECTORIES})
+endif()
 
-
-
-#set(include_dir ${include_dirs} ${spdlog_include} ${rocthrust_INCLUDE_DIRS} ${hipcub_INCLUDE_DIRS} ${HIP_INCLUDE_DIRS} "../data_manager/include" "../common/")
-#set(link_dirs ${LIBRARY_DIR} ${spdlog_link} ${rocthrust_LIBRARIES} ${hipcub_LIBRARIES} ${HIP_LIBRARIES})
-#set(depend_names "data_manager" "controller" "roc::rocthrust")
-#set(link_name "hip::hipcub" "roc::rocthrust" PkgConfig::JSONCPP PkgConfig::SPDLOG)
-
+set(include_dir ${include_dirs} ${TOOLS_INCLUDE_PATH} ${INCLUDE_DIRS} ${SPDLOG_INCLUDE_DIRS} ${JSONCPP_INCLUDE_DIRS} "../common" "../data_manager/include" "../force/include")  # ${jsoncpp_INCLUDE_DIRS}
+set(link_dir  ${TOOLS_LINK_PATH} ${LINK_DIRS} ${hipcub_LIBRARIES} ${SPDLOG_LIBRARY_DIRS} ${JSONCPP_LIBRARY_DIRS})  # ${jsoncpp_LIBRARIES}
+set(depends_name ${LINK_NAME} PkgConfig::JSONCPP PkgConfig::SPDLOG)
 
 cpp_library(
 name ${PROJECT_NAME}

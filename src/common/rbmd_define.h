@@ -156,6 +156,7 @@ typedef int3 Int3;
     #define WARPSCAN cub::WarpScan
     #define SHUFFLEINDEX cub::ShuffleIndex
     #define BLOCKREDUCE cub::BlockReduce
+    #define DEVICESYNC cudaDeviceSynchronize
 #elif defined (__ROCM)
     #define MALLOC hipMalloc
     #define MALLOCHOST hipHostMalloc
@@ -177,6 +178,7 @@ typedef int3 Int3;
     #define WARPSCAN hipcub::WarpScan
     #define SHUFFLEINDEX hipcub::ShuffleIndex
     #define BLOCKREDUCE hipcub::BlockReduce
+    #define DEVICESYNC hipDeviceSynchronize
 #endif
 
 

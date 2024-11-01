@@ -1,5 +1,3 @@
-#include <hipcub/hipcub.hpp>
-
 #include "rbmd_define.h"
 #include "update_temperature_op.h"
 

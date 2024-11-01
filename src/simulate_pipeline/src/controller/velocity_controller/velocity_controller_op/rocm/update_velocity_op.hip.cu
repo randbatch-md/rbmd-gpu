@@ -1,5 +1,3 @@
-#include <hip/hip_runtime.h>
-
 #include "rbmd_define.h"
 #include "update_velocity_op.h"
 namespace op {
