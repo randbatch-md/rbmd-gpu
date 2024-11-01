@@ -1,7 +1,3 @@
-#include <hip/hip_runtime.h>
-
-#include <hipcub/hipcub.hpp>
-
 #include "common/device_types.h"
 #include "common/rbmd_define.h"
 #include "common/types.h"

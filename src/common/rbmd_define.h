@@ -5,11 +5,17 @@
     #include <thrust/device_vector.h>
     #include <cub/cub.cuh>
     #include<cmath>
+    #include <thrust/gather.h>
+    #include <thrust/sort.h>
 #elif defined (__ROCM)
     #include <hip/hip_runtime.h>
     #include <hip/hip_runtime_api.h>
     #include <thrust/device_vector.h>
     #include <hipcub/hipcub.hpp>
+    #include <thrust/gather.h>
+    #include <thrust/sort.h>
+    #include <hipcub/backend/rocprim/device/device_radix_sort.hpp>
+    #include <hipcub/backend/rocprim/iterator/counting_input_iterator.hpp>
 #else
      #error "This code must be compiled with either HIP or CUDA."
 #endif
@@ -134,6 +140,11 @@ typedef int3 Int3;
     #define SUCCESS cudaSuccess
     #define GETERRORSTRING cudaGetErrorString
     #define GETERRORNAME cudaGetErrorName
+    #define LASTERROR cudaPeekAtLastError
+    #define EXCLUSIVESUM cub::DeviceScan::ExclusiveSum
+    #define WARPREDUCE cub::WarpReduce
+    #define WARPSCAN cub::WarpScan
+    #define SHUFFLEINDEX cub::ShuffleIndex
 #elif defined (__ROCM)
     #define MALLOC hipMalloc
     #define MALLOCHOST hipHostMalloc
@@ -149,6 +160,11 @@ typedef int3 Int3;
     #define SUCCESS hipSuccess
     #define GETERRORSTRING hipGetErrorString
     #define GETERRORNAME cudaGetErrorName
+    #define LASTERROR hipPeekAtLastError
+    #define EXCLUSIVESUM hipcub::DeviceScan::ExclusiveSum
+    #define WARPREDUCE hipcub::WarpReduce
+    #define WARPSCAN hipcub::WarpScan
+    #define SHUFFLEINDEX hipcub::ShuffleIndex
 #endif
 
 
@@ -173,10 +189,10 @@ static bool CheckRunTime(ERROR_T e, const char* call, int line,
 #define CHECK_KERNEL(...)                                               \
   __VA_ARGS__;                                                          \
   do {                                                                  \
-    hipError_t hip_status = hipPeekAtLastError();                       \
-    if (hip_status != hipSuccess) {                                     \
+    ERROR_T err = LASTERROR();                       \
+    if (err != SUCCESS) {                                     \
       printf("Launch Kernel Failed:  %s:%d '%s'\n", __FILE__, __LINE__, \
-             hipGetErrorString(hip_status));                            \
+             GETERRORSTRING(err));                            \
       exit(EXIT_FAILURE);                                               \
     }                                                                   \
   } while (0);

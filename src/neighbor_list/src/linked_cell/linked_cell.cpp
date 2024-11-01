@@ -1,11 +1,7 @@
 #include "linked_cell/linked_cell.h"
 
-#include <thrust/gather.h>
-#include <thrust/sort.h>
 
-#include <hipcub/backend/rocprim/device/device_radix_sort.hpp>
-#include <hipcub/backend/rocprim/iterator/counting_input_iterator.hpp>
-
+#include "../common/rbmd_define.h"
 #include "../common/device_types.h"
 #include "../common/types.h"
 #include "data_manager.h"
