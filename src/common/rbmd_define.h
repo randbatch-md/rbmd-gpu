@@ -46,6 +46,11 @@
 #endif
 
 #if USE_DOUBLE
+    #if defined(__ROCM)
+        #define REAL_DATA(vec) (vec.data)
+    #elif defined(__CUDA)
+        #define REAL_DATA(vec) (const_cast<double*>(reinterpret_cast<const double*>(&vec)))
+    #endif
 typedef double3 Real3;
 typedef double2 Real2;
 #define make_Real3 make_double3
@@ -63,6 +68,11 @@ typedef double2 Real2;
 #define ABS fabs
 #define ACOS acos
 #else
+    #if defined(__ROCM)
+        #define REAL_DATA(vec) (vec.data)
+    #elif defined(__CUDA)
+        #define REAL_DATA(vec) (const_cast<float*>(reinterpret_cast<const float*>(&vec)))
+    #endif
 typedef float3 Real3;
 typedef float2 Real2;
 #define make_Real3 make_float3
@@ -145,6 +155,7 @@ typedef int3 Int3;
     #define WARPREDUCE cub::WarpReduce
     #define WARPSCAN cub::WarpScan
     #define SHUFFLEINDEX cub::ShuffleIndex
+    #define BLOCKREDUCE cub::BlockReduce
 #elif defined (__ROCM)
     #define MALLOC hipMalloc
     #define MALLOCHOST hipHostMalloc
@@ -165,6 +176,7 @@ typedef int3 Int3;
     #define WARPREDUCE hipcub::WarpReduce
     #define WARPSCAN hipcub::WarpScan
     #define SHUFFLEINDEX hipcub::ShuffleIndex
+    #define BLOCKREDUCE hipcub::BlockReduce
 #endif
 
 

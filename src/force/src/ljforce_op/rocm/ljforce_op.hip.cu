@@ -367,12 +367,12 @@ void CoulCutForce_rcs_erf(
 	    for (rbmd::Id m = -10; m <= 10; m++)
 	    {
 	      rbmd::Real expx = m * m * factor;
-	      H.data[i] += EXP(expx);
+		  REAL_DATA(H)[i] += EXP(expx);
 	    }
-	    H.data[i] *= SQRT(-(factor) / M_PI);
+		REAL_DATA(H)[i] *= SQRT(-(factor) / M_PI);
 	  }
 
-	   rbmd::Real factor_3 = H.data[0] * H.data[1] * H.data[2];
+	   rbmd::Real factor_3 = REAL_DATA(H)[0] * REAL_DATA(H)[1] * REAL_DATA(H)[2];
 	   S = factor_3 - 1;
 	}
 
@@ -417,7 +417,7 @@ void CoulCutForce_rcs_erf(
 		rbmd::Real* fz,
 		rbmd::Real* total_evdwl)
 	{
-	  __shared__ typename hipcub::BlockReduce<rbmd::Real, BLOCK_SIZE>::TempStorage
+	  __shared__ typename BLOCKREDUCE<rbmd::Real, BLOCK_SIZE>::TempStorage
 	  	temp_storage;
 
 	  rbmd::Real sum_fx = 0;
@@ -471,7 +471,7 @@ void CoulCutForce_rcs_erf(
 	  }
 
             rbmd::Real block_sum =
-                    hipcub::BlockReduce<rbmd::Real, BLOCK_SIZE>(temp_storage).Sum(sum_elj);
+                    BLOCKREDUCE<rbmd::Real, BLOCK_SIZE>(temp_storage).Sum(sum_elj);
             if (threadIdx.x == 0) {
               atomicAdd(total_evdwl, block_sum);
             }
@@ -747,7 +747,7 @@ void CoulCutForce_rcs_erf(
 		const rbmd::Real* pz,
 		rbmd::Real* total_evdwl)
 	{
-	  __shared__ typename hipcub::BlockReduce<rbmd::Real, BLOCK_SIZE>::TempStorage
+	  __shared__ typename BLOCKREDUCE<rbmd::Real, BLOCK_SIZE>::TempStorage
         temp_storage;
           rbmd::Real sum_elj = 0;
 
@@ -783,7 +783,7 @@ void CoulCutForce_rcs_erf(
 	    }
           }
 
-          rbmd::Real block_sum = hipcub::BlockReduce<rbmd::Real, BLOCK_SIZE>
+          rbmd::Real block_sum = BLOCKREDUCE<rbmd::Real, BLOCK_SIZE>
           (temp_storage).Sum(sum_elj);
           if (threadIdx.x == 0) {
             atomicAdd(total_evdwl, block_sum);
@@ -813,9 +813,9 @@ void CoulCutForce_rcs_erf(
 		rbmd::Real* total_evdwl,
 		rbmd::Real* total_ecoul)
 	{
-	  __shared__ typename hipcub::BlockReduce<rbmd::Real, BLOCK_SIZE>::TempStorage
+	  __shared__ typename BLOCKREDUCE<rbmd::Real, BLOCK_SIZE>::TempStorage
           temp_storage_elj;
-	  __shared__ typename hipcub::BlockReduce<rbmd::Real, BLOCK_SIZE>::TempStorage
+	  __shared__ typename BLOCKREDUCE<rbmd::Real, BLOCK_SIZE>::TempStorage
           temp_storage_ecoul;
 	  rbmd::Real sum_fx = 0;
 	  rbmd::Real sum_fy = 0;
@@ -879,9 +879,9 @@ void CoulCutForce_rcs_erf(
 	    //printf("--------test---fx[tid1]:%f---\n",fx[tid1]);
 	  }
 
-          rbmd::Real block_sum_elj = hipcub::BlockReduce<rbmd::Real, BLOCK_SIZE>
+          rbmd::Real block_sum_elj = BLOCKREDUCE<rbmd::Real, BLOCK_SIZE>
           (temp_storage_elj).Sum(sum_elj);
-          rbmd::Real block_sum_ecoul =hipcub::BlockReduce<rbmd::Real, BLOCK_SIZE
+          rbmd::Real block_sum_ecoul =BLOCKREDUCE<rbmd::Real, BLOCK_SIZE
           >(temp_storage_ecoul).Sum(sum_ecoul);
 
           if (threadIdx.x == 0) {
@@ -917,9 +917,9 @@ void CoulCutForce_rcs_erf(
 		rbmd::Real* total_evdwl,
 		rbmd::Real* total_ecoul)
 	{
-	  __shared__ typename hipcub::BlockReduce<rbmd::Real, BLOCK_SIZE>::TempStorage
+	  __shared__ typename BLOCKREDUCE<rbmd::Real, BLOCK_SIZE>::TempStorage
         temp_storage_elj;
-	  __shared__ typename hipcub::BlockReduce<rbmd::Real, BLOCK_SIZE>::TempStorage
+	  __shared__ typename BLOCKREDUCE<rbmd::Real, BLOCK_SIZE>::TempStorage
         temp_storage_ecoul;
 
 	  rbmd::Real sum_fx = 0;
@@ -1001,9 +1001,9 @@ void CoulCutForce_rcs_erf(
           }
 
           rbmd::Real block_sum_elj =
-                      hipcub::BlockReduce<rbmd::Real, BLOCK_SIZE>(temp_storage_elj).Sum(sum_elj);
+                      BLOCKREDUCE<rbmd::Real, BLOCK_SIZE>(temp_storage_elj).Sum(sum_elj);
           rbmd::Real block_sum_ecoul =
-                               hipcub::BlockReduce<rbmd::Real, BLOCK_SIZE>(temp_storage_ecoul).Sum(sum_ecoul);
+                               BLOCKREDUCE<rbmd::Real, BLOCK_SIZE>(temp_storage_ecoul).Sum(sum_ecoul);
 
           if (threadIdx.x == 0) {
             atomicAdd(total_evdwl, block_sum_elj);
@@ -1031,9 +1031,9 @@ void CoulCutForce_rcs_erf(
 		rbmd::Real* total_evdwl,
 		rbmd::Real* total_ecoul)
 	{
-	  __shared__ typename hipcub::BlockReduce<rbmd::Real, BLOCK_SIZE>::TempStorage
+	  __shared__ typename BLOCKREDUCE<rbmd::Real, BLOCK_SIZE>::TempStorage
           temp_storage_elj;
-	  __shared__ typename hipcub::BlockReduce<rbmd::Real, BLOCK_SIZE>::TempStorage
+	  __shared__ typename BLOCKREDUCE<rbmd::Real, BLOCK_SIZE>::TempStorage
           temp_storage_ecoul;
 
 	  rbmd::Real sum_elj = 0;
@@ -1084,9 +1084,9 @@ void CoulCutForce_rcs_erf(
 	      sum_ecoul += energy_coul;
             }
           }
-          rbmd::Real block_sum_elj = hipcub::BlockReduce<rbmd::Real, BLOCK_SIZE>
+          rbmd::Real block_sum_elj = BLOCKREDUCE<rbmd::Real, BLOCK_SIZE>
           (temp_storage_elj).Sum(sum_elj);
-          rbmd::Real block_sum_ecoul = hipcub::BlockReduce<rbmd::Real, BLOCK_SIZE>
+          rbmd::Real block_sum_ecoul = BLOCKREDUCE<rbmd::Real, BLOCK_SIZE>
          (temp_storage_ecoul).Sum(sum_ecoul);
 
           if (threadIdx.x == 0) {
@@ -1119,9 +1119,9 @@ void CoulCutForce_rcs_erf(
 		rbmd::Real* total_evdwl,
 		rbmd::Real* total_ecoul)
 	{
-	  __shared__ typename hipcub::BlockReduce<rbmd::Real, BLOCK_SIZE>::TempStorage
+	  __shared__ typename BLOCKREDUCE<rbmd::Real, BLOCK_SIZE>::TempStorage
           temp_storage_elj;
-	  __shared__ typename hipcub::BlockReduce<rbmd::Real, BLOCK_SIZE>::TempStorage
+	  __shared__ typename BLOCKREDUCE<rbmd::Real, BLOCK_SIZE>::TempStorage
           temp_storage_ecoul;
 
 	  rbmd::Real sum_elj = 0;
@@ -1192,9 +1192,9 @@ void CoulCutForce_rcs_erf(
 	      sum_ecoul += energy_coul;
             }
           }
-          rbmd::Real block_sum_elj = hipcub::BlockReduce<rbmd::Real, BLOCK_SIZE>
+          rbmd::Real block_sum_elj = BLOCKREDUCE<rbmd::Real, BLOCK_SIZE>
           (temp_storage_elj).Sum(sum_elj);
-          rbmd::Real block_sum_ecoul = hipcub::BlockReduce<rbmd::Real, BLOCK_SIZE>
+          rbmd::Real block_sum_ecoul = BLOCKREDUCE<rbmd::Real, BLOCK_SIZE>
           (temp_storage_ecoul).Sum(sum_ecoul);
 
           if (threadIdx.x == 0) {
@@ -1806,7 +1806,7 @@ void CoulCutForce_rcs_erf(
        rbmd::Real* fz,
        rbmd::Real* total_especial_coul)
        {
-          __shared__ typename hipcub::BlockReduce<rbmd::Real, BLOCK_SIZE>::TempStorage
+          __shared__ typename BLOCKREDUCE<rbmd::Real, BLOCK_SIZE>::TempStorage
     temp_storage;
 
           rbmd::Real  sum_fx=0.0;
@@ -1876,7 +1876,7 @@ void CoulCutForce_rcs_erf(
               fz[id1] = sum_fz;
           }
 
-          rbmd::Real block_sum_especial_coul = hipcub::BlockReduce<rbmd::Real, BLOCK_SIZE>
+          rbmd::Real block_sum_especial_coul = BLOCKREDUCE<rbmd::Real, BLOCK_SIZE>
           (temp_storage).Sum(sum_energy_special_coul);
           if (threadIdx.x == 0) {
             atomicAdd(total_especial_coul, block_sum_especial_coul);
@@ -1901,7 +1901,7 @@ void CoulCutForce_rcs_erf(
        rbmd::Id* temp_atom_ids,
        rbmd::Real* energy_bond)
         {
-	  __shared__ typename hipcub::BlockReduce<rbmd::Real, BLOCK_SIZE>::TempStorage
+	  __shared__ typename BLOCKREDUCE<rbmd::Real, BLOCK_SIZE>::TempStorage
     temp_storage;
 
 	  rbmd::Real local_energy_bond  = 0;
@@ -1970,7 +1970,7 @@ void CoulCutForce_rcs_erf(
 	      atomicAdd(&fz[bondjj], -fz_ij);
 	}
           rbmd::Real block_sum =
-        hipcub::BlockReduce<rbmd::Real, BLOCK_SIZE>(temp_storage).Sum(local_energy_bond);
+        BLOCKREDUCE<rbmd::Real, BLOCK_SIZE>(temp_storage).Sum(local_energy_bond);
 
           if (threadIdx.x == 0){
             atomicAdd(energy_bond, block_sum);
@@ -1996,7 +1996,7 @@ void CoulCutForce_rcs_erf(
        rbmd::Real* fz,
        rbmd::Real* energy_angle)
         {
-          __shared__ typename hipcub::BlockReduce<rbmd::Real, BLOCK_SIZE>::TempStorage
+          __shared__ typename BLOCKREDUCE<rbmd::Real, BLOCK_SIZE>::TempStorage
 temp_storage;
           rbmd::Real local_energy_angle  = 0;
 
@@ -2096,7 +2096,7 @@ temp_storage;
 	      // atomicAdd(&fz[angleljj], force_anglej_z);
 	  }
 
-          rbmd::Real block_sum = hipcub::BlockReduce<rbmd::Real, BLOCK_SIZE>
+          rbmd::Real block_sum = BLOCKREDUCE<rbmd::Real, BLOCK_SIZE>
           (temp_storage).Sum(local_energy_angle);
 
           if (threadIdx.x == 0){
@@ -2124,7 +2124,7 @@ temp_storage;
          rbmd::Real* fz,
          rbmd::Real* energy_dihedral)
        {
-          __shared__ typename hipcub::BlockReduce<rbmd::Real, BLOCK_SIZE>::TempStorage
+          __shared__ typename BLOCKREDUCE<rbmd::Real, BLOCK_SIZE>::TempStorage
 temp_storage;
           rbmd::Real local_energy_dihedral  = 0;
 
@@ -2292,7 +2292,7 @@ temp_storage;
             atomicAdd(&fz[dihedralkk], force_dihedralk_z);
           }
           rbmd::Real block_sum =
-        hipcub::BlockReduce<rbmd::Real, BLOCK_SIZE>(temp_storage).Sum(local_energy_dihedral);
+        BLOCKREDUCE<rbmd::Real, BLOCK_SIZE>(temp_storage).Sum(local_energy_dihedral);
 
           if (threadIdx.x == 0){
             atomicAdd(energy_dihedral, block_sum);
