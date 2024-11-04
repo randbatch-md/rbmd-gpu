@@ -1,6 +1,5 @@
 ﻿#pragma once
-#include <thrust/device_vector.h>
-
+#include "../common/rbmd_define.h"
 #include "../common/types.h"
 #include "box.h"
 #include "../common/erf_table.h"

@@ -3,7 +3,6 @@
 #include "types.h"
 #include "rbmd_define.h"
 #include <vector>
-#include <thrust/copy.h>
 
 const rbmd::Id MANTISSA_BITS = 8;
 const rbmd::Id MASK = 67076096; // 2^26-2^15

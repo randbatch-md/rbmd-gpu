@@ -4,9 +4,10 @@
     #include <cuda_runtime_api.h>
     #include <thrust/device_vector.h>
     #include <cub/cub.cuh>
-    #include<cmath>
+    #include <cmath>
     #include <thrust/gather.h>
     #include <thrust/sort.h>
+    #include <thrust/copy.h>
 #elif defined (__ROCM)
     #include <hip/hip_runtime.h>
     #include <hip/hip_runtime_api.h>
@@ -14,6 +15,7 @@
     #include <hipcub/hipcub.hpp>
     #include <thrust/gather.h>
     #include <thrust/sort.h>
+    #include <thrust/copy.h>
     #include <hipcub/backend/rocprim/device/device_radix_sort.hpp>
     #include <hipcub/backend/rocprim/iterator/counting_input_iterator.hpp>
 #else
