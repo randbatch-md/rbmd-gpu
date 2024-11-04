@@ -65,12 +65,15 @@ function(cpp_library)
 	if(USE_CUDA)
 		set_source_files_properties(${SRC} ${H_FILE} ${H_FILE_I} ${CU_FILE} PROPERTIES LANGUAGE CUDA)
 	elseif(USE_ROCM)
-		set_source_files_properties(${SRC} ${H_FILE} ${H_FILE_I} ${CU_FILE} PROPERTIES LANGUAGE C++)
+		set_source_files_properties(${CU_FILE} PROPERTIES LANGUAGE CXX)
 	endif()
 
 	#add static library
 	add_library(${lib_name} STATIC ${SRC} ${H_FILE} ${H_FILE_I} ${CU_FILE})
-	target_compile_options(${lib_name} PRIVATE --extended-lambda)
+
+	if(USE_CUDA)
+		target_compile_options(${lib_name} PRIVATE --extended-lambda)
+	endif()
 
 	config_cpp(${lib_name})
 

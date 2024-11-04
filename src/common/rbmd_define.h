@@ -173,7 +173,7 @@ typedef int3 Int3;
     #define ERROR_T hipError_t
     #define SUCCESS hipSuccess
     #define GETERRORSTRING hipGetErrorString
-    #define GETERRORNAME cudaGetErrorName
+    #define GETERRORNAME hipGetErrorName
     #define LASTERROR hipPeekAtLastError
     #define EXCLUSIVESUM hipcub::DeviceScan::ExclusiveSum
     #define WARPREDUCE hipcub::WarpReduce
