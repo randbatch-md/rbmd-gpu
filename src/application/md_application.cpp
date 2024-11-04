@@ -59,6 +59,7 @@ int MDApplication::Execute() {
 
   _simulate->Execute();
 
+  DataManager::getInstance().unloadDeviceData();
   return 0;
 }
 

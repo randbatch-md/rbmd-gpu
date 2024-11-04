@@ -143,5 +143,10 @@ class DeviceData {
   // box in device
   Box* _d_box;
   ERFTable* _d_erf_table;
-  ~DeviceData() { CHECK_RUNTIME(FREE(_d_box));CHECK_RUNTIME(FREE(_d_erf_table)); }
+
+  void unload()
+  {
+	  CHECK_RUNTIME(FREE(_d_box));
+	  CHECK_RUNTIME(FREE(_d_erf_table));
+  }
 };
