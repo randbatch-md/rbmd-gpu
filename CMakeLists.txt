@@ -81,16 +81,16 @@ pkg_check_modules(SPDLOG REQUIRED spdlog IMPORTED_TARGET GLOBAL)
 pkg_check_modules(CXXOPTS REQUIRED cxxopts IMPORTED_TARGET GLOBAL)
 
 
-#add_executable(${PROJECT_NAME} ${src})
-#
-#set(LIB_DIR ${CMAKE_CURRENT_LIST_DIR}/lib)
-#
-#set(LIBRARY_NAMES
-#		data_manager
-#		reader
-#		neighbor_list
-#		force
-#		simulate_pipeline
-#)
-#target_compile_options(${PROJECT_NAME} PRIVATE $<$<COMPILE_LANGUAGE:CUDA>:--extended-lambda>)
-#target_link_libraries(${PROJECT_NAME} PUBLIC ${LIBRARY_NAMES} PkgConfig::JSONCPP PkgConfig::SPDLOG PkgConfig::CXXOPTS)
+add_executable(${PROJECT_NAME} ${src})
+
+set(LIB_DIR ${CMAKE_CURRENT_LIST_DIR}/lib)
+
+set(LIBRARY_NAMES
+		data_manager
+		reader
+		neighbor_list
+		force
+		simulate_pipeline
+)
+target_compile_options(${PROJECT_NAME} PRIVATE $<$<COMPILE_LANGUAGE:CUDA>:--extended-lambda>)
+target_link_libraries(${PROJECT_NAME} PUBLIC ${LIBRARY_NAMES} PkgConfig::JSONCPP PkgConfig::SPDLOG PkgConfig::CXXOPTS)

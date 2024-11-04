@@ -49,8 +49,7 @@ void LangevinController::ComputeTemp() {
 
     CHECK_RUNTIME(MEMSET(_d_temp_contrib, 0, sizeof(rbmd::Real)));
 
-    op::ComputeTemperatureOp<device::DEVICE_GPU> compute_temperature_op;
-    compute_temperature_op(num_atoms, _mvv2e,
+    op::ComputeTemperatureOp<device::DEVICE_GPU>()(num_atoms, _mvv2e,
         thrust::raw_pointer_cast(_device_data->_d_atoms_type.data()),
         thrust::raw_pointer_cast(_device_data->_d_mass.data()),
         thrust::raw_pointer_cast(_device_data->_d_vx.data()),
@@ -93,8 +92,7 @@ void LangevinController::UpdataForce() {
   
   rbmd::Real kbT = 1;
   rbmd::Real gamma = 100.0;
-  op::UpdataForceLangevinOp<device::DEVICE_GPU> updata_force_op;
-  updata_force_op(*(_structure_info_data->_num_atoms), gaussian[0], gaussian[1], gaussian[2], kbT, gamma,_dt,
+  op::UpdataForceLangevinOp<device::DEVICE_GPU>()(*(_structure_info_data->_num_atoms), gaussian[0], gaussian[1], gaussian[2], kbT, gamma,_dt,
                   thrust::raw_pointer_cast(_device_data->_d_mass.data()),
                   thrust::raw_pointer_cast(_device_data->_d_vx.data()),
                   thrust::raw_pointer_cast(_device_data->_d_vy.data()),

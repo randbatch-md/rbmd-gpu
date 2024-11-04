@@ -56,8 +56,7 @@ void BerendsenController::ComputeTemp() {
 
   CHECK_RUNTIME(MEMSET(_d_temp_contrib, 0, sizeof(rbmd::Real)));
 
-  op::ComputeTemperatureOp<device::DEVICE_GPU> compute_temperature_op;
-  compute_temperature_op(num_atoms, _mvv2e,
+  op::ComputeTemperatureOp<device::DEVICE_GPU>()(num_atoms, _mvv2e,
       thrust::raw_pointer_cast(_device_data->_d_atoms_type.data()),
       thrust::raw_pointer_cast(_device_data->_d_mass.data()),
       thrust::raw_pointer_cast(_device_data->_d_vx.data()),
@@ -95,8 +94,7 @@ void BerendsenController::UpdataVelocity() {
   rbmd::Real coeff_Berendsen =
       SQRT(1.0 + (_dt / _temperature_damp) * (_temperature_start/ _temp - 1.0));
 
-  op::UpdataVelocityRescaleOp<device::DEVICE_GPU> updata_velocity_op;
-  updata_velocity_op(*(_structure_info_data->_num_atoms), coeff_Berendsen,
+  op::UpdataVelocityRescaleOp<device::DEVICE_GPU>()(*(_structure_info_data->_num_atoms), coeff_Berendsen,
                      thrust::raw_pointer_cast(_device_data->_d_vx.data()),
                      thrust::raw_pointer_cast(_device_data->_d_vy.data()),
                      thrust::raw_pointer_cast(_device_data->_d_vz.data()));
