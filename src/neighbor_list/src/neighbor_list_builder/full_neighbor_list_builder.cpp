@@ -96,7 +96,7 @@ void FullNeighborListBuilder::EstimateNeighborsList() {
   _neighbor_list->_d_neighbors.resize(
       _neighbor_list->_h_total_max_neighbor_num);
   InitNeighborListIndices();
-  this->should_realloc = false;
+  this->should_realloc = RBMD_FALSE;
 }
 
 rbmd::Id FullNeighborListBuilder::GenerateNeighborsList() {

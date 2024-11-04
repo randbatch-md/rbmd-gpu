@@ -169,7 +169,7 @@ void CVFF::ComputeLJRBL()
                         thrust::raw_pointer_cast(_device_data->_d_force_ljcoul_z.data()));
 
     //energy
-    ComputeLJCoulEnergy();
+    //ComputeLJCoulEnergy();
 
     // //out
     // std::vector<rbmd::Real> h_force_ljcoul_x(num_atoms);
@@ -850,12 +850,12 @@ void CVFF::ComputeAngleForce()
   rbmd::Real h_energy_bond = 0.0;
   CHECK_RUNTIME(MEMSET(_d_total_eangle, 0, sizeof(rbmd::Real)));
 
-  // thrust::fill(_device_data->_d_force_angle_x.begin(),
-  // _device_data->_d_force_angle_x.end(), 0.0f);
-  // thrust::fill(_device_data->_d_force_angle_y.begin(),
-  //   _device_data->_d_force_angle_y.end(), 0.0f);
-  // thrust::fill(_device_data->_d_force_angle_z.begin(),
-  //   _device_data->_d_force_angle_z.end(), 0.0f);
+  thrust::fill(_device_data->_d_force_angle_x.begin(),
+  _device_data->_d_force_angle_x.end(), 0.0f);
+  thrust::fill(_device_data->_d_force_angle_y.begin(),
+    _device_data->_d_force_angle_y.end(), 0.0f);
+  thrust::fill(_device_data->_d_force_angle_z.begin(),
+    _device_data->_d_force_angle_z.end(), 0.0f);
 
   auto num_angles = *(_structure_info_data->_num_angles);
   op::ComputeAngleForceOp<device::DEVICE_GPU> angle_force_op;
