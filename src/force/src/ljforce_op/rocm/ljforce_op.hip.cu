@@ -852,8 +852,8 @@ void CoulCutForce_rcs_erf(
 	      MinImageDistance(box, px12, py12, pz12) ;
 	      //erf
 	      rbmd::Real  dis = SQRT(px12*px12+py12*py12+pz12*pz12);
-	      rbmd::Id index_table_pij = erf_table->Extract(dis);
-	      rbmd::Real  table_pij = erf_table->TableGnearValue(dis,index_table_pij);
+	      rbmd::Id index_table_pij = Extract(dis);
+	      rbmd::Real  table_pij = TableGnearValue(erf_table,dis,index_table_pij);
 
 	      rbmd::Real force_lj, force_coul, force_pair;
 	      rbmd::Real energy_lj, energy_coul;
@@ -960,8 +960,8 @@ void CoulCutForce_rcs_erf(
               MinImageDistance(box, px12, py12, pz12);
 	       //erf value
 	      rbmd::Real  dis = SQRT(px12*px12+py12*py12+pz12*pz12);
-	      rbmd::Id index_table_pij = erf_table->Extract(dis);
-	      rbmd::Real  table_pij = erf_table->TableGnearValue(dis,index_table_pij);
+	      rbmd::Id index_table_pij =Extract(dis);
+	      rbmd::Real  table_pij =TableGnearValue(erf_table,dis,index_table_pij);
 
               rbmd::Real force_lj, force_coul, force_pair;
               rbmd::Real energy_lj, energy_coul;
@@ -1068,8 +1068,8 @@ void CoulCutForce_rcs_erf(
 	      MinImageDistance(box, px12, py12, pz12);
 	      //erf
 	      rbmd::Real  dis = SQRT(px12*px12+py12*py12+pz12*pz12);
-	      rbmd::Id index_table_pij = erf_table->Extract(dis);
-	      rbmd::Real  table_pij = erf_table->TableGnearValue(dis,index_table_pij);
+	      rbmd::Id index_table_pij =Extract(dis);
+	      rbmd::Real  table_pij =TableGnearValue(erf_table,dis,index_table_pij);
 	      rbmd::Real force_lj, force_coul;
 	      rbmd::Real energy_lj, energy_coul;
 	      //lj cut
@@ -1164,8 +1164,8 @@ void CoulCutForce_rcs_erf(
 
 	      //erf
 	      rbmd::Real dis = SQRT(px12*px12+py12*py12+pz12*pz12);
-	      rbmd::Id index_table_pij = erf_table->Extract(dis);
-	      rbmd::Real table_pij = erf_table->TableGnearValue(dis,index_table_pij);
+	      rbmd::Id index_table_pij =Extract(dis);
+	      rbmd::Real table_pij =TableGnearValue(erf_table,dis,index_table_pij);
 
               rbmd::Real force_lj, force_coul, force_pair;
 	      rbmd::Real energy_lj, energy_coul;
@@ -1274,8 +1274,8 @@ void CoulCutForce_rcs_erf(
 
 			  //erf
 			  rbmd::Real  dis = SQRT(px12*px12+py12*py12+pz12*pz12);
-			  rbmd::Id index_table_pij = erf_table->Extract(dis);
-			  rbmd::Real  table_pij = erf_table->TableGnearValue(dis,index_table_pij);
+			  rbmd::Id index_table_pij =Extract(dis);
+			  rbmd::Real  table_pij =TableGnearValue(erf_table,dis,index_table_pij);
 
 			  //compute the force_rs
 			  rbmd::Real force_lj_rs, force_coul_rs;
@@ -1317,8 +1317,8 @@ void CoulCutForce_rcs_erf(
 
 			  //erf
 			  rbmd::Real  dis = SQRT(px12*px12+py12*py12+pz12*pz12);
-			  rbmd::Id index_table_pij = erf_table->Extract(dis);
-			  rbmd::Real  table_pij = erf_table->TableGnearValue(dis,index_table_pij);
+			  rbmd::Id index_table_pij =Extract(dis);
+			  rbmd::Real  table_pij =TableGnearValue(erf_table,dis,index_table_pij);
 
 			  //compute the force_rcs
 			  rbmd::Real force_lj_rcs, force_coul_rcs;
@@ -1424,8 +1424,8 @@ void CoulCutForce_rcs_erf(
 
 	      //erf
 	      rbmd::Real  dis = SQRT(px12*px12+py12*py12+pz12*pz12);
-	      rbmd::Id index_table_pij = erf_table->Extract(dis);
-	      rbmd::Real  table_pij = erf_table->TableGnearValue(dis,index_table_pij);
+	      rbmd::Id index_table_pij =Extract(dis);
+	      rbmd::Real  table_pij =TableGnearValue(erf_table,dis,index_table_pij);
 
 	      //compute the force_rs
 	      rbmd::Real force_lj_rs, force_coul_rs;
@@ -1478,8 +1478,8 @@ void CoulCutForce_rcs_erf(
 
               //erf
               rbmd::Real  dis = SQRT(px12*px12+py12*py12+pz12*pz12);
-              rbmd::Id index_table_pij = erf_table->Extract(dis);
-              rbmd::Real  table_pij = erf_table->TableGnearValue(dis,index_table_pij);
+              rbmd::Id index_table_pij =Extract(dis);
+              rbmd::Real  table_pij =TableGnearValue(erf_table,dis,index_table_pij);
 
               //compute the force_rcs
               rbmd::Real force_lj_rcs, force_coul_rcs;

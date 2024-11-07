@@ -31,7 +31,6 @@ public:
           rbmd::Real* value_Im_array);
   void ComputeEwlad();//Ewald
 
-  void ERFInit();
   void RBEInit(Box* box,rbmd::Real alpha,rbmd::Id RBE_P);
   void ComputeChargeStructureFactorRBE(
          Box* box,
