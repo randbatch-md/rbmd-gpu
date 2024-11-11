@@ -1,6 +1,9 @@
 #pragma once
 #include "device_types.h"
 #include "types.h"
+#include "common/device_types.h"
+
+
 namespace op {
 template <typename DEVICE>
 struct UpdateVelocityOp {
