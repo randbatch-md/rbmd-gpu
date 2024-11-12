@@ -123,7 +123,7 @@ __global__ void ShakeA(const rbmd::Id num_angle,
 
     rbmd::Real bond1 = 1.0;
     rbmd::Real bond2 = 1.0;
-    rbmd::Real bond12 = SQRT(bond1 * bond1 + bond2 * bond2 - 2.0 * bond1 * bond2 * COS((109.4700 / 180.0) * M_PIf));
+    rbmd::Real bond12 = SQRT(bond1 * bond1 + bond2 * bond2 - 2.0 * bond1 * bond2 * COS((109.4700 / 180.0) * M_PI));
         //printf("tid为：%d----输出结果为：%f \n",tid,bond12);
     
     // minimum image
