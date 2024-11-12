@@ -65,13 +65,15 @@ __device__ rbmd::Real Dot(const Real3& p_1,
     }
 
     __device__ bool IsNan(const rbmd::Real& value) {
-        return value != value;  // TODO: isnan
-    }
+        //return value != value;  // TODO: isnan
+        return (isnan(value) != 0);
+}
 
 __global__ void ShakeA(const rbmd::Id num_angle,
                        const rbmd::Real dt,
                        const rbmd::Real fmt2v,
                        Box* box,
+                       const rbmd::Id* atom_id_to_idx,
                        const rbmd::Real* mass,
                        const rbmd::Id* atoms_type,
                        const Id3* angle_id_vec,
@@ -91,9 +93,17 @@ __global__ void ShakeA(const rbmd::Id num_angle,
     int tid = threadIdx.x + blockIdx.x * blockDim.x;
 
     if (tid < num_angle) {
-    rbmd::Id id_0 = angle_id_vec[tid].x;
-    rbmd::Id id_1 = angle_id_vec[tid].y;
-    rbmd::Id id_2 = angle_id_vec[tid].z;
+
+        rbmd::Id id_0x = angle_id_vec[tid].x;
+        rbmd::Id id_1x = angle_id_vec[tid].y;
+        rbmd::Id id_2x = angle_id_vec[tid].z;
+
+    rbmd::Id id_0 = atom_id_to_idx[id_0x];
+    rbmd::Id id_1 = atom_id_to_idx[id_1x];
+    rbmd::Id id_2 = atom_id_to_idx[id_2x];
+
+    //printf("tid为：%d----1输出结果为：%f, %f, %f \n %f, %f, %f \n  %f, %f, %f \n  %f, %f \n",tid,shake_px[id_0],shake_px[id_1],shake_px[id_2],shake_vx[id_0],shake_vx[id_1],shake_vx[id_2],
+    //       mass[atoms_type[id_0]],mass[atoms_type[id_1]] ,mass[atoms_type[id_2]] , dt,fmt2v);
 
     Real3 shake_position_0, shake_position_1, shake_position_2;
     shake_position_0.x = shake_px[id_0] + shake_vx[id_0] * dt + 0.5 * dt * dt * fx[id_0] / mass[atoms_type[id_0]] * fmt2v;
@@ -108,24 +118,25 @@ __global__ void ShakeA(const rbmd::Id num_angle,
     shake_position_2.y = shake_py[id_2] + shake_vy[id_2] * dt + 0.5 * dt * dt * fy[id_2] / mass[atoms_type[id_2]] * fmt2v;
     shake_position_2.z = shake_pz[id_2] + shake_vz[id_2] * dt + 0.5 * dt * dt * fz[id_2] / mass[atoms_type[id_2]] * fmt2v;
 
-        printf("tid为：%d----输出结果为：%f, %f, %f \n",shake_position_0.x,shake_position_1.x,shake_position_2.x);
+        //printf("tid为：%d----输出结果为：%f, %f, %f \n",tid,shake_position_0.x,shake_position_1.x,shake_position_2.x);
 
 
     rbmd::Real bond1 = 1.0;
     rbmd::Real bond2 = 1.0;
     rbmd::Real bond12 = SQRT(bond1 * bond1 + bond2 * bond2 - 2.0 * bond1 * bond2 * COS((109.4700 / 180.0) * M_PIf));
-
+        //printf("tid为：%d----输出结果为：%f \n",tid,bond12);
     
     // minimum image
     Real3 r01 = MinDistanceVec(shake_px[id_1], shake_py[id_1], shake_pz[id_1], shake_px[id_0], shake_py[id_0], shake_pz[id_0], box);
     Real3 r12 = MinDistanceVec(shake_px[id_2], shake_py[id_2], shake_pz[id_2], shake_px[id_1], shake_py[id_1], shake_pz[id_1], box);
     Real3 r20 = MinDistanceVec(shake_px[id_0], shake_py[id_0], shake_pz[id_0], shake_px[id_2], shake_py[id_2], shake_pz[id_2], box);
-
+        //printf("tid为：%d----输出结果为：%f, %f, %f \n",tid,r01.x,r12.x,r20.x);
 
     // s01,s02,s12 = distance vec after unconstrained update, with PBC
     Real3 s10 = MinDistanceVec(shake_position_0.x, shake_position_0.y, shake_position_0.z, shake_position_1.x, shake_position_1.y, shake_position_1.z, box);
     Real3 s21 = MinDistanceVec(shake_position_1.x, shake_position_1.y, shake_position_1.z, shake_position_2.x, shake_position_2.y, shake_position_2.z, box);
     Real3 s02 = MinDistanceVec(shake_position_2.x, shake_position_2.y, shake_position_2.z, shake_position_0.x, shake_position_0.y, shake_position_0.z, box);
+        //printf("tid为：%d----输出结果为：%f, %f, %f \n",tid,s10.x,s21.x,s02.x);
 
     // scalar distances between atoms
     rbmd::Real r01sq = Dot(r01, r01);
@@ -134,7 +145,7 @@ __global__ void ShakeA(const rbmd::Id num_angle,
     rbmd::Real s01sq = Dot(s10, s10);
     rbmd::Real s02sq = Dot(s02, s02);
     rbmd::Real s12sq = Dot(s21, s21);
-
+       //printf("tid为：%d----s01sq输出结果为：%f, %f, %f \n",tid,r01sq,s01sq,s12sq);
     // matrix coeffs and rhs for lamda equations
     rbmd::Real invmass0 = 1 / mass[atoms_type[id_0]];
     rbmd::Real invmass1 = 1 / mass[atoms_type[id_1]];
@@ -195,7 +206,8 @@ __global__ void ShakeA(const rbmd::Id num_angle,
       rbmd::Real quad3_0120 = -2 * (invmass0 + invmass2) * invmass0 * r0120;
       rbmd::Real quad3_0112 = 2 * invmass0 * invmass2 * r0112;
       rbmd::Real quad3_2012 = -2 * (invmass0 + invmass2) * invmass2 * r2012;
-
+        // printf("tid为：%d----倒数第6次quad1参数输出结果为：%f, %f, %f,%f, %f, %f,%f, %f, %f,%f, %f, %f,%f, %f, %f,%f, %f , %f, %f \n",tid,quad1_0101, quad1_1212 , quad1_2020,quad1_0120,quad1_0112,quad1_2012,quad2_0101
+        //       ,quad2_1212,quad2_1212,quad2_2020,quad2_0120,quad2_0112,quad2_2012,quad3_0101,quad3_1212,quad3_2020,quad3_0120,quad3_0112,quad3_2012);
         // iterate until converged
         rbmd::Real tolerance = 0.00001;     // original 0.001
         rbmd::Id max_iter = 5000; // original: 100
@@ -223,13 +235,17 @@ __global__ void ShakeA(const rbmd::Id num_angle,
                     quad3_1212 * lamda12 * lamda12 + quad3_0120 * lamda01 * lamda20 +
                     quad3_0112 * lamda01 * lamda12 + quad3_2012 * lamda20 * lamda12;
 
-            b1 = bond1 * bond1 - s01sq - quad1;
+            b1 = bond1 * bond1 - s01sq - quad1;  // bond 是常值，s01sq应该 也可，
             b2 = bond2 * bond2 - s12sq - quad2;
             b3 = bond12 * bond12 - s02sq - quad3;
+            //printf("tid为：%d----倒数第6次b参数输出结果为：%f, %f,%f, %f \n",tid,bond1, bond1 , s01sq , quad1);
+            //printf("tid为：%d----倒数第6次b参数输出结果为：%f, %f,%f \n",tid,b1, b2 , b3);
+            //printf("tid为：%d----倒数第6次quad参数输出结果为：%f, %f,%f \n",tid,quad1, quad2 , quad3);
 
             lamda01_new = a11inv * b1 + a12inv * b2 + a13inv * b3;
             lamda12_new = a21inv * b1 + a22inv * b2 + a23inv * b3;
             lamda20_new = a31inv * b1 + a32inv * b2 + a33inv * b3;
+            //printf("tid为：%d----倒数第5次lamda01_new参数输出结果为：%f, %f,%f, %f,%f,%f \n",tid,a11inv , b1 , a12inv , b2 , a13inv , b3);
 
             done = 1;
             if (Abs(lamda01_new - lamda01) > tolerance)
@@ -242,7 +258,7 @@ __global__ void ShakeA(const rbmd::Id num_angle,
             lamda01 = lamda01_new;
             lamda20 = lamda20_new;
             lamda12 = lamda12_new;
-
+           // printf("tid为：%d----倒数第4次lamda输出结果为：%f, %f \n",tid,lamda01, lamda20);
 
             if (IsNan(lamda01) || IsNan(lamda20) || IsNan(lamda12) ||
                 Abs(lamda01) > 1e20 || Abs(lamda20) > 1e20 || Abs(lamda12) > 1e20)
@@ -268,6 +284,8 @@ __global__ void ShakeA(const rbmd::Id num_angle,
         position_constraint_i2.x = lamda20 * r20.x * invmass2 - lamda12 * r12.x * invmass2;
         position_constraint_i2.y = lamda20 * r20.y * invmass2 - lamda12 * r12.y * invmass2;
         position_constraint_i2.z = lamda20 * r20.z * invmass2 - lamda12 * r12.z * invmass2;
+        //printf("tid为：%d----倒数第3次position_constraint_i0输出结果为：%f, %f, %f \n",tid,position_constraint_i0.x,position_constraint_i1.x,position_constraint_i2.x);
+        //printf("tid为：%d----倒数第3次position_constraint_i0参数输出结果为：%f, %f, %f, %f, %f \n",tid,lamda01, r01.x , invmass0 , lamda20 , r20.x );
 
 
 
@@ -284,7 +302,7 @@ __global__ void ShakeA(const rbmd::Id num_angle,
         velocity_constraint_i2.x = position_constraint_i2.x / dt;
         velocity_constraint_i2.y = position_constraint_i2.y / dt;
         velocity_constraint_i2.z = position_constraint_i2.z / dt;
-
+        //printf("tid为：%d----倒数第二次velocity_constraint输出结果为：%f, %f, %f \n",tid,velocity_constraint_i0.x,velocity_constraint_i1.x,velocity_constraint_i2.x);
         Real3 shake_velocity_0,shake_velocity_1,shake_velocity_2;
         shake_velocity_0.x = shake_vx[id_0] + 0.5 * dt * fx[id_0]/mass[atoms_type[id_0]] * fmt2v;
         shake_velocity_0.y = shake_vy[id_0] + 0.5 * dt * fy[id_0]/mass[atoms_type[id_0]] * fmt2v;
@@ -297,6 +315,7 @@ __global__ void ShakeA(const rbmd::Id num_angle,
         shake_velocity_2.x = shake_vx[id_2] + 0.5 * dt * fx[id_2]/mass[atoms_type[id_2]] * fmt2v;
         shake_velocity_2.y = shake_vy[id_2] + 0.5 * dt * fy[id_2]/mass[atoms_type[id_2]] * fmt2v;
         shake_velocity_2.z = shake_vz[id_2] + 0.5 * dt * fz[id_2]/mass[atoms_type[id_2]] * fmt2v;
+        //printf("tid为：%d----倒数第三次输出结果为：%f, %f, %f \n",tid,shake_px[id_0],shake_px[id_1],shake_px[id_2]);
 
         // velocity
         shake_vx[id_0] = shake_velocity_0.x + velocity_constraint_i0.x;
@@ -323,6 +342,9 @@ __global__ void ShakeA(const rbmd::Id num_angle,
         shake_px[id_2] = shake_position_2.x + position_constraint_i2.x;
         shake_py[id_2] = shake_position_2.y + position_constraint_i2.y;
         shake_pz[id_2] = shake_position_2.z + position_constraint_i2.z;
+        //printf("tid为：%d----倒数第二次输出结果为：%f, %f, %f \n",tid,shake_px[id_0],shake_px[id_1],shake_px[id_2]);
+        //printf("tid为：%d----倒数第二次shake_position输出结果为：%f, %f, %f \n",tid,shake_position_0.x,shake_position_1.x,shake_position_2.x);
+        //printf("tid为：%d----倒数第二次shake_position输出结果为：%f, %f, %f \n",tid,position_constraint_i0.x,position_constraint_i1.x,position_constraint_i2.x);
 
         // pbc
         Real3 whole_position_pbc_0, whole_position_pbc_1, whole_position_pbc_2;
@@ -486,6 +508,7 @@ __global__ void ShakeB(const rbmd::Id num_angle,
                        const rbmd::Real dt,
                        const rbmd::Real fmt2v,
                        Box* box,
+                       const rbmd::Id* atom_id_to_idx,
                        const rbmd::Real* mass,
                        const rbmd::Id* atoms_type,
                        const Id3* angle_id_vec,
@@ -502,9 +525,13 @@ __global__ void ShakeB(const rbmd::Id num_angle,
         int tid = threadIdx.x + blockIdx.x * blockDim.x;
 
         if (tid < num_angle) {
-            rbmd::Id id_0 = angle_id_vec[tid].x;
-            rbmd::Id id_1 = angle_id_vec[tid].y;
-            rbmd::Id id_2 = angle_id_vec[tid].z;
+            rbmd::Id id_0x = angle_id_vec[tid].x;
+            rbmd::Id id_1x = angle_id_vec[tid].y;
+            rbmd::Id id_2x = angle_id_vec[tid].z;
+
+            rbmd::Id id_0 = atom_id_to_idx[id_0x];
+            rbmd::Id id_1 = atom_id_to_idx[id_1x];
+            rbmd::Id id_2 = atom_id_to_idx[id_2x];
 
             Real3 shake_velocity_0,shake_velocity_1,shake_velocity_2;
             shake_velocity_0.x = shake_vx[id_0] + 0.5 * dt * fx[id_0]/mass[atoms_type[id_0]] * fmt2v;
@@ -716,6 +743,7 @@ void ShakeAOp<device::DEVICE_GPU>::operator()(const rbmd::Id num_angle,
                                               const rbmd::Real dt,
                                               const rbmd::Real fmt2v,
                                               Box* box,
+                                              const rbmd::Id* atom_id_to_idx,
                                               const rbmd::Real* mass,
                                               const rbmd::Id* atoms_type,
                                               const Id3* angle_id_vec,
@@ -734,13 +762,14 @@ void ShakeAOp<device::DEVICE_GPU>::operator()(const rbmd::Id num_angle,
 {
   unsigned int blocks_per_grid = (num_angle + BLOCK_SIZE - 1) / BLOCK_SIZE;
   CHECK_KERNEL(ShakeA<<<blocks_per_grid, BLOCK_SIZE, 0, 0>>>(
-      num_angle, dt, fmt2v, box, mass, atoms_type, angle_id_vec,shake_px, shake_py, shake_pz, shake_vx, shake_vy, shake_vz, fx, fy, fz, flag_px, flag_py, flag_pz));
+      num_angle, dt, fmt2v, box, atom_id_to_idx,mass, atoms_type, angle_id_vec,shake_px, shake_py, shake_pz, shake_vx, shake_vy, shake_vz, fx, fy, fz, flag_px, flag_py, flag_pz));
 }
 
     void ShakeBOp<device::DEVICE_GPU>::operator()(const rbmd::Id num_angle,
                                                   const rbmd::Real dt,
                                                   const rbmd::Real fmt2v,
                                                   Box* box,
+                                                  const rbmd::Id* atom_id_to_idx,
                                                   const rbmd::Real* mass,
                                                   const rbmd::Id* atoms_type,
                                                   const Id3* angle_id_vec,
@@ -755,7 +784,7 @@ void ShakeAOp<device::DEVICE_GPU>::operator()(const rbmd::Id num_angle,
                                                   const rbmd::Real* fz)
     {
         unsigned int blocks_per_grid = (num_angle + BLOCK_SIZE - 1) / BLOCK_SIZE;
-        CHECK_KERNEL(ShakeB<<<blocks_per_grid, BLOCK_SIZE, 0, 0>>>(num_angle, dt, fmt2v, box, mass, atoms_type,
+        CHECK_KERNEL(ShakeB<<<blocks_per_grid, BLOCK_SIZE, 0, 0>>>(num_angle, dt, fmt2v, box, atom_id_to_idx, mass, atoms_type,
                                                                    angle_id_vec,px, py, pz, shake_vx, shake_vy, shake_vz, fx, fy, fz));
     }
 }  // namespace op

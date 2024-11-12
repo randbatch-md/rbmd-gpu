@@ -40,10 +40,16 @@ void ShakeController::ShakeA()
     std::vector<rbmd::Real> h_px0(300);
     std::vector<rbmd::Real> h_shakeA_vx0(300);
     std::vector<rbmd::Real> h_shakeA_px0(300);
+    std::vector<rbmd::Real> h_fx(300);
+    std::vector<rbmd::Real> h_flagx(300);
+
     thrust::copy(_device_data->_d_vx.begin(), _device_data->_d_vx.end(), h_vx0.begin());
     thrust::copy(_device_data->_d_px.begin(), _device_data->_d_px.end(), h_px0.begin());
     thrust::copy(_device_data->_d_shake_vx.begin(), _device_data->_d_shake_vx.end(), h_shakeA_vx0.begin());
     thrust::copy(_device_data->_d_shake_px.begin(), _device_data->_d_shake_px.end(), h_shakeA_px0.begin());
+    thrust::copy(_device_data->_d_fx.begin(), _device_data->_d_fx.end(), h_fx.begin());
+    thrust::copy(_device_data->_d_flagX.begin(), _device_data->_d_flagX.end(), h_flagx.begin());
+
 
     for (int j = 0; j < 10; ++j) {std::cout<<h_vx0[j]<<" , ";}
     std::cout<<std::endl;
@@ -54,10 +60,24 @@ void ShakeController::ShakeA()
     std::cout<<std::endl;
     for (int j = 0; j < 10; ++j) {std::cout<< h_shakeA_px0[j]<<" , ";}
     std::cout<<std::endl;
+    for (int j = 0; j < 10; ++j) {std::cout<< h_fx[j]<<" , ";}
+    std::cout<<std::endl;
+    for (int j = 0; j < 10; ++j) {std::cout<< h_flagx[j]<<" , ";}
+    std::cout<<std::endl;
+
+    std::cout<<_dt<<" , "<<_fmt2v<<" , "<<*(_structure_info_data->_num_angles)<<std::endl;
+
+    std::vector<rbmd::Real> h_shakeA_vy0(300);
+    std::vector<rbmd::Real> h_shakeA_vz0(300);
+    thrust::copy(_device_data->_d_shake_vy.begin(), _device_data->_d_shake_vy.end(), h_shakeA_vy0.begin());
+    thrust::copy(_device_data->_d_shake_vz.begin(), _device_data->_d_shake_vz.end(), h_shakeA_vz0.begin());
+
+    auto atom_id_to_idx = LinkedCellLocator::GetInstance().GetLinkedCell()->_atom_id_to_idx;
 
     op::ShakeAOp<device::DEVICE_GPU> shakeA_op;
     shakeA_op(*(_structure_info_data->_num_angles),_dt,_fmt2v,
               _device_data->_d_box,
+              thrust::raw_pointer_cast(atom_id_to_idx.data()),
               thrust::raw_pointer_cast(_device_data->_d_mass.data()),
               thrust::raw_pointer_cast(_device_data->_d_atoms_type.data()),
               thrust::raw_pointer_cast(_device_data->_d_angle_id_vec.data()),//TODO: qw:Real3 is ok?
@@ -91,9 +111,9 @@ void ShakeController::ShakeA()
   for (int j = 0; j < 10; ++j) {std::cout<<h_px[j]<<" , ";}
   std::cout<<std::endl;
 
-  for (int j = 0; j < 10; ++j) {std::cout<< h_shakeA_vx[j]<<" , ";}
+  for (int j = 0; j < 100; ++j) {std::cout<< h_shakeA_vx[j]<<" , ";}
   std::cout<<std::endl;
-  for (int j = 0; j < 10; ++j) {std::cout<< h_shakeA_px[j]<<" , ";}
+  for (int j = 0; j < 100; ++j) {std::cout<< h_shakeA_px[j]<<" , ";}
   std::cout<<std::endl;
 #endif
 
@@ -108,9 +128,11 @@ void ShakeController::ShakeA()
 
 void ShakeController::ShakeB() 
 {
+    auto atom_id_to_idx = LinkedCellLocator::GetInstance().GetLinkedCell()->_atom_id_to_idx;
     op::ShakeBOp<device::DEVICE_GPU> shakeB_op;
     shakeB_op(*(_structure_info_data->_num_angles),_dt,_fmt2v,
               _device_data->_d_box,
+              thrust::raw_pointer_cast(atom_id_to_idx.data()),
               thrust::raw_pointer_cast(_device_data->_d_mass.data()),
               thrust::raw_pointer_cast(_device_data->_d_atoms_type.data()),
               thrust::raw_pointer_cast(_device_data->_d_angle_id_vec.data()),//TODO: qw:Real3 is ok?
