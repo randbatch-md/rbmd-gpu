@@ -7,31 +7,30 @@
 #include "model/md_data.h"
 #include "model/structure_info_data.h"
 #include "types.h"
-class TemperatureController {
- public:
-  TemperatureController()
+class PressureController {
+public:
+  PressureController()
       : _device_data(DataManager::getInstance().getDeviceData())
       ,_structure_info_data(DataManager::getInstance().getMDData()->_structure_info_data)
-      , _temp_sum(0){};
+      , _pressure(0){};
 
-  virtual ~TemperatureController() = default;
+  virtual ~PressureController() = default;
 
   /**
    * @brief Update Temperature
    */
   virtual void Update() = 0;
 
-  virtual void ComputeTemp() {};
+  virtual void ComputePressure() {};
   /**
-   * @brief Parameters and objects required for initializing the temperature
+   * @brief Parameters and objects required for initializing the pressure
    * controller
    */
   virtual void Init() = 0;
 
- protected:
+protected:
   std::shared_ptr<StructureInfoData> _structure_info_data;
   std::shared_ptr<DeviceData> _device_data;
 
-  rbmd::Real _temp_sum;
-  rbmd::Real _temperature;
+  rbmd::Real _pressure;
 };

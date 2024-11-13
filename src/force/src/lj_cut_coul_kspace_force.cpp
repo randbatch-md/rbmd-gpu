@@ -25,6 +25,7 @@ LJCutCoulKspaceForce::LJCutCoulKspaceForce()
 
   CHECK_RUNTIME(MALLOC(&_d_total_evdwl, sizeof(rbmd::Real)));
   CHECK_RUNTIME(MALLOC(&_d_total_ecoul, sizeof(rbmd::Real)));
+  std::remove("thermo_local.txt");
 }
 
 LJCutCoulKspaceForce::~LJCutCoulKspaceForce()
@@ -75,6 +76,8 @@ void LJCutCoulKspaceForce::Execute()
   ComputeLJCutCoulForce();
   ComputeKspaceForce();
   SumForces();
+
+  EvaluatePotentialenergy();
 }
 
 void LJCutCoulKspaceForce::ComputeLJCutCoulForce()
@@ -189,6 +192,7 @@ void LJCutCoulKspaceForce::ComputeLJVerlet()
                     thrust::raw_pointer_cast(_device_data->_d_force_ljcoul_x.data()),
                     thrust::raw_pointer_cast(_device_data->_d_force_ljcoul_y.data()),
                     thrust::raw_pointer_cast(_device_data->_d_force_ljcoul_z.data()),
+                    thrust::raw_pointer_cast(_device_data->_d_flat_virial_lj.data()),
                     _d_total_evdwl,_d_total_ecoul);
 
   CHECK_RUNTIME(MEMCPY(&h_total_evdwl,_d_total_evdwl , sizeof(rbmd::Real), D2H));
@@ -205,6 +209,24 @@ void LJCutCoulKspaceForce::ComputeLJVerlet()
   std::ofstream outfile("ave_ljcoul.txt", std::ios::app);
   outfile << test_current_step << " " << _ave_evdwl  << " "<< _ave_ecoul << std::endl;
   outfile.close();
+
+  // 主机端累加
+  std::vector<rbmd::Real> h_flat_virial_lj(num_atoms * 6);
+  thrust::copy(_device_data->_d_flat_virial_lj.begin(),
+    _device_data->_d_flat_virial_lj.end(), h_flat_virial_lj.begin());
+
+  std::vector<rbmd::Real> virial_lj(6);
+  virial_lj =  {0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
+
+  for(int atom = 0; atom < num_atoms; ++atom){
+    for(int i = 0; i < 6; ++i){
+      virial_lj[i] += h_flat_virial_lj[atom * 6 + i];
+    }
+  }
+
+  thrust::copy(virial_lj.begin(),
+    virial_lj.end(), _device_data->_d_virial_lj.begin());
+
 }
 
 void LJCutCoulKspaceForce::ComputeKspaceForce()
@@ -334,10 +356,28 @@ void LJCutCoulKspaceForce::ComputeEwlad()
         thrust::raw_pointer_cast(_device_data->_d_pz.data()),
         thrust::raw_pointer_cast(_device_data->_d_force_ewald_x.data()),
         thrust::raw_pointer_cast(_device_data->_d_force_ewald_y.data()),
-        thrust::raw_pointer_cast(_device_data->_d_force_ewald_z.data()));
+        thrust::raw_pointer_cast(_device_data->_d_force_ewald_z.data()),
+        thrust::raw_pointer_cast(_device_data->_d_flat_virial_kspace.data()));
 
     CHECK_RUNTIME(FREE(value_Re_array));
     CHECK_RUNTIME(FREE(value_Im_array));
+
+  // 主机端累加
+  std::vector<rbmd::Real> h_flat_virial_kspace(num_atoms * 6);
+  thrust::copy(_device_data->_d_flat_virial_kspace.begin(),
+    _device_data->_d_flat_virial_kspace.end(), h_flat_virial_kspace.begin());
+
+  std::vector<rbmd::Real> virial_kspace(6);
+  virial_kspace =  {0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
+
+  for(int atom = 0; atom < num_atoms; ++atom){
+    for(int i = 0; i < 6; ++i){
+      virial_kspace[i] += h_flat_virial_kspace[atom * 6 + i];
+    }
+  }
+  thrust::copy(virial_kspace.begin(),
+  virial_kspace.end(), _device_data->_d_virial_kspace.begin());
+
 }
 
 void LJCutCoulKspaceForce::ERFInit()
@@ -455,7 +495,25 @@ void LJCutCoulKspaceForce::ComputeRBE()
         thrust::raw_pointer_cast(_device_data->_d_pz.data()),
         thrust::raw_pointer_cast(_device_data->_d_force_ewald_x.data()),
         thrust::raw_pointer_cast(_device_data->_d_force_ewald_y.data()),
-        thrust::raw_pointer_cast(_device_data->_d_force_ewald_z.data()));
+        thrust::raw_pointer_cast(_device_data->_d_force_ewald_z.data()),
+        thrust::raw_pointer_cast(_device_data->_d_flat_virial_kspace.data()));
+
+  // 主机端累加
+  std::vector<rbmd::Real> h_flat_virial_kspace(num_atoms * 6);
+  thrust::copy(_device_data->_d_flat_virial_kspace.begin(),
+    _device_data->_d_flat_virial_kspace.end(), h_flat_virial_kspace.begin());
+
+  std::vector<rbmd::Real> virial_kspace(6);
+  virial_kspace =  {0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
+
+  for(int atom = 0; atom < num_atoms; ++atom){
+    for(int i = 0; i < 6; ++i){
+      virial_kspace[i] += h_flat_virial_kspace[atom * 6 + i];
+    }
+  }
+
+  thrust::copy(virial_kspace.begin(),
+  virial_kspace.end(), _device_data->_d_virial_kspace.begin());
 }
 
 void LJCutCoulKspaceForce::ComputeLJCoulEnergy()
@@ -490,6 +548,7 @@ void LJCutCoulKspaceForce::ComputeLJCoulEnergy()
                 thrust::raw_pointer_cast(_device_data->_d_px.data()),
                 thrust::raw_pointer_cast(_device_data->_d_py.data()),
                 thrust::raw_pointer_cast(_device_data->_d_pz.data()),
+                thrust::raw_pointer_cast(_device_data->_d_flat_virial_lj.data()),
                 _d_total_evdwl,_d_total_ecoul);
   CHECK_RUNTIME(MEMCPY(&h_total_evdwl,_d_total_evdwl , sizeof(rbmd::Real), D2H));
   CHECK_RUNTIME(MEMCPY(&h_total_ecoul,_d_total_ecoul , sizeof(rbmd::Real), D2H));
@@ -505,6 +564,24 @@ void LJCutCoulKspaceForce::ComputeLJCoulEnergy()
   std::ofstream outfile("ave_ljcoul_rbl.txt", std::ios::app);
   outfile << test_current_step << " " << _ave_evdwl  << " "<< _ave_ecoul << std::endl;
   outfile.close();
+
+  // 主机端累加
+  std::vector<rbmd::Real> h_flat_virial_lj(num_atoms * 6);
+  thrust::copy(_device_data->_d_flat_virial_lj.begin(),
+    _device_data->_d_flat_virial_lj.end(), h_flat_virial_lj.begin());
+
+  std::vector<rbmd::Real> virial_lj(6);
+  virial_lj =  {0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
+
+  for(int atom = 0; atom < num_atoms; ++atom){
+    for(int i = 0; i < 6; ++i){
+      virial_lj[i] += h_flat_virial_lj[atom * 6 + i];
+    }
+  }
+
+  thrust::copy(virial_lj.begin(),
+  virial_lj.end(), _device_data->_d_virial_lj.begin());
+
 }
 
 void LJCutCoulKspaceForce::ComputeSelfEnergy(
@@ -582,4 +659,21 @@ void LJCutCoulKspaceForce::ComputeKspaceEnergy(
   ave_ekspace = total_energy_ewald / num_atoms;
 }
 
+void LJCutCoulKspaceForce::EvaluatePotentialenergy()
+{
+  _ave_pe_rbl = _ave_evdwl_rbl + _ave_ecoul_rbl +_ave_ekspace;
+  //test_ave_pe_rbl = _ave_pe_rbl;
+
+  _ave_pe = _ave_evdwl+ _ave_ecoul +_ave_ekspace;
+  //test_ave_pe = _ave_pe;
+
+  //out
+  std::ofstream outfile("thermo_local.txt", std::ios::app);
+  if (outfile.tellp() == 0) {
+    outfile << "step _ave_evdwl _ave_ecoul _ave_ekspace _ave_pe" << std::endl;
+  }
+  outfile << test_current_step << " " << _ave_evdwl  << " "<< _ave_ecoul <<" "
+  << _ave_ekspace  << " " << _ave_pe<< std::endl;
+  outfile.close();
+}
 

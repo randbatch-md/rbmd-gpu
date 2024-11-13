@@ -8,6 +8,7 @@
 #include "unit_factor.h"
 #include "update_temperature_op.h"
 
+extern int test_current_step;
 RescaleController::RescaleController() {
   CHECK_RUNTIME(MALLOC(&_d_temp_contrib, sizeof(rbmd::Real)));
 }
@@ -49,9 +50,7 @@ void RescaleController::Update() {
 }
 
 void RescaleController::ComputeTemp() {
-    extern int test_current_step;
     rbmd::Id num_atoms = *(_structure_info_data->_num_atoms);
-
     CHECK_RUNTIME(MEMSET(_d_temp_contrib, 0, sizeof(rbmd::Real)));
 
     op::ComputeTemperatureOp<device::DEVICE_GPU> compute_temperature_op;
@@ -70,28 +69,28 @@ void RescaleController::ComputeTemp() {
     {
         bool shake = true;
         if (shake) {
-            _temp = 0.5 * _temp_sum / ((3 * num_atoms - num_atoms - 3) * _kB / 2.0);
+            _temperature = 0.5 * _temp_sum / ((3 * num_atoms - num_atoms - 3) * _kB / 2.0);
         }
         else {
-            _temp = 0.5 * _temp_sum / ((3 * num_atoms - 3) * _kB / 2.0);
+            _temperature = 0.5 * _temp_sum / ((3 * num_atoms - 3) * _kB / 2.0);
         }
     }
     else  // PEO
     {
-        _temp = 0.5 * _temp_sum / ((3 * num_atoms - 3) * _kB / 2.0);
+        _temperature = 0.5 * _temp_sum / ((3 * num_atoms - 3) * _kB / 2.0);
     }
 
-    std::cout << "_temp=" << _temp << std::endl;
+    std::cout << "temperature= " << _temperature << std::endl;
     // out
-    std::ofstream outfile("temp.txt", std::ios::app);
-    outfile << test_current_step << " " << _temp << std::endl;
+    std::ofstream outfile("temperature.txt", std::ios::app);
+    outfile << test_current_step << " " << _temperature << std::endl;
     outfile.close();
 
     // CHECK_RUNTIME(FREE(temp_contrib));
 }
 
 void RescaleController::UpdataVelocity() {
-  rbmd::Real coeff_rescale = SQRT(_temperature_start / _temp);
+  rbmd::Real coeff_rescale = SQRT(_temperature_start / _temperature);
 
   op::UpdataVelocityRescaleOp<device::DEVICE_GPU> updata_velocity_op;
   updata_velocity_op(*(_structure_info_data->_num_atoms), coeff_rescale,

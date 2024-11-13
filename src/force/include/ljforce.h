@@ -11,10 +11,11 @@ class LJForce : public Force {
 
  void Init() override;
  void  Execute() override;
- void ComputeLJEnergy();
+ void EvaluatePotentialenergy() override;
 
  void ComputeLJVerlet();
  void ComputeLJRBL() ;
+ void ComputeLJEnergy();
 
  private:
   std::shared_ptr<BaseNeighborListBuilder> _rbl_neighbor_list_builder;
@@ -26,6 +27,8 @@ class LJForce : public Force {
   rbmd::Real _corr_value_y =0.0;
   rbmd::Real _corr_value_z =0.0;
   rbmd::Real* _d_total_evdwl;
+  rbmd::Real* _d_total_evdwl_rbl;
+  rbmd::Real* _d_total_virial;
 
   //RBL
   std::string _neighbor_type;
@@ -33,5 +36,11 @@ class LJForce : public Force {
 
   //energy
   rbmd::Real _ave_evdwl= 0.0;
+  rbmd::Real _ave_pe = 0;
+  rbmd::Real _ave_pe_init = 0;
+
+  rbmd::Real _ave_evdwl_rbl= 0.0;
+  rbmd::Real _ave_pe_rbl = 0;
+
   rbmd::Real virial[6];
 };

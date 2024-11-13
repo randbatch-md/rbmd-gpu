@@ -1,7 +1,6 @@
 #pragma once
 #include <string>
 
-#include "simulate.h"
 #include "position_controller.h"
 
 class DefaultPositionController : public PositionController {

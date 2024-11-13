@@ -12,12 +12,14 @@
 // #include <hipcub/hipcub.hpp>
 // #include <hipcub/backend/rocprim/block/block_reduce.hpp>
 extern int test_current_step;
-
+rbmd::Real test_ave_pe_rbl;
+rbmd::Real test_ave_pe_init;
 LJForce::LJForce() {
   _rbl_neighbor_list_builder = std::make_shared<RblFullNeighborListBuilder>();
   _neighbor_list_builder = std::make_shared<FullNeighborListBuilder>();
 
   CHECK_RUNTIME(MALLOC(&_d_total_evdwl, sizeof(rbmd::Real)));
+  std::remove("thermo_local.txt");
 }
 
 LJForce::~LJForce()
@@ -44,6 +46,9 @@ void LJForce::Execute()
   {
     ComputeLJVerlet();
   }
+
+  //
+  EvaluatePotentialenergy();
 }
 
 void LJForce::ComputeLJRBL()
@@ -126,8 +131,8 @@ void LJForce::ComputeLJVerlet()
 
   auto num_atoms = *(_structure_info_data->_num_atoms);
   // compute LJForce
-  op::LJForceOp<device::DEVICE_GPU> lj_force_op;
-  lj_force_op(_device_data->_d_box, _cut_off,num_atoms,
+  op::LJForceOp<device::DEVICE_GPU>()(
+              _device_data->_d_box, _cut_off,num_atoms,
               thrust::raw_pointer_cast(_device_data->_d_atoms_type.data()),
               thrust::raw_pointer_cast(_device_data->_d_sigma.data()),
               thrust::raw_pointer_cast(_device_data->_d_eps.data()),
@@ -140,6 +145,7 @@ void LJForce::ComputeLJVerlet()
               thrust::raw_pointer_cast(_device_data->_d_fx.data()),
               thrust::raw_pointer_cast(_device_data->_d_fy.data()),
               thrust::raw_pointer_cast(_device_data->_d_fz.data()),
+              thrust::raw_pointer_cast(_device_data->_d_flat_virial.data()),
               _d_total_evdwl);
 
   CHECK_RUNTIME(
@@ -152,10 +158,23 @@ void LJForce::ComputeLJVerlet()
 
   std::cout << "out of force execute" << std::endl;
 
-  // out
-  std::ofstream outfile("ave_evdwl.txt", std::ios::app);
-  outfile << test_current_step << " " << _ave_evdwl << std::endl;
-  outfile.close();
+  // 主机端累加
+  std::vector<rbmd::Real> h_total_virial(num_atoms * 6);
+  thrust::copy(_device_data->_d_flat_virial.begin(),
+    _device_data->_d_flat_virial.end(), h_total_virial.begin());
+
+  std::vector<rbmd::Real> virial(6);
+  virial =  {0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
+
+  for(int atom = 0; atom < num_atoms; ++atom){
+    for(int i = 0; i < 6; ++i){
+      virial[i] += h_total_virial[atom * 6 + i];
+    }
+  }
+
+  thrust::copy(virial.begin(),
+  virial.end(), _device_data->_d_virial_lj.begin());
+
 }
 
 void LJForce::ComputeLJEnergy()
@@ -179,6 +198,7 @@ void LJForce::ComputeLJEnergy()
                thrust::raw_pointer_cast(_device_data->_d_px.data()),
                thrust::raw_pointer_cast(_device_data->_d_py.data()),
                thrust::raw_pointer_cast(_device_data->_d_pz.data()),
+               thrust::raw_pointer_cast(_device_data->_d_flat_virial.data()),
                _d_total_evdwl);
 
   CHECK_RUNTIME(
@@ -189,9 +209,45 @@ void LJForce::ComputeLJEnergy()
   std::cout << "test_current_step:" << test_current_step << " "
             << "average_vdwl_energy:" << _ave_evdwl << std::endl;
 
-  ////out
-  std::ofstream outfile("ave_evdwl.txt", std::ios::app);
-  outfile << test_current_step << " " << _ave_evdwl << std::endl;
+  // 主机端累加
+  std::vector<rbmd::Real> h_total_virial(num_atoms * 6);
+  thrust::copy(_device_data->_d_flat_virial.begin(),
+    _device_data->_d_flat_virial.end(), h_total_virial.begin());
+
+  std::vector<rbmd::Real> virial(6);
+  virial =  {0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
+
+  for(int atom = 0; atom < num_atoms; ++atom){
+    for(int i = 0; i < 6; ++i){
+      virial[i] += h_total_virial[atom * 6 + i];
+    }
+  }
+
+
+  thrust::copy(virial.begin(),
+    virial.end(), _device_data->_d_virial_lj.begin());
+
+}
+
+void LJForce::EvaluatePotentialenergy()
+{
+  _ave_pe_rbl = _ave_evdwl_rbl;
+  test_ave_pe_rbl = _ave_pe_rbl;
+
+
+  if(1 == test_current_step)
+  {
+    _ave_pe_init = _ave_evdwl;
+    test_ave_pe_init = _ave_pe_init;
+  }
+  _ave_pe = _ave_evdwl;
+
+  //out
+  std::ofstream outfile("thermo_local.txt", std::ios::app);
+  if (outfile.tellp() == 0) {
+    outfile << "step _ave_pe_rbl  _ave_pe" << std::endl;
+  }
+  outfile << test_current_step << " " << _ave_pe_rbl  << " "<< _ave_pe << std::endl;
   outfile.close();
 }
 

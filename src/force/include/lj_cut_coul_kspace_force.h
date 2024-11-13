@@ -13,6 +13,7 @@ public:
 
   void Init() override;
   void  Execute() override;
+  void EvaluatePotentialenergy() override;
 
   void ComputeLJCutCoulForce();
   void ComputeLJVerlet();
@@ -77,7 +78,11 @@ private:
   rbmd::Real _ave_ecoul= 0.0;
   rbmd::Real _ave_self_energy= 0.0;
   rbmd::Real _ave_ekspace= 0.0;
+  rbmd::Real _ave_pe = 0;
 
+  rbmd::Real _ave_evdwl_rbl = 0;
+  rbmd::Real _ave_ecoul_rbl = 0;
+  rbmd::Real _ave_pe_rbl = 0;
 
   //RBL
   std::string _neighbor_type;

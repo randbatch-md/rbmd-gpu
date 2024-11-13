@@ -8,6 +8,7 @@
 #include "../../common/types.h"
 #include "../common/unit_factor.h"
 #include "ljforce_op/ljforce_op.h"
+#include "cvff_op/cvff_op.h"
 #include "../common/RBEPSample.h"
 #include "../common/erf_table.h"
 #include "neighbor_list/include/linked_cell/linked_cell_locator.h"
@@ -31,6 +32,8 @@ CVFF::CVFF()
   CHECK_RUNTIME(MALLOC(&_d_total_ebond, sizeof(rbmd::Real)));
   CHECK_RUNTIME(MALLOC(&_d_total_eangle, sizeof(rbmd::Real)));
   CHECK_RUNTIME(MALLOC(&_d_total_edihedral, sizeof(rbmd::Real)));
+
+  std::remove("thermo_local.txt");
 }
 
 CVFF::~CVFF()
@@ -91,6 +94,8 @@ void CVFF::Execute()
   ComputeAngleForce();
   //ComputeDihedralForce();
   SumForces();
+
+  EvaluatePotentialenergy();
 }
 
 void CVFF::ComputeLJCutCoulForce()
@@ -175,7 +180,7 @@ void CVFF::ComputeLJRBL()
   std::cout << "计算 RBL_lj 力耗时" << duration_rbl_force.count() << "秒" << std::endl;
 
     //energy
-    //ComputeLJCoulEnergy();
+    ComputeLJCoulEnergy();
 
     // //out
     // std::vector<rbmd::Real> h_force_ljcoul_x(num_atoms);
@@ -497,7 +502,8 @@ void CVFF::ComputeEwlad()
         thrust::raw_pointer_cast(_device_data->_d_pz.data()),
         thrust::raw_pointer_cast(_device_data->_d_force_ewald_x.data()),
         thrust::raw_pointer_cast(_device_data->_d_force_ewald_y.data()),
-        thrust::raw_pointer_cast(_device_data->_d_force_ewald_z.data()));
+        thrust::raw_pointer_cast(_device_data->_d_force_ewald_z.data()),
+        thrust::raw_pointer_cast(_device_data->_d_flat_virial_kspace.data()));
 
     CHECK_RUNTIME(FREE(value_Re_array));
     CHECK_RUNTIME(FREE(value_Im_array));
@@ -601,23 +607,23 @@ void CVFF::ComputeChargeStructureFactorRBE(
     rhok_image_atom.begin(),psamplekey_out.begin(), rhok_image_redue.begin(),
     thrust::equal_to<rbmd::Id>(),thrust::plus<rbmd::Real>());
 
-  // //energy
-  //
-  // //charge self energy//
-  // ComputeSelfEnergy(alpha,qqr2e,_ave_self_energy);
-  //
-  // //kspace energy
-  // ComputeKspaceEnergy(_device_data->_d_box, num_atoms, Kmax,
-  //     alpha, qqr2e ,_ave_ekspace);
-  // _ave_ekspace = _ave_ekspace +_ave_self_energy;
-  //
-  //   //out
-  //  std::cout << "test_current_step:" << test_current_step <<  " ,"
-  //  << "average_energy_rbe:" << _ave_ekspace << std::endl;
-  //
-  // std::ofstream outfile("ave_energy_rbe.txt", std::ios::app);
-  // outfile << test_current_step << " "<< _ave_ekspace << std::endl;
-  // outfile.close();
+  //energy
+
+  //charge self energy//
+  ComputeSelfEnergy(alpha,qqr2e,_ave_self_energy);
+
+  //kspace energy
+  ComputeKspaceEnergy(_device_data->_d_box, num_atoms, Kmax,
+      alpha, qqr2e ,_ave_ekspace);
+  _ave_ekspace = _ave_ekspace +_ave_self_energy;
+
+    //out
+   std::cout << "test_current_step:" << test_current_step <<  " ,"
+   << "average_energy_rbe:" << _ave_ekspace << std::endl;
+
+  std::ofstream outfile("ave_energy_rbe.txt", std::ios::app);
+  outfile << test_current_step << " "<< _ave_ekspace << std::endl;
+  outfile.close();
 }
 
 void CVFF::ComputeRBE()
@@ -645,7 +651,8 @@ void CVFF::ComputeRBE()
         thrust::raw_pointer_cast(_device_data->_d_pz.data()),
         thrust::raw_pointer_cast(_device_data->_d_force_ewald_x.data()),
         thrust::raw_pointer_cast(_device_data->_d_force_ewald_y.data()),
-        thrust::raw_pointer_cast(_device_data->_d_force_ewald_z.data()));
+        thrust::raw_pointer_cast(_device_data->_d_force_ewald_z.data()),
+        thrust::raw_pointer_cast(_device_data->_d_flat_virial_kspace.data()));
 
   auto end = std::chrono::high_resolution_clock::now();
   std::chrono::duration<rbmd::Real> duration = end - start;
@@ -979,14 +986,14 @@ void CVFF::ComputeDihedralForce()
   CHECK_RUNTIME(MEMCPY(&h_energy_dihedral,_d_total_edihedral , sizeof(rbmd::Real), D2H));
 
   // 打印累加后的总能量
-  _ave_dihedral = h_energy_dihedral/num_dihedrals;
+  _ave_edihedral = h_energy_dihedral/num_dihedrals;
 
   std::cout << "test_current_step:" << test_current_step <<  " ,"
-   << "average_dihedral_energy:" << _ave_dihedral << std::endl;
+   << "average_dihedral_energy:" << _ave_edihedral << std::endl;
 
   //out
   std::ofstream outfile("ave_energy_dihedral.txt", std::ios::app);
-  outfile << test_current_step << " " << _ave_dihedral << std::endl;
+  outfile << test_current_step << " " << _ave_edihedral << std::endl;
   outfile.close();
 
 
@@ -1051,6 +1058,26 @@ void CVFF::ReduceByKey()
       reduce_atom_ids_z.begin(),
       _device_data->_d_force_bond_z.begin()
      );
+}
+
+void CVFF::EvaluatePotentialenergy()
+{
+  _ave_pe_rbl = _ave_evdwl_rbl + _ave_ecoul_rbl+_ave_ekspace+
+                  _ave_ebond + _ave_eangle+_ave_edihedral;
+
+  _ave_pe = _ave_evdwl+ _ave_ecoul +_ave_ekspace+
+              _ave_ebond +_ave_eangle +_ave_edihedral;
+
+  //out
+  std::ofstream outfile("thermo_local.txt", std::ios::app);
+  if (outfile.tellp() == 0) {
+    outfile << "step _ave_evdwl _ave_ecoul _ave_ekspace _ave_ebond "
+            << "_ave_eangle _ave_edihedral _ave_pe" << std::endl;
+  }
+  outfile << test_current_step << " " << _ave_evdwl << " " << _ave_ecoul << " "
+          << _ave_ekspace << " " << _ave_ebond << " " << _ave_eangle << " "
+          << _ave_edihedral << " " << _ave_pe << std::endl;
+  outfile.close();
 }
 
 

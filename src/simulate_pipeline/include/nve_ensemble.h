@@ -13,4 +13,5 @@ class NVEensemble : public Ensemble {
   void Postsolve() override;
 
  private:
+  std::string _neighbor_type;  //RBL
 };

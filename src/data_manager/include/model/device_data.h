@@ -100,19 +100,19 @@ class DeviceData {
   thrust::device_vector<rbmd::Real> _d_fx;
   thrust::device_vector<rbmd::Real> _d_fy;
   thrust::device_vector<rbmd::Real> _d_fz;
-
+  //lj_cut + coul_cut
   thrust::device_vector<rbmd::Real> _d_force_ljcoul_x;
   thrust::device_vector<rbmd::Real> _d_force_ljcoul_y;
   thrust::device_vector<rbmd::Real> _d_force_ljcoul_z;
-
+  //ewald
   thrust::device_vector<rbmd::Real> _d_force_ewald_x;
   thrust::device_vector<rbmd::Real> _d_force_ewald_y;
   thrust::device_vector<rbmd::Real> _d_force_ewald_z;
-
+  //special_coul
   thrust::device_vector<rbmd::Real> _d_force_specialcoul_x;
   thrust::device_vector<rbmd::Real> _d_force_specialcoul_y;
   thrust::device_vector<rbmd::Real> _d_force_specialcoul_z;
-  //
+  //bond
   thrust::device_vector<rbmd::Real> _d_force_bond_x;
   thrust::device_vector<rbmd::Real> _d_force_bond_y;
   thrust::device_vector<rbmd::Real> _d_force_bond_z;
@@ -121,24 +121,30 @@ class DeviceData {
   thrust::device_vector<rbmd::Real> _d_temp_forces_bondx;
   thrust::device_vector<rbmd::Real> _d_temp_forces_bondy;
   thrust::device_vector<rbmd::Real> _d_temp_forces_bondz;
-
+  //angle
   thrust::device_vector<rbmd::Real> _d_force_angle_x;
   thrust::device_vector<rbmd::Real> _d_force_angle_y;
   thrust::device_vector<rbmd::Real> _d_force_angle_z;
-
+  //dihedral
   thrust::device_vector<rbmd::Real> _d_force_dihedral_x;
   thrust::device_vector<rbmd::Real> _d_force_dihedral_y;
   thrust::device_vector<rbmd::Real> _d_force_dihedral_z;
 
+  //virial
+  thrust::device_vector<rbmd::Real> _d_flat_virial;
+  thrust::device_vector<rbmd::Real> _d_flat_virial6;
+  thrust::device_vector<rbmd::Real> _d_flat_virial_lj;
+  thrust::device_vector<rbmd::Real> _d_flat_virial_specialcoul;
+  thrust::device_vector<rbmd::Real> _d_flat_virial_kspace;
 
-
-  thrust::device_vector<rbmd::Real> _d_virial_xx;
-  thrust::device_vector<rbmd::Real> _d_virial_yy;
-  thrust::device_vector<rbmd::Real> _d_virial_zz;
-  thrust::device_vector<rbmd::Real> _d_virial_xy;
-  thrust::device_vector<rbmd::Real> _d_virial_xz;
-  thrust::device_vector<rbmd::Real> _d_virial_yz;
-  //
+  thrust::device_vector<rbmd::Real> _d_virial;
+  thrust::device_vector<rbmd::Real> _d_virial_lj;
+  thrust::device_vector<rbmd::Real> _d_virial_specialcoul;
+  thrust::device_vector<rbmd::Real> _d_virial_kspace;
+  thrust::device_vector<rbmd::Real> _d_virial_bond;
+  thrust::device_vector<rbmd::Real> _d_virial_angle;
+  thrust::device_vector<rbmd::Real> _d_virial_dihedral;
+  //charge
   thrust::device_vector<rbmd::Real> _d_charge;
 
   // box in device

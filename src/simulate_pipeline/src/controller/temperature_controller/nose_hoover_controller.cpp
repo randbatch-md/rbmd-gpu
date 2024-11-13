@@ -8,6 +8,7 @@
 #include "unit_factor.h"
 #include "update_temperature_op.h"
 
+extern int test_current_step;
 NoseHooverController::NoseHooverController() {
   CHECK_RUNTIME(MALLOC(&_d_temp_contrib, sizeof(rbmd::Real)));
 }
@@ -55,7 +56,6 @@ void NoseHooverController::Update() {
 }
 
 void NoseHooverController::ComputeTemp() {
-    extern int test_current_step;
     rbmd::Id num_atoms = *(_structure_info_data->_num_atoms);
 
     CHECK_RUNTIME(MEMSET(_d_temp_contrib, 0, sizeof(rbmd::Real)));
@@ -76,21 +76,21 @@ void NoseHooverController::ComputeTemp() {
     {
         bool shake = true;
         if (shake) {
-            _temp = 0.5 * _temp_sum / ((3 * num_atoms - num_atoms - 3) * _kB / 2.0);
+            _temperature = 0.5 * _temp_sum / ((3 * num_atoms - num_atoms - 3) * _kB / 2.0);
         }
         else {
-            _temp = 0.5 * _temp_sum / ((3 * num_atoms - 3) * _kB / 2.0);
+            _temperature = 0.5 * _temp_sum / ((3 * num_atoms - 3) * _kB / 2.0);
         }
     }
     else  // PEO
     {
-        _temp = 0.5 * _temp_sum / ((3 * num_atoms - 3) * _kB / 2.0);
+        _temperature = 0.5 * _temp_sum / ((3 * num_atoms - 3) * _kB / 2.0);
     }
 
-    std::cout << "_temp=" << _temp << std::endl;
+    std::cout << "temperature= " << _temperature << std::endl;
     // out
-    std::ofstream outfile("temp.txt", std::ios::app);
-    outfile << test_current_step << " " << _temp << std::endl;
+    std::ofstream outfile("temperature.txt", std::ios::app);
+    outfile << test_current_step << " " << _temperature << std::endl;
     outfile.close();
 
     // CHECK_RUNTIME(FREE(temp_contrib));
@@ -110,5 +110,5 @@ void NoseHooverController::UpdataVelocity() {
       thrust::raw_pointer_cast(_device_data->_d_vy.data()),
       thrust::raw_pointer_cast(_device_data->_d_vz.data()));
 
-  _nosehooverxi += 0.5 * _dt * (_temp / _temperature_start - 1.0) / (std::pow(10.0, -1) * _dt);
+  _nosehooverxi += 0.5 * _dt * (_temperature / _temperature_start - 1.0) / (std::pow(10.0, -1) * _dt);
 }

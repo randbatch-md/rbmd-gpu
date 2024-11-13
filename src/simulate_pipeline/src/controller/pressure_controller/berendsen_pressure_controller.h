@@ -1,0 +1,36 @@
+#pragma once
+#include "pressure_controller.h"
+
+class BerendsenPressureController : public PressureController {
+public:
+  BerendsenPressureController();
+  virtual ~BerendsenPressureController();
+
+  void Init() override;
+  void Update() override;
+
+  /**
+   * @brief Calculate the current  pressure
+   */
+  void ComputePressure() override;
+  void ComputeVirial();
+
+  void Computedof();
+  void Couple();
+  void ReMap();
+  void X2Lamda();
+  void Lamda2X();
+
+private:
+  rbmd::Real _dt;
+  rbmd::Real _nktv2p;
+  rbmd::Real _kB;
+  rbmd::Real  _tdof;
+
+  rbmd::Real _pressure_start, _pressure_stop, _pressure_damp;//read
+  rbmd::Real _bulkmodulus; //read
+
+  Real3  _p_current, _dilation;
+  Real3 _p_start, _p_stop, _p_damp, _p_target;
+
+};

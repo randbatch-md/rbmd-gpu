@@ -99,13 +99,6 @@ bool MemoryScheduler::asyncMemoryH2D() {
   _device_data->_d_force_ewald_y.resize(num_atoms);
   _device_data->_d_force_ewald_z.resize(num_atoms);
 
-  _device_data->_d_virial_xx.resize(num_atoms);
-  _device_data->_d_virial_yy.resize(num_atoms);
-  _device_data->_d_virial_zz.resize(num_atoms);
-  _device_data->_d_virial_xy.resize(num_atoms);
-  _device_data->_d_virial_xy.resize(num_atoms);
-  _device_data->_d_virial_yz.resize(num_atoms);
-
   //bond
   _device_data->_d_force_bond_x.resize(num_atoms);
   _device_data->_d_force_bond_y.resize(num_atoms);
@@ -123,6 +116,12 @@ bool MemoryScheduler::asyncMemoryH2D() {
   _device_data->_d_force_dihedral_x.resize(num_atoms);
   _device_data->_d_force_dihedral_y.resize(num_atoms);
   _device_data->_d_force_dihedral_z.resize(num_atoms);
+
+  //cpoy virial
+  _device_data->_d_flat_virial.resize(6*num_atoms);
+  _device_data->_d_flat_virial_lj.resize(6*num_atoms);
+  _device_data->_d_flat_virial_kspace.resize(6*num_atoms);
+  _device_data->_d_flat_virial_specialcoul.resize(6*num_atoms);
 
   /// copy other
   _device_data->_d_atoms_id.resize(num_atoms);

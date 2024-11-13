@@ -17,7 +17,7 @@ __device__ rbmd::Id index3D(rbmd::Id depth, rbmd::Id row, rbmd::Id col,
 }
 
 // lj126
-__device__ void lj126(rbmd::Real cut_off, rbmd::Real px12, rbmd::Real py12,
+inline __device__ void lj126(rbmd::Real cut_off, rbmd::Real px12, rbmd::Real py12,
                       rbmd::Real pz12, rbmd::Real eps_ij, rbmd::Real sigma_ij,
                       rbmd::Real& force_lj, rbmd::Real& energy_lj) {
   const rbmd::Real dis_2 = px12 * px12 + py12 * py12 + pz12 * pz12;
@@ -38,7 +38,7 @@ __device__ void lj126(rbmd::Real cut_off, rbmd::Real px12, rbmd::Real py12,
 }
 
 // lj126_rs
-__device__ void lj126_rs(rbmd::Real rs, rbmd::Real px12, rbmd::Real py12,
+inline __device__ void lj126_rs(rbmd::Real rs, rbmd::Real px12, rbmd::Real py12,
                          rbmd::Real pz12, rbmd::Real eps_ij,
                          rbmd::Real sigma_ij, rbmd::Real& fs_ij) {
   const rbmd::Real dis_2 = px12 * px12 + py12 * py12 + pz12 * pz12;
@@ -54,7 +54,7 @@ __device__ void lj126_rs(rbmd::Real rs, rbmd::Real px12, rbmd::Real py12,
 }
 
 // lj126_rcs
-__device__ void lj126_rcs(rbmd::Real rc, rbmd::Real rs, rbmd::Id pice_num,
+inline __device__ void lj126_rcs(rbmd::Real rc, rbmd::Real rs, rbmd::Id pice_num,
                           rbmd::Real px12, rbmd::Real py12, rbmd::Real pz12,
                           rbmd::Real eps_ij, rbmd::Real sigma_ij,
                           rbmd::Real& fcs_ij) {
@@ -74,7 +74,7 @@ __device__ void lj126_rcs(rbmd::Real rc, rbmd::Real rs, rbmd::Id pice_num,
 }
 
 // CoulForce
-__device__ void CoulCutForce(rbmd::Real cut_off, rbmd::Real alpha,
+inline __device__ void CoulCutForce(rbmd::Real cut_off, rbmd::Real alpha,
                              rbmd::Real qqr2e, rbmd::Real charge_i,
                              rbmd::Real charge_j, rbmd::Real px12,
                              rbmd::Real py12, rbmd::Real pz12,
@@ -98,7 +98,7 @@ __device__ void CoulCutForce(rbmd::Real cut_off, rbmd::Real alpha,
   }
 }
 
-__device__ void CoulCutForce_erf(rbmd::Real cut_off, rbmd::Real alpha,
+inline __device__ void CoulCutForce_erf(rbmd::Real cut_off, rbmd::Real alpha,
                                  rbmd::Real qqr2e, rbmd::Real table_pij,
                                  rbmd::Real charge_i, rbmd::Real charge_j,
                                  rbmd::Real px12, rbmd::Real py12,
@@ -118,7 +118,7 @@ __device__ void CoulCutForce_erf(rbmd::Real cut_off, rbmd::Real alpha,
   }
 }
 
-__device__ void CoulCutForce_rs(rbmd::Real rs, rbmd::Real alpha,
+inline __device__ void CoulCutForce_rs(rbmd::Real rs, rbmd::Real alpha,
                                 rbmd::Real qqr2e, rbmd::Real charge_i,
                                 rbmd::Real charge_j, rbmd::Real px12,
                                 rbmd::Real py12, rbmd::Real pz12,
@@ -138,7 +138,7 @@ __device__ void CoulCutForce_rs(rbmd::Real rs, rbmd::Real alpha,
     force_coul = 0.0;
 }
 
-__device__ void CoulCutForce_rs_erf(rbmd::Real rs, rbmd::Real alpha,
+inline __device__ void CoulCutForce_rs_erf(rbmd::Real rs, rbmd::Real alpha,
                                     rbmd::Real qqr2e, rbmd::Real table_pij,
                                     rbmd::Real charge_i, rbmd::Real charge_j,
                                     rbmd::Real px12, rbmd::Real py12,
@@ -153,7 +153,7 @@ __device__ void CoulCutForce_rs_erf(rbmd::Real rs, rbmd::Real alpha,
     force_coul = 0.0;
 }
 
-__device__ void CoulCutForce_rcs(rbmd::Real rc, rbmd::Real rs,
+inline __device__ void CoulCutForce_rcs(rbmd::Real rc, rbmd::Real rs,
                                  rbmd::Id pice_num, rbmd::Real alpha,
                                  rbmd::Real qqr2e, rbmd::Real charge_i,
                                  rbmd::Real charge_j, rbmd::Real px12,
@@ -175,7 +175,7 @@ __device__ void CoulCutForce_rcs(rbmd::Real rc, rbmd::Real rs,
     force_coul = 0.0;
 }
 
-__device__ void CoulCutForce_rcs_erf(rbmd::Real rc, rbmd::Real rs,
+inline __device__ void CoulCutForce_rcs_erf(rbmd::Real rc, rbmd::Real rs,
                                      rbmd::Id pice_num, rbmd::Real alpha,
                                      rbmd::Real qqr2e, rbmd::Real table_pij,
                                      rbmd::Real charge_i, rbmd::Real charge_j,
@@ -192,12 +192,27 @@ __device__ void CoulCutForce_rcs_erf(rbmd::Real rc, rbmd::Real rs,
     force_coul = 0.0;
 }
 
+__device__ void ComputeVirial(rbmd::Real px12, rbmd::Real py12,
+                      rbmd::Real pz12,rbmd::Real force,
+                      rbmd::Real& local_virial_xx,rbmd::Real& local_virial_yy,
+                      rbmd::Real& local_virial_zz,rbmd::Real& local_virial_xy,
+                      rbmd::Real& local_virial_xz,rbmd::Real& local_virial_yz)
+{
+  local_virial_xx = -0.5* px12 *px12 * force;
+  local_virial_yy = -0.5* py12 *py12 * force;
+  local_virial_zz = -0.5* pz12 *pz12 * force;
+  local_virial_xy = -0.5* px12 *py12 * force;
+  local_virial_xz = -0.5* px12 *pz12 * force;
+  local_virial_yz = -0.5* py12 *pz12 * force;
+}
+
 // EwaldForce
 __device__ void EwaldForce(Box* box, const rbmd::Real alpha, const int3 M,
                            const rbmd::Real qqr2e, const rbmd::Real rhok_real_i,
                            const rbmd::Real rhok_imag_i,
                            const rbmd::Real charge, const rbmd::Real px,
                            const rbmd::Real py, const rbmd::Real pz,
+                           rbmd::Real& force_ewald_single,
                            rbmd::Real& force_ewald_x, rbmd::Real& force_ewald_y,
                            rbmd::Real& force_ewald_z) {
   rbmd::Real force_ewald;
@@ -218,10 +233,11 @@ __device__ void EwaldForce(Box* box, const rbmd::Real alpha, const int3 M,
   force_ewald =
       factor_a / (volume * range_K_2) * factor_b * (factor_c - factor_d);
   force_ewald *= qqr2e;
-
   force_ewald_x = force_ewald * K.x;
   force_ewald_y = force_ewald * K.y;
   force_ewald_z = force_ewald * K.z;
+  //
+  force_ewald_single = force_ewald;
 }
 
 // RBEForce
@@ -229,8 +245,9 @@ __device__ void RBEForce(Box* box, const Real3 M, const rbmd::Real qqr2e,
                          const rbmd::Real rhok_real_i,
                          const rbmd::Real rhok_imag_i, const rbmd::Real charge,
                          const rbmd::Real px, const rbmd::Real py,
-                         const rbmd::Real pz, rbmd::Real& force_rbe_x,
-                         rbmd::Real& force_rbe_y, rbmd::Real& force_rbe_z) {
+                         const rbmd::Real pz, rbmd::Real& force_rbe_single,
+                         rbmd::Real& force_rbe_x,rbmd::Real& force_rbe_y,
+                         rbmd::Real& force_rbe_z) {
   rbmd::Real force_rbe;
   rbmd::Real volume = box->_length[0] * box->_length[1] * box->_length[2];
   Real3 K = make_Real3(2 * M_PI * M.x / box->_length[0],
@@ -246,10 +263,11 @@ __device__ void RBEForce(Box* box, const Real3 M, const rbmd::Real qqr2e,
 
   force_rbe = (factor_a / (volume * range_K_2)) * (factor_b - factor_c);
   force_rbe *= qqr2e;
-
   force_rbe_x = force_rbe * K.x;
   force_rbe_y = force_rbe * K.y;
   force_rbe_z = force_rbe * K.z;
+  //
+  force_rbe_single = force_rbe;
 }
 
 __device__ void ComputeS(Box* box, const rbmd::Real alpha, rbmd::Real& S) {
@@ -292,13 +310,20 @@ __global__ void ComputeLJForce(
     const rbmd::Id* start_id, const rbmd::Id* end_id,
     const rbmd::Id* id_verletlist, const rbmd::Real* px, const rbmd::Real* py,
     const rbmd::Real* pz, rbmd::Real* fx, rbmd::Real* fy, rbmd::Real* fz,
-    rbmd::Real* total_evdwl) {
+    rbmd::Real* flat_virial,rbmd::Real* total_evdwl) {
   __shared__ typename hipcub::BlockReduce<rbmd::Real, BLOCK_SIZE>::TempStorage
       temp_storage;
 
   rbmd::Real sum_fx = 0;
   rbmd::Real sum_fy = 0;
   rbmd::Real sum_fz = 0;
+
+  //virial init
+  rbmd::Real sum_virial[6];
+  for (int i = 0; i < 6; ++i)
+  {
+    sum_virial[i] = 0.0;
+  }
 
   rbmd::Real sum_elj = 0;
 
@@ -329,17 +354,34 @@ __global__ void ComputeLJForce(
 
       rbmd::Real force_lj;
       rbmd::Real energy_lj;
+      rbmd::Real local_virial_xx,local_virial_yy,local_virial_zz,
+      local_virial_xy,local_virial_xz,local_virial_yz;
 
       lj126(cut_off, px12, py12, pz12, eps_ij, sigma_ij, force_lj, energy_lj);
+
+      ComputeVirial(px12, py12, pz12,force_lj,local_virial_xx,local_virial_yy,
+  local_virial_zz,local_virial_xy,local_virial_xz,local_virial_yz);
       sum_fx += force_lj * px12;
       sum_fy += force_lj * py12;
       sum_fz += force_lj * pz12;
       sum_elj += energy_lj;
+
+      //
+      sum_virial[0] +=local_virial_xx;
+      sum_virial[1] +=local_virial_yy;
+      sum_virial[2] +=local_virial_zz;
+      sum_virial[3] +=local_virial_xy;
+      sum_virial[4] +=local_virial_xz;
+      sum_virial[5] +=local_virial_yz;
     }
 
     fx[tid1] = sum_fx;
     fy[tid1] = sum_fy;
     fz[tid1] = sum_fz;
+    //
+    for(int i =0;i<6;++i) {
+      flat_virial[ tid1 * 6 + i ] = sum_virial[i];
+    }
   }
 
   rbmd::Real block_sum =
@@ -348,96 +390,6 @@ __global__ void ComputeLJForce(
     atomicAdd(total_evdwl, block_sum);
   }
   // printf("--------test---evdwl[tid1]:%f---\n",evdwl[tid1]);
-}
-
-__global__ void ComputeLJForceViral(
-    Box* box, const rbmd::Real cut_off, const rbmd::Id num_atoms,
-    const rbmd::Id* atoms_type, const rbmd::Id* molecular_type,
-    const rbmd::Real* sigma, const rbmd::Real* eps, const rbmd::Id* start_id,
-    const rbmd::Id* end_id, const rbmd::Id* id_verletlist, const rbmd::Real* px,
-    const rbmd::Real* py, const rbmd::Real* pz, rbmd::Real* fx, rbmd::Real* fy,
-    rbmd::Real* fz, rbmd::Real* virial_xx, rbmd::Real* virial_yy,
-    rbmd::Real* virial_zz, rbmd::Real* virial_xy, rbmd::Real* virial_xz,
-    rbmd::Real* virial_yz, rbmd::Real* total_evdwl) {
-  rbmd::Real sum_fx = 0;
-  rbmd::Real sum_fy = 0;
-  rbmd::Real sum_fz = 0;
-
-  rbmd::Real sum_virial_xx = 0;
-  rbmd::Real sum_virial_yy = 0;
-  rbmd::Real sum_virial_zz = 0;
-  rbmd::Real sum_virial_xy = 0;
-  rbmd::Real sum_virial_xz = 0;
-  rbmd::Real sum_virial_yz = 0;
-
-  rbmd::Real sum_elj = 0;
-
-  unsigned int tid1 = blockIdx.x * blockDim.x + threadIdx.x;
-  if (tid1 < num_atoms) {
-    rbmd::Id typei = atoms_type[tid1];
-    rbmd::Id molecular_id_i = molecular_type[tid1];
-    rbmd::Real eps_i = eps[typei];
-    rbmd::Real sigma_i = sigma[typei];
-
-    rbmd::Real x1 = px[tid1];
-    rbmd::Real y1 = py[tid1];
-    rbmd::Real z1 = pz[tid1];
-
-    for (int j = start_id[tid1]; j < end_id[tid1]; ++j) {
-      rbmd::Id tid2 = id_verletlist[j];
-      rbmd::Id typej = atoms_type[tid2];
-      rbmd::Id molecular_id_j = molecular_type[tid2];
-      rbmd::Real eps_j = eps[typej];
-      rbmd::Real sigma_j = sigma[typej];
-
-      // mix
-      rbmd::Real eps_ij = SQRT(eps_i * eps_j);
-      rbmd::Real sigma_ij = (sigma_i + sigma_j) / 2;
-
-      rbmd::Real x2 = px[tid2];
-      rbmd::Real y2 = py[tid2];
-      rbmd::Real z2 = pz[tid2];
-      rbmd::Real px12 = x2 - x1;
-      rbmd::Real py12 = y2 - y1;
-      rbmd::Real pz12 = z2 - z1;
-      // if (molecular_id_i == molecular_id_j)
-      // continue;
-
-      MinImageDistance(box, px12, py12, pz12);
-
-      rbmd::Real force_lj, fpair;
-      rbmd::Real energy_lj;
-
-      lj126(cut_off, px12, py12, pz12, eps_ij, sigma_ij, force_lj, energy_lj);
-      sum_fx += force_lj * px12;
-      sum_fy += force_lj * py12;
-      sum_fz += force_lj * pz12;
-
-      fpair = -0.5 * force_lj;
-      sum_virial_xx += px12 * px12 * fpair;
-      sum_virial_yy += py12 * py12 * fpair;
-      sum_virial_zz += pz12 * pz12 * fpair;
-      sum_virial_xy += px12 * py12 * fpair;
-      sum_virial_xz += px12 * pz12 * fpair;
-      sum_virial_yz += py12 * pz12 * fpair;
-
-      sum_elj += energy_lj;
-    }
-
-    fx[tid1] = sum_fx;
-    fy[tid1] = sum_fy;
-    fz[tid1] = sum_fz;
-
-    virial_xx[tid1] = sum_virial_xx;
-    virial_yy[tid1] = sum_virial_yy;
-    virial_zz[tid1] = sum_virial_zz;
-    virial_xy[tid1] = sum_virial_xy;
-    virial_xz[tid1] = sum_virial_xz;
-    virial_yz[tid1] = sum_virial_yz;
-
-    atomicAdd(total_evdwl, sum_elj);
-    // printf("--------test---evdwl[tid1]:%f---\n",evdwl[tid1]);
-  }
 }
 
 // RBL: LJForce
@@ -595,9 +547,17 @@ __global__ void ComputeLJEnergy(
     const rbmd::Id* atoms_type, const rbmd::Real* sigma, const rbmd::Real* eps,
     const rbmd::Id* start_id, const rbmd::Id* end_id,
     const rbmd::Id* id_verletlist, const rbmd::Real* px, const rbmd::Real* py,
-    const rbmd::Real* pz, rbmd::Real* total_evdwl) {
+    const rbmd::Real* pz, rbmd::Real* flat_virial,rbmd::Real* total_evdwl) {
   __shared__ typename hipcub::BlockReduce<rbmd::Real, BLOCK_SIZE>::TempStorage
       temp_storage;
+
+  //virial init
+  rbmd::Real sum_virial[6];
+  for (int i = 0; i < 6; ++i)
+  {
+    sum_virial[i] = 0.0;
+  }
+
   rbmd::Real sum_elj = 0;
 
   unsigned int tid1 = blockIdx.x * blockDim.x + threadIdx.x;
@@ -627,6 +587,22 @@ __global__ void ComputeLJEnergy(
       rbmd::Real energy_ij;
       lj126(cut_off, px12, py12, pz12, eps_ij, sigma_ij, force_lj, energy_ij);
       sum_elj += energy_ij;
+
+      rbmd::Real local_virial_xx,local_virial_yy,local_virial_zz,
+  local_virial_xy,local_virial_xz,local_virial_yz;
+      ComputeVirial(px12, py12, pz12,force_lj,local_virial_xx,local_virial_yy,
+    local_virial_zz,local_virial_xy,local_virial_xz,local_virial_yz);
+
+      sum_virial[0] +=local_virial_xx;
+      sum_virial[1] +=local_virial_yy;
+      sum_virial[2] +=local_virial_zz;
+      sum_virial[3] +=local_virial_xy;
+      sum_virial[4] +=local_virial_xz;
+      sum_virial[5] +=local_virial_yz;
+    }
+    //
+    for(int i =0;i<6;++i) {
+      flat_virial[ tid1 * 6 + i ] = sum_virial[i];
     }
   }
 
@@ -637,7 +613,7 @@ __global__ void ComputeLJEnergy(
   }
 }
 
-// LJCoulCutForce
+// verlet-list: LJCoulCutForce
 __global__ void ComputeLJCutCoulForce(
     Box* box, ERFTable* erf_table, const rbmd::Real cut_off,
     const rbmd::Id num_atoms, const rbmd::Real alpha, const rbmd::Real qqr2e,
@@ -646,7 +622,7 @@ __global__ void ComputeLJCutCoulForce(
     const rbmd::Id* id_verletlist, const rbmd::Real* charge,
     const rbmd::Real* px, const rbmd::Real* py, const rbmd::Real* pz,
     rbmd::Real* fx, rbmd::Real* fy, rbmd::Real* fz, rbmd::Real* total_evdwl,
-    rbmd::Real* total_ecoul) {
+    rbmd::Real* flat_virial,rbmd::Real* total_ecoul) {
   __shared__ typename hipcub::BlockReduce<rbmd::Real, BLOCK_SIZE>::TempStorage
       temp_storage_elj;
   __shared__ typename hipcub::BlockReduce<rbmd::Real, BLOCK_SIZE>::TempStorage
@@ -656,6 +632,12 @@ __global__ void ComputeLJCutCoulForce(
   rbmd::Real sum_fz = 0;
   rbmd::Real sum_elj = 0;
   rbmd::Real sum_ecoul = 0;
+  //virial init
+  rbmd::Real sum_virial[6];
+  for (int i = 0; i < 6; ++i)
+  {
+    sum_virial[i] = 0.0;
+  }
   unsigned int tid1 = blockIdx.x * blockDim.x + threadIdx.x;
   if (tid1 < num_atoms) {
     rbmd::Id typei = atoms_type[tid1];
@@ -702,11 +684,26 @@ __global__ void ComputeLJCutCoulForce(
       sum_fz += force_pair * pz12;
       sum_elj += energy_lj;
       sum_ecoul += energy_coul;
+
+      rbmd::Real local_virial_xx,local_virial_yy,local_virial_zz,
+  local_virial_xy,local_virial_xz,local_virial_yz;
+      ComputeVirial(px12, py12, pz12,force_pair,local_virial_xx,local_virial_yy,
+local_virial_zz,local_virial_xy,local_virial_xz,local_virial_yz);
+      sum_virial[0] +=local_virial_xx;
+      sum_virial[1] +=local_virial_yy;
+      sum_virial[2] +=local_virial_zz;
+      sum_virial[3] +=local_virial_xy;
+      sum_virial[4] +=local_virial_xz;
+      sum_virial[5] +=local_virial_yz;
     }
 
     fx[tid1] = sum_fx;
     fy[tid1] = sum_fy;
     fz[tid1] = sum_fz;
+    //
+    for(int i =0;i<6;++i) {
+      flat_virial[ tid1 * 6 + i ] = sum_virial[i];
+    }
     // printf("--------test---fx[tid1]:%f---\n",fx[tid1]);
   }
 
@@ -723,109 +720,8 @@ __global__ void ComputeLJCutCoulForce(
   }
 }
 
-__global__ void ComputeSpecialLJCutCoulForce(
-    Box* box, ERFTable* erf_table, const rbmd::Real cut_off,
-    const rbmd::Id num_atoms, const rbmd::Real alpha, const rbmd::Real qqr2e,
-    const rbmd::Id* atoms_type, const rbmd::Id* atoms_id,
-    const rbmd::Real* sigma, const rbmd::Real* eps, const rbmd::Id* start_id,
-    const rbmd::Id* end_id, const rbmd::Id* id_verletlist,
-    const rbmd::Id* special_ids, const rbmd::Real* special_weights,
-    const rbmd::Id* special_offset, const rbmd::Id* special_count,
-    const rbmd::Real* charge, const rbmd::Real* px, const rbmd::Real* py,
-    const rbmd::Real* pz, rbmd::Real* fx, rbmd::Real* fy, rbmd::Real* fz,
-    rbmd::Real* total_evdwl, rbmd::Real* total_ecoul) {
-  __shared__ typename hipcub::BlockReduce<rbmd::Real, BLOCK_SIZE>::TempStorage
-      temp_storage_elj;
-  __shared__ typename hipcub::BlockReduce<rbmd::Real, BLOCK_SIZE>::TempStorage
-      temp_storage_ecoul;
 
-  rbmd::Real sum_fx = 0;
-  rbmd::Real sum_fy = 0;
-  rbmd::Real sum_fz = 0;
-  rbmd::Real sum_elj = 0;
-  rbmd::Real sum_ecoul = 0;
-  unsigned int tid1 = blockIdx.x * blockDim.x + threadIdx.x;
-  if (tid1 < num_atoms) {
-    rbmd::Id atom_id1 = atoms_id[tid1];
-    rbmd::Id num_components = special_offset[atom_id1];
-    rbmd::Id typei = atoms_type[tid1];
-    rbmd::Real eps_i = eps[typei];
-    rbmd::Real sigma_i = sigma[typei];
-    rbmd::Real charge_i = charge[tid1];
-    rbmd::Real x1 = px[tid1];
-    rbmd::Real y1 = py[tid1];
-    rbmd::Real z1 = pz[tid1];
-
-    for (int j = start_id[tid1]; j < end_id[tid1]; ++j) {
-      rbmd::Id tid2 = id_verletlist[j];
-      rbmd::Id atom_id2 = atoms_id[tid2];
-      rbmd::Id typej = atoms_type[tid2];
-      rbmd::Real eps_j = eps[typej];
-      rbmd::Real sigma_j = sigma[typej];
-      rbmd::Real charge_j = charge[tid2];
-      // mix
-      rbmd::Real eps_ij = SQRT(eps_i * eps_j);
-      rbmd::Real sigma_ij = (sigma_i + sigma_j) / 2;
-      rbmd::Real x2 = px[tid2];
-      rbmd::Real y2 = py[tid2];
-      rbmd::Real z2 = pz[tid2];
-      rbmd::Real px12 = x2 - x1;
-      rbmd::Real py12 = y2 - y1;
-      rbmd::Real pz12 = z2 - z1;
-      MinImageDistance(box, px12, py12, pz12);
-      // erf value
-      rbmd::Real dis = SQRT(px12 * px12 + py12 * py12 + pz12 * pz12);
-      rbmd::Id index_table_pij = erf_table->Extract(dis);
-      rbmd::Real table_pij = erf_table->TableGnearValue(dis, index_table_pij);
-
-      rbmd::Real force_lj, force_coul, force_pair;
-      rbmd::Real energy_lj, energy_coul;
-      // lj cut
-      lj126(cut_off, px12, py12, pz12, eps_ij, sigma_ij, force_lj, energy_lj);
-
-      // special lj  weight
-      rbmd::Real weight = 1.0;
-      for (rbmd::Id k = 0; k < special_count[atom_id1]; ++k) {
-        rbmd::Id special_id = special_ids[num_components + k];
-        if (special_id == atom_id2) {
-          weight = special_weights[num_components + k];
-          // printf("weight %f\n", weight);
-        }
-      }
-
-      // Coul cut
-      CoulCutForce_erf(cut_off, alpha, qqr2e, table_pij, charge_i, charge_j,
-                       px12, py12, pz12, force_coul, energy_coul);
-
-      // sum force of special_lj_cut  and coul
-      force_pair = weight * force_lj + force_coul;
-      sum_fx += force_pair * px12;
-      sum_fy += force_pair * py12;
-      sum_fz += force_pair * pz12;
-      // sum energy  of special_lj_cut  and coul
-      sum_elj += weight * energy_lj;
-      sum_ecoul += energy_coul;
-    }
-
-    fx[tid1] = sum_fx;
-    fy[tid1] = sum_fy;
-    fz[tid1] = sum_fz;
-  }
-
-  rbmd::Real block_sum_elj =
-      hipcub::BlockReduce<rbmd::Real, BLOCK_SIZE>(temp_storage_elj)
-          .Sum(sum_elj);
-  rbmd::Real block_sum_ecoul =
-      hipcub::BlockReduce<rbmd::Real, BLOCK_SIZE>(temp_storage_ecoul)
-          .Sum(sum_ecoul);
-
-  if (threadIdx.x == 0) {
-    atomicAdd(total_evdwl, block_sum_elj);
-    atomicAdd(total_ecoul, block_sum_ecoul);
-  }
-}
-
-// LJCutCoulEnergy
+// verlet-list: LJCutCoul Energy
 __global__ void ComputeLJCutCoulEnergy(
     Box* box, ERFTable* erf_table, const rbmd::Real cut_off,
     const rbmd::Id num_atoms, const rbmd::Real alpha, const rbmd::Real qqr2e,
@@ -833,11 +729,17 @@ __global__ void ComputeLJCutCoulEnergy(
     const rbmd::Id* start_id, const rbmd::Id* end_id,
     const rbmd::Id* id_verletlist, const rbmd::Real* charge,
     const rbmd::Real* px, const rbmd::Real* py, const rbmd::Real* pz,
-    rbmd::Real* total_evdwl, rbmd::Real* total_ecoul) {
+    rbmd::Real* flat_virial,rbmd::Real* total_evdwl, rbmd::Real* total_ecoul) {
   __shared__ typename hipcub::BlockReduce<rbmd::Real, BLOCK_SIZE>::TempStorage
       temp_storage_elj;
   __shared__ typename hipcub::BlockReduce<rbmd::Real, BLOCK_SIZE>::TempStorage
       temp_storage_ecoul;
+  //virial init
+  rbmd::Real sum_virial[6];
+  for (int i = 0; i < 6; ++i)
+  {
+    sum_virial[i] = 0.0;
+  }
 
   rbmd::Real sum_elj = 0;
   rbmd::Real sum_ecoul = 0;
@@ -882,6 +784,24 @@ __global__ void ComputeLJCutCoulEnergy(
 
       sum_elj += energy_lj;
       sum_ecoul += energy_coul;
+
+      rbmd::Real force_pair =  force_lj+force_coul;
+      rbmd::Real local_virial_xx,local_virial_yy,local_virial_zz,
+  local_virial_xy,local_virial_xz,local_virial_yz;
+      ComputeVirial(px12, py12, pz12,force_pair,local_virial_xx,local_virial_yy,
+    local_virial_zz,local_virial_xy,local_virial_xz,local_virial_yz);
+
+      //
+      sum_virial[0] +=local_virial_xx;
+      sum_virial[1] +=local_virial_yy;
+      sum_virial[2] +=local_virial_zz;
+      sum_virial[3] +=local_virial_xy;
+      sum_virial[4] +=local_virial_xz;
+      sum_virial[5] +=local_virial_yz;
+    }
+    //
+    for(int i =0;i<6;++i) {
+      flat_virial[ tid1 * 6 + i ] = sum_virial[i];
     }
   }
   rbmd::Real block_sum_elj =
@@ -897,97 +817,8 @@ __global__ void ComputeLJCutCoulEnergy(
   }
 }
 
-__global__ void ComputeSpecialLJCutCoulEnergy(
-    Box* box, ERFTable* erf_table, const rbmd::Real cut_off,
-    const rbmd::Id num_atoms, const rbmd::Real alpha, const rbmd::Real qqr2e,
-    const rbmd::Id* atoms_type, const rbmd::Id* atoms_id,
-    const rbmd::Real* sigma, const rbmd::Real* eps, const rbmd::Id* start_id,
-    const rbmd::Id* end_id, const rbmd::Id* id_verletlist,
-    const rbmd::Id* special_ids, const rbmd::Real* special_weights,
-    const rbmd::Id* special_offset, const rbmd::Id* special_count,
-    const rbmd::Real* charge, const rbmd::Real* px, const rbmd::Real* py,
-    const rbmd::Real* pz, rbmd::Real* total_evdwl, rbmd::Real* total_ecoul) {
-  __shared__ typename hipcub::BlockReduce<rbmd::Real, BLOCK_SIZE>::TempStorage
-      temp_storage_elj;
-  __shared__ typename hipcub::BlockReduce<rbmd::Real, BLOCK_SIZE>::TempStorage
-      temp_storage_ecoul;
 
-  rbmd::Real sum_elj = 0;
-  rbmd::Real sum_ecoul = 0;
-
-  unsigned int tid1 = blockIdx.x * blockDim.x + threadIdx.x;
-  if (tid1 < num_atoms) {
-    rbmd::Id atom_id1 = atoms_id[tid1];
-    rbmd::Id num_components = special_offset[atom_id1];
-    rbmd::Id typei = atoms_type[tid1];
-    rbmd::Real eps_i = eps[typei];
-    rbmd::Real sigma_i = sigma[typei];
-    rbmd::Real charge_i = charge[tid1];
-    rbmd::Real x1 = px[tid1];
-    rbmd::Real y1 = py[tid1];
-    rbmd::Real z1 = pz[tid1];
-    for (int j = start_id[tid1]; j < end_id[tid1]; ++j) {
-      rbmd::Id tid2 = id_verletlist[j];
-      rbmd::Id atom_id2 = atoms_id[tid2];
-
-      rbmd::Id typej = atoms_type[tid2];
-      rbmd::Real eps_j = eps[typej];
-      rbmd::Real sigma_j = sigma[typej];
-      rbmd::Real charge_j = charge[tid2];
-
-      // mix
-      rbmd::Real eps_ij = SQRT(eps_i * eps_j);
-      rbmd::Real sigma_ij = (sigma_i + sigma_j) / 2;
-
-      rbmd::Real x2 = px[tid2];
-      rbmd::Real y2 = py[tid2];
-      rbmd::Real z2 = pz[tid2];
-      rbmd::Real px12 = x2 - x1;
-      rbmd::Real py12 = y2 - y1;
-      rbmd::Real pz12 = z2 - z1;
-      MinImageDistance(box, px12, py12, pz12);
-
-      // erf
-      rbmd::Real dis = SQRT(px12 * px12 + py12 * py12 + pz12 * pz12);
-      rbmd::Id index_table_pij = erf_table->Extract(dis);
-      rbmd::Real table_pij = erf_table->TableGnearValue(dis, index_table_pij);
-
-      rbmd::Real force_lj, force_coul, force_pair;
-      rbmd::Real energy_lj, energy_coul;
-
-      // lj cut
-      lj126(cut_off, px12, py12, pz12, eps_ij, sigma_ij, force_lj, energy_lj);
-
-      rbmd::Real weight = 1.0;
-      for (rbmd::Id k = 0; k < special_count[atom_id1]; ++k) {
-        rbmd::Id special_id = special_ids[num_components + k];
-        if (special_id == atom_id2) {
-          weight = special_weights[num_components + k];
-        }
-      }
-      energy_lj = weight * energy_lj;
-
-      // Coul cut
-      CoulCutForce_erf(cut_off, alpha, qqr2e, table_pij, charge_i, charge_j,
-                       px12, py12, pz12, force_coul, energy_coul);
-      sum_elj += energy_lj;
-      sum_ecoul += energy_coul;
-    }
-  }
-  rbmd::Real block_sum_elj =
-      hipcub::BlockReduce<rbmd::Real, BLOCK_SIZE>(temp_storage_elj)
-          .Sum(sum_elj);
-  rbmd::Real block_sum_ecoul =
-      hipcub::BlockReduce<rbmd::Real, BLOCK_SIZE>(temp_storage_ecoul)
-          .Sum(sum_ecoul);
-
-  if (threadIdx.x == 0) {
-    atomicAdd(total_evdwl, block_sum_elj);
-    atomicAdd(total_ecoul, block_sum_ecoul);
-  }
-}
-
-// LJCutCoul RBL
+// RBL: LJCutCoul
 __global__ void ComputeLJCutCoulRBLForce(
     Box* box, ERFTable* erf_table, const rbmd::Real rs, const rbmd::Real rc,
     const rbmd::Id num_atoms, const rbmd::Id neighbor_sample_num,
@@ -1108,150 +939,6 @@ __global__ void ComputeLJCutCoulRBLForce(
   }
 }
 
-__global__ void ComputeSpecialLJCutCoulRBLForce(
-    Box* box, ERFTable* erf_table, const rbmd::Real rs, const rbmd::Real rc,
-    const rbmd::Id num_atoms, const rbmd::Id neighbor_sample_num,
-    const rbmd::Id pice_num, const rbmd::Real alpha, const rbmd::Real qqr2e,
-    const rbmd::Id* atoms_type, const rbmd::Id* atoms_id,
-    const rbmd::Real* sigma, const rbmd::Real* eps, const rbmd::Id* start_id,
-    const rbmd::Id* end_id, const rbmd::Id* id_verletlist,
-    const rbmd::Id* id_random_neighbor, const rbmd::Id* random_neighbor_num,
-    const rbmd::Id* special_ids, const rbmd::Real* special_weights,
-    const rbmd::Id* special_offset, const rbmd::Id* special_count,
-    const rbmd::Real* charge, const rbmd::Real* px, const rbmd::Real* py,
-    const rbmd::Real* pz, rbmd::Real* fx, rbmd::Real* fy, rbmd::Real* fz) {
-  rbmd::Real sum_fx = 0;
-  rbmd::Real sum_fy = 0;
-  rbmd::Real sum_fz = 0;
-  rbmd::Real sum_fsx = 0;
-  rbmd::Real sum_fsy = 0;
-  rbmd::Real sum_fsz = 0;
-  rbmd::Real sum_fcsx = 0;
-  rbmd::Real sum_fcsy = 0;
-  rbmd::Real sum_fcsz = 0;
-
-  unsigned int tid1 = blockIdx.x * blockDim.x + threadIdx.x;
-  if (tid1 < num_atoms) {
-    // if(tid1 == 0)
-    // {
-    rbmd::Id atom_id1 = atoms_id[tid1];
-    rbmd::Id num_components = special_offset[atom_id1];
-    rbmd::Id typei = atoms_type[tid1];
-    rbmd::Real eps_i = eps[typei];
-    rbmd::Real sigma_i = sigma[typei];
-    rbmd::Real charge_i = charge[tid1];
-    rbmd::Real x1 = px[tid1];
-    rbmd::Real y1 = py[tid1];
-    rbmd::Real z1 = pz[tid1];
-    // rs
-    for (rbmd::Id j = start_id[tid1]; j < end_id[tid1]; ++j) {
-      rbmd::Id tid2 = id_verletlist[j];
-      rbmd::Id atom_id2 = atoms_id[tid2];
-      rbmd::Id typej = atoms_type[tid2];
-      rbmd::Real eps_j = eps[typej];
-      rbmd::Real sigma_j = sigma[typej];
-      rbmd::Real charge_j = charge[tid2];
-      // mix
-      rbmd::Real eps_ij = SQRT(eps_i * eps_j);
-      rbmd::Real sigma_ij = (sigma_i + sigma_j) / 2;
-      rbmd::Real x2 = px[tid2];
-      rbmd::Real y2 = py[tid2];
-      rbmd::Real z2 = pz[tid2];
-      rbmd::Real px12 = x2 - x1;
-      rbmd::Real py12 = y2 - y1;
-      rbmd::Real pz12 = z2 - z1;
-      MinImageDistance(box, px12, py12, pz12);
-
-      // erf
-      rbmd::Real dis = SQRT(px12 * px12 + py12 * py12 + pz12 * pz12);
-      rbmd::Id index_table_pij = erf_table->Extract(dis);
-      rbmd::Real table_pij = erf_table->TableGnearValue(dis, index_table_pij);
-
-      // compute the force_rs
-      rbmd::Real force_lj_rs, force_coul_rs;
-      rbmd::Real fs_ij;
-      lj126_rs(rs, px12, py12, pz12, eps_ij, sigma_ij, force_lj_rs);
-
-      rbmd::Real weight = 1.0;
-      for (rbmd::Id k = 0; k < special_count[atom_id1]; ++k) {
-        rbmd::Id special_id = special_ids[num_components + k];
-        if (special_id == atom_id2) {
-          weight = special_weights[num_components + k];
-          // printf("weight %f\n", weight);
-        }
-      }
-      force_lj_rs = weight * force_lj_rs;
-
-      CoulCutForce_rs_erf(rs, alpha, qqr2e, table_pij, charge_i, charge_j, px12,
-                          py12, pz12, force_coul_rs);
-
-      fs_ij = force_lj_rs + force_coul_rs;
-      sum_fsx += fs_ij * px12;
-      sum_fsy += fs_ij * py12;
-      sum_fsz += fs_ij * pz12;
-    }
-
-    // rcs
-    rbmd::Id real_random_num = random_neighbor_num[tid1];
-    for (rbmd::Id jj = 0; jj < real_random_num; ++jj) {
-      rbmd::Id tid2 = id_random_neighbor[tid1 * neighbor_sample_num + jj];
-      rbmd::Id atom_id2 = atoms_id[tid2];
-      rbmd::Id typej = atoms_type[tid2];
-      rbmd::Real eps_j = eps[typej];
-      rbmd::Real sigma_j = sigma[typej];
-      rbmd::Real charge_j = charge[tid2];
-
-      // mix
-      rbmd::Real eps_ij = SQRT(eps_i * eps_j);
-      rbmd::Real sigma_ij = (sigma_i + sigma_j) / 2;
-      rbmd::Real x2 = px[tid2];
-      rbmd::Real y2 = py[tid2];
-      rbmd::Real z2 = pz[tid2];
-      rbmd::Real px12 = x2 - x1;
-      rbmd::Real py12 = y2 - y1;
-      rbmd::Real pz12 = z2 - z1;
-      MinImageDistance(box, px12, py12, pz12);
-
-      // erf
-      rbmd::Real dis = SQRT(px12 * px12 + py12 * py12 + pz12 * pz12);
-      rbmd::Id index_table_pij = erf_table->Extract(dis);
-      rbmd::Real table_pij = erf_table->TableGnearValue(dis, index_table_pij);
-
-      // compute the force_rcs
-      rbmd::Real force_lj_rcs, force_coul_rcs;
-      rbmd::Real fcs_ij;
-      lj126_rcs(rc, rs, pice_num, px12, py12, pz12, eps_ij, sigma_ij,
-                force_lj_rcs);
-
-      rbmd::Real weight = 1.0;
-      for (rbmd::Id k = 0; k < special_count[atom_id1]; ++k) {
-        rbmd::Id special_id = special_ids[num_components + k];
-        if (special_id == atom_id2) {
-          weight = special_weights[num_components + k];
-          // printf("weight %f\n", weight);
-        }
-      }
-      force_lj_rcs = weight * force_lj_rcs;
-
-      CoulCutForce_rcs_erf(rc, rs, pice_num, alpha, qqr2e, table_pij, charge_i,
-                           charge_j, px12, py12, pz12, force_coul_rcs);
-
-      fcs_ij = force_lj_rcs + force_coul_rcs;
-      sum_fcsx += fcs_ij * px12;
-      sum_fcsy += fcs_ij * py12;
-      sum_fcsz += fcs_ij * pz12;
-    }
-
-    // total force = fs + fcs
-    sum_fx = sum_fsx + sum_fcsx;
-    sum_fy = sum_fsy + sum_fcsy;
-    sum_fz = sum_fsz + sum_fcsz;
-    fx[tid1] = sum_fx;
-    fy[tid1] = sum_fy;
-    fz[tid1] = sum_fz;
-    //}
-  }
-}
 
 // StructureFactor
 __global__ void ComputeChargeStructureFactor(
@@ -1317,13 +1004,19 @@ __global__ void ComputeEwaldForce(
     const rbmd::Real alpha, const rbmd::Real qqr2e,
     const rbmd::Real* real_array, const rbmd::Real* imag_array,
     const rbmd::Real* charge, const rbmd::Real* px, const rbmd::Real* py,
-    const rbmd::Real* pz, rbmd::Real* fx, rbmd::Real* fy, rbmd::Real* fz) {
+    const rbmd::Real* pz, rbmd::Real* fx, rbmd::Real* fy, rbmd::Real* fz,
+    rbmd::Real* flat_virial) {
   rbmd::Real sum_fx = 0;
   rbmd::Real sum_fy = 0;
   rbmd::Real sum_fz = 0;
+  //virial init
+  rbmd::Real sum_virial[6];
+  for (int i = 0; i < 6; ++i)
+  {
+    sum_virial[i] = 0.0;
+  }
 
   unsigned int tid1 = blockIdx.x * blockDim.x + threadIdx.x;
-
   if (tid1 < num_atoms) {
     rbmd::Real p_x = px[tid1];
     rbmd::Real p_y = py[tid1];
@@ -1335,18 +1028,36 @@ __global__ void ComputeEwaldForce(
       const rbmd::Real rhok_imag_i = imag_array[indexEwald - 1];
 
       rbmd::Real force_Ewald_x, force_Ewald_y, force_Ewald_z;
+      rbmd::Real force_Ewald_single;
       EwaldForce(box, alpha, M, qqr2e, rhok_real_i, rhok_imag_i, charge_i, p_x,
-                 p_y, p_z, force_Ewald_x, force_Ewald_y, force_Ewald_z);
+                 p_y, p_z, force_Ewald_single,force_Ewald_x, force_Ewald_y, force_Ewald_z);
 
       sum_fx += force_Ewald_x;
       sum_fy += force_Ewald_y;
       sum_fz += force_Ewald_z;
+
+      //compute ewald_virial
+      force_Ewald_single = -0.5*force_Ewald_single;
+      Real3 K;
+      K.x = 2.0 * M_PI * M.data[0] / box->_length[0];
+      K.y = 2.0 * M_PI * M.data[1] / box->_length[1];
+      K.z = 2.0 * M_PI * M.data[2] / box->_length[2];
+      sum_virial[0] += (p_x * K.x + p_x * K.x) * force_Ewald_single; //_xx
+      sum_virial[1] += (p_y * K.y + p_y * K.y) * force_Ewald_single; // yy
+      sum_virial[2] += (p_z * K.z + p_z * K.z) * force_Ewald_single; // zz
+      sum_virial[3] += (p_x * K.y + p_y * K.x) * force_Ewald_single; // xy
+      sum_virial[4] += (p_x * K.z + p_z * K.x) * force_Ewald_single; // xz
+      sum_virial[5] += (p_y * K.z + p_z * K.y) * force_Ewald_single; // yz
     };
     ExecuteOnKmax(Kmax, function);
 
     fx[tid1] = sum_fx;
     fy[tid1] = sum_fy;
     fz[tid1] = sum_fz;
+    //
+    for(int i =0;i<6;++i) {
+      flat_virial[ tid1 * 6 + i ] = sum_virial[i];
+    }
   }
 }
 
@@ -1419,7 +1130,14 @@ __global__ void ComputeRBEForce(
     const rbmd::Real* __restrict__ charge, const rbmd::Real* __restrict__ p_sample_x,
     const rbmd::Real* __restrict__ p_sample_y, const rbmd::Real* __restrict__ p_sample_z,
     const rbmd::Real* __restrict__ px, const rbmd::Real* __restrict__ py, const rbmd::Real* __restrict__ pz,
-    rbmd::Real* __restrict__ fx, rbmd::Real* __restrict__ fy, rbmd::Real* __restrict__ fz) {
+    rbmd::Real* __restrict__ fx, rbmd::Real* __restrict__ fy, rbmd::Real* __restrict__ fz,
+    rbmd::Real* flat_virial) {
+  //virial init
+  rbmd::Real sum_virial[6];
+  for (int i = 0; i < 6; ++i)
+  {
+    sum_virial[i] = 0.0;
+  }
   rbmd::Real sum_fx = 0;
   rbmd::Real sum_fy = 0;
   rbmd::Real sum_fz = 0;
@@ -1450,12 +1168,26 @@ __global__ void ComputeRBEForce(
       const rbmd::Real rhok_imag_i = __ldg(&imag_array[i]);
 
       rbmd::Real force_rbe_x, force_rbe_y, force_rbe_z;
+      rbmd::Real force_rbe_single;
       RBEForce(box, M, qqr2e, rhok_real_i, rhok_imag_i, charge_i, p_x, p_y, p_z,
-               force_rbe_x, force_rbe_y, force_rbe_z);
+               force_rbe_single,force_rbe_x, force_rbe_y, force_rbe_z);
 
       sum_fx += force_rbe_x;
       sum_fy += force_rbe_y;
       sum_fz += force_rbe_z;
+
+      //compute ewald_virial
+      force_rbe_single = -0.5*force_rbe_single;
+      Real3 K;
+      K.x = 2.0 * M_PI * M.x / box->_length[0];
+      K.y = 2.0 * M_PI * M.y / box->_length[1];
+      K.z = 2.0 * M_PI * M.z / box->_length[2];
+      sum_virial[0] += (p_x * K.x + p_x * K.x) * force_rbe_single; //_xx
+      sum_virial[1] += (p_y * K.y + p_y * K.y) * force_rbe_single; // yy
+      sum_virial[2] += (p_z * K.z + p_z * K.z) * force_rbe_single; // zz
+      sum_virial[3] += (p_x * K.y + p_y * K.x) * force_rbe_single; // xy
+      sum_virial[4] += (p_x * K.z + p_z * K.x) * force_rbe_single; // xz
+      sum_virial[5] += (p_y * K.z + p_z * K.y) * force_rbe_single; // yz
     }
     //
     rbmd::Real sum_gauss;
@@ -1469,467 +1201,20 @@ __global__ void ComputeRBEForce(
     fx[tid1] = sum_fx;
     fy[tid1] = sum_fy;
     fz[tid1] = sum_fz;
+
+    //virial
+    for(int i =0;i<6;++i) {
+      sum_virial[i] = sum_virial[i] * sum_gauss / p_number;
+    }
+    for(int i =0;i<6;++i) {
+      flat_virial[ tid1 * 6 + i ] = sum_virial[i];
+    }
+
     // printf("--------test---force0:%f---,force1:%f---force2:%f\n",fx[tid1],fy[tid1],fz[tid1]);
   }
 }
 
-//
-__global__ void ComputeSpecialCoulForce(
-    Box* box, const rbmd::Id num_atoms, const rbmd::Real qqr2e,
-    const rbmd::Id* atoms_id, const rbmd::Id* atom_id_to_idx,
-    const rbmd::Id* atoms_vec, const rbmd::Id* atoms_offset,
-    const rbmd::Id* atom_count, const rbmd::Id* special_ids,
-    const rbmd::Real* special_weights, const rbmd::Id* special_offset,
-    const rbmd::Id* special_count, const rbmd::Real* charge,
-    const rbmd::Real* px, const rbmd::Real* py, const rbmd::Real* pz,
-    rbmd::Real* fx, rbmd::Real* fy, rbmd::Real* fz,
-    rbmd::Real* total_especial_coul) {
-  __shared__ typename hipcub::BlockReduce<rbmd::Real, BLOCK_SIZE>::TempStorage
-      temp_storage;
 
-  rbmd::Real sum_fx = 0.0;
-  rbmd::Real sum_fy = 0.0;
-  rbmd::Real sum_fz = 0.0;
-  rbmd::Real sum_energy_special_coul = 0.0;
-
-  unsigned int tid1 = blockIdx.x * blockDim.x + threadIdx.x;
-  if (tid1 < num_atoms) {
-    rbmd::Id atom_id1 = atoms_id[tid1];
-    rbmd::Id id1 = atom_id_to_idx[atom_id1];  // idx
-    if (atom_count[atom_id1] < 3) {
-      sum_fx = sum_fx = sum_fx = 0.0;
-      sum_energy_special_coul = 0.0;
-    } else {
-      rbmd::Real charge_i = charge[id1];
-      rbmd::Real x1 = px[id1];
-      rbmd::Real y1 = py[id1];
-      rbmd::Real z1 = pz[id1];
-      rbmd::Id num_offset = atoms_offset[atom_id1];
-      rbmd::Id num_components = special_offset[atom_id1];
-      // printf("atom_id1 %i num_offset %i\n",atom_id1 ,num_offset);
-      for (rbmd::Id j = 0; j < atom_count[atom_id1]; ++j) {
-        rbmd::Id atom_id2 = atoms_vec[num_offset + j];
-        rbmd::Id id2 = atom_id_to_idx[atom_id2];  // idx
-        if (atom_id1 == atom_id2) continue;
-
-        rbmd::Real charge_j = charge[id2];
-        rbmd::Real x2 = px[id2];
-        rbmd::Real y2 = py[id2];
-        rbmd::Real z2 = pz[id2];
-
-        rbmd::Real x12 = x1 - x2;
-        rbmd::Real y12 = y1 - y2;
-        rbmd::Real z12 = z1 - z2;
-        MinImageDistance(box, x12, y12, z12);
-
-        rbmd::Real dis_ij = SQRT(x12 * x12 + y12 * y12 + z12 * z12);
-        rbmd::Real dis_ij3 = POW(dis_ij, 3.0);
-        rbmd::Real force_component = -qqr2e * charge_i * charge_j / dis_ij3;
-        rbmd::Real energy_atom = 0.5 * qqr2e * charge_i * charge_j / dis_ij;
-
-        rbmd::Real weight = 1.0;
-        for (rbmd::Id k = 0; k < special_count[atom_id1]; ++k) {
-          rbmd::Id special_id = special_ids[num_components + k];
-          if (special_id == atom_id2) {
-            weight = special_weights[num_components + k];
-          }
-        }
-        sum_fx += (1.0 - weight) * force_component * x12;
-        sum_fy += (1.0 - weight) * force_component * y12;
-        sum_fz += (1.0 - weight) * force_component * z12;
-        sum_energy_special_coul += (1.0 - weight) * energy_atom;
-      }
-    }
-
-    fx[id1] = sum_fx;
-    fy[id1] = sum_fy;
-    fz[id1] = sum_fz;
-  }
-
-  rbmd::Real block_sum_especial_coul =
-      hipcub::BlockReduce<rbmd::Real, BLOCK_SIZE>(temp_storage)
-          .Sum(sum_energy_special_coul);
-  if (threadIdx.x == 0) {
-    atomicAdd(total_especial_coul, block_sum_especial_coul);
-  }
-}
-
-__global__ void ComputeBondForce(
-    Box* box, const rbmd::Id num_bonds, const rbmd::Id* atom_id_to_idx,
-    const rbmd::Real* bond_coeffs_k, const rbmd::Real* bond_coeffs_equilibrium,
-    const rbmd::Id* bond_type, const rbmd::Id* bondlisti,
-    const rbmd::Id* bondlistj, const rbmd::Real* px, const rbmd::Real* py,
-    const rbmd::Real* pz, rbmd::Real* fx, rbmd::Real* fy, rbmd::Real* fz,
-    rbmd::Id* temp_atom_ids, rbmd::Real* energy_bond) {
-  __shared__ typename hipcub::BlockReduce<rbmd::Real, BLOCK_SIZE>::TempStorage
-      temp_storage;
-
-  rbmd::Real local_energy_bond = 0;
-
-  unsigned int tid1 = blockIdx.x * blockDim.x + threadIdx.x;
-  if (tid1 < num_bonds) {
-    rbmd::Id bondi = bondlisti[tid1];
-    rbmd::Id bondj = bondlistj[tid1];
-    rbmd::Id bondii = atom_id_to_idx[bondi];
-    rbmd::Id bondjj = atom_id_to_idx[bondj];
-
-    rbmd::Id bondtype = bond_type[tid1];
-    rbmd::Real k = bond_coeffs_k[bondtype];
-    rbmd::Real equilibrium_bond = bond_coeffs_equilibrium[bondtype];
-
-    rbmd::Real x12 = px[bondii] - px[bondjj];
-    rbmd::Real y12 = py[bondii] - py[bondjj];
-    rbmd::Real z12 = pz[bondii] - pz[bondjj];
-    MinImageDistance(box, x12, y12, z12);
-    rbmd::Real dis_12 = SQRT(x12 * x12 + y12 * y12 + z12 * z12);
-    rbmd::Real dr = dis_12 - equilibrium_bond;
-    rbmd::Real rk = k * dr;
-
-    // energy
-    local_energy_bond = rk * dr;
-
-    rbmd::Real forcebondij;
-    if (dis_12 > 0.01)
-      forcebondij = -2.0 * rk / dis_12;
-    else
-      forcebondij = 0.0;
-
-    // // apply force to each of 2 atoms
-    // fx[bondii] = forcebondij * x12;
-    // fy[bondii] = forcebondij * y12;
-    // fz[bondii] = forcebondij * z12;
-    //
-    // fx[bondjj] = -forcebondij * x12;
-    // fy[bondjj] = -forcebondij * y12;
-    // fz[bondjj] = -forcebondij * z12;
-
-    // // 计算作用力分量
-    rbmd::Real fx_ij = forcebondij * x12;
-    rbmd::Real fy_ij = forcebondij * y12;
-    rbmd::Real fz_ij = forcebondij * z12;
-
-    // // 保存原子ID和对应的力
-    // temp_atom_ids[tid1 * 2] = bondii;   // bondii
-    // temp_atom_ids[tid1 * 2 + 1] = bondjj; // bondjj
-    // //printf("tid1  %i bondii  %i  bondjj  %i\n",tid1, temp_atom_ids[tid1 *
-    // 2], temp_atom_ids[tid1 * 2 + 1]);
-    //
-    // fx[tid1 * 2] = fx_ij;          // bondii 力
-    // fx[tid1 * 2 + 1] = -fx_ij;     // bondjj 力的相反数
-    // fy[tid1 * 2] = fy_ij;          // bondii 力
-    // fy[tid1 * 2 + 1] = -fy_ij;     // bondjj 力的相反数
-    // fz[tid1 * 2] = fz_ij;          // bondii 力
-    // fz[tid1 * 2 + 1] = -fz_ij;     // bondjj 力的相反数
-
-    atomicAdd(&fx[bondii], fx_ij);  // 将作用力添加到原子bondi
-    atomicAdd(&fy[bondii], fy_ij);
-    atomicAdd(&fz[bondii], fz_ij);
-
-    atomicAdd(&fx[bondjj], -fx_ij);  // 对于bondj施加相反的作用力
-    atomicAdd(&fy[bondjj], -fy_ij);
-    atomicAdd(&fz[bondjj], -fz_ij);
-  }
-  rbmd::Real block_sum =
-      hipcub::BlockReduce<rbmd::Real, BLOCK_SIZE>(temp_storage)
-          .Sum(local_energy_bond);
-
-  if (threadIdx.x == 0) {
-    atomicAdd(energy_bond, block_sum);
-  }
-}
-
-//
-__global__ void ComputeAngleForce(
-    Box* box, const rbmd::Id num_anglels, const rbmd::Id* atom_id_to_idx,
-    const rbmd::Real* anglel_coeffs_k,
-    const rbmd::Real* anglel_coeffs_equilibrium, const rbmd::Id* anglel_type,
-    const rbmd::Id* anglelisti, const rbmd::Id* anglelistj,
-    const rbmd::Id* anglelistk, const rbmd::Real* px, const rbmd::Real* py,
-    const rbmd::Real* pz, rbmd::Real* fx, rbmd::Real* fy, rbmd::Real* fz,
-    rbmd::Real* energy_angle) {
-  __shared__ typename hipcub::BlockReduce<rbmd::Real, BLOCK_SIZE>::TempStorage
-      temp_storage;
-  rbmd::Real local_energy_angle = 0;
-
-  unsigned int tid1 = blockIdx.x * blockDim.x + threadIdx.x;
-  if (tid1 < num_anglels) {
-    rbmd::Id angleli = anglelisti[tid1];
-    rbmd::Id anglelj = anglelistj[tid1];
-    rbmd::Id anglelk = anglelistk[tid1];
-    rbmd::Id anglelii = atom_id_to_idx[angleli];
-    rbmd::Id angleljj = atom_id_to_idx[anglelj];
-    rbmd::Id anglelkk = atom_id_to_idx[anglelk];
-
-    rbmd::Id angleltype = anglel_type[tid1];
-    rbmd::Real k = anglel_coeffs_k[angleltype];
-    rbmd::Real equilibrium_angle = anglel_coeffs_equilibrium[angleltype];
-
-    rbmd::Real x12 = px[anglelii] - px[angleljj];  // i j
-    rbmd::Real y12 = py[anglelii] - py[angleljj];
-    rbmd::Real z12 = pz[anglelii] - pz[angleljj];
-    MinImageDistance(box, x12, y12, z12);
-
-    rbmd::Real x23 = px[anglelkk] - px[angleljj];  // k j
-    rbmd::Real y23 = py[anglelkk] - py[angleljj];
-    rbmd::Real z23 = pz[anglelkk] - pz[angleljj];
-    MinImageDistance(box, x23, y23, z23);
-
-    rbmd::Real dis_12_2 = x12 * x12 + y12 * y12 + z12 * z12;
-    rbmd::Real dis_12 = SQRT(dis_12_2);
-
-    rbmd::Real dis_23_2 = x23 * x23 + y23 * y23 + z23 * z23;
-    rbmd::Real dis_23 = SQRT(dis_23_2);
-
-    rbmd::Real cosangle = x12 * x23 + y12 * y23 + z12 * z23;
-    cosangle /= dis_12 * dis_23;
-
-    if (cosangle > 1.0) cosangle = 1.0;
-    if (cosangle < -1.0) cosangle = -1.0;
-    rbmd::Real s = SQRT(1.0 - cosangle * cosangle);
-
-    const rbmd::Real SMALL = 0.001;
-    if (s < SMALL) s = SMALL;
-    s = 1.0 / s;
-
-    rbmd::Real dtheta = ACOS(cosangle) - (equilibrium_angle * M_PI) / 180;
-    rbmd::Real tk = k * dtheta;
-
-    // energy
-    local_energy_angle = tk * dtheta;
-
-    rbmd::Real a = -2.0 * tk * s;
-    rbmd::Real a11 = a * cosangle / dis_12_2;
-    rbmd::Real a12 = -a / (dis_12 * dis_23);
-    rbmd::Real a22 = a * cosangle / dis_23_2;
-
-    rbmd::Real force_anglei_x, force_anglei_y, force_anglei_z;
-    rbmd::Real force_anglek_x, force_anglek_y, force_anglek_z;
-    rbmd::Real force_anglej_x, force_anglej_y, force_anglej_z;
-
-    force_anglei_x = a11 * x12 + a12 * x23;
-    force_anglei_y = a11 * y12 + a12 * y23;
-    force_anglei_z = a11 * z12 + a12 * z23;
-
-    force_anglek_x = a22 * x23 + a12 * x12;
-    force_anglek_y = a22 * y23 + a12 * y12;
-    force_anglek_z = a22 * z23 + a12 * z12;
-
-    force_anglej_x = -(force_anglei_x + force_anglek_x);
-    force_anglej_y = -(force_anglei_y + force_anglek_y);
-    force_anglej_z = -(force_anglei_z + force_anglek_z);
-
-    fx[anglelii] = force_anglei_x;
-    fy[anglelii] = force_anglei_y;
-    fz[anglelii] = force_anglei_z;
-
-    fx[anglelkk] = force_anglek_x;
-    fy[anglelkk] = force_anglek_y;
-    fz[anglelkk] = force_anglek_z;
-
-    fx[angleljj] = force_anglej_x;
-    fy[angleljj] = force_anglej_y;
-    fz[angleljj] = force_anglej_z;
-
-    // atomicAdd(&fx[anglelii], force_anglei_x);
-    // atomicAdd(&fy[anglelii], force_anglei_y);
-    // atomicAdd(&fz[anglelii], force_anglei_z);
-    //
-    // atomicAdd(&fx[anglelkk], force_anglek_x);
-    // atomicAdd(&fy[anglelkk], force_anglek_y);
-    // atomicAdd(&fz[anglelkk], force_anglek_z);
-    //
-    // atomicAdd(&fx[angleljj], force_anglej_x);
-    // atomicAdd(&fy[angleljj], force_anglej_y);
-    // atomicAdd(&fz[angleljj], force_anglej_z);
-  }
-
-  rbmd::Real block_sum =
-      hipcub::BlockReduce<rbmd::Real, BLOCK_SIZE>(temp_storage)
-          .Sum(local_energy_angle);
-
-  if (threadIdx.x == 0) {
-    atomicAdd(energy_angle, block_sum);
-  }
-}
-
-__global__ void ComputeDihedralForce(
-    Box* box, const rbmd::Id num_dihedrals, const rbmd::Id* atom_id_to_idx,
-    const rbmd::Real* dihedral_coeffs_k, const rbmd::Id* dihedral_coeffs_sign,
-    const rbmd::Id* dihedral_coeffs_multiplicity, const rbmd::Id* dihedral_type,
-    const rbmd::Id* dihedrallisti, const rbmd::Id* dihedrallistj,
-    const rbmd::Id* dihedrallistk, const rbmd::Id* dihedrallistw,
-    const rbmd::Real* px, const rbmd::Real* py, const rbmd::Real* pz,
-    rbmd::Real* fx, rbmd::Real* fy, rbmd::Real* fz,
-    rbmd::Real* energy_dihedral) {
-  __shared__ typename hipcub::BlockReduce<rbmd::Real, BLOCK_SIZE>::TempStorage
-      temp_storage;
-  rbmd::Real local_energy_dihedral = 0;
-
-  unsigned int tid1 = blockIdx.x * blockDim.x + threadIdx.x;
-  if (tid1 < num_dihedrals) {
-    rbmd::Id dihedrali = dihedrallisti[tid1];
-    rbmd::Id dihedralj = dihedrallistj[tid1];
-    rbmd::Id dihedralk = dihedrallistk[tid1];
-    rbmd::Id dihedralw = dihedrallistw[tid1];
-
-    rbmd::Id dihedralii = atom_id_to_idx[dihedrali];
-    rbmd::Id dihedraljj = atom_id_to_idx[dihedralj];
-    rbmd::Id dihedralkk = atom_id_to_idx[dihedralk];
-    rbmd::Id dihedralww = atom_id_to_idx[dihedralw];
-    rbmd::Real cos_shift, sin_shift;
-
-    rbmd::Id dihedraltype = dihedral_type[tid1];
-    if (dihedral_coeffs_sign[dihedraltype] == 1) {
-      cos_shift = 1.0;
-      sin_shift = 0.0;
-    } else {
-      cos_shift = -1.0;
-      sin_shift = 0.0;
-    }
-
-    rbmd::Real k = dihedral_coeffs_k[dihedraltype];
-    rbmd::Real x12 = px[dihedralii] - px[dihedraljj];  // i j =vb1
-    rbmd::Real y12 = py[dihedralii] - py[dihedraljj];
-    rbmd::Real z12 = pz[dihedralii] - pz[dihedraljj];
-    MinImageDistance(box, x12, y12, z12);
-
-    rbmd::Real x23 = px[dihedralkk] - px[dihedraljj];  //  k j=vb2
-    rbmd::Real y23 = py[dihedralkk] - py[dihedraljj];
-    rbmd::Real z23 = pz[dihedralkk] - pz[dihedraljj];
-    MinImageDistance(box, x23, y23, z23);
-
-    rbmd::Real x23m = -x23;  // =vb2m
-    rbmd::Real y23m = -y23;
-    rbmd::Real z23m = -z23;
-
-    rbmd::Real x34 = px[dihedralww] - px[dihedralkk];  // w k   =vb3
-    rbmd::Real y34 = py[dihedralww] - py[dihedralkk];
-    rbmd::Real z34 = pz[dihedralww] - pz[dihedralkk];
-    MinImageDistance(box, x34, y34, z34);
-    // c,s calculation
-
-    rbmd::Real ax = y12 * z23m - z12 * y23m;
-    rbmd::Real ay = z12 * x23m - x12 * z23m;
-    rbmd::Real az = x12 * y23m - y12 * x23m;
-    rbmd::Real bx = y34 * z23m - z34 * y23m;
-    rbmd::Real by = z34 * x23m - x34 * z23m;
-    rbmd::Real bz = x34 * y23m - z34 * x23m;
-
-    rbmd::Real rasq = ax * ax + ay * ay + az * az;
-    rbmd::Real rbsq = bx * bx + by * by + bz * bz;
-    rbmd::Real rgsq = x23m * x23m + y23m * y23m + z23m * z23m;
-    rbmd::Real rg = SQRT(rgsq);
-
-    rbmd::Real rginv, ra2inv, rb2inv;
-    rginv = ra2inv = rb2inv = 0.0;
-    if (rg > 0) rginv = 1.0 / rg;
-
-    if (rasq > 0) ra2inv = 1.0 / rasq;
-
-    if (rbsq > 0) rb2inv = 1.0 / rbsq;
-
-    rbmd::Real rabinv = SQRT(ra2inv * rb2inv);
-
-    rbmd::Real c = (ax * bx + ay * by + az * bz) * rabinv;
-    rbmd::Real s = rg * rabinv * (ax * x34 + ay * y34 + az * z34);
-
-    if (c > 1.0) c = 1.0;
-    if (c < -1.0) c = -1.0;
-
-    rbmd::Id m = dihedral_coeffs_multiplicity[dihedraltype];
-    rbmd::Real p = 1.0;
-    rbmd::Real ddf1, df1;
-    ddf1 = df1 = 0.0;
-    for (rbmd::Id i = 0; i < m; i++) {
-      ddf1 = p * c - df1 * s;
-      df1 = p * s + df1 * c;
-      p = ddf1;
-    }
-
-    p = p * cos_shift + df1 * sin_shift;
-    df1 = df1 * cos_shift - ddf1 * sin_shift;
-    df1 *= -m;
-    p += 1.0;
-
-    if (m == 0) {
-      p = 1.0 + cos_shift;
-      // p = 1.0 + cos_shift[type];
-      df1 = 0.0;
-    }
-
-    // energy
-    local_energy_dihedral = k * p;
-
-    rbmd::Real fg = x12 * x23m + y12 * y23m + z12 * z23m;
-    rbmd::Real hg = x34 * x23m + y34 * y23m + z34 * z23m;
-
-    rbmd::Real fga = fg * ra2inv * rginv;
-    rbmd::Real hgb = hg * rb2inv * rginv;
-    rbmd::Real gaa = -ra2inv * rg;
-    rbmd::Real gbb = rb2inv * rg;
-
-    rbmd::Real dtfx = gaa * ax;
-    rbmd::Real dtfy = gaa * ay;
-    rbmd::Real dtfz = gaa * az;
-    rbmd::Real dtgx = fga * ax - hgb * bx;
-    rbmd::Real dtgy = fga * ay - hgb * by;
-    rbmd::Real dtgz = fga * az - hgb * bz;
-    rbmd::Real dthx = gbb * bx;
-    rbmd::Real dthy = gbb * by;
-    rbmd::Real dthz = gbb * bz;
-
-    rbmd::Real df = -k * df1;
-    // df = -k[type] * df1;
-    rbmd::Real sx2 = df * dtgx;
-    rbmd::Real sy2 = df * dtgy;
-    rbmd::Real sz2 = df * dtgz;
-
-    // force
-    rbmd::Real force_dihedrali_x, force_dihedrali_y, force_dihedrali_z;
-    rbmd::Real force_dihedralj_x, force_dihedralj_y, force_dihedralj_z;
-    rbmd::Real force_dihedralk_x, force_dihedralk_y, force_dihedralk_z;
-    rbmd::Real force_dihedralw_x, force_dihedralw_y, force_dihedralw_z;
-
-    force_dihedrali_x = df * dtfx;
-    force_dihedrali_y = df * dtfy;
-    force_dihedrali_z = df * dtfz;
-
-    force_dihedralj_x = sx2 - force_dihedrali_x;
-    force_dihedralj_y = sy2 - force_dihedrali_y;
-    force_dihedralj_z = sz2 - force_dihedrali_z;
-
-    force_dihedralw_x = df * dthx;
-    force_dihedralw_y = df * dthy;
-    force_dihedralw_z = df * dthz;
-
-    force_dihedralk_x = -sx2 - force_dihedralw_x;
-    force_dihedralk_y = -sy2 - force_dihedralw_y;
-    force_dihedralk_z = -sz2 - force_dihedralw_z;
-
-    atomicAdd(&fx[dihedralii], force_dihedrali_x);
-    atomicAdd(&fy[dihedralii], force_dihedrali_y);
-    atomicAdd(&fz[dihedralii], force_dihedrali_z);
-
-    atomicAdd(&fx[dihedraljj], force_dihedralj_x);
-    atomicAdd(&fy[dihedraljj], force_dihedralj_y);
-    atomicAdd(&fz[dihedraljj], force_dihedralj_z);
-
-    atomicAdd(&fx[dihedralww], force_dihedralw_x);
-    atomicAdd(&fy[dihedralww], force_dihedralw_y);
-    atomicAdd(&fz[dihedralww], force_dihedralw_z);
-
-    atomicAdd(&fx[dihedralkk], force_dihedralk_x);
-    atomicAdd(&fy[dihedralkk], force_dihedralk_y);
-    atomicAdd(&fz[dihedralkk], force_dihedralk_z);
-  }
-  rbmd::Real block_sum =
-      hipcub::BlockReduce<rbmd::Real, BLOCK_SIZE>(temp_storage)
-          .Sum(local_energy_dihedral);
-
-  if (threadIdx.x == 0) {
-    atomicAdd(energy_dihedral, block_sum);
-  }
-}
 
 __global__ void AddForce(const rbmd::Id num_atoms, const rbmd::Real* input_fx,
                          const rbmd::Real* input_fy, const rbmd::Real* input_fz,
@@ -1950,29 +1235,12 @@ void LJForceOp<device::DEVICE_GPU>::operator()(
     const rbmd::Id* start_id, const rbmd::Id* end_id,
     const rbmd::Id* id_verletlist, const rbmd::Real* px, const rbmd::Real* py,
     const rbmd::Real* pz, rbmd::Real* fx, rbmd::Real* fy, rbmd::Real* fz,
-    rbmd::Real* total_evdwl) {
+    rbmd::Real* flat_virial ,rbmd::Real* total_evdwl) {
   unsigned int blocks_per_grid = (num_atoms + BLOCK_SIZE - 1) / BLOCK_SIZE;
 
   CHECK_KERNEL(ComputeLJForce<<<blocks_per_grid, BLOCK_SIZE, 0, 0>>>(
       box, cut_off, num_atoms, atoms_type, sigma, eps, start_id, end_id,
-      id_verletlist, px, py, pz, fx, fy, fz, total_evdwl));
-}
-
-void LJForceVirialOp<device::DEVICE_GPU>::operator()(
-    Box* box, const rbmd::Real cut_off, const rbmd::Id num_atoms,
-    const rbmd::Id* atoms_type, const rbmd::Id* molecular_type,
-    const rbmd::Real* sigma, const rbmd::Real* eps, const rbmd::Id* start_id,
-    const rbmd::Id* end_id, const rbmd::Id* id_verletlist, const rbmd::Real* px,
-    const rbmd::Real* py, const rbmd::Real* pz, rbmd::Real* fx, rbmd::Real* fy,
-    rbmd::Real* fz, rbmd::Real* virial_xx, rbmd::Real* virial_yy,
-    rbmd::Real* virial_zz, rbmd::Real* virial_xy, rbmd::Real* virial_xz,
-    rbmd::Real* virial_yz, rbmd::Real* total_evdwl) {
-  unsigned int blocks_per_grid = (num_atoms + BLOCK_SIZE - 1) / BLOCK_SIZE;
-
-  CHECK_KERNEL(ComputeLJForceViral<<<blocks_per_grid, BLOCK_SIZE, 0, 0>>>(
-      box, cut_off, num_atoms, atoms_type, molecular_type, sigma, eps, start_id,
-      end_id, id_verletlist, px, py, pz, fx, fy, fz, virial_xx, virial_yy,
-      virial_zz, virial_xy, virial_xz, virial_yz, total_evdwl));
+      id_verletlist, px, py, pz, fx, fy, fz, flat_virial,total_evdwl));
 }
 
 // RBL:  LJLForce
@@ -2010,12 +1278,12 @@ void LJEnergyOp<device::DEVICE_GPU>::operator()(
     const rbmd::Id* atoms_type, const rbmd::Real* sigma, const rbmd::Real* eps,
     const rbmd::Id* start_id, const rbmd::Id* end_id,
     const rbmd::Id* id_verletlist, const rbmd::Real* px, const rbmd::Real* py,
-    const rbmd::Real* pz, rbmd::Real* total_evdwl) {
+    const rbmd::Real* pz, rbmd::Real* flat_virial,rbmd::Real* total_evdwl) {
   unsigned int blocks_per_grid = (num_atoms + BLOCK_SIZE - 1) / BLOCK_SIZE;
 
   CHECK_KERNEL(ComputeLJEnergy<<<blocks_per_grid, BLOCK_SIZE, 0, 0>>>(
       box, cut_off, num_atoms, atoms_type, sigma, eps, start_id, end_id,
-      id_verletlist, px, py, pz, total_evdwl));
+      id_verletlist, px, py, pz, flat_virial,total_evdwl));
 }
 
 void LJCutCoulForceOp<device::DEVICE_GPU>::operator()(
@@ -2026,35 +1294,16 @@ void LJCutCoulForceOp<device::DEVICE_GPU>::operator()(
     const rbmd::Id* id_verletlist, const rbmd::Real* charge,
     const rbmd::Real* px, const rbmd::Real* py, const rbmd::Real* pz,
     rbmd::Real* fx, rbmd::Real* fy, rbmd::Real* fz, rbmd::Real* total_evdwl,
-    rbmd::Real* total_ecoul) {
+    rbmd::Real* flat_virial,rbmd::Real* total_ecoul) {
   unsigned int blocks_per_grid = (num_atoms + BLOCK_SIZE - 1) / BLOCK_SIZE;
 
   CHECK_KERNEL(ComputeLJCutCoulForce<<<blocks_per_grid, BLOCK_SIZE, 0, 0>>>(
       box, erf_table, cut_off, num_atoms, alpha, qqr2e, atoms_type, sigma, eps,
       start_id, end_id, id_verletlist, charge, px, py, pz, fx, fy, fz,
-      total_evdwl, total_ecoul));
+      total_evdwl, flat_virial,total_ecoul));
 }
 
-void SpecialLJCutCoulForceOp<device::DEVICE_GPU>::operator()(
-    Box* box, ERFTable* erf_table, const rbmd::Real cut_off,
-    const rbmd::Id num_atoms, const rbmd::Real alpha, const rbmd::Real qqr2e,
-    const rbmd::Id* atoms_type, const rbmd::Id* atoms_id,
-    const rbmd::Real* sigma, const rbmd::Real* eps, const rbmd::Id* start_id,
-    const rbmd::Id* end_id, const rbmd::Id* id_verletlist,
-    const rbmd::Id* special_ids, const rbmd::Real* special_weights,
-    const rbmd::Id* special_offset, const rbmd::Id* special_count,
-    const rbmd::Real* charge, const rbmd::Real* px, const rbmd::Real* py,
-    const rbmd::Real* pz, rbmd::Real* fx, rbmd::Real* fy, rbmd::Real* fz,
-    rbmd::Real* total_evdwl, rbmd::Real* total_ecoul) {
-  unsigned int blocks_per_grid = (num_atoms + BLOCK_SIZE - 1) / BLOCK_SIZE;
 
-  CHECK_KERNEL(
-      ComputeSpecialLJCutCoulForce<<<blocks_per_grid, BLOCK_SIZE, 0, 0>>>(
-          box, erf_table, cut_off, num_atoms, alpha, qqr2e, atoms_type,
-          atoms_id, sigma, eps, start_id, end_id, id_verletlist, special_ids,
-          special_weights, special_offset, special_count, charge, px, py, pz,
-          fx, fy, fz, total_evdwl, total_ecoul));
-}
 
 void LJCutCoulRBLForceOp<device::DEVICE_GPU>::operator()(
     Box* box, ERFTable* erf_table, const rbmd::Real rs, const rbmd::Real rc,
@@ -2074,28 +1323,6 @@ void LJCutCoulRBLForceOp<device::DEVICE_GPU>::operator()(
       id_random_neighbor, random_neighbor_num, charge, px, py, pz, fx, fy, fz));
 }
 
-void SpecialLJCutCoulRBLForceOp<device::DEVICE_GPU>::operator()(
-    Box* box, ERFTable* erf_table, const rbmd::Real rs, const rbmd::Real rc,
-    const rbmd::Id num_atoms, const rbmd::Id neighbor_sample_num,
-    const rbmd::Id pice_num, const rbmd::Real alpha, const rbmd::Real qqr2e,
-    const rbmd::Id* atoms_type, const rbmd::Id* atoms_id,
-    const rbmd::Real* sigma, const rbmd::Real* eps, const rbmd::Id* start_id,
-    const rbmd::Id* end_id, const rbmd::Id* id_verletlist,
-    const rbmd::Id* id_random_neighbor, const rbmd::Id* random_neighbor_num,
-    const rbmd::Id* special_ids, const rbmd::Real* special_weights,
-    const rbmd::Id* special_offset, const rbmd::Id* special_count,
-    const rbmd::Real* charge, const rbmd::Real* px, const rbmd::Real* py,
-    const rbmd::Real* pz, rbmd::Real* fx, rbmd::Real* fy, rbmd::Real* fz) {
-  unsigned int blocks_per_grid = (num_atoms + BLOCK_SIZE - 1) / BLOCK_SIZE;
-
-  CHECK_KERNEL(
-      ComputeSpecialLJCutCoulRBLForce<<<blocks_per_grid, BLOCK_SIZE, 0, 0>>>(
-          box, erf_table, rs, rc, num_atoms, neighbor_sample_num, pice_num,
-          alpha, qqr2e, atoms_type, atoms_id, sigma, eps, start_id, end_id,
-          id_verletlist, id_random_neighbor, random_neighbor_num, special_ids,
-          special_weights, special_offset, special_count, charge, px, py, pz,
-          fx, fy, fz));
-}
 
 void LJCutCoulEnergyOp<device::DEVICE_GPU>::operator()(
     Box* box, ERFTable* erf_table, const rbmd::Real cut_off,
@@ -2104,34 +1331,16 @@ void LJCutCoulEnergyOp<device::DEVICE_GPU>::operator()(
     const rbmd::Id* start_id, const rbmd::Id* end_id,
     const rbmd::Id* id_verletlist, const rbmd::Real* charge,
     const rbmd::Real* px, const rbmd::Real* py, const rbmd::Real* pz,
-    rbmd::Real* total_evdwl, rbmd::Real* total_ecoul) {
+    rbmd::Real*  flat_virial,rbmd::Real* total_evdwl, rbmd::Real* total_ecoul) {
   unsigned int blocks_per_grid = (num_atoms + BLOCK_SIZE - 1) / BLOCK_SIZE;
 
   CHECK_KERNEL(ComputeLJCutCoulEnergy<<<blocks_per_grid, BLOCK_SIZE, 0, 0>>>(
       box, erf_table, cut_off, num_atoms, alpha, qqr2e, atoms_type, sigma, eps,
-      start_id, end_id, id_verletlist, charge, px, py, pz, total_evdwl,
+      start_id, end_id, id_verletlist, charge, px, py, pz, flat_virial,total_evdwl,
       total_ecoul));
 }
 
-void SpeciaLJCutCoulEnergyOp<device::DEVICE_GPU>::operator()(
-    Box* box, ERFTable* erf_table, const rbmd::Real cut_off,
-    const rbmd::Id num_atoms, const rbmd::Real alpha, const rbmd::Real qqr2e,
-    const rbmd::Id* atoms_type, const rbmd::Id* atoms_id,
-    const rbmd::Real* sigma, const rbmd::Real* eps, const rbmd::Id* start_id,
-    const rbmd::Id* end_id, const rbmd::Id* id_verletlist,
-    const rbmd::Id* special_ids, const rbmd::Real* special_weights,
-    const rbmd::Id* special_offset, const rbmd::Id* special_count,
-    const rbmd::Real* charge, const rbmd::Real* px, const rbmd::Real* py,
-    const rbmd::Real* pz, rbmd::Real* total_evdwl, rbmd::Real* total_ecoul) {
-  unsigned int blocks_per_grid = (num_atoms + BLOCK_SIZE - 1) / BLOCK_SIZE;
 
-  CHECK_KERNEL(
-      ComputeSpecialLJCutCoulEnergy<<<blocks_per_grid, BLOCK_SIZE, 0, 0>>>(
-          box, erf_table, cut_off, num_atoms, alpha, qqr2e, atoms_type,
-          atoms_id, sigma, eps, start_id, end_id, id_verletlist, special_ids,
-          special_weights, special_offset, special_count, charge, px, py, pz,
-          total_evdwl, total_ecoul));
-}
 
 // Charge Structure Factor
 void ComputeChargeStructureFactorOp<device::DEVICE_GPU>::operator()(
@@ -2151,12 +1360,13 @@ void ComputeEwaldForceOp<device::DEVICE_GPU>::operator()(
     const rbmd::Real alpha, const rbmd::Real qqr2e,
     const rbmd::Real* real_array, const rbmd::Real* imag_array,
     const rbmd::Real* charge, const rbmd::Real* px, const rbmd::Real* py,
-    const rbmd::Real* pz, rbmd::Real* fx, rbmd::Real* fy, rbmd::Real* fz) {
+    const rbmd::Real* pz, rbmd::Real* fx, rbmd::Real* fy, rbmd::Real* fz,
+    rbmd::Real* flat_virial) {
   unsigned int blocks_per_grid = (num_atoms + BLOCK_SIZE - 1) / BLOCK_SIZE;
 
   CHECK_KERNEL(ComputeEwaldForce<<<blocks_per_grid, BLOCK_SIZE, 0, 0>>>(
       box, num_atoms, Kmax, alpha, qqr2e, real_array, imag_array, charge, px,
-      py, pz, fx, fy, fz));
+      py, pz, fx, fy, fz,flat_virial));
 }
 // sq_charge
 void SqchargeOp<device::DEVICE_GPU>::operator()(const rbmd::Id num_atoms,
@@ -2200,84 +1410,14 @@ void ComputeRBEForceOp<device::DEVICE_GPU>::operator()(
     const rbmd::Real* charge, const rbmd::Real* p_sample_x,
     const rbmd::Real* p_sample_y, const rbmd::Real* p_sample_z,
     const rbmd::Real* px, const rbmd::Real* py, const rbmd::Real* pz,
-    rbmd::Real* fx, rbmd::Real* fy, rbmd::Real* fz) {
+    rbmd::Real* fx, rbmd::Real* fy, rbmd::Real* fz,rbmd::Real* flat_virial) {
   unsigned int blocks_per_grid = (num_atoms + BLOCK_SIZE - 1) / BLOCK_SIZE;
 
   CHECK_KERNEL(ComputeRBEForce<<<blocks_per_grid, BLOCK_SIZE, 0, 0>>>(
       box, num_atoms, p_number, alpha, qqr2e, real_array, imag_array, charge,
-      p_sample_x, p_sample_y, p_sample_z, px, py, pz, fx, fy, fz));
+      p_sample_x, p_sample_y, p_sample_z, px, py, pz, fx, fy, fz,flat_virial));
 }
 
-void ComputeSpecialCoulForceOp<device::DEVICE_GPU>::operator()(
-    Box* box, const rbmd::Id num_atoms, const rbmd::Real qqr2e,
-    const rbmd::Id* atoms_id, const rbmd::Id* atom_id_to_idx,
-    const rbmd::Id* atoms_vec, const rbmd::Id* atoms_offset,
-    const rbmd::Id* atom_count, const rbmd::Id* special_ids,
-    const rbmd::Real* special_weights, const rbmd::Id* special_offset,
-    const rbmd::Id* special_count, const rbmd::Real* charge,
-    const rbmd::Real* px, const rbmd::Real* py, const rbmd::Real* pz,
-    rbmd::Real* fx, rbmd::Real* fy, rbmd::Real* fz,
-    rbmd::Real* total_especial_coul) {
-  unsigned int blocks_per_grid = (num_atoms + BLOCK_SIZE - 1) / BLOCK_SIZE;
-
-  CHECK_KERNEL(ComputeSpecialCoulForce<<<blocks_per_grid, BLOCK_SIZE, 0, 0>>>(
-      box, num_atoms, qqr2e, atoms_id, atom_id_to_idx, atoms_vec, atoms_offset,
-      atom_count, special_ids, special_weights, special_offset, special_count,
-      charge, px, py, pz, fx, fy, fz, total_especial_coul));
-}
-
-//
-void ComputeBondForceOp<device::DEVICE_GPU>::operator()(
-    Box* box, const rbmd::Id num_bonds, const rbmd::Id* atom_id_to_idx,
-    const rbmd::Real* bond_coeffs_k, const rbmd::Real* bond_coeffs_equilibrium,
-    const rbmd::Id* bond_type, const rbmd::Id* bondlisti,
-    const rbmd::Id* bondlistj, const rbmd::Real* px, const rbmd::Real* py,
-    const rbmd::Real* pz, rbmd::Real* fx, rbmd::Real* fy, rbmd::Real* fz,
-    rbmd::Id* temp_atom_ids, rbmd::Real* energy_bond) {
-  unsigned int blocks_per_grid = (num_bonds + BLOCK_SIZE - 1) / BLOCK_SIZE;
-
-  CHECK_KERNEL(ComputeBondForce<<<blocks_per_grid, BLOCK_SIZE, 0, 0>>>(
-      box, num_bonds, atom_id_to_idx, bond_coeffs_k, bond_coeffs_equilibrium,
-      bond_type, bondlisti, bondlistj, px, py, pz, fx, fy, fz, temp_atom_ids,
-      energy_bond));
-}
-
-//
-void ComputeAngleForceOp<device::DEVICE_GPU>::operator()(
-    Box* box, const rbmd::Id num_anglels, const rbmd::Id* _atom_id_to_idx,
-    const rbmd::Real* anglel_coeffs_k,
-    const rbmd::Real* anglel_coeffs_equilibrium, const rbmd::Id* anglel_type,
-    const rbmd::Id* anglelisti, const rbmd::Id* anglelistj,
-    const rbmd::Id* anglelistk, const rbmd::Real* px, const rbmd::Real* py,
-    const rbmd::Real* pz, rbmd::Real* fx, rbmd::Real* fy, rbmd::Real* fz,
-    rbmd::Real* energy_angle) {
-  unsigned int blocks_per_grid = (num_anglels + BLOCK_SIZE - 1) / BLOCK_SIZE;
-
-  CHECK_KERNEL(ComputeAngleForce<<<blocks_per_grid, BLOCK_SIZE, 0, 0>>>(
-      box, num_anglels, _atom_id_to_idx, anglel_coeffs_k,
-      anglel_coeffs_equilibrium, anglel_type, anglelisti, anglelistj,
-      anglelistk, px, py, pz, fx, fy, fz, energy_angle));
-}
-
-//
-
-void ComputeDihedralForceOp<device::DEVICE_GPU>::operator()(
-    Box* box, const rbmd::Id num_dihedrals, const rbmd::Id* atom_id_to_idx,
-    const rbmd::Real* dihedral_coeffs_k, const rbmd::Id* dihedral_coeffs_sign,
-    const rbmd::Id* dihedral_coeffs_multiplicity, const rbmd::Id* dihedral_type,
-    const rbmd::Id* dihedrallisti, const rbmd::Id* dihedrallistj,
-    const rbmd::Id* dihedrallistk, const rbmd::Id* dihedrallistw,
-    const rbmd::Real* px, const rbmd::Real* py, const rbmd::Real* pz,
-    rbmd::Real* fx, rbmd::Real* fy, rbmd::Real* fz,
-    rbmd::Real* energy_dihedral) {
-  unsigned int blocks_per_grid = (num_dihedrals + BLOCK_SIZE - 1) / BLOCK_SIZE;
-
-  CHECK_KERNEL(ComputeDihedralForce<<<blocks_per_grid, BLOCK_SIZE, 0, 0>>>(
-      box, num_dihedrals, atom_id_to_idx, dihedral_coeffs_k,
-      dihedral_coeffs_sign, dihedral_coeffs_multiplicity, dihedral_type,
-      dihedrallisti, dihedrallistj, dihedrallistk, dihedrallistw, px, py, pz,
-      fx, fy, fz, energy_dihedral));
-}
 
 void AddForceOp<device::DEVICE_GPU>::operator()(const rbmd::Id num_atoms,
                                                 const rbmd::Real* input_fx,

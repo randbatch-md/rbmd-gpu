@@ -65,21 +65,21 @@ void LangevinController::ComputeTemp() {
     {
         bool shake = true;
         if (shake) {
-            _temp = 0.5 * _temp_sum / ((3 * num_atoms - num_atoms - 3) * _kB / 2.0);
+            _temperature = 0.5 * _temp_sum / ((3 * num_atoms - num_atoms - 3) * _kB / 2.0);
         }
         else {
-            _temp = 0.5 * _temp_sum / ((3 * num_atoms - 3) * _kB / 2.0);
+            _temperature = 0.5 * _temp_sum / ((3 * num_atoms - 3) * _kB / 2.0);
         }
     }
     else  // PEO
     {
-        _temp = 0.5 * _temp_sum / ((3 * num_atoms - 3) * _kB / 2.0);
+        _temperature = 0.5 * _temp_sum / ((3 * num_atoms - 3) * _kB / 2.0);
     }
 
-    std::cout << "_temp=" << _temp << std::endl;
+    std::cout << "temperature= " << _temperature << std::endl;
     // out
-    std::ofstream outfile("temp.txt", std::ios::app);
-    outfile << test_current_step << " " << _temp << std::endl;
+    std::ofstream outfile("temperature.txt", std::ios::app);
+    outfile << test_current_step << " " << _temperature << std::endl;
     outfile.close();
 
     // CHECK_RUNTIME(FREE(temp_contrib));

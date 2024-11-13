@@ -1,29 +1,29 @@
-#include "berendsen_controller.h"
+#include "energy_stable_scheme_controller.h"
+#include "update_temperature_op.h"
 
 #include <thrust/device_ptr.h>
-
 #include <cmath>
 
 #include "device_types.h"
 #include "unit_factor.h"
-#include "update_temperature_op.h"
+#include "data_manager.h"
 
-rbmd::Real test_temperature;
-extern int test_current_step;
-BerendsenController::BerendsenController() {
+extern rbmd::Real test_ave_pe_rbl;
+extern rbmd::Real test_ave_pe_init;
+extern rbmd::Id test_current_step;
+EnergyStableSchemeController::EnergyStableSchemeController()  :
+  _device_data(DataManager::getInstance().getDeviceData()),
+  _structure_info_data(DataManager::getInstance().getMDData()->_structure_info_data)
+{
   CHECK_RUNTIME(MALLOC(&_d_temp_contrib, sizeof(rbmd::Real)));
+  std::remove("thermo.txt");
+  std::remove("temperature.txt");
 }
-BerendsenController::~BerendsenController() {
+EnergyStableSchemeController::~EnergyStableSchemeController() {
   CHECK_RUNTIME(FREE(_d_temp_contrib));
 };
 
-void BerendsenController::Init() {
-  auto temperature_array=DataManager::getInstance().getConfigData()->
-GetArray<rbmd::Real>("temperature", "execution"); //[1.0,1.0,0.1]
-  _temperature_start = temperature_array[0];
-  _temperature_stop = temperature_array[1];
-  _temperature_damp = temperature_array[2];
-
+void EnergyStableSchemeController::Init() {
   _dt =  DataManager::getInstance().getConfigData()->Get<rbmd::Real>(
           "timestep", "execution");//0.001
 
@@ -45,14 +45,15 @@ GetArray<rbmd::Real>("temperature", "execution"); //[1.0,1.0,0.1]
   }
 }
 
-void BerendsenController::Update() {
-  //ComputeTemp();
+void EnergyStableSchemeController::Update() {
+  ComputeTemp();
 
   UpdataVelocity();
 }
 
-void BerendsenController::ComputeTemp() {
+void EnergyStableSchemeController::ComputeTemp() {
   rbmd::Id num_atoms = *(_structure_info_data->_num_atoms);
+
   CHECK_RUNTIME(MEMSET(_d_temp_contrib, 0, sizeof(rbmd::Real)));
 
   op::ComputeTemperatureOp<device::DEVICE_GPU> compute_temperature_op;
@@ -67,7 +68,7 @@ void BerendsenController::ComputeTemp() {
 
   bool available_shake = false;
 
-  if (available_shake)  // H2O / NACl / EAM ...
+  if (available_shake)
   {
     bool shake = true;
     if (shake) {
@@ -75,13 +76,12 @@ void BerendsenController::ComputeTemp() {
     } else {
       _temperature = 0.5 * _temp_sum / ((3 * num_atoms - 3) * _kB / 2.0);
     }
-  } else  // PEO
+  } else
   {
     _temperature = 0.5 * _temp_sum / ((3 * num_atoms - 3) * _kB / 2.0);
   }
-  test_temperature = _temperature;
 
-  std::cout << "temperature= " << _temperature << std::endl;
+  std::cout << "temperature: " << _temperature << std::endl;
   // out
   std::ofstream outfile("temperature.txt", std::ios::app);
   outfile << test_current_step << " " << _temperature << std::endl;
@@ -90,13 +90,35 @@ void BerendsenController::ComputeTemp() {
   // CHECK_RUNTIME(FREE(temp_contrib));
 }
 
-void BerendsenController::UpdataVelocity() {
-  rbmd::Real coeff_Berendsen =
-      SQRT(1.0 + (_dt / _temperature_damp) * (_temperature_start/ _temperature - 1.0));
+void EnergyStableSchemeController::UpdataVelocity() {
+  rbmd::Id num_atoms = *(_structure_info_data->_num_atoms);
+  rbmd::Real kinetic_energy = _temp_sum / (2.0*num_atoms);
+  rbmd::Real kinetic_energy_init;
+  if(1 == test_current_step) {
+    kinetic_energy_init = kinetic_energy;
+  }
 
+  // Hamiltonian = U_init + kinetic_energy_init;
+  rbmd::Real  U_init = test_ave_pe_init;
+  rbmd::Real  H_init = U_init + kinetic_energy_init;
+
+  //Hamiltonian approximate = U_approximate + kinetic_energy
+  rbmd::Real  U_approximate = test_ave_pe_rbl;
+  rbmd::Real  H_approximate= U_approximate + kinetic_energy ;
+
+  //Rescale  Velocity
+  rbmd::Real gamma_ess = 10.0 * _dt;
+  rbmd::Real xi_ess =
+      SQRT(1.0 +_dt / (gamma_ess*kinetic_energy)* (H_init -H_approximate));
   op::UpdataVelocityRescaleOp<device::DEVICE_GPU> updata_velocity_op;
-  updata_velocity_op(*(_structure_info_data->_num_atoms), coeff_Berendsen,
+  updata_velocity_op(num_atoms, xi_ess,
                      thrust::raw_pointer_cast(_device_data->_d_vx.data()),
                      thrust::raw_pointer_cast(_device_data->_d_vy.data()),
                      thrust::raw_pointer_cast(_device_data->_d_vz.data()));
+
+  // out
+  std::ofstream outfile("thermo.txt", std::ios::app);
+  outfile << test_current_step << " " << _temperature  << " "
+     << U_approximate<< " "<<kinetic_energy<< " " <<  H_approximate << std::endl;
+  outfile.close();
 }

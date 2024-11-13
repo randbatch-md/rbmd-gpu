@@ -17,6 +17,7 @@ class Force {
   // virtual void Update()=0;
   virtual void Init() {};
   virtual void Execute() = 0;
+  virtual void EvaluatePotentialenergy(){};
 
 
  protected:

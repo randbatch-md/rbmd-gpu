@@ -191,3 +191,9 @@ void TransformForces(
   SumforcesDirection(result_f, forces...);
 }
 
+inline  char* StrDup(const std::string &text)
+{
+  auto tmp = new char[text.size() + 1];
+  strcpy(tmp, text.c_str());
+  return tmp;
+}
