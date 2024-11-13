@@ -217,14 +217,14 @@ static bool CheckRunTime(ERROR_T e, const char* call, int line,
 template <typename T>
 // d_src_array input array  d_dst outputnum size：input array size
 static void ReductionSum(T* d_src_array, T* d_dst, rbmd::Id size) {
-    //void* temp = nullptr;
-    //size_t temp_bytes = 0;
-    //CHECK_RUNTIME(REDUCE(temp, temp_bytes, d_src_array, d_dst,
-    //    static_cast<int>(size)));
-    //CHECK_RUNTIME(MALLOC(&temp, temp_bytes));
-    //CHECK_RUNTIME(REDUCE(temp, temp_bytes, d_src_array, d_dst,
-    //    static_cast<int>(size)));
-    //CHECK_RUNTIME(FREE(temp));
+    void* temp = nullptr;
+    size_t temp_bytes = 0;
+    CHECK_RUNTIME(REDUCE(temp, temp_bytes, d_src_array, d_dst,
+        static_cast<int>(size)));
+    CHECK_RUNTIME(MALLOC(&temp, temp_bytes));
+    CHECK_RUNTIME(REDUCE(temp, temp_bytes, d_src_array, d_dst,
+        static_cast<int>(size)));
+    CHECK_RUNTIME(FREE(temp));
 }
 
 
