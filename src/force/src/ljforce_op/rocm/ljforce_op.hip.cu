@@ -621,8 +621,8 @@ __global__ void ComputeLJCutCoulForce(
     const rbmd::Id* start_id, const rbmd::Id* end_id,
     const rbmd::Id* id_verletlist, const rbmd::Real* charge,
     const rbmd::Real* px, const rbmd::Real* py, const rbmd::Real* pz,
-    rbmd::Real* fx, rbmd::Real* fy, rbmd::Real* fz, rbmd::Real* total_evdwl,
-    rbmd::Real* flat_virial,rbmd::Real* total_ecoul) {
+    rbmd::Real* fx, rbmd::Real* fy, rbmd::Real* fz,rbmd::Real* flat_virial,
+    rbmd::Real* total_evdwl,rbmd::Real* total_ecoul) {
   __shared__ typename hipcub::BlockReduce<rbmd::Real, BLOCK_SIZE>::TempStorage
       temp_storage_elj;
   __shared__ typename hipcub::BlockReduce<rbmd::Real, BLOCK_SIZE>::TempStorage
@@ -666,8 +666,8 @@ __global__ void ComputeLJCutCoulForce(
       MinImageDistance(box, px12, py12, pz12);
       // erf
       rbmd::Real dis = SQRT(px12 * px12 + py12 * py12 + pz12 * pz12);
-      rbmd::Id index_table_pij = erf_table->Extract(dis);
-      rbmd::Real table_pij = erf_table->TableGnearValue(dis, index_table_pij);
+      rbmd::Id index_table_pij = Extract(dis);
+      rbmd::Real table_pij = TableGnearValue(erf_table,dis, index_table_pij);
 
       rbmd::Real force_lj, force_coul, force_pair;
       rbmd::Real energy_lj, energy_coul;
@@ -675,7 +675,7 @@ __global__ void ComputeLJCutCoulForce(
       lj126(cut_off, px12, py12, pz12, eps_ij, sigma_ij, force_lj, energy_lj);
 
       // Coul cut
-      CoulCutForce_erf(cut_off, alpha, qqr2e, table_pij, charge_i, charge_j,
+      CoulCutForce_erf(cut_off, alpha, qqr2e, table_pij,charge_i, charge_j,
                        px12, py12, pz12, force_coul, energy_coul);
 
       force_pair = force_lj + force_coul;
@@ -771,8 +771,8 @@ __global__ void ComputeLJCutCoulEnergy(
       MinImageDistance(box, px12, py12, pz12);
       // erf
       rbmd::Real dis = SQRT(px12 * px12 + py12 * py12 + pz12 * pz12);
-      rbmd::Id index_table_pij = erf_table->Extract(dis);
-      rbmd::Real table_pij = erf_table->TableGnearValue(dis, index_table_pij);
+      rbmd::Id index_table_pij = Extract(dis);
+      rbmd::Real table_pij = TableGnearValue(erf_table,dis, index_table_pij);
       rbmd::Real force_lj, force_coul;
       rbmd::Real energy_lj, energy_coul;
       // lj cut
@@ -870,8 +870,8 @@ __global__ void ComputeLJCutCoulRBLForce(
 
       // erf
       rbmd::Real dis = SQRT(px12 * px12 + py12 * py12 + pz12 * pz12);
-      rbmd::Id index_table_pij = erf_table->Extract(dis);
-      rbmd::Real table_pij = erf_table->TableGnearValue(dis, index_table_pij);
+      rbmd::Id index_table_pij = Extract(dis);
+      rbmd::Real table_pij = TableGnearValue(erf_table,dis, index_table_pij);
 
       // compute the force_rs
       rbmd::Real force_lj_rs, force_coul_rs;
@@ -909,8 +909,8 @@ __global__ void ComputeLJCutCoulRBLForce(
 
       // erf
       rbmd::Real dis = SQRT(px12 * px12 + py12 * py12 + pz12 * pz12);
-      rbmd::Id index_table_pij = erf_table->Extract(dis);
-      rbmd::Real table_pij = erf_table->TableGnearValue(dis, index_table_pij);
+      rbmd::Id index_table_pij = Extract(dis);
+      rbmd::Real table_pij = TableGnearValue(erf_table,dis, index_table_pij);
 
       // compute the force_rcs
       rbmd::Real force_lj_rcs, force_coul_rcs;
@@ -1293,14 +1293,14 @@ void LJCutCoulForceOp<device::DEVICE_GPU>::operator()(
     const rbmd::Id* start_id, const rbmd::Id* end_id,
     const rbmd::Id* id_verletlist, const rbmd::Real* charge,
     const rbmd::Real* px, const rbmd::Real* py, const rbmd::Real* pz,
-    rbmd::Real* fx, rbmd::Real* fy, rbmd::Real* fz, rbmd::Real* total_evdwl,
-    rbmd::Real* flat_virial,rbmd::Real* total_ecoul) {
+    rbmd::Real* fx, rbmd::Real* fy, rbmd::Real* fz, rbmd::Real* flat_virial,
+    rbmd::Real* total_evdwl,rbmd::Real* total_ecoul) {
   unsigned int blocks_per_grid = (num_atoms + BLOCK_SIZE - 1) / BLOCK_SIZE;
 
   CHECK_KERNEL(ComputeLJCutCoulForce<<<blocks_per_grid, BLOCK_SIZE, 0, 0>>>(
       box, erf_table, cut_off, num_atoms, alpha, qqr2e, atoms_type, sigma, eps,
       start_id, end_id, id_verletlist, charge, px, py, pz, fx, fy, fz,
-      total_evdwl, flat_virial,total_ecoul));
+      flat_virial,total_evdwl ,total_ecoul));
 }
 
 

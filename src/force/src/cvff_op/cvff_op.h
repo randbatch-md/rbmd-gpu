@@ -32,6 +32,7 @@ namespace op {
             rbmd::Real* fx,
             rbmd::Real* fy,
             rbmd::Real* fz,
+            rbmd::Real* flat_virial,
             rbmd::Real* total_evdwl,
             rbmd::Real* total_ecoul);
     };
@@ -92,6 +93,7 @@ namespace op {
            const rbmd::Real* px,
            const rbmd::Real* py,
            const rbmd::Real* pz,
+           rbmd::Real* flat_virial,
            rbmd::Real* total_evdwl,
            rbmd::Real* total_ecoul);
     };
@@ -119,6 +121,7 @@ namespace op {
         rbmd::Real* fx,
         rbmd::Real* fy,
         rbmd::Real* fz,
+        rbmd::Real* flat_virial,
         rbmd::Real* total_especial_coul);
     };
 
@@ -140,7 +143,7 @@ namespace op {
          rbmd::Real* fx,
          rbmd::Real* fy,
          rbmd::Real* fz,
-         rbmd::Id* temp_atom_ids,
+         rbmd::Real* flat_virial,
          rbmd::Real* energy_bond);
      };
 
@@ -163,6 +166,7 @@ namespace op {
        rbmd::Real* fx,
        rbmd::Real* fy,
        rbmd::Real* fz,
+       rbmd::Real* flat_virial,
        rbmd::Real* energy_angle);
      };
 
@@ -187,6 +191,7 @@ namespace op {
        rbmd::Real* fx,
        rbmd::Real* fy,
        rbmd::Real* fz,
+       rbmd::Real* flat_virial,
        rbmd::Real* energy_dihedral);
      };
 
@@ -221,6 +226,7 @@ namespace op {
           rbmd::Real* fx,
           rbmd::Real* fy,
           rbmd::Real* fz,
+          rbmd::Real* flat_virial,
           rbmd::Real* total_evdwl,
           rbmd::Real* total_ecoul);
   };
@@ -284,6 +290,7 @@ namespace op {
          const rbmd::Real* px,
          const rbmd::Real* py,
          const rbmd::Real* pz,
+         rbmd::Real* flat_virial,
          rbmd::Real* total_evdwl,
          rbmd::Real* total_ecoul);
   };
@@ -312,6 +319,7 @@ namespace op {
       rbmd::Real* fx,
       rbmd::Real* fy,
       rbmd::Real* fz,
+      rbmd::Real* flat_virial,
       rbmd::Real* total_especial_coul);
   };
 
@@ -333,7 +341,7 @@ namespace op {
       rbmd::Real* fx,
       rbmd::Real* fy,
       rbmd::Real* fz,
-      rbmd::Id* temp_atom_ids,
+      rbmd::Real* flat_virial,
       rbmd::Real* energy_bond);
   };
 
@@ -357,6 +365,7 @@ namespace op {
     rbmd::Real* fx,
     rbmd::Real* fy,
     rbmd::Real* fz,
+    rbmd::Real* flat_virial,
     rbmd::Real* energy_angle);
   };
 
@@ -381,6 +390,7 @@ namespace op {
       rbmd::Real* fx,
       rbmd::Real* fy,
       rbmd::Real* fz,
+      rbmd::Real* flat_virial,
       rbmd::Real* energy_dihedral);
   };
 

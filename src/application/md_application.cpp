@@ -51,7 +51,20 @@ int MDApplication::Execute() {
   //	return -1;
   // }
   ReadMDData();
-  _simulate_pipeline = std::make_shared<NVTensemble>();
+  std::string ensemble_type = DataManager::getInstance().getConfigData()->Get
+    <std::string>("ensemble", "execution");
+  if("NVE" == ensemble_type)
+  {
+    _simulate_pipeline = std::make_shared<NVEensemble>();
+  }
+  else if("NVT" == ensemble_type)
+  {
+    _simulate_pipeline = std::make_shared<NVTensemble>();
+  }
+  else if("NPT" == ensemble_type)
+  {
+    _simulate_pipeline = std::make_shared<NPTensemble>();
+  }
   _output = std::make_shared<TrajectoryOutput>();
   _simulate = std::make_shared<Simulate>(_simulate_pipeline,_output);
   

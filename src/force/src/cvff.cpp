@@ -80,7 +80,6 @@ void CVFF::Init()
     _Kmax = DataManager::getInstance().getConfigData()->Get<rbmd::Id>(
 "kmax", "hyper_parameters", "coulomb");
     _num_k =  POW(2 * _Kmax + 1,3.0) - 1;
-    ERFInit();
     RBEInit(_device_data->_d_box,_alpha,_RBE_P);
 }
 
@@ -245,6 +244,7 @@ void CVFF::ComputeLJVerlet()
                   thrust::raw_pointer_cast(_device_data->_d_force_ljcoul_x.data()),
                   thrust::raw_pointer_cast(_device_data->_d_force_ljcoul_y.data()),
                   thrust::raw_pointer_cast(_device_data->_d_force_ljcoul_z.data()),
+                  thrust::raw_pointer_cast(_device_data->_d_flat_virial_lj.data()),
                   _d_total_evdwl,_d_total_ecoul);
 
   auto end_verlet_force = std::chrono::high_resolution_clock::now();
@@ -289,6 +289,31 @@ void CVFF::ComputeLJVerlet()
     //   << h_force_ljcoul_z[i] << std::endl;
     // }
     // output_file.close();
+
+  // 主机端累加
+  std::vector<rbmd::Real> h_flat_virial_lj(num_atoms * 6);
+  thrust::copy(_device_data->_d_flat_virial_lj.begin(),
+    _device_data->_d_flat_virial_lj.end(), h_flat_virial_lj.begin());
+
+  std::vector<rbmd::Real> virial_lj(6);
+  virial_lj =  {0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
+
+  for(int atom = 0; atom < num_atoms; ++atom){
+    for(int i = 0; i < 6; ++i){
+      virial_lj[i] += h_flat_virial_lj[atom * 6 + i];
+    }
+  }
+
+  std::ofstream output_file3("output_virial_lj.txt");
+  for (size_t i = 0; i < virial_lj.size(); ++i)
+  {
+    output_file3 << i << " " <<virial_lj[i]  << std::endl;
+  }
+  output_file3.close();
+
+  thrust::copy(virial_lj.begin(),
+    virial_lj.end(), _device_data->_d_virial_lj.begin());
+
 }
 
 void CVFF::ComputeSpecialCoulForce()
@@ -320,6 +345,7 @@ void CVFF::ComputeSpecialCoulForce()
     thrust::raw_pointer_cast(_device_data->_d_force_specialcoul_x.data()),
     thrust::raw_pointer_cast(_device_data->_d_force_specialcoul_y.data()),
     thrust::raw_pointer_cast(_device_data->_d_force_specialcoul_z.data()),
+    thrust::raw_pointer_cast(_device_data->_d_flat_virial_specialcoul.data()),
     _d_total_e_specialcoul);
 
   auto end = std::chrono::high_resolution_clock::now();
@@ -364,6 +390,30 @@ void CVFF::ComputeSpecialCoulForce()
   //   << std::endl;
   // }
   // output_file1.close();
+
+  // 主机端累加
+  std::vector<rbmd::Real> h_flat_virial_specialcoul(num_atoms * 6);
+  thrust::copy(_device_data->_d_flat_virial_specialcoul.begin(),
+    _device_data->_d_flat_virial_specialcoul.end(), h_flat_virial_specialcoul.begin());
+
+  std::vector<rbmd::Real> virial_specialcoul(6);
+  virial_specialcoul =  {0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
+
+  for(int atom = 0; atom < num_atoms; ++atom){
+    for(int i = 0; i < 6; ++i){
+      virial_specialcoul[i] += h_flat_virial_specialcoul[atom * 6 + i];
+    }
+  }
+
+  std::ofstream output_file3("output_virial_specialcoul.txt");
+  for (size_t i = 0; i < virial_specialcoul.size(); ++i)
+  {
+    output_file3 << i << " " <<virial_specialcoul[i]  << std::endl;
+  }
+  output_file3.close();
+
+  thrust::copy(virial_specialcoul.begin(),
+    virial_specialcoul.end(), _device_data->_d_virial_specialcoul.begin());
 
 }
 
@@ -532,11 +582,30 @@ void CVFF::ComputeEwlad()
   //   << h_force_ewald_z[i] << std::endl;
   // }
   // output_file.close();
-}
 
-void CVFF::ERFInit()
-{
-  _device_data->_d_erf_table->init();
+  // 主机端累加
+  std::vector<rbmd::Real> h_flat_virial_kspace(num_atoms * 6);
+  thrust::copy(_device_data->_d_flat_virial_kspace.begin(),
+    _device_data->_d_flat_virial_kspace.end(), h_flat_virial_kspace.begin());
+
+  std::vector<rbmd::Real> virial_kspace(6);
+  virial_kspace =  {0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
+
+  for(int atom = 0; atom < num_atoms; ++atom){
+    for(int i = 0; i < 6; ++i){
+      virial_kspace[i] += h_flat_virial_kspace[atom * 6 + i];
+    }
+  }
+
+  std::ofstream output_file3("output_virial_kspace.txt");
+  for (size_t i = 0; i < virial_kspace.size(); ++i)
+  {
+    output_file3 << i << " " <<virial_kspace[i]  << std::endl;
+  }
+  output_file3.close();
+
+  thrust::copy(virial_kspace.begin(),
+    virial_kspace.end(), _device_data->_d_virial_kspace.begin());
 }
 
 void CVFF::RBEInit(Box* box,rbmd::Real alpha,rbmd::Id RBE_P)
@@ -678,6 +747,30 @@ void CVFF::ComputeRBE()
   //   << h_force_ewald_z[i] << std::endl;
   // }
   // output_file.close();
+
+  // 主机端累加
+  std::vector<rbmd::Real> h_flat_virial_kspace(num_atoms * 6);
+  thrust::copy(_device_data->_d_flat_virial_kspace.begin(),
+    _device_data->_d_flat_virial_kspace.end(), h_flat_virial_kspace.begin());
+
+  std::vector<rbmd::Real> virial_kspace(6);
+  virial_kspace =  {0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
+
+  for(int atom = 0; atom < num_atoms; ++atom){
+    for(int i = 0; i < 6; ++i){
+      virial_kspace[i] += h_flat_virial_kspace[atom * 6 + i];
+    }
+  }
+
+  std::ofstream output_file3("output_virial_kspace.txt");
+  for (size_t i = 0; i < virial_kspace.size(); ++i)
+  {
+    output_file3 << i << " " <<virial_kspace[i]  << std::endl;
+  }
+  output_file3.close();
+
+  thrust::copy(virial_kspace.begin(),
+    virial_kspace.end(), _device_data->_d_virial_kspace.begin());
 }
 
 void CVFF::ComputeLJCoulEnergy()
@@ -717,6 +810,7 @@ void CVFF::ComputeLJCoulEnergy()
                 thrust::raw_pointer_cast(_device_data->_d_px.data()),
                 thrust::raw_pointer_cast(_device_data->_d_py.data()),
                 thrust::raw_pointer_cast(_device_data->_d_pz.data()),
+                thrust::raw_pointer_cast(_device_data->_d_flat_virial_lj.data()),
                 _d_total_evdwl,_d_total_ecoul);
   CHECK_RUNTIME(MEMCPY(&h_total_evdwl,_d_total_evdwl , sizeof(rbmd::Real), D2H));
   CHECK_RUNTIME(MEMCPY(&h_total_ecoul,_d_total_ecoul , sizeof(rbmd::Real), D2H));
@@ -732,6 +826,30 @@ void CVFF::ComputeLJCoulEnergy()
   std::ofstream outfile("ave_energy_specia_lj_rbl.txt", std::ios::app);
   outfile << test_current_step << " " << _ave_evdwl << std::endl;
   outfile.close();
+
+  // 主机端累加
+  std::vector<rbmd::Real> h_flat_virial_lj(num_atoms * 6);
+  thrust::copy(_device_data->_d_flat_virial_lj.begin(),
+    _device_data->_d_flat_virial_lj.end(), h_flat_virial_lj.begin());
+
+  std::vector<rbmd::Real> virial_lj(6);
+  virial_lj =  {0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
+
+  for(int atom = 0; atom < num_atoms; ++atom){
+    for(int i = 0; i < 6; ++i){
+      virial_lj[i] += h_flat_virial_lj[atom * 6 + i];
+    }
+  }
+  std::ofstream output_file3("output_virial_lj.txt");
+  for (size_t i = 0; i < virial_lj.size(); ++i)
+  {
+    output_file3 << i << " " <<virial_lj[i]  << std::endl;
+  }
+  output_file3.close();
+
+  thrust::copy(virial_lj.begin(),
+    virial_lj.end(), _device_data->_d_virial_lj.begin());
+
 }
 
 void CVFF::ComputeSelfEnergy(
@@ -838,7 +956,7 @@ void CVFF::ComputeBondForce()
     thrust::raw_pointer_cast(_device_data->_d_force_bond_x.data()),
     thrust::raw_pointer_cast(_device_data->_d_force_bond_y.data()),
     thrust::raw_pointer_cast(_device_data->_d_force_bond_z.data()),
-    thrust::raw_pointer_cast(_device_data->_d_temp_atom_ids.data()),
+    thrust::raw_pointer_cast(_device_data->_d_virial_bond.data()),
     _d_total_ebond);
 
   CHECK_RUNTIME(MEMCPY(&h_energy_bond,_d_total_ebond , sizeof(rbmd::Real), D2H));
@@ -908,6 +1026,7 @@ void CVFF::ComputeAngleForce()
     thrust::raw_pointer_cast(_device_data->_d_force_angle_x.data()),
     thrust::raw_pointer_cast(_device_data->_d_force_angle_y.data()),
     thrust::raw_pointer_cast(_device_data->_d_force_angle_z.data()),
+    thrust::raw_pointer_cast(_device_data->_d_virial_angle.data()),
     _d_total_eangle);
 
   CHECK_RUNTIME(MEMCPY(&h_energy_bond,_d_total_eangle , sizeof(rbmd::Real), D2H));
@@ -981,6 +1100,7 @@ void CVFF::ComputeDihedralForce()
     thrust::raw_pointer_cast(_device_data->_d_force_dihedral_x.data()),
     thrust::raw_pointer_cast(_device_data->_d_force_dihedral_y.data()),
     thrust::raw_pointer_cast(_device_data->_d_force_dihedral_z.data()),
+    thrust::raw_pointer_cast(_device_data->_d_virial_dihedral.data()),
     _d_total_edihedral);
 
   CHECK_RUNTIME(MEMCPY(&h_energy_dihedral,_d_total_edihedral , sizeof(rbmd::Real), D2H));

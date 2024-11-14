@@ -12,6 +12,7 @@ rbmd::Real test_temperature;
 extern int test_current_step;
 BerendsenController::BerendsenController() {
   CHECK_RUNTIME(MALLOC(&_d_temp_contrib, sizeof(rbmd::Real)));
+  std::remove("temperature.txt");
 }
 BerendsenController::~BerendsenController() {
   CHECK_RUNTIME(FREE(_d_temp_contrib));
