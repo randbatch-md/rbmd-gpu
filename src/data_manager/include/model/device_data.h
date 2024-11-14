@@ -137,6 +137,9 @@ class DeviceData {
   thrust::device_vector<rbmd::Real> _d_flat_virial_specialcoul;
   thrust::device_vector<rbmd::Real> _d_flat_virial_kspace;
 
+  thrust::device_vector<rbmd::Real> _d_flat_virial_bond;
+  thrust::device_vector<rbmd::Real> _d_flat_virial_angle;
+
   thrust::device_vector<rbmd::Real> _d_virial;
   thrust::device_vector<rbmd::Real> _d_virial_lj;
   thrust::device_vector<rbmd::Real> _d_virial_specialcoul;

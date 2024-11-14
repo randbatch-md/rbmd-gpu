@@ -204,12 +204,8 @@ void LJCutCoulKspaceForce::ComputeLJVerlet()
   std::cout << "test_current_step:" << test_current_step <<  " ,"
   << "average_vdwl_energy:" << _ave_evdwl << " ," <<  "average_coul_energy:" << _ave_ecoul << std::endl;
 
-  //out
-  std::ofstream outfile("ave_ljcoul.txt", std::ios::app);
-  outfile << test_current_step << " " << _ave_evdwl  << " "<< _ave_ecoul << std::endl;
-  outfile.close();
 
-  // 主机端累加
+  // 主机端累加virial
   std::vector<rbmd::Real> h_flat_virial_lj(num_atoms * 6);
   thrust::copy(_device_data->_d_flat_virial_lj.begin(),
     _device_data->_d_flat_virial_lj.end(), h_flat_virial_lj.begin());
@@ -325,9 +321,6 @@ void LJCutCoulKspaceForce::ComputeChargeStructureFactorEwald(
    std::cout << "test_current_step:" << test_current_step <<  " ,"
    << "ave_energy_ewald:" << _ave_ekspace << std::endl;
 
-  std::ofstream outfile("ave_ewald.txt", std::ios::app);
-  outfile << test_current_step << " "<< _ave_ekspace << std::endl;
-  outfile.close();
 }
 
 void LJCutCoulKspaceForce::ComputeEwlad()
@@ -361,7 +354,7 @@ void LJCutCoulKspaceForce::ComputeEwlad()
     CHECK_RUNTIME(FREE(value_Re_array));
     CHECK_RUNTIME(FREE(value_Im_array));
 
-  // 主机端累加
+  // 主机端累加virial
   std::vector<rbmd::Real> h_flat_virial_kspace(num_atoms * 6);
   thrust::copy(_device_data->_d_flat_virial_kspace.begin(),
     _device_data->_d_flat_virial_kspace.end(), h_flat_virial_kspace.begin());
@@ -461,9 +454,6 @@ void LJCutCoulKspaceForce::ComputeChargeStructureFactorRBE(
    std::cout << "test_current_step:" << test_current_step <<  " ,"
    << "ave_energy_rbe:" << _ave_ekspace << std::endl;
 
-  std::ofstream outfile("ave_rbe.txt", std::ios::app);
-  outfile << test_current_step << " "<< _ave_ekspace << std::endl;
-  outfile.close();
 }
 
 void LJCutCoulKspaceForce::ComputeRBE()
@@ -492,7 +482,7 @@ void LJCutCoulKspaceForce::ComputeRBE()
         thrust::raw_pointer_cast(_device_data->_d_force_ewald_z.data()),
         thrust::raw_pointer_cast(_device_data->_d_flat_virial_kspace.data()));
 
-  // 主机端累加
+  // 主机端累加virial
   std::vector<rbmd::Real> h_flat_virial_kspace(num_atoms * 6);
   thrust::copy(_device_data->_d_flat_virial_kspace.begin(),
     _device_data->_d_flat_virial_kspace.end(), h_flat_virial_kspace.begin());
@@ -554,12 +544,8 @@ void LJCutCoulKspaceForce::ComputeLJCoulEnergy()
   std::cout << "test_current_step:" << test_current_step <<  " ,"
   << "average_vdwl_energy:" << _ave_evdwl << " ," <<  "average_coul_energy:" << _ave_ecoul << std::endl;
 
-  //out
-  std::ofstream outfile("ave_ljcoul_rbl.txt", std::ios::app);
-  outfile << test_current_step << " " << _ave_evdwl  << " "<< _ave_ecoul << std::endl;
-  outfile.close();
 
-  // 主机端累加
+  // 主机端累加virial
   std::vector<rbmd::Real> h_flat_virial_lj(num_atoms * 6);
   thrust::copy(_device_data->_d_flat_virial_lj.begin(),
     _device_data->_d_flat_virial_lj.end(), h_flat_virial_lj.begin());

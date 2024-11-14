@@ -15,6 +15,7 @@ MemoryScheduler::MemoryScheduler()
 bool MemoryScheduler::asyncMemoryH2D() {
   auto& num_atoms = *(_structure_info_data->_num_atoms);
   auto& num_bonds = *(_structure_info_data->_num_bonds);
+  auto& num_angles = *(_structure_info_data->_num_angles);
 
   auto& h_px = _structure_data->_h_px;
   auto& h_py = _structure_data->_h_py;
@@ -120,8 +121,12 @@ bool MemoryScheduler::asyncMemoryH2D() {
   //cpoy virial
   _device_data->_d_flat_virial.resize(6*num_atoms);
   _device_data->_d_flat_virial_lj.resize(6*num_atoms);
-  _device_data->_d_flat_virial_kspace.resize(6*num_atoms);
   _device_data->_d_flat_virial_specialcoul.resize(6*num_atoms);
+  _device_data->_d_flat_virial_kspace.resize(6*num_atoms);
+
+  _device_data->_d_flat_virial_bond.resize(6*num_bonds);
+  _device_data->_d_flat_virial_angle.resize(6*num_angles);
+
 
   _device_data->_d_virial.resize(6);
   _device_data->_d_virial_lj.resize(6);

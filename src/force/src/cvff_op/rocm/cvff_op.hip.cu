@@ -589,12 +589,31 @@ __global__ void ComputeBondForce(
     atomicAdd(&fz[bondjj], -fz_ij);
 
     rbmd::Real local_virial[6];
-    local_virial[0]  = x12 *x12 * forcebondij;
-    local_virial[1]  = y12 *y12 * forcebondij;
-    local_virial[2]  = z12 *z12 * forcebondij;
-    local_virial[3]  = x12 *y12 * forcebondij;
-    local_virial[4]  = x12 *z12 * forcebondij;
-    local_virial[5]  = y12 *z12 * forcebondij;
+    local_virial[0]  = x12 *fx_ij;
+    local_virial[1]  = y12 *fy_ij;
+    local_virial[2]  = z12 *fz_ij;
+    local_virial[3]  = x12 *fy_ij;
+    local_virial[4]  = x12 *fz_ij;
+    local_virial[5]  = y12 *fz_ij;
+
+    // // 将每个 bond 的 virial 分量加到相应的原子
+    // atomicAdd(&flat_virial[bondii * 6 + 0], 0.5*local_virial[0]);
+    // atomicAdd(&flat_virial[bondii * 6 + 1], 0.5*local_virial[1]);
+    // atomicAdd(&flat_virial[bondii * 6 + 2], 0.5*local_virial[2]);
+    // atomicAdd(&flat_virial[bondii * 6 + 3], 0.5*local_virial[3]);
+    // atomicAdd(&flat_virial[bondii * 6 + 4], 0.5*local_virial[4]);
+    // atomicAdd(&flat_virial[bondii * 6 + 5], 0.5*local_virial[5]);
+    //
+    // atomicAdd(&flat_virial[bondjj * 6 + 0], 0.5*local_virial[0]);
+    // atomicAdd(&flat_virial[bondjj * 6 + 1], 0.5*local_virial[1]);
+    // atomicAdd(&flat_virial[bondjj * 6 + 2], 0.5*local_virial[2]);
+    // atomicAdd(&flat_virial[bondjj * 6 + 3], 0.5*local_virial[3]);
+    // atomicAdd(&flat_virial[bondjj * 6 + 4], 0.5*local_virial[4]);
+    // atomicAdd(&flat_virial[bondjj * 6 + 5], 0.5*local_virial[5]);
+    //
+    for(int i =0;i<6;++i) {
+      flat_virial[ tid1 * 6 + i ] = local_virial[i];
+    }
   }
   rbmd::Real block_sum =
       hipcub::BlockReduce<rbmd::Real, BLOCK_SIZE>(temp_storage)
@@ -691,40 +710,46 @@ __global__ void ComputeBondForce(
       force_anglej_y = -(force_anglei_y + force_anglek_y);
       force_anglej_z = -(force_anglei_z + force_anglek_z);
 
-      fx[anglelii] = force_anglei_x;
-      fy[anglelii] = force_anglei_y;
-      fz[anglelii] = force_anglei_z;
-
-      fx[anglelkk] = force_anglek_x;
-      fy[anglelkk] = force_anglek_y;
-      fz[anglelkk] = force_anglek_z;
-
-      fx[angleljj] = force_anglej_x;
-      fy[angleljj] = force_anglej_y;
-      fz[angleljj] = force_anglej_z;
-
-      // atomicAdd(&fx[anglelii], force_anglei_x);
-      // atomicAdd(&fy[anglelii], force_anglei_y);
-      // atomicAdd(&fz[anglelii], force_anglei_z);
+      // fx[anglelii] = force_anglei_x;
+      // fy[anglelii] = force_anglei_y;
+      // fz[anglelii] = force_anglei_z;
       //
-      // atomicAdd(&fx[anglelkk], force_anglek_x);
-      // atomicAdd(&fy[anglelkk], force_anglek_y);
-      // atomicAdd(&fz[anglelkk], force_anglek_z);
+      // fx[anglelkk] = force_anglek_x;
+      // fy[anglelkk] = force_anglek_y;
+      // fz[anglelkk] = force_anglek_z;
       //
-      // atomicAdd(&fx[angleljj], force_anglej_x);
-      // atomicAdd(&fy[angleljj], force_anglej_y);
-      // atomicAdd(&fz[angleljj], force_anglej_z);
+      // fx[angleljj] = force_anglej_x;
+      // fy[angleljj] = force_anglej_y;
+      // fz[angleljj] = force_anglej_z;
 
-      //     //
-      //     rbmd::Real local_virial_xx,local_virial_yy,local_virial_zz,
-      // local_virial_xy,local_virial_xz,local_virial_yz;
-      //     //newton_bond
-      //     local_virial_xx =  (x12 * force_anglei.x + x23 * force_anglek.x);
-      //     local_virial_yy =  (y12 * force_anglei.y + y23 * force_anglek.y);
-      //     local_virial_zz =  (z12 * force_anglei.z + z23 * force_anglek.z);
-      //     local_virial_xy =  (x12 * force_anglei.x + x23 * force_anglek.y);
-      //     local_virial_xz =  (x12 * force_anglei.z + x23 * force_anglek.z);
-      //     local_virial_yz =  (y12 * force_anglei.z + y23 * force_anglek.z);
+      atomicAdd(&fx[anglelii], force_anglei_x);
+      atomicAdd(&fy[anglelii], force_anglei_y);
+      atomicAdd(&fz[anglelii], force_anglei_z);
+
+      atomicAdd(&fx[anglelkk], force_anglek_x);
+      atomicAdd(&fy[anglelkk], force_anglek_y);
+      atomicAdd(&fz[anglelkk], force_anglek_z);
+
+      atomicAdd(&fx[angleljj], force_anglej_x);
+      atomicAdd(&fy[angleljj], force_anglej_y);
+      atomicAdd(&fz[angleljj], force_anglej_z);
+
+          //
+          rbmd::Real local_virial_xx,local_virial_yy,local_virial_zz,
+      local_virial_xy,local_virial_xz,local_virial_yz;
+         rbmd::Real local_virial[6];
+          //newton_bond
+          local_virial[0]  =  (x12 * force_anglei_x + x23 * force_anglek_x);
+          local_virial[1]  =  (y12 * force_anglei_y + y23 * force_anglek_y);
+          local_virial[2]  =  (z12 * force_anglei_z + z23 * force_anglek_z);
+          local_virial[3]  =  (x12 * force_anglei_x + x23 * force_anglek_y);
+          local_virial[4]  =  (x12 * force_anglei_z + x23 * force_anglek_z);
+          local_virial[5]  =  (y12 * force_anglei_z + y23 * force_anglek_z);
+
+      //
+      for(int i =0;i<6;++i) {
+        flat_virial[ tid1 * 6 + i ] = local_virial[i];
+      }
     }
 
     rbmd::Real block_sum =

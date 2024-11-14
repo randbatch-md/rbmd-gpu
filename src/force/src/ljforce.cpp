@@ -158,7 +158,7 @@ void LJForce::ComputeLJVerlet()
 
   std::cout << "out of force execute" << std::endl;
 
-  // 主机端累加
+  // 主机端累加virial
   std::vector<rbmd::Real> h_total_virial(num_atoms * 6);
   thrust::copy(_device_data->_d_flat_virial.begin(),
     _device_data->_d_flat_virial.end(), h_total_virial.begin());
@@ -209,7 +209,7 @@ void LJForce::ComputeLJEnergy()
   std::cout << "test_current_step:" << test_current_step << " "
             << "average_vdwl_energy:" << _ave_evdwl << std::endl;
 
-  // 主机端累加
+  // 主机端累加virial
   std::vector<rbmd::Real> h_total_virial(num_atoms * 6);
   thrust::copy(_device_data->_d_flat_virial.begin(),
     _device_data->_d_flat_virial.end(), h_total_virial.begin());

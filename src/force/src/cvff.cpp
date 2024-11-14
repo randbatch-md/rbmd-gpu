@@ -290,7 +290,7 @@ void CVFF::ComputeLJVerlet()
     // }
     // output_file.close();
 
-  // 主机端累加
+  // 主机端累加virial
   std::vector<rbmd::Real> h_flat_virial_lj(num_atoms * 6);
   thrust::copy(_device_data->_d_flat_virial_lj.begin(),
     _device_data->_d_flat_virial_lj.end(), h_flat_virial_lj.begin());
@@ -391,7 +391,7 @@ void CVFF::ComputeSpecialCoulForce()
   // }
   // output_file1.close();
 
-  // 主机端累加
+  // 主机端累加virial
   std::vector<rbmd::Real> h_flat_virial_specialcoul(num_atoms * 6);
   thrust::copy(_device_data->_d_flat_virial_specialcoul.begin(),
     _device_data->_d_flat_virial_specialcoul.end(), h_flat_virial_specialcoul.begin());
@@ -583,7 +583,7 @@ void CVFF::ComputeEwlad()
   // }
   // output_file.close();
 
-  // 主机端累加
+  // 主机端累加virial
   std::vector<rbmd::Real> h_flat_virial_kspace(num_atoms * 6);
   thrust::copy(_device_data->_d_flat_virial_kspace.begin(),
     _device_data->_d_flat_virial_kspace.end(), h_flat_virial_kspace.begin());
@@ -748,7 +748,7 @@ void CVFF::ComputeRBE()
   // }
   // output_file.close();
 
-  // 主机端累加
+  // 主机端累加virial
   std::vector<rbmd::Real> h_flat_virial_kspace(num_atoms * 6);
   thrust::copy(_device_data->_d_flat_virial_kspace.begin(),
     _device_data->_d_flat_virial_kspace.end(), h_flat_virial_kspace.begin());
@@ -827,7 +827,7 @@ void CVFF::ComputeLJCoulEnergy()
   outfile << test_current_step << " " << _ave_evdwl << std::endl;
   outfile.close();
 
-  // 主机端累加
+  // 主机端累加virial
   std::vector<rbmd::Real> h_flat_virial_lj(num_atoms * 6);
   thrust::copy(_device_data->_d_flat_virial_lj.begin(),
     _device_data->_d_flat_virial_lj.end(), h_flat_virial_lj.begin());
@@ -942,6 +942,7 @@ void CVFF::ComputeBondForce()
   thrust::fill(_device_data->_d_force_bond_z.begin(),
     _device_data->_d_force_bond_z.end(), 0.0f);
 
+  auto num_atoms = *(_structure_info_data->_num_atoms);
   auto num_bonds = *(_structure_info_data->_num_bonds);
   op::ComputeBondForceOp<device::DEVICE_GPU> bond_force_op;
   bond_force_op(_device_data->_d_box,num_bonds,thrust::raw_pointer_cast(_atom_id_to_idx.data()),
@@ -956,7 +957,7 @@ void CVFF::ComputeBondForce()
     thrust::raw_pointer_cast(_device_data->_d_force_bond_x.data()),
     thrust::raw_pointer_cast(_device_data->_d_force_bond_y.data()),
     thrust::raw_pointer_cast(_device_data->_d_force_bond_z.data()),
-    thrust::raw_pointer_cast(_device_data->_d_virial_bond.data()),
+    thrust::raw_pointer_cast(_device_data->_d_flat_virial_bond.data()),
     _d_total_ebond);
 
   CHECK_RUNTIME(MEMCPY(&h_energy_bond,_d_total_ebond , sizeof(rbmd::Real), D2H));
@@ -993,6 +994,40 @@ void CVFF::ComputeBondForce()
   // }
   // output_file.close();
 
+  // 主机端累加virial
+  std::vector<rbmd::Real> h_flat_virial_bond(num_bonds * 6);
+  thrust::copy(_device_data->_d_flat_virial_bond.begin(),
+    _device_data->_d_flat_virial_bond.end(), h_flat_virial_bond.begin());
+
+  // std::ofstream output_file111("output_virial_bond_t.txt");
+  // for (int i = 0; i < num_bonds; ++i) {
+  //   output_file111 << "Bond " << i << " virial components: ";
+  //   // 每个键包含6个分量
+  //   for (int j = 0; j < 6; ++j) {
+  //     output_file111 << h_flat_virial_bond[i * 6 + j] << " ";
+  //   }
+  //   output_file111<< std::endl;
+  // }
+  // output_file111.close();
+
+  std::vector<rbmd::Real> virial_bond(6);
+  virial_bond =  {0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
+
+  for(int i = 0; i < num_bonds; ++i){
+    for(int j = 0; j < 6; ++j){
+      virial_bond[j] += h_flat_virial_bond[i * 6 + j];
+    }
+  }
+  std::ofstream output_file3("output_virial_bond.txt");
+  for (size_t i = 0; i < virial_bond.size(); ++i)
+  {
+    output_file3 << i << " " <<virial_bond[i]  << std::endl;
+  }
+  output_file3.close();
+
+  thrust::copy(virial_bond.begin(),
+    virial_bond.end(), _device_data->_d_virial_bond.begin());
+
 }
 
 void CVFF::ComputeAngleForce()
@@ -1003,12 +1038,12 @@ void CVFF::ComputeAngleForce()
   rbmd::Real h_energy_bond = 0.0;
   CHECK_RUNTIME(MEMSET(_d_total_eangle, 0, sizeof(rbmd::Real)));
 
-  // thrust::fill(_device_data->_d_force_angle_x.begin(),
-  // _device_data->_d_force_angle_x.end(), 0.0f);
-  // thrust::fill(_device_data->_d_force_angle_y.begin(),
-  //   _device_data->_d_force_angle_y.end(), 0.0f);
-  // thrust::fill(_device_data->_d_force_angle_z.begin(),
-  //   _device_data->_d_force_angle_z.end(), 0.0f);
+  thrust::fill(_device_data->_d_force_angle_x.begin(),
+  _device_data->_d_force_angle_x.end(), 0.0f);
+  thrust::fill(_device_data->_d_force_angle_y.begin(),
+    _device_data->_d_force_angle_y.end(), 0.0f);
+  thrust::fill(_device_data->_d_force_angle_z.begin(),
+    _device_data->_d_force_angle_z.end(), 0.0f);
 
   auto num_angles = *(_structure_info_data->_num_angles);
   op::ComputeAngleForceOp<device::DEVICE_GPU> angle_force_op;
@@ -1026,7 +1061,7 @@ void CVFF::ComputeAngleForce()
     thrust::raw_pointer_cast(_device_data->_d_force_angle_x.data()),
     thrust::raw_pointer_cast(_device_data->_d_force_angle_y.data()),
     thrust::raw_pointer_cast(_device_data->_d_force_angle_z.data()),
-    thrust::raw_pointer_cast(_device_data->_d_virial_angle.data()),
+    thrust::raw_pointer_cast(_device_data->_d_flat_virial_angle.data()),
     _d_total_eangle);
 
   CHECK_RUNTIME(MEMCPY(&h_energy_bond,_d_total_eangle , sizeof(rbmd::Real), D2H));
@@ -1063,6 +1098,29 @@ void CVFF::ComputeAngleForce()
   //   << std::endl;
   // }
   // output_file.close();
+
+  // 主机端累加virial
+  std::vector<rbmd::Real> h_flat_virial_angle(num_angles * 6);
+  thrust::copy(_device_data->_d_flat_virial_angle.begin(),
+    _device_data->_d_flat_virial_angle.end(), h_flat_virial_angle.begin());
+
+  std::vector<rbmd::Real> virial_angle(6);
+  virial_angle =  {0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
+
+  for(int i = 0; i < num_angles; ++i){
+    for(int j = 0; j < 6; ++j){
+      virial_angle[j] += h_flat_virial_angle[i * 6 + j];
+    }
+  }
+  std::ofstream output_file3("output_virial_angle.txt");
+  for (size_t i = 0; i < virial_angle.size(); ++i)
+  {
+    output_file3 << i << " " <<virial_angle[i]  << std::endl;
+  }
+  output_file3.close();
+
+  thrust::copy(virial_angle.begin(),
+    virial_angle.end(), _device_data->_d_virial_angle.begin());
 
 }
 
