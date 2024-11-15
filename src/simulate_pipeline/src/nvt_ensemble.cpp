@@ -11,13 +11,15 @@
 #include "berendsen_controller.h"
 #include "nose_hoover_controller.h"
 #include "shake_controller.h"
-
+#include "data_manager.h"
+#include "model/md_data.h"
 NVTensemble::NVTensemble()
 {
   _position_controller = std::make_shared<DefaultPositionController>();
   _velocity_controller = std::make_shared<DefaultVelocityController>();
   _force_controller = std::make_shared<CVFF>(); // TODO: json file forcetype
   _temperature_controller = std::make_shared<BerendsenController>();
+  _shake_controller = std::make_shared<ShakeController>();
 }
 
 void NVTensemble::Init() {
@@ -27,11 +29,10 @@ void NVTensemble::Init() {
 
   _force_controller->Init();
   _force_controller->Execute();
+  _shake_controller->Init();
 }
 
-void NVTensemble::Presolve() {
-  // ����Զ����ʱ Ҫ������Ӧ����
-}
+void NVTensemble::Presolve() {}
 
 void NVTensemble::Solve() {
   auto start = std::chrono::high_resolution_clock::now();
@@ -40,30 +41,33 @@ void NVTensemble::Solve() {
 
   _position_controller->Update();
 
-  bool use_shake = false; //TODO: json file
-  if (true == use_shake)
+  bool use_shake = DataManager::getInstance().getConfigData()->GetJudge<bool>
+  ( "fix_shake", "hyper_parameters", "extend");; //TODO: json file
+  if (use_shake)
   {
     _shake_controller->ShakeA();
   }
 
   _force_controller->Execute();
 
-  if ("LANGEVIN"==DataManager::getInstance().getConfigData()->Get<std::string>("temp_ctrl_type", "execution"))
+  if ("LANGEVIN"==DataManager::getInstance().getConfigData()->Get<std::string>
+    ("temp_ctrl_type", "execution"))
   {
-	  _temperature_controller->Update();
+    _temperature_controller->Update();
   }
 
   _velocity_controller->Update();
 
-  if (true == use_shake)
+  if (use_shake)
   {
     _shake_controller->ShakeB();
   }
 
   _temperature_controller->ComputeTemp();
 
-  if ("LANGEVIN" == DataManager::getInstance().getConfigData()->Get<std::string>("temp_ctrl_type", "execution"))
-	  return;
+  if ("LANGEVIN" == DataManager::getInstance().getConfigData()->Get<std::string>
+    ("temp_ctrl_type", "execution"))
+    return;
 
   _temperature_controller->Update();
 

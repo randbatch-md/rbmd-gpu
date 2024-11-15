@@ -67,7 +67,49 @@ static __host__ __device__ __forceinline__ void MinImageDistance(Box* box,
   // TODO else: tri
 }
 
-//
+static __host__ __device__ __forceinline__ Real3 MinImageDistanceVec(
+  const rbmd::Real& px_1,
+  const rbmd::Real& py_1,
+  const rbmd::Real& pz_1,
+  const rbmd::Real& px_2,
+  const rbmd::Real& py_2,
+  const rbmd::Real& pz_2,
+  Box* box)
+{
+  Real3 vec;
+  vec.x = px_1 - px_2;
+  vec.y = py_1 - py_2;
+  vec.z = pz_1 - pz_2;
+
+  if (box->_type == Box::BoxType::ORTHOGONAL) {
+     // X
+      if (box->_pbc_x)
+      {
+        if (ABS(vec.x) > box->_length[0] * 0.5)
+        {
+          vec.x -= (vec.x > 0 ? box->_length[0] : -(box->_length[0]));
+        }
+      }
+      // Y
+      if (box->_pbc_y)
+      {
+        if (ABS(vec.y) > box->_length[1] * 0.5)
+        {
+          vec.y -= (vec.y > 0 ? box->_length[1] : -(box->_length[1]));
+        }
+      }
+
+      // Z
+      if (box->_pbc_z)
+      {
+        if (ABS(vec.z) > box->_length[2] * 0.5)
+        {
+          vec.z -= (vec.z > 0 ? box->_length[2] : -(box->_length[2]));
+        }
+      }
+  }
+  return vec;
+}
 
 __host__ __device__ __forceinline__ void ApplyPBC(
     Box* box, rbmd::Real& px, rbmd::Real& py, rbmd::Real& pz,

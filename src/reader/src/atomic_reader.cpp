@@ -410,15 +410,17 @@ int AtomicReader::ReadAngle(const rbmd::Id& num_angles)
         auto& angle_id0 = data->_h_angle_id0;
         auto& angle_id1 = data->_h_angle_id1;
         auto& angle_id2 = data->_h_angle_id2;
+        auto& angle_id_vec = data->_h_angle_id_vec;
         HIP_CHECK(MALLOCHOST(&angle_type, num_angles * sizeof(rbmd::Id)))
         HIP_CHECK(MALLOCHOST(&angle_id0, num_angles * sizeof(rbmd::Id)));
         HIP_CHECK(MALLOCHOST(&angle_id1, num_angles * sizeof(rbmd::Id)))
         HIP_CHECK(MALLOCHOST(&angle_id2, num_angles * sizeof(rbmd::Id)));
+        HIP_CHECK(MALLOCHOST(&angle_id_vec, num_angles * sizeof(Id3))); //TODO:qw:Do we need to "3*" ?
         rbmd::Id angle_id_value;
         rbmd::Id angle_type_value;
-        rbmd::Real angle_id0_value;
-        rbmd::Real angle_id1_value;
-        rbmd::Real angle_id2_value;
+        rbmd::Id angle_id0_value;
+        rbmd::Id angle_id1_value;
+        rbmd::Id angle_id2_value;
 
         _line_start = &_mapped_memory[_locate];
         for (auto num = 0; _locate < _file_size && num < num_angles; ++_locate)
@@ -434,6 +436,10 @@ int AtomicReader::ReadAngle(const rbmd::Id& num_angles)
                     angle_id0[angle_id_value - 1] = angle_id0_value - 1;
                     angle_id1[angle_id_value - 1] = angle_id1_value - 1;
                     angle_id2[angle_id_value - 1] = angle_id2_value - 1;
+                    angle_id_vec[angle_id_value - 1].x = angle_id0_value - 1;
+                    angle_id_vec[angle_id_value - 1].y = angle_id1_value - 1;
+                    angle_id_vec[angle_id_value - 1].z = angle_id2_value - 1;
+
                     ++num;
                     //std::cout << angle_type_value << " " << angle_id0_value << " " << angle_id1_value  << " "  << angle_id2_value << std::endl;
 
