@@ -432,17 +432,17 @@ void CVFF::ComputeKspaceForce()
 void CVFF::SumForces()
 {
   TransformForces(_device_data->_d_fx,_device_data->_d_force_ljcoul_x,
-                  _device_data->_d_force_specialcoul_x,_device_data->_d_force_ewald_x,
+                  _device_data->_d_force_specialcoul_x,_device_data->_d_force_kspace_x,
                   _device_data->_d_force_bond_x,_device_data->_d_force_angle_x,
                   _device_data->_d_force_dihedral_x);
 
   TransformForces(_device_data->_d_fy,_device_data->_d_force_ljcoul_y,
-                _device_data->_d_force_specialcoul_y,_device_data->_d_force_ewald_y,
+                _device_data->_d_force_specialcoul_y,_device_data->_d_force_kspace_x,
                 _device_data->_d_force_bond_y,_device_data->_d_force_angle_y,
                 _device_data->_d_force_dihedral_y);
 
   TransformForces(_device_data->_d_fz,_device_data->_d_force_ljcoul_z,
-                _device_data->_d_force_specialcoul_z,_device_data->_d_force_ewald_z,
+                _device_data->_d_force_specialcoul_z,_device_data->_d_force_kspace_x,
                 _device_data->_d_force_bond_z,_device_data->_d_force_angle_z,
                 _device_data->_d_force_dihedral_z);
 }
@@ -550,9 +550,9 @@ void CVFF::ComputeEwlad()
         thrust::raw_pointer_cast(_device_data->_d_px.data()),
         thrust::raw_pointer_cast(_device_data->_d_py.data()),
         thrust::raw_pointer_cast(_device_data->_d_pz.data()),
-        thrust::raw_pointer_cast(_device_data->_d_force_ewald_x.data()),
-        thrust::raw_pointer_cast(_device_data->_d_force_ewald_y.data()),
-        thrust::raw_pointer_cast(_device_data->_d_force_ewald_z.data()),
+        thrust::raw_pointer_cast(_device_data->_d_force_kspace_x.data()),
+        thrust::raw_pointer_cast(_device_data->_d_force_kspace_y.data()),
+        thrust::raw_pointer_cast(_device_data->_d_force_kspace_z.data()),
         thrust::raw_pointer_cast(_device_data->_d_flat_virial_kspace.data()));
 
     CHECK_RUNTIME(FREE(value_Re_array));
@@ -718,9 +718,9 @@ void CVFF::ComputeRBE()
         thrust::raw_pointer_cast(_device_data->_d_px.data()),
         thrust::raw_pointer_cast(_device_data->_d_py.data()),
         thrust::raw_pointer_cast(_device_data->_d_pz.data()),
-        thrust::raw_pointer_cast(_device_data->_d_force_ewald_x.data()),
-        thrust::raw_pointer_cast(_device_data->_d_force_ewald_y.data()),
-        thrust::raw_pointer_cast(_device_data->_d_force_ewald_z.data()),
+        thrust::raw_pointer_cast(_device_data->_d_force_kspace_x.data()),
+        thrust::raw_pointer_cast(_device_data->_d_force_kspace_y.data()),
+        thrust::raw_pointer_cast(_device_data->_d_force_kspace_z.data()),
         thrust::raw_pointer_cast(_device_data->_d_flat_virial_kspace.data()));
 
   auto end = std::chrono::high_resolution_clock::now();
@@ -999,17 +999,6 @@ void CVFF::ComputeBondForce()
   thrust::copy(_device_data->_d_flat_virial_bond.begin(),
     _device_data->_d_flat_virial_bond.end(), h_flat_virial_bond.begin());
 
-  // std::ofstream output_file111("output_virial_bond_t.txt");
-  // for (int i = 0; i < num_bonds; ++i) {
-  //   output_file111 << "Bond " << i << " virial components: ";
-  //   // 每个键包含6个分量
-  //   for (int j = 0; j < 6; ++j) {
-  //     output_file111 << h_flat_virial_bond[i * 6 + j] << " ";
-  //   }
-  //   output_file111<< std::endl;
-  // }
-  // output_file111.close();
-
   std::vector<rbmd::Real> virial_bond(6);
   virial_bond =  {0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
 
@@ -1137,7 +1126,7 @@ void CVFF::ComputeDihedralForce()
   auto atom_id_to_idx =
     LinkedCellLocator::GetInstance().GetLinkedCell()->_atom_id_to_idx;
 
-  rbmd::Real h_energy_dihedral= 0.0;
+  rbmd::Real h_total_edihedral= 0.0;
   CHECK_RUNTIME(MEMSET(_d_total_edihedral, 0, sizeof(rbmd::Real)));
 
   auto num_dihedrals = *(_structure_info_data->_num_dihedrals);
@@ -1158,45 +1147,65 @@ void CVFF::ComputeDihedralForce()
     thrust::raw_pointer_cast(_device_data->_d_force_dihedral_x.data()),
     thrust::raw_pointer_cast(_device_data->_d_force_dihedral_y.data()),
     thrust::raw_pointer_cast(_device_data->_d_force_dihedral_z.data()),
-    thrust::raw_pointer_cast(_device_data->_d_virial_dihedral.data()),
+    thrust::raw_pointer_cast(_device_data->_d_flat_virial_dihedral.data()),
     _d_total_edihedral);
 
-  CHECK_RUNTIME(MEMCPY(&h_energy_dihedral,_d_total_edihedral , sizeof(rbmd::Real), D2H));
+  CHECK_RUNTIME(MEMCPY(&h_total_edihedral,_d_total_edihedral , sizeof(rbmd::Real), D2H));
+
 
   // 打印累加后的总能量
-  _ave_edihedral = h_energy_dihedral/num_dihedrals;
+  _ave_edihedral = h_total_edihedral/num_dihedrals;
 
   std::cout << "test_current_step:" << test_current_step <<  " ,"
    << "average_dihedral_energy:" << _ave_edihedral << std::endl;
 
-  //out
-  std::ofstream outfile("ave_energy_dihedral.txt", std::ios::app);
-  outfile << test_current_step << " " << _ave_edihedral << std::endl;
-  outfile.close();
+
+  // //append force dihedral
+  // auto num_atoms = *(_structure_info_data->_num_atoms);
+  // std::vector<rbmd::Real> h_force_dihedralx(num_atoms);
+  // std::vector<rbmd::Real> h_force_dihedraly(num_atoms);
+  // std::vector<rbmd::Real> h_force_dihedralz(num_atoms);
+  //
+  // thrust::copy(_device_data->_d_force_dihedral_x.begin(),
+  //   _device_data->_d_force_dihedral_x.end(), h_force_dihedralx.begin());
+  // thrust::copy(_device_data->_d_force_dihedral_y.begin(),
+  // _device_data->_d_force_dihedral_y.end(), h_force_dihedraly.begin());
+  // thrust::copy(_device_data->_d_force_dihedral_z.begin(),
+  // _device_data->_d_force_dihedral_z.end(), h_force_dihedralz.begin());
+  //
+  // thrust::host_vector<rbmd::Real> h_atoms_id = _device_data->_d_atoms_id;
+  // std::ofstream output_file("output_force_dihedral.txt");
+  // for (size_t i = 0; i < h_force_dihedralx.size(); ++i)
+  // {
+  //   output_file << h_atoms_id[i]<< " "
+  //   << h_force_dihedralx[i] << " " << h_force_dihedraly[i]  << " " << h_force_dihedralz[i]
+  //   << std::endl;
+  // }
+  // output_file.close();
 
 
-  //append force dihedral
-  auto num_atoms = *(_structure_info_data->_num_atoms);
-  std::vector<rbmd::Real> h_force_dihedralx(num_atoms);
-  std::vector<rbmd::Real> h_force_dihedraly(num_atoms);
-  std::vector<rbmd::Real> h_force_dihedralz(num_atoms);
+  // 主机端累加virial
+  std::vector<rbmd::Real> h_flat_virial_dihedral(num_dihedrals * 6);
+  thrust::copy(_device_data->_d_flat_virial_dihedral.begin(),
+    _device_data->_d_flat_virial_dihedral.end(), h_flat_virial_dihedral.begin());
 
-  thrust::copy(_device_data->_d_force_dihedral_x.begin(),
-    _device_data->_d_force_dihedral_x.end(), h_force_dihedralx.begin());
-  thrust::copy(_device_data->_d_force_dihedral_y.begin(),
-  _device_data->_d_force_dihedral_y.end(), h_force_dihedraly.begin());
-  thrust::copy(_device_data->_d_force_dihedral_z.begin(),
-  _device_data->_d_force_dihedral_z.end(), h_force_dihedralz.begin());
+  std::vector<rbmd::Real> virial_dihedral(6);
+  virial_dihedral =  {0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
 
-  thrust::host_vector<rbmd::Real> h_atoms_id = _device_data->_d_atoms_id;
-  std::ofstream output_file("output_force_dihedral.txt");
-  for (size_t i = 0; i < h_force_dihedralx.size(); ++i)
-  {
-    output_file << h_atoms_id[i]<< " "
-    << h_force_dihedralx[i] << " " << h_force_dihedraly[i]  << " " << h_force_dihedralz[i]
-    << std::endl;
+  for(int i = 0; i < num_dihedrals; ++i){
+    for(int j = 0; j < 6; ++j){
+      virial_dihedral[j] += h_flat_virial_dihedral[i * 6 + j];
+    }
   }
-  output_file.close();
+  std::ofstream output_file3("output_virial_dihedral.txt");
+  for (size_t i = 0; i < virial_dihedral.size(); ++i)
+  {
+    output_file3 << i << " " <<virial_dihedral[i]  << std::endl;
+  }
+  output_file3.close();
+
+  thrust::copy(virial_dihedral.begin(),
+    virial_dihedral.end(), _device_data->_d_virial_dihedral.begin());
 
 }
 

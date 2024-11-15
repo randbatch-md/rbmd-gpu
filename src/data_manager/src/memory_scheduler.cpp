@@ -16,6 +16,7 @@ bool MemoryScheduler::asyncMemoryH2D() {
   auto& num_atoms = *(_structure_info_data->_num_atoms);
   auto& num_bonds = *(_structure_info_data->_num_bonds);
   auto& num_angles = *(_structure_info_data->_num_angles);
+  auto& num_dihedrals = *(_structure_info_data->_num_angles);
 
   auto& h_px = _structure_data->_h_px;
   auto& h_py = _structure_data->_h_py;
@@ -96,9 +97,9 @@ bool MemoryScheduler::asyncMemoryH2D() {
   _device_data->_d_force_specialcoul_z.resize(num_atoms);
 
 
-  _device_data->_d_force_ewald_x.resize(num_atoms);
-  _device_data->_d_force_ewald_y.resize(num_atoms);
-  _device_data->_d_force_ewald_z.resize(num_atoms);
+  _device_data->_d_force_kspace_x.resize(num_atoms);
+  _device_data->_d_force_kspace_y.resize(num_atoms);
+  _device_data->_d_force_kspace_z.resize(num_atoms);
 
   //bond
   _device_data->_d_force_bond_x.resize(num_atoms);
@@ -126,7 +127,7 @@ bool MemoryScheduler::asyncMemoryH2D() {
 
   _device_data->_d_flat_virial_bond.resize(6*num_bonds);
   _device_data->_d_flat_virial_angle.resize(6*num_angles);
-
+  _device_data->_d_flat_virial_dihedral.resize(6*num_dihedrals);
 
   _device_data->_d_virial.resize(6);
   _device_data->_d_virial_lj.resize(6);
@@ -135,6 +136,7 @@ bool MemoryScheduler::asyncMemoryH2D() {
   _device_data->_d_virial_bond.resize(6);
   _device_data->_d_virial_angle.resize(6);
   _device_data->_d_virial_dihedral.resize(6);
+  _device_data->_d_energy_dihedral.resize(num_dihedrals);
 
   /// copy other
   _device_data->_d_atoms_id.resize(num_atoms);

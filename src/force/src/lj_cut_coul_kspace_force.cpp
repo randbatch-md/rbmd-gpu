@@ -239,13 +239,13 @@ void LJCutCoulKspaceForce::ComputeKspaceForce()
 void LJCutCoulKspaceForce::SumForces()
 {
   TransformForces(_device_data->_d_fx,_device_data->_d_force_ljcoul_x,
-    _device_data->_d_force_ewald_x);
+    _device_data->_d_force_kspace_x);
 
   TransformForces(_device_data->_d_fy,_device_data->_d_force_ljcoul_y,
-    _device_data->_d_force_ewald_y);
+    _device_data->_d_force_kspace_y);
 
   TransformForces(_device_data->_d_fz,_device_data->_d_force_ljcoul_z,
-    _device_data->_d_force_ewald_z);
+    _device_data->_d_force_kspace_z);
 }
 
 void LJCutCoulKspaceForce::ComputeChargeStructureFactorEwald(
@@ -346,9 +346,9 @@ void LJCutCoulKspaceForce::ComputeEwlad()
         thrust::raw_pointer_cast(_device_data->_d_px.data()),
         thrust::raw_pointer_cast(_device_data->_d_py.data()),
         thrust::raw_pointer_cast(_device_data->_d_pz.data()),
-        thrust::raw_pointer_cast(_device_data->_d_force_ewald_x.data()),
-        thrust::raw_pointer_cast(_device_data->_d_force_ewald_y.data()),
-        thrust::raw_pointer_cast(_device_data->_d_force_ewald_z.data()),
+        thrust::raw_pointer_cast(_device_data->_d_force_kspace_x.data()),
+        thrust::raw_pointer_cast(_device_data->_d_force_kspace_y.data()),
+        thrust::raw_pointer_cast(_device_data->_d_force_kspace_z.data()),
         thrust::raw_pointer_cast(_device_data->_d_flat_virial_kspace.data()));
 
     CHECK_RUNTIME(FREE(value_Re_array));
@@ -477,9 +477,9 @@ void LJCutCoulKspaceForce::ComputeRBE()
         thrust::raw_pointer_cast(_device_data->_d_px.data()),
         thrust::raw_pointer_cast(_device_data->_d_py.data()),
         thrust::raw_pointer_cast(_device_data->_d_pz.data()),
-        thrust::raw_pointer_cast(_device_data->_d_force_ewald_x.data()),
-        thrust::raw_pointer_cast(_device_data->_d_force_ewald_y.data()),
-        thrust::raw_pointer_cast(_device_data->_d_force_ewald_z.data()),
+        thrust::raw_pointer_cast(_device_data->_d_force_kspace_x.data()),
+        thrust::raw_pointer_cast(_device_data->_d_force_kspace_y.data()),
+        thrust::raw_pointer_cast(_device_data->_d_force_kspace_z.data()),
         thrust::raw_pointer_cast(_device_data->_d_flat_virial_kspace.data()));
 
   // 主机端累加virial

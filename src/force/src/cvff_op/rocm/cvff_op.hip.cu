@@ -159,8 +159,6 @@ __global__ void ComputeSpecialLJCutCoulRBLForce(
 
   unsigned int tid1 = blockIdx.x * blockDim.x + threadIdx.x;
   if (tid1 < num_atoms) {
-    // if(tid1 == 0)
-    // {
     rbmd::Id atom_id1 = atoms_id[tid1];
     rbmd::Id num_components = special_offset[atom_id1];
     rbmd::Id typei = atoms_type[tid1];
@@ -276,7 +274,6 @@ __global__ void ComputeSpecialLJCutCoulRBLForce(
     fx[tid1] = sum_fx;
     fy[tid1] = sum_fy;
     fz[tid1] = sum_fz;
-    //}
   }
 }
 
@@ -516,12 +513,6 @@ __global__ void ComputeBondForce(
     rbmd::Real* flat_virial, rbmd::Real* energy_bond) {
   __shared__ typename hipcub::BlockReduce<rbmd::Real, BLOCK_SIZE>::TempStorage
       temp_storage;
-    //virial init
-    rbmd::Real sum_virial[6];
-    for (int i = 0; i < 6; ++i)
-    {
-      sum_virial[i] = 0.0;
-    }
 
   rbmd::Real local_energy_bond = 0;
 
@@ -635,12 +626,6 @@ __global__ void ComputeBondForce(
       rbmd::Real* flat_virial,rbmd::Real* energy_angle) {
     __shared__ typename hipcub::BlockReduce<rbmd::Real, BLOCK_SIZE>::TempStorage
         temp_storage;
-    //virial init
-    rbmd::Real sum_virial[6];
-    for (int i = 0; i < 6; ++i)
-    {
-      sum_virial[i] = 0.0;
-    }
 
     rbmd::Real local_energy_angle = 0;
     unsigned int tid1 = blockIdx.x * blockDim.x + threadIdx.x;
@@ -734,18 +719,14 @@ __global__ void ComputeBondForce(
       atomicAdd(&fy[angleljj], force_anglej_y);
       atomicAdd(&fz[angleljj], force_anglej_z);
 
-          //
-          rbmd::Real local_virial_xx,local_virial_yy,local_virial_zz,
-      local_virial_xy,local_virial_xz,local_virial_yz;
-         rbmd::Real local_virial[6];
-          //newton_bond
-          local_virial[0]  =  (x12 * force_anglei_x + x23 * force_anglek_x);
-          local_virial[1]  =  (y12 * force_anglei_y + y23 * force_anglek_y);
-          local_virial[2]  =  (z12 * force_anglei_z + z23 * force_anglek_z);
-          local_virial[3]  =  (x12 * force_anglei_x + x23 * force_anglek_y);
-          local_virial[4]  =  (x12 * force_anglei_z + x23 * force_anglek_z);
-          local_virial[5]  =  (y12 * force_anglei_z + y23 * force_anglek_z);
-
+      //virial
+      rbmd::Real local_virial[6];
+      local_virial[0]  =  (x12 * force_anglei_x + x23 * force_anglek_x);
+      local_virial[1]  =  (y12 * force_anglei_y + y23 * force_anglek_y);
+      local_virial[2]  =  (z12 * force_anglei_z + z23 * force_anglek_z);
+      local_virial[3]  =  (x12 * force_anglei_x + x23 * force_anglek_y);
+      local_virial[4]  =  (x12 * force_anglei_z + x23 * force_anglek_z);
+      local_virial[5]  =  (y12 * force_anglei_z + y23 * force_anglek_z);
       //
       for(int i =0;i<6;++i) {
         flat_virial[ tid1 * 6 + i ] = local_virial[i];
@@ -830,7 +811,6 @@ __global__ void ComputeBondForce(
       rbmd::Real bx = y34 * z23m - z34 * y23m;
       rbmd::Real by = z34 * x23m - x34 * z23m;
       rbmd::Real bz = x34 * y23m - z34 * x23m;
-
       rbmd::Real rasq = ax * ax + ay * ay + az * az;
       rbmd::Real rbsq = bx * bx + by * by + bz * bz;
       rbmd::Real rgsq = x23m * x23m + y23m * y23m + z23m * z23m;
@@ -937,6 +917,47 @@ __global__ void ComputeBondForce(
       atomicAdd(&fx[dihedralkk], force_dihedralk_x);
       atomicAdd(&fy[dihedralkk], force_dihedralk_y);
       atomicAdd(&fz[dihedralkk], force_dihedralk_z);
+      // fx[dihedralii] += force_dihedrali_x;  // i atom force
+      // fy[dihedralii] += force_dihedrali_y;
+      // fz[dihedralii] += force_dihedrali_z;
+      //
+      // fx[dihedraljj] += force_dihedralj_x;  // j atom force
+      // fy[dihedraljj] += force_dihedralj_y;
+      // fz[dihedraljj] += force_dihedralj_z;
+      //
+      // fx[dihedralkk] += force_dihedralk_x;  // k atom force
+      // fy[dihedralkk] += force_dihedralk_y;
+      // fz[dihedralkk] += force_dihedralk_z;
+      //
+      // fx[dihedralww] += force_dihedralw_x;  // w atom force
+      // fy[dihedralww] += force_dihedralw_y;
+      // fz[dihedralww] += force_dihedralw_z;
+
+
+      rbmd::Real local_virial[6];
+      local_virial[0] = (x12 * force_dihedrali_x + x23 * force_dihedralk_x +
+          (x34 + x23) * force_dihedralw_x);
+
+      local_virial[1] = (y12 * force_dihedrali_y + y23 * force_dihedralk_y +
+         (y34 + y23) * force_dihedralw_y);
+
+      local_virial[2] = (z12 * force_dihedrali_z + z23 * force_dihedralk_z +
+         (z34 + z23) * force_dihedralw_z);
+
+      local_virial[3] = (x12 * force_dihedrali_y + x23 * force_dihedralk_y +
+         (x34 + x23) * force_dihedralw_y);
+
+      local_virial[4] = (x12* force_dihedrali_z + x23 * force_dihedralk_z +
+         (x34 + x23) * force_dihedralw_z);
+
+      local_virial[5] =  (y12 * force_dihedrali_z + y23 * force_dihedralk_z +
+         (y34 + y23) * force_dihedralw_z);
+
+      //
+      for(int i =0;i<6;++i) {
+        flat_virial[ tid1 * 6 + i ] = local_virial[i];
+      }
+
     }
     rbmd::Real block_sum =
         hipcub::BlockReduce<rbmd::Real, BLOCK_SIZE>(temp_storage)
