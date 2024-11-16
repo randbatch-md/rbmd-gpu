@@ -7,6 +7,7 @@
 #include "ljforce.h"
 #include "lj_cut_coul_kspace_force.h"
 #include "cvff.h"
+#include "tersoff.h"
 #include "rescale_controller.h"
 #include "berendsen_controller.h"
 #include "nose_hoover_controller.h"
@@ -17,7 +18,7 @@ NVTensemble::NVTensemble()
 {
   _position_controller = std::make_shared<DefaultPositionController>();
   _velocity_controller = std::make_shared<DefaultVelocityController>();
-  _force_controller = std::make_shared<CVFF>(); // TODO: json file forcetype
+  _force_controller = std::make_shared<TerSoff>(); // TODO: json file forcetype
   _temperature_controller = std::make_shared<BerendsenController>();
   _shake_controller = std::make_shared<ShakeController>();
 }

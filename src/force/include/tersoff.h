@@ -13,12 +13,22 @@ public:
 
   void Init() override;
   void  Execute() override;
-  void  ReadPotentialFile(std::ifstream& file);
-  void  Element2Type(int narg, char **arg, bool update_setflag);
 
-  struct TersoffParams {
-    double m, gamma, lambda3, c, d, costheta0, n, beta;
-    double lambda2, B, R, D, lambda1, A;
+  void  ReadPotentialElements(const std::string& potential_elements,
+                            int& narg, char*** arg);
+  void  Element2Type(int narg, char **arg, bool update_setflag);
+  void  ReadPotentialFile(std::ifstream& file);
+  void ReadPotentialFile_fix(std::ifstream& file);
+  void  SetupParams();
+
+  struct TersoffParams
+  {
+    rbmd::Id ielement, jelement, kelement;
+    rbmd::Real m, gamma, lambda3, c, d, costheta0, n, beta;
+    rbmd::Real lambda2, B, R, D, lambda1, A;
+
+    double cut, cutsq;
+    double c1, c2, c3, c4;
   };
 
 private:
@@ -39,10 +49,20 @@ private:
   std::string, std::string>, TersoffParams> TersoffData;
   std::ifstream _potential_file;
 
+  TersoffParams*  params;
   rbmd::Id nelements;        // # of unique elements
   char **elements;      // names of unique elements
   rbmd::Id *map;             // mapping from atom types to elements
   int **setflag;      // 0/1 = whether each i,j has been set
 
+
+  //
+  int *elem1param;      // mapping from elements to parameters
+  int **elem2param;     // mapping from element pairs to parameters
+  int ***elem3param;    // mapping from element triplets to parameters
+  int nparams;          // # of stored parameter sets
+  int maxparam;         // max # of parameter sets
+
+  rbmd::Real cutmax;   //max cutoff for all elements
 };
 
