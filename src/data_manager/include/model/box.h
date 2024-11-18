@@ -67,6 +67,22 @@ static __host__ __device__ __forceinline__ void MinImageDistance(Box* box,
   // TODO else: tri
 }
 
+static __host__ __device__ __forceinline__ void MinImageDistance_fix(
+    Box* box, rbmd::Real& dx, rbmd::Real& dy, rbmd::Real& dz) {
+  if (box->_type == Box::BoxType::ORTHOGONAL) {
+    if (box->_pbc_x) {
+      dx -= box->_length[0] * RINT(dx * box->_length_inv[0]);
+    }
+    if (box->_pbc_y) {
+      dy -= box->_length[1] * RINT(dy * box->_length_inv[1]);
+    }
+    if (box->_pbc_z) {
+      dz -= box->_length[2] * RINT(dz * box->_length_inv[2]);
+    }
+  }
+  // TODO else: tri
+}
+
 static __host__ __device__ __forceinline__ Real3 MinImageDistanceVec(
   const rbmd::Real& px_1,
   const rbmd::Real& py_1,
@@ -151,6 +167,39 @@ __host__ __device__ __forceinline__ void ApplyPBC(
   }
 }
 
+__host__ __device__ __forceinline__ void ApplyPBC_unflag(
+    Box* box, rbmd::Real& px, rbmd::Real& py, rbmd::Real& pz) {
+  if (box->_type == Box::BoxType::ORTHOGONAL) {
+    // x
+    if (box->_pbc_x) {
+      if (px > box->_coord_max[0]) {
+        px -= box->_length[0];
+
+      } else if (px < box->_coord_min[0]) {
+        px += box->_length[0];
+      }
+    }
+
+    // y
+    if (box->_pbc_y) {
+      if (py > box->_coord_max[1]) {
+        py -= box->_length[1];
+      } else if (py < box->_coord_min[1]) {
+        py += box->_length[1];
+      }
+    }
+
+    // z
+    if (box->_pbc_z) {
+      if (pz > box->_coord_max[2]) {
+        pz -= box->_length[2];
+      } else if (pz < box->_coord_min[2]) {
+        pz += box->_length[2];
+      }
+    }
+  }
+}
+
 __host__ __device__ __forceinline__ rbmd::Real CalculateVolume(const Box* box) {
   if (box->_type == Box::BoxType::ORTHOGONAL) {
     return box->_length[0] * box->_length[1] * box->_length[2];
@@ -160,48 +209,3 @@ __host__ __device__ __forceinline__ rbmd::Real CalculateVolume(const Box* box) {
   }
 }
 
-__host__ __device__ __forceinline__ void SetGlobalBox(Box* box) {
-  box->_length[0] = box->_coord_max[0] - box->_coord_min[0];
-  box->_length[1] = box->_coord_max[1] - box->_coord_min[1];
-  box->_length[2] = box->_coord_max[2] - box->_coord_min[2];
-  box->_length_inv[0] = 1 / box->_length[0];
-  box->_length_inv[1] = 1 / box->_length[1];
-  box->_length_inv[2] = 1 / box->_length[2];
-
-  rbmd::Id triclinic = 1;
-
-  if (triclinic) {
-    box->_length_inv[3] =
-        -box->_length[3] / (box->_length[1] * box->_length[2]);
-    box->_length_inv[4] = (box->_length[3] * box->_length[5] -
-                           box->_length[1] * box->_length[4]) /
-                          (box->_length[0] * box->_length[1] * box->_length[2]);
-    box->_length_inv[5] =
-        -box->_length[5] / (box->_length[0] * box->_length[1]);
-  }
-}
-
-__host__ __device__ __forceinline__ void X2Lamda(Box* box, rbmd::Real& px,
-                                                 rbmd::Real& py,
-                                                 rbmd::Real& pz) {
-  rbmd::Real delta_x;
-  rbmd::Real delta_y;
-  rbmd::Real delta_z;
-  delta_x = px - box->_coord_min[0];
-  delta_y = py - box->_coord_min[1];
-  delta_z = pz - box->_coord_min[2];
-
-  px = box->_length_inv[0] * delta_x + box->_length_inv[5] * delta_y +
-       box->_length_inv[4] * delta_z;
-  py = box->_length_inv[1] * delta_y + box->_length_inv[3] * delta_z;
-  pz = box->_length_inv[2] * delta_z;
-}
-
-__host__ __device__ __forceinline__ void Lamda2X(Box* box, rbmd::Real& px,
-                                                 rbmd::Real& py,
-                                                 rbmd::Real& pz) {
-  px = box->_length[0] * px + box->_length[5] * py + box->_length[4] * pz +
-       box->_coord_min[0];
-  py = box->_length[1] * py + box->_length[3] * pz + box->_coord_min[1];
-  pz = box->_length[2] * pz + box->_coord_min[2];
-}

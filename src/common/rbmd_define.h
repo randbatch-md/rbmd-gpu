@@ -46,6 +46,8 @@ typedef double2 Real2;
 #define LOG log
 #define ABS fabs
 #define ACOS acos
+#define RINT rint
+
 #else
 typedef float3 Real3;
 typedef float2 Real2;
@@ -65,6 +67,7 @@ typedef int2 Id2;
 #define LOG logf
 #define ABS fabsf
 #define ACOS acosf
+#define RINT rintf
 
 #endif
 

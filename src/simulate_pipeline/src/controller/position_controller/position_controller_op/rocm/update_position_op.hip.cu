@@ -4,128 +4,6 @@
 namespace op {
 #define THREADS_PER_BLOCK 256
 
-__device__ void UpdateFlagOverRangePoint(
-    const rbmd::Real& min_x_tid, const rbmd::Real& min_y_tid,
-    const rbmd::Real& min_z_tid, const rbmd::Real& max_x_tid,
-    const rbmd::Real& max_y_tid, const rbmd::Real& max_z_tid,
-    rbmd::Real& px_tid, rbmd::Real& py_tid, rbmd::Real& pz_tid,
-    rbmd::Id& flag_px_tid, rbmd::Id& flag_py_tid, rbmd::Id& flag_pz_tid) {
-  /*
-  flag_px_tid += (px_tid > max_x_tid)-(px_tid < min_x_tid);
-  px_tid += (px_tid < min_x_tid) * (max_x_tid - min_x_tid) - (px_tid >
-  max_x_tid) * (max_x_tid - min_x_tid);
-
-  flag_py_tid += (py_tid > max_y_tid) - (py_tid < min_y_tid);
-  py_tid += (py_tid < min_y_tid) * (max_y_tid - min_y_tid) - (py_tid >
-  max_y_tid) * (max_y_tid - min_y_tid);
-
-  flag_pz_tid += (pz_tid > max_z_tid) - (pz_tid < min_z_tid);
-  pz_tid += (pz_tid < min_z_tid) * (max_z_tid - min_z_tid) - (pz_tid >
-  max_z_tid) * (max_z_tid - min_z_tid);
-
-  if (px_tid < min_x_tid)
-  {
-          px_tid += max_x_tid - min_x_tid;
-          flag_px_tid -= 1;
-  }
-  else if (px_tid > max_x_tid)
-  {
-          px_tid -= max_x_tid - min_x_tid;
-          flag_px_tid += 1;
-  }
-
-  if (py_tid < min_y_tid)
-  {
-          py_tid += max_y_tid - min_y_tid;
-          flag_py_tid -= 1;
-  }
-  else if (py_tid > max_y_tid)
-  {
-          py_tid -= max_y_tid - min_y_tid;
-          flag_py_tid += 1;
-  }
-
-  if (pz_tid < min_z_tid)
-  {
-          pz_tid += max_z_tid - min_z_tid;
-          flag_pz_tid -= 1;
-  }
-  else if (pz_tid > max_z_tid)
-  {
-          pz_tid -= max_z_tid - min_z_tid;
-          flag_pz_tid += 1;
-  }
-  */
-
-  // x方向
-  if (px_tid > max_x_tid) {
-    flag_px_tid += 1;
-    px_tid -= (max_x_tid - min_x_tid);
-  } else if (px_tid < min_x_tid) {
-    flag_px_tid -= 1;
-    px_tid += (max_x_tid - min_x_tid);
-  }
-
-  // y方向
-  if (py_tid > max_y_tid) {
-    flag_py_tid += 1;
-    py_tid -= (max_y_tid - min_y_tid);
-  } else if (py_tid < min_y_tid) {
-    flag_py_tid -= 1;
-    py_tid += (max_y_tid - min_y_tid);
-  }
-
-  // z方向
-  if (pz_tid > max_z_tid) {
-    flag_pz_tid += 1;
-    pz_tid -= (max_z_tid - min_z_tid);
-  } else if (pz_tid < min_z_tid) {
-    flag_pz_tid -= 1;
-    pz_tid += (max_z_tid - min_z_tid);
-  }
-}
-
-__device__ void UpdateOverRangePoint(Box* box, 
-    rbmd::Real& px_tid, rbmd::Real& py_tid, rbmd::Real& pz_tid) {
-  px_tid += (px_tid < box->_coord_min[0]) * (box->_coord_max[0] - box->_coord_min[0]) -
-            (px_tid > box->_coord_max[0]) * (box->_coord_max[0] - box->_coord_min[0]);
-
-  py_tid += (py_tid < box->_coord_min[1]) * (box->_coord_max[1] - box->_coord_min[1]) -
-            (py_tid > box->_coord_max[1]) * (box->_coord_max[1] - box->_coord_min[1]);
-
-  pz_tid += (pz_tid < box->_coord_min[2]) * (box->_coord_max[2] - box->_coord_min[2]) -
-            (pz_tid > box->_coord_max[2]) * (box->_coord_max[2] - box->_coord_min[2]);
-
-  /*
-  if (px_tid < min_x_tid)
-  {
-          px_tid += max_x_tid - min_x_tid;
-  }
-  else if (px_tid > max_x_tid)
-  {
-          px_tid -= max_x_tid - min_x_tid;
-  }
-
-  if (py_tid < min_y_tid)
-  {
-          py_tid += max_y_tid - min_y_tid;
-  }
-  else if (py_tid > max_y_tid)
-  {
-          py_tid -= max_y_tid - min_y_tid;
-  }
-
-  if (pz_tid < min_z_tid)
-  {
-          pz_tid += max_z_tid - min_z_tid;
-  }
-  else if (pz_tid > max_z_tid)
-  {
-          pz_tid -= max_z_tid - min_z_tid;
-  }
-  */
-}
-
 __global__ void UpdatePositionFlag(
     const rbmd::Id num_atoms, const rbmd::Real dt, Box* box,
     const rbmd::Real* vx, const rbmd::Real* vy, const rbmd::Real* vz,
@@ -146,21 +24,8 @@ __global__ void UpdatePositionFlag(
     py[tid] = sum_py;
     pz[tid] = sum_pz;
 
-    ApplyPBC(box, px[tid], py[tid], pz[tid], flag_px[tid], flag_py[tid],
-             flag_pz[tid]);
-
-    // UpdateFlagOverRangePoint(min_x,
-    //	                     min_y,
-    //	                     min_z,
-    //	                     max_x,
-    //	                     max_y,
-    //	                     max_z,
-    //	                     px[tid],
-    //	                     py[tid],
-    //	                     pz[tid],
-    //	                     flag_px[tid],
-    //	                     flag_py[tid],
-    //	                     flag_pz[tid]);
+    ApplyPBC(box, px[tid], py[tid], pz[tid],
+      flag_px[tid], flag_py[tid],flag_pz[tid]);
   }
 }
 
@@ -183,7 +48,7 @@ __global__ void UpdatePosition(const rbmd::Id num_atoms, const rbmd::Real dt, Bo
     py[tid] = sum_py;
     pz[tid] = sum_pz;
 
-    UpdateOverRangePoint(box, px[tid], py[tid], pz[tid]);
+    ApplyPBC_unflag(box, px[tid], py[tid], pz[tid]);
   }
 }
 

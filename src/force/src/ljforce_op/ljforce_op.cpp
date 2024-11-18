@@ -1,6 +1,6 @@
-#include "ljforce_op.h"
+//#include "ljforce_op.h"
 
-namespace op {
+//namespace op {
 // template <typename FPTYPE>
 // struct ComputeLJforceOp<FPTYPE, device::DEVICE_CPU>
 //{
@@ -25,4 +25,4 @@ namespace op {
 //	}
 // };
 
-}
+//}

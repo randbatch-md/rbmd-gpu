@@ -707,17 +707,17 @@ __global__ void ComputeBondForce(
       // fy[angleljj] = force_anglej_y;
       // fz[angleljj] = force_anglej_z;
 
-      // atomicAdd(&fx[anglelii], force_anglei_x);
-      // atomicAdd(&fy[anglelii], force_anglei_y);
-      // atomicAdd(&fz[anglelii], force_anglei_z);
-      //
-      // atomicAdd(&fx[anglelkk], force_anglek_x);
-      // atomicAdd(&fy[anglelkk], force_anglek_y);
-      // atomicAdd(&fz[anglelkk], force_anglek_z);
-      //
-      // atomicAdd(&fx[angleljj], force_anglej_x);
-      // atomicAdd(&fy[angleljj], force_anglej_y);
-      // atomicAdd(&fz[angleljj], force_anglej_z);
+      atomicAdd(&fx[anglelii], force_anglei_x);
+      atomicAdd(&fy[anglelii], force_anglei_y);
+      atomicAdd(&fz[anglelii], force_anglei_z);
+
+      atomicAdd(&fx[anglelkk], force_anglek_x);
+      atomicAdd(&fy[anglelkk], force_anglek_y);
+      atomicAdd(&fz[anglelkk], force_anglek_z);
+
+      atomicAdd(&fx[angleljj], force_anglej_x);
+      atomicAdd(&fy[angleljj], force_anglej_y);
+      atomicAdd(&fz[angleljj], force_anglej_z);
 
       //virial
       rbmd::Real local_virial[6];
