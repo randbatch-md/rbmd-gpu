@@ -27,4 +27,6 @@ protected:
   std::vector<rbmd::Real> _shake_vx;
   std::vector<rbmd::Real> _shake_vy;
   std::vector<rbmd::Real> _shake_vz;
+
+  Box _box;
 };

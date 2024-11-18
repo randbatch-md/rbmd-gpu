@@ -9,9 +9,9 @@ LinkedCellLocator& LinkedCellLocator::GetInstance() {
 std::shared_ptr<LinkedCell> LinkedCellLocator::GetLinkedCell() {
   if (nullptr == _linked_cell) {
     this->_linked_cell = std::make_shared<LinkedCell>();
-    auto& box = DataManager::getInstance().getMDData()->_h_box;
+    this->_box = DataManager::getInstance().getMDData()->_box;
     auto short_edge =
-        MIN(MIN(box->_length[0], box->_length[1]), box->_length[2]);
+        MIN(MIN(_box._length[0], _box._length[1]), _box._length[2]);
     if (this->_linked_cell->_cutoff >= short_edge) {
       std::cout << "\033[31mError: cutoff must be less than the shortest side "
                    "of the box.\033[0m"
@@ -33,7 +33,7 @@ std::shared_ptr<LinkedCell> LinkedCellLocator::GetLinkedCell() {
       _linked_cell->_cell_count_within_cutoff = static_cast<rbmd::Id>(
           std::ceil(static_cast<double>(_linked_cell->_cutoff / _r_core)));
     }
-    _linked_cell->Build(DataManager::getInstance().getMDData()->_h_box.get());
+    _linked_cell->Build(this->_box);
     _linked_cell->InitializeCells();
   }
   return this->_linked_cell;

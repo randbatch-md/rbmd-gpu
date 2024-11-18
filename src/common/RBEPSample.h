@@ -21,14 +21,14 @@ T RandomValue(const rbmd::Real& Min, const rbmd::Real& Max){
 struct RBEPSAMPLE
 {
   rbmd::Real _alpha;
-  Box* _box;
+  Box _box;
   rbmd::Id _P;
   bool _RBE_random;
 
   rbmd::Real Compute_S() const
   {
     const Real3& factor = Compute_H();
-    rbmd::Real factor_3 = factor.data[0] * factor.data[1] * factor.data[2];
+    rbmd::Real factor_3 = REAL_DATA(factor)[0] * REAL_DATA(factor)[1] * REAL_DATA(factor)[2];
     rbmd::Real S = factor_3 - 1;
     return S;
   }
@@ -38,15 +38,15 @@ struct RBEPSAMPLE
     Real3 H;
     for (rbmd::Id i = 0; i < 3; ++i)
     {
-      const rbmd::Real factor = -(_alpha * _box->_length[i] * _box->_length[i]);
-      H.data[i] = 0.0;
+      const rbmd::Real factor = -(_alpha * _box._length[i] * _box._length[i]);
+      REAL_DATA(H)[i] = 0.0;
 
       for (rbmd::Id m = -10; m <= 10; m++)
       {
         rbmd::Real expx = m * m * factor;
-        H.data[i] += EXP(expx);
+        REAL_DATA(H)[i] += EXP(expx);
       }
-      H.data[i] *= SQRT(-(factor) / M_PI);
+      REAL_DATA(H)[i] *= SQRT(-(factor) / M_PI);
     }
 
     return H;
@@ -58,7 +58,7 @@ struct RBEPSAMPLE
     const Real3& sigma,
     rbmd::Id dimension) const
   {
-    rbmd::Real x_wait = FetchSample_1D(mu, sigma.data[dimension]);
+    rbmd::Real x_wait = FetchSample_1D(mu, REAL_DATA(sigma)[dimension]);
     rbmd::Real m_wait = rbmd::Real(ROUND(x_wait));
     rbmd::Real Prob = (Distribution_P(m_wait, dimension) / Distribution_P(m, dimension)) *
       (Distribution_q(m, dimension) / Distribution_q(m_wait, dimension));
@@ -82,10 +82,10 @@ struct RBEPSAMPLE
 
   rbmd::Real Distribution_P(const rbmd::Real& x, const rbmd::Id dimension) const
   {
-    rbmd::Real P_m = EXP(-POW(2 * M_PI * x / _box->_length[dimension], 2)
+    rbmd::Real P_m = EXP(-POW(2 * M_PI * x / _box._length[dimension], 2)
       / (4 * _alpha));
     Real3 H = Compute_H();
-    P_m = P_m / H.data[dimension];
+    P_m = P_m / REAL_DATA(H)[dimension];
     return P_m;
   }
 
@@ -94,14 +94,14 @@ struct RBEPSAMPLE
     rbmd::Real q_m;
     if (x == 0)
     {
-      q_m = ERF((1.0 / 2) /(SQRT(_alpha * POW(_box->_length[dimension], 2) /
+      q_m = ERF((1.0 / 2) /(SQRT(_alpha * POW(_box._length[dimension], 2) /
         POW(M_PI, 2))));
     }
     else
       q_m = (ERF(((1.0 / 2) + ABS(x)) /
-        (SQRT(_alpha * POW(_box->_length[dimension], 2)
+        (SQRT(_alpha * POW(_box._length[dimension], 2)
         / POW(M_PI, 2)))) -ERF((ABS(x) - (1.0 / 2)) /
-               (SQRT(_alpha * POW(_box->_length[dimension], 2) /
+               (SQRT(_alpha * POW(_box._length[dimension], 2) /
                  POW(M_PI, 2))))) /2;
     return q_m;
   }
@@ -119,16 +119,16 @@ struct RBEPSAMPLE
       } while (U1 < epsilon);
       U2 = RandomValue< rbmd::Real>(0.0, 1.0);
       Real2 ChooseSample{ 0.0, 0.0 };
-      ChooseSample.data[0] = sigma * SQRT(-2.0 * LOG(U1)) * COS(2 * M_PI * U2) + mu;
-      return ChooseSample.data[0];
+      REAL_DATA(ChooseSample)[0] = sigma * SQRT(-2.0 * LOG(U1)) * COS(2 * M_PI * U2) + mu;
+      return REAL_DATA(ChooseSample)[0];
     }
     else
     {
       U1 = 0.5;
       U2 = 0.5;
       Real2 ChooseSample{ 0.0, 0.0 };
-      ChooseSample.data[0] = sigma * SQRT(-2.0 * LOG(U1)) * COS(2 * M_PI * U2) + mu;
-      return ChooseSample.data[0];
+      REAL_DATA(ChooseSample)[0] = sigma * SQRT(-2.0 * LOG(U1)) * COS(2 * M_PI * U2) + mu;
+      return REAL_DATA(ChooseSample)[0];
     }
   }
 

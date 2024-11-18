@@ -26,7 +26,7 @@ void RblHalfNeighborListBuilder::EstimateNeighborsList() {
       thrust::raw_pointer_cast(this->_neighbor_list->_d_neighbor_num.data()),
       thrust::raw_pointer_cast(
           this->_neighbor_list->_d_max_neighbor_num.data()),
-      this->_d_box,
+      this->_box,
       thrust::raw_pointer_cast(_linked_cell->_neighbor_cell.data()),
       _neighbor_cell_num, true);  // rbl always true
   ReductionSum(
@@ -64,7 +64,7 @@ rbmd::Id RblHalfNeighborListBuilder::GenerateNeighborsList() {
       thrust::raw_pointer_cast(this->_neighbor_list->_d_random_neighbor.data()),
       thrust::raw_pointer_cast(
           this->_neighbor_list->_d_random_neighbor_num.data()),
-      _d_box, _d_should_realloc,
+      this->_box, _d_should_realloc,
       thrust::raw_pointer_cast(_linked_cell->_neighbor_cell.data()),
       _neighbor_cell_num, _selection_frequency);
   CHECK_RUNTIME(

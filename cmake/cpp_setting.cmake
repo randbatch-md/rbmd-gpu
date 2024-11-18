@@ -62,10 +62,18 @@ function(cpp_library)
 	message(STATUS "====================${lib_name} library begin====================")
 	#get src file and header file
 	get_src_include()
-	set_source_files_properties(${CU_FILE} PROPERTIES LANGUAGE CXX)
+	if(USE_CUDA)
+		set_source_files_properties(${SRC} ${H_FILE} ${H_FILE_I} ${CU_FILE} PROPERTIES LANGUAGE CUDA)
+	elseif(USE_ROCM)
+		set_source_files_properties(${CU_FILE} PROPERTIES LANGUAGE CXX)
+	endif()
 
 	#add static library
 	add_library(${lib_name} STATIC ${SRC} ${H_FILE} ${H_FILE_I} ${CU_FILE})
+
+	if(USE_CUDA)
+		target_compile_options(${lib_name} PRIVATE --extended-lambda)
+	endif()
 
 	config_cpp(${lib_name})
 

@@ -42,23 +42,23 @@ void TrajectoryOutput::Execute()
             std::vector<rbmd::Real> h_py(_num_atoms);
             std::vector<rbmd::Real> h_pz(_num_atoms);
             std::vector<rbmd::Real> h_atoms_type(_num_atoms);
-			Box h_box;
+	    Box box;
 
             thrust::copy(_device_data->_d_px.begin(), _device_data->_d_px.end(), h_px.begin());
             thrust::copy(_device_data->_d_py.begin(), _device_data->_d_py.end(), h_py.begin());
             thrust::copy(_device_data->_d_pz.begin(), _device_data->_d_pz.end(), h_pz.begin());
             thrust::copy(_device_data->_d_atoms_type.begin(), _device_data->_d_atoms_type.end(), h_atoms_type.begin());
                       
-            CHECK_RUNTIME(MEMCPY(&h_box, (_device_data->_d_box), sizeof(Box), D2H));
+            //CHECK_RUNTIME(MEMCPY(&h_box, (_device_data->_d_box), sizeof(Box), D2H));
             
             spdlog::info("ITEM: TIMESTEP");
             spdlog::info("{}", test_current_step);
             spdlog::info("ITEM: NUMBER OF ATOMS");
             spdlog::info("{}", _num_atoms);
             spdlog::info("ITEM: BOX BOUNDS pp pp pp");
-            spdlog::info("{} {}", h_box._coord_min[0], h_box._coord_max[0]);
-            spdlog::info("{} {}", h_box._coord_min[1], h_box._coord_max[1]);
-            spdlog::info("{} {}", h_box._coord_min[2], h_box._coord_max[2]);
+            spdlog::info("{} {}", box._coord_min[0], box._coord_max[0]);
+            spdlog::info("{} {}", box._coord_min[1], box._coord_max[1]);
+            spdlog::info("{} {}", box._coord_min[2], box._coord_max[2]);
             spdlog::info("ITEM: ATOMS id type x y z");
 
             for (auto i = 0; i < _num_atoms; ++i)

@@ -9,7 +9,7 @@ namespace op {
     template <typename DEVICE>
     struct SpecialLJCutCoulForceOp
     {
-      void operator()(Box* box,ERFTable* erf_table,
+      void operator()( Box box,ERFTable* erf_table,
             const rbmd::Real cut_off,
             const rbmd::Id num_atoms,
             const rbmd::Real alpha,
@@ -40,7 +40,7 @@ namespace op {
     template <typename DEVICE>
     struct SpecialLJCutCoulRBLForceOp
     {
-      void operator()(Box* box,ERFTable* erf_table,
+      void operator()( Box box,ERFTable* erf_table,
         const rbmd::Real rs,
         const rbmd::Real rc,
         const rbmd::Id num_atoms,
@@ -73,7 +73,7 @@ namespace op {
     template <typename DEVICE>
     struct SpeciaLJCutCoulEnergyOp
     {
-      void operator()(Box* box,ERFTable* erf_table,
+      void operator()( Box box,ERFTable* erf_table,
            const rbmd::Real cut_off,
            const rbmd::Id num_atoms,
            const rbmd::Real alpha,
@@ -102,7 +102,7 @@ namespace op {
     struct  ComputeSpecialCoulForceOp
     {
       void  operator()(
-        Box* box,
+         Box box,
         const rbmd::Id num_atoms,
         const rbmd::Real qqr2e,
         const rbmd::Id* atoms_id,
@@ -129,7 +129,7 @@ namespace op {
      struct  ComputeBondForceOp
      {
        void  operator()(
-         Box* box,
+          Box box,
          const rbmd::Id num_bonds,
          const rbmd::Id* atom_id_to_idx,
          const rbmd::Real* bond_coeffs_k,
@@ -151,7 +151,7 @@ namespace op {
      struct ComputeAngleForceOp
      {
        void operator()(
-       Box* box,
+        Box box,
        const rbmd::Id num_anglels,
        const rbmd::Id* atom_id_to_idx,
        const rbmd::Real* anglel_coeffs_k,
@@ -174,7 +174,7 @@ namespace op {
      struct ComputeDihedralForceOp
      {
        void operator()(
-       Box* box,
+        Box box,
        const rbmd::Id num_dihedrals,
        const rbmd::Id* atom_id_to_idx,
        const rbmd::Real* dihedral_coeffs_k,
@@ -203,7 +203,7 @@ namespace op {
   template <>
   struct SpecialLJCutCoulForceOp<device::DEVICE_GPU>
   {
-    void operator()(Box* box,ERFTable* erf_table,
+    void operator()( Box box,ERFTable* erf_table,
           const rbmd::Real cut_off,
           const rbmd::Id num_atoms,
           const rbmd::Real alpha,
@@ -235,7 +235,7 @@ namespace op {
   template <>
    struct SpecialLJCutCoulRBLForceOp<device::DEVICE_GPU>
   {
-    void operator()(Box* box,ERFTable* erf_table,
+    void operator()( Box box,ERFTable* erf_table,
      const rbmd::Real rs,
      const rbmd::Real rc,
      const rbmd::Id num_atoms,
@@ -270,7 +270,7 @@ namespace op {
   template <>
   struct SpeciaLJCutCoulEnergyOp<device::DEVICE_GPU>
   {
-    void operator()(Box* box,ERFTable* erf_table,
+    void operator()( Box box,ERFTable* erf_table,
          const rbmd::Real cut_off,
          const rbmd::Id num_atoms,
          const rbmd::Real alpha,
@@ -300,7 +300,7 @@ namespace op {
   struct  ComputeSpecialCoulForceOp<device::DEVICE_GPU>
   {
     void  operator()(
-      Box* box,
+       Box box,
       const rbmd::Id num_atoms,
       const rbmd::Real qqr2e,
       const rbmd::Id* atoms_id,
@@ -327,7 +327,7 @@ namespace op {
   struct  ComputeBondForceOp<device::DEVICE_GPU>
   {
     void  operator()(
-      Box* box,
+       Box box,
       const rbmd::Id num_bonds,
       const rbmd::Id* atom_id_to_idx,
       const rbmd::Real* bond_coeffs_k,
@@ -350,7 +350,7 @@ namespace op {
   struct ComputeAngleForceOp<device::DEVICE_GPU>
   {
     void operator()(
-    Box* box,
+     Box box,
     const rbmd::Id num_anglels,
     const rbmd::Id* atom_id_to_idx,
     const rbmd::Real* anglel_coeffs_k,
@@ -373,7 +373,7 @@ namespace op {
   struct ComputeDihedralForceOp<device::DEVICE_GPU>
   {
     void operator()(
-      Box* box,
+       Box box,
       const rbmd::Id num_dihedrals,
       const rbmd::Id* atom_id_to_idx,
       const rbmd::Real* dihedral_coeffs_k,

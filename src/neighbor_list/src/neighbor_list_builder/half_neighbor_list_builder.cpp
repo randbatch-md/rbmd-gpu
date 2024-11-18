@@ -60,7 +60,7 @@ void HalfNeighborListBuilder::EstimateNeighborsList() {
       thrust::raw_pointer_cast(this->_neighbor_list->_d_neighbor_num.data()),
       thrust::raw_pointer_cast(
           this->_neighbor_list->_d_max_neighbor_num.data()),
-      this->_d_box,
+      this->_box,
       thrust::raw_pointer_cast(_linked_cell->_neighbor_cell.data()),
       _neighbor_cell_num, _without_pbc);
   ReductionSum(
@@ -99,7 +99,7 @@ rbmd::Id HalfNeighborListBuilder::GenerateNeighborsList() {
       thrust::raw_pointer_cast(this->_neighbor_list->_start_idx.data()),
       thrust::raw_pointer_cast(this->_neighbor_list->_end_idx.data()),
       thrust::raw_pointer_cast(this->_neighbor_list->_d_neighbors.data()),
-      _d_box, _d_should_realloc,
+      _box, _d_should_realloc,
       thrust::raw_pointer_cast(_linked_cell->_neighbor_cell.data()),
       _neighbor_cell_num,_without_pbc);
   CHECK_RUNTIME(MEMCPY(&(this->should_realloc), _d_should_realloc, sizeof(rbmd::Id), D2H));

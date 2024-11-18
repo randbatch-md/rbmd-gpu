@@ -2,6 +2,7 @@ cmake_minimum_required(VERSION 3.16)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
 
 project(rbmd-gpu)
 
@@ -18,7 +19,7 @@ get_property(cmake_dir GLOBAL PROPERTY CUSTOME_CMAKE_DIR)
 include("${cmake_dir}/option.cmake")
 
 #hip setting
-include("${cmake_dir}/hip_setting.cmake")
+include("${cmake_dir}/gpu_setting.cmake")
 
 #sub directory
 add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/tools)
@@ -45,6 +46,9 @@ include_directories("${CMAKE_CURRENT_LIST_DIR}/src/application")
 #include_directories("${CMAKE_CURRENT_LIST_DIR}/src/executioner")
 include_directories("${CMAKE_CURRENT_LIST_DIR}/src/common")
 include_directories("${CMAKE_CURRENT_LIST_DIR}/src/output")
+if(USE_CUDA)
+	set_source_files_properties(${src} PROPERTIES LANGUAGE CUDA)
+endif()
 
 
 file(GLOB_RECURSE all_include_dirs
@@ -77,17 +81,10 @@ pkg_check_modules(SPDLOG REQUIRED spdlog IMPORTED_TARGET GLOBAL)
 pkg_check_modules(CXXOPTS REQUIRED cxxopts IMPORTED_TARGET GLOBAL)
 
 
-
-
-
-
-# ��ӿ�ִ���ļ�
 add_executable(${PROJECT_NAME} ${src})
 
-# ���ÿ��ļ���·��
 set(LIB_DIR ${CMAKE_CURRENT_LIST_DIR}/lib)
 
-# ����Ҫ���ҵĿ����б�
 set(LIBRARY_NAMES
 		data_manager
 		reader
@@ -95,5 +92,7 @@ set(LIBRARY_NAMES
 		force
 		simulate_pipeline
 )
-
+if(USE_CUDA)
+	target_compile_options(${PROJECT_NAME} PRIVATE $<$<COMPILE_LANGUAGE:CUDA>:--extended-lambda>)
+endif()
 target_link_libraries(${PROJECT_NAME} PUBLIC ${LIBRARY_NAMES} PkgConfig::JSONCPP PkgConfig::SPDLOG PkgConfig::CXXOPTS)

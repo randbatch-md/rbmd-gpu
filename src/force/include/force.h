@@ -23,4 +23,6 @@ class Force {
  protected:
   std::shared_ptr<StructureInfoData> _structure_info_data;
   std::shared_ptr<DeviceData> _device_data;
+
+  Box _box;
 };

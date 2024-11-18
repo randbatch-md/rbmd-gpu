@@ -24,7 +24,7 @@ struct EstimateFullNeighborListOp {
                   rbmd::Id* in_atom_list_end_index, rbmd::Real cutoff_2,
                   rbmd::Id total_atom_num, rbmd::Real* px, rbmd::Real* py,
                   rbmd::Real* pz, rbmd::Id* neighbour_num,
-                  rbmd::Id* max_neighbour_num, Box* box,
+                  rbmd::Id* max_neighbour_num, Box box,
                   rbmd::Id* neighbor_cell, rbmd::Id neighbor_cell_num);
 };
 
@@ -36,7 +36,7 @@ struct GenerateFullNeighborListOp {
                   rbmd::Id total_atom_num, rbmd::Real* px, rbmd::Real* py,
                   rbmd::Real* pz, rbmd::Id* max_neighbor_num,
                   rbmd::Id* neighbor_start, rbmd::Id* neighbor_end,
-                  rbmd::Id* neighbors, Box* d_box, rbmd::Id* should_realloc,
+                  rbmd::Id* neighbors, Box box, rbmd::Id* should_realloc,
                   rbmd::Id* neighbor_cell, rbmd::Id neighbor_cell_num);
 };
 
@@ -60,7 +60,7 @@ struct EstimateFullNeighborListOp<device::DEVICE_GPU> {
                   rbmd::Id* in_atom_list_end_index, rbmd::Real cutoff_2,
                   rbmd::Id total_atom_num, rbmd::Real* px, rbmd::Real* py,
                   rbmd::Real* pz, rbmd::Id* neighbour_num,
-                  rbmd::Id* max_neighbour_num, Box* box,
+                  rbmd::Id* max_neighbour_num, Box box,
                   rbmd::Id* neighbor_cell, rbmd::Id neighbor_cell_num);
 };
 
@@ -72,14 +72,14 @@ struct GenerateFullNeighborListOp<device::DEVICE_GPU> {
                   rbmd::Id total_atom_num, rbmd::Real* px, rbmd::Real* py,
                   rbmd::Real* pz, rbmd::Id* max_neighbor_num,
                   rbmd::Id* neighbor_start, rbmd::Id* neighbor_end,
-                  rbmd::Id* neighbors, Box* d_box, rbmd::Id* should_realloc,
+                  rbmd::Id* neighbors, Box box, rbmd::Id* should_realloc,
                   rbmd::Id* neighbor_cell, rbmd::Id neighbor_cell_num);
 };
 
 }  // namespace op
 
 __host__ __device__ __forceinline__ rbmd::Real CaculateDistance(
-    Box* box, rbmd::Real i_x, rbmd::Real i_y, rbmd::Real i_z, rbmd::Real j_x,
+    Box box, rbmd::Real i_x, rbmd::Real i_y, rbmd::Real i_z, rbmd::Real j_x,
     rbmd::Real j_y, rbmd::Real j_z) {
   rbmd::Real dx = i_x - j_x;
   rbmd::Real dy = i_y - j_y;

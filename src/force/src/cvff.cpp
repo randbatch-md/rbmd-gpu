@@ -25,6 +25,7 @@ CVFF::CVFF()
 {
   _rbl_neighbor_list_builder = std::make_shared<RblFullNeighborListBuilder>();
   _neighbor_list_builder = std::make_shared<FullNeighborListBuilder>();
+  this->_box = DataManager::getInstance().getMDData()->_box;
 
   CHECK_RUNTIME(MALLOC(&_d_total_evdwl, sizeof(rbmd::Real)));
   CHECK_RUNTIME(MALLOC(&_d_total_ecoul, sizeof(rbmd::Real)));
@@ -80,7 +81,9 @@ void CVFF::Init()
     _Kmax = DataManager::getInstance().getConfigData()->Get<rbmd::Id>(
 "kmax", "hyper_parameters", "coulomb");
     _num_k =  POW(2 * _Kmax + 1,3.0) - 1;
-    RBEInit(_device_data->_d_box,_alpha,_RBE_P);
+
+  //auto h_box = DataManager::getInstance().getMDData()->_box.get();
+  RBEInit(_box,_alpha,_RBE_P);
 }
 
 void CVFF::Execute()
@@ -132,8 +135,8 @@ void CVFF::ComputeLJRBL()
          "neighbor_sample_num", "hyper_parameters", "neighbor");
 
     auto num_atoms = *(_structure_info_data->_num_atoms);
-    op::SpecialLJCutCoulRBLForceOp<device::DEVICE_GPU> lj_cut_coul_rbl_force_op;
-    lj_cut_coul_rbl_force_op(_device_data->_d_box,_device_data->_d_erf_table,
+    op::SpecialLJCutCoulRBLForceOp<device::DEVICE_GPU>()(
+        _box,_device_data->_d_erf_table,
       r_core, _cut_off, num_atoms,neighbor_sample_num,
       _rbl_list->_selection_frequency,_alpha,_qqr2e,
         thrust::raw_pointer_cast(_device_data->_d_atoms_type.data()),
@@ -167,9 +170,9 @@ void CVFF::ComputeLJRBL()
         thrust::reduce(_device_data->_d_force_ljcoul_z.begin(), _device_data->_d_force_ljcoul_z.end(),
                        0.0f, thrust::plus<rbmd::Real>()) /num_atoms;
 
-    // fix RBL:   rbl_force = f - corr_value
-    op::FixRBLForceOp<device::DEVICE_GPU> fix_rbl_force_op;
-    fix_rbl_force_op(num_atoms, _corr_value_x, _corr_value_y, _corr_value_z,
+    // fix RBL:   rbl_force = force - corr_value
+    op::FixRBLForceOp<device::DEVICE_GPU>()(
+                        num_atoms, _corr_value_x, _corr_value_y, _corr_value_z,
                         thrust::raw_pointer_cast(_device_data->_d_force_ljcoul_x.data()),
                         thrust::raw_pointer_cast(_device_data->_d_force_ljcoul_y.data()),
                         thrust::raw_pointer_cast(_device_data->_d_force_ljcoul_z.data()));
@@ -224,8 +227,8 @@ void CVFF::ComputeLJVerlet()
 
   //
   auto num_atoms = *(_structure_info_data->_num_atoms);
-  op::SpecialLJCutCoulForceOp<device::DEVICE_GPU> lj_cut_coul_force_op;
-  lj_cut_coul_force_op(_device_data->_d_box,_device_data->_d_erf_table, _cut_off, num_atoms,_alpha,_qqr2e,
+  op::SpecialLJCutCoulForceOp<device::DEVICE_GPU>()(
+                  _box,_device_data->_d_erf_table, _cut_off, num_atoms,_alpha,_qqr2e,
                   thrust::raw_pointer_cast(_device_data->_d_atoms_type.data()),
                   thrust::raw_pointer_cast(_device_data->_d_atoms_id.data()),
                   thrust::raw_pointer_cast(_device_data->_d_sigma.data()),
@@ -327,8 +330,8 @@ void CVFF::ComputeSpecialCoulForce()
     LinkedCellLocator::GetInstance().GetLinkedCell()->_atom_id_to_idx;
   //
   auto num_atoms = *(_structure_info_data->_num_atoms);
-  op::ComputeSpecialCoulForceOp<device::DEVICE_GPU> special_coul_force_op;
-  special_coul_force_op(_device_data->_d_box,num_atoms,_qqr2e,
+  op::ComputeSpecialCoulForceOp<device::DEVICE_GPU>()(
+    _box,num_atoms,_qqr2e,
   thrust::raw_pointer_cast(_device_data->_d_atoms_id.data()),
   thrust::raw_pointer_cast(_atom_id_to_idx.data()),
     thrust::raw_pointer_cast(_device_data->_d_atoms_vec.data()),
@@ -448,7 +451,7 @@ void CVFF::SumForces()
 }
 
 void CVFF::ComputeChargeStructureFactorEwald(
-    Box* box,
+    Box box,
     rbmd::Id num_atoms,
     rbmd::Id Kmax,
     rbmd::Real alpha,
@@ -473,15 +476,14 @@ void CVFF::ComputeChargeStructureFactorEwald(
             {
                 if (!(i == 0 && j == 0 && k == 0))
                 {
-                    Real3 K = make_Real3(rbmd::Real(2 * M_PI * i / box->_length[0]),
-                                           rbmd::Real(2 * M_PI * j / box->_length[1]),
-                                           rbmd::Real(2 * M_PI * k / box->_length[2]));
+                    Real3 K = make_Real3(rbmd::Real(2 * M_PI * i / box._length[0]),
+                                           rbmd::Real(2 * M_PI * j / box._length[1]),
+                                           rbmd::Real(2 * M_PI * k / box._length[2]));
                     rbmd::Real Range_K = SQRT(K.x * K.x + K.y * K.y + K.z * K.z);
                     rbmd::Real Range_K2 = Range_K*Range_K;
                     rbmd::Real alpha_inv =  1 / alpha;
 
-                    op::ComputeChargeStructureFactorOp<device::DEVICE_GPU> charge_structure_factor_op;
-                    charge_structure_factor_op(num_atoms, K,
+                    op::ComputeChargeStructureFactorOp<device::DEVICE_GPU>()(num_atoms, K,
                         thrust::raw_pointer_cast(_device_data->_d_charge.data()),
                         thrust::raw_pointer_cast(_device_data->_d_px.data()),
                         thrust::raw_pointer_cast(_device_data->_d_py.data()),
@@ -489,8 +491,10 @@ void CVFF::ComputeChargeStructureFactorEwald(
                         thrust::raw_pointer_cast(density_real_atom.data()),
                         thrust::raw_pointer_cast(density_imag_atom.data()));
 
-                    rbmd::Real value_Re = thrust::reduce(density_real_atom.begin(), density_real_atom.end(), 0.0f, thrust::plus<rbmd::Real>());
-                    rbmd::Real value_Im = thrust::reduce(density_imag_atom.begin(), density_imag_atom.end(), 0.0f, thrust::plus<rbmd::Real>());
+                    rbmd::Real value_Re = thrust::reduce(density_real_atom.begin(),
+                      density_real_atom.end(), 0.0f, thrust::plus<rbmd::Real>());
+                    rbmd::Real value_Im = thrust::reduce(density_imag_atom.begin(),
+                      density_imag_atom.end(), 0.0f, thrust::plus<rbmd::Real>());
                     rbmd::Real Range_density2 = POW(value_Re, 2.0) + POW(value_Im, 2.0);
 
                     total_energy_kspace +=
@@ -510,7 +514,7 @@ void CVFF::ComputeChargeStructureFactorEwald(
   ComputeSelfEnergy(alpha,qqr2e,_ave_self_energy);
 
   //compute Kspace energy//
-  rbmd::Real volume = box->_length[0] * box->_length[1]*box->_length[2];
+  rbmd::Real volume = box._length[0] * box._length[1]*box._length[2];
   total_energy_kspace = qqr2e * (2 * M_PI / volume) * total_energy_kspace;
   _ave_ekspace = total_energy_kspace / num_atoms;
 
@@ -539,12 +543,12 @@ void CVFF::ComputeEwlad()
     CHECK_RUNTIME(MEMSET(value_Re_array, 0, _num_k *sizeof(rbmd::Real)));
     CHECK_RUNTIME(MEMSET(value_Im_array, 0, _num_k *sizeof(rbmd::Real)));
 
-    ComputeChargeStructureFactorEwald(_device_data->_d_box, num_atoms, _Kmax,
+    ComputeChargeStructureFactorEwald(_box, num_atoms, _Kmax,
       _alpha,_qqr2e, value_Re_array, value_Im_array);
 
 
-    op::ComputeEwaldForceOp<device::DEVICE_GPU> ewlad_force_op;
-    ewlad_force_op(_device_data->_d_box,num_atoms, _Kmax, _alpha,_qqr2e,
+    op::ComputeEwaldForceOp<device::DEVICE_GPU>()(
+        _box,num_atoms, _Kmax, _alpha,_qqr2e,
         value_Re_array,value_Im_array,
         thrust::raw_pointer_cast(_device_data->_d_charge.data()),
         thrust::raw_pointer_cast(_device_data->_d_px.data()),
@@ -608,33 +612,36 @@ void CVFF::ComputeEwlad()
     virial_kspace.end(), _device_data->_d_virial_kspace.begin());
 }
 
-void CVFF::RBEInit(Box* box,rbmd::Real alpha,rbmd::Id RBE_P)
+
+void CVFF::RBEInit(Box box,rbmd::Real alpha,rbmd::Id RBE_P)
 {
-  Real3 sigma = { rbmd::Real((SQRT(alpha / 2.0) * box->_length[0]/M_PI)),
-                  rbmd::Real((SQRT(alpha / 2.0) * box->_length[1]/M_PI)),
-                  rbmd::Real((SQRT(alpha / 2.0) * box->_length[2]/M_PI))};
+  Real3 sigma = { rbmd::Real((SQRT(alpha / 2.0) * box._length[0]/M_PI)),
+                  rbmd::Real((SQRT(alpha / 2.0) * box._length[1]/M_PI)),
+                  rbmd::Real((SQRT(alpha / 2.0) * box._length[2]/M_PI))};
   auto random = true;
   RBEPSAMPLE rbe_presolve_psample = { alpha, box, RBE_P, random};
+  thrust::host_vector<rbmd::Real> _h_P_Sample_x(RBE_P);
+  thrust::host_vector<rbmd::Real> _h_P_Sample_y(RBE_P);
+  thrust::host_vector<rbmd::Real> _h_P_Sample_z(RBE_P);
 
-  _P_Sample_x.resize(RBE_P);
-  _P_Sample_y.resize(RBE_P);
-  _P_Sample_z.resize(RBE_P);
-
+  // TODO 用随机数生成器重构！
   rbe_presolve_psample.Fetch_P_Sample(0.0, sigma,
-    thrust::raw_pointer_cast(_P_Sample_x.data()),
-    raw_pointer_cast(_P_Sample_y.data()),
-    raw_pointer_cast(_P_Sample_z.data()));
+    thrust::raw_pointer_cast(_h_P_Sample_x.data()),
+    thrust::raw_pointer_cast(_h_P_Sample_y.data()),
+    thrust::raw_pointer_cast(_h_P_Sample_z.data()));
+  _P_Sample_x = _h_P_Sample_x;
+  _P_Sample_y = _h_P_Sample_y;
+  _P_Sample_z = _h_P_Sample_z;
 
   //index key
   auto num_atoms = *(_structure_info_data->_num_atoms);
   _psample_key.resize(num_atoms * RBE_P);
-  op::GenerateIndexArrayOp<device::DEVICE_GPU> generate_index_array_op;
-  generate_index_array_op(num_atoms,RBE_P,
+  op::GenerateIndexArrayOp<device::DEVICE_GPU>()(num_atoms,RBE_P,
     thrust::raw_pointer_cast(_psample_key.data()));
 }
 
 void CVFF::ComputeChargeStructureFactorRBE(
-   Box* box,
+   Box box,
    rbmd::Id num_atoms,
    rbmd::Id Kmax,
    rbmd::Real alpha,
@@ -652,8 +659,8 @@ void CVFF::ComputeChargeStructureFactorRBE(
   auto p_number= RBE_P;
 
   //Charge Structure Factor
-  op::ComputePnumberChargeStructureFactorOp<device::DEVICE_GPU> pnumber_charge_structure_factor_op;
-  pnumber_charge_structure_factor_op(_device_data->_d_box, num_atoms, p_number,
+  op::ComputePnumberChargeStructureFactorOp<device::DEVICE_GPU>()(
+      box, num_atoms, p_number,
       thrust::raw_pointer_cast(_device_data->_d_charge.data()),
       thrust::raw_pointer_cast(_P_Sample_x.data()),
       raw_pointer_cast(_P_Sample_y.data()),
@@ -680,9 +687,8 @@ void CVFF::ComputeChargeStructureFactorRBE(
 
   //charge self energy//
   ComputeSelfEnergy(alpha,qqr2e,_ave_self_energy);
-
   //kspace energy
-  ComputeKspaceEnergy(_device_data->_d_box, num_atoms, Kmax,
+  ComputeKspaceEnergy(box, num_atoms, Kmax,
       alpha, qqr2e ,_ave_ekspace);
   _ave_ekspace = _ave_ekspace +_ave_self_energy;
 
@@ -703,12 +709,12 @@ void CVFF::ComputeRBE()
   _rhok_real_redue.resize(_RBE_P);
   _rhok_image_redue.resize(_RBE_P);
 
-  ComputeChargeStructureFactorRBE(_device_data->_d_box, num_atoms, _Kmax,
+  ComputeChargeStructureFactorRBE(_box, num_atoms, _Kmax,
       _alpha,_RBE_P,_qqr2e,_rhok_real_redue,_rhok_image_redue);
 
    //RBE Force
-  op::ComputeRBEForceOp<device::DEVICE_GPU> rbe_force_op;
-  rbe_force_op(_device_data->_d_box,num_atoms, _RBE_P,_alpha,_qqr2e,
+  op::ComputeRBEForceOp<device::DEVICE_GPU>()(
+        _box,num_atoms, _RBE_P,_alpha,_qqr2e,
         thrust::raw_pointer_cast(_rhok_real_redue.data()),
         thrust::raw_pointer_cast(_rhok_image_redue.data()),
         thrust::raw_pointer_cast(_device_data->_d_charge.data()),
@@ -793,8 +799,8 @@ void CVFF::ComputeLJCoulEnergy()
   CHECK_RUNTIME(MEMSET(_d_total_ecoul, 0, sizeof(rbmd::Real)));
 
   auto num_atoms = *(_structure_info_data->_num_atoms);
-  op::SpeciaLJCutCoulEnergyOp<device::DEVICE_GPU> lj_cut_coul_energy_op;
-  lj_cut_coul_energy_op(_device_data->_d_box,_device_data->_d_erf_table,_cut_off, num_atoms,_alpha,_qqr2e,
+  op::SpeciaLJCutCoulEnergyOp<device::DEVICE_GPU>()(
+                _box,_device_data->_d_erf_table,_cut_off, num_atoms,_alpha,_qqr2e,
                 thrust::raw_pointer_cast(_device_data->_d_atoms_type.data()),
                 thrust::raw_pointer_cast(_device_data->_d_atoms_id.data()),
                 thrust::raw_pointer_cast(_device_data->_d_sigma.data()),
@@ -862,19 +868,19 @@ void CVFF::ComputeSelfEnergy(
   thrust::device_vector<rbmd::Real> sq_charge;
   sq_charge.resize(num_atoms);
 
-  op::SqchargeOp<device::DEVICE_GPU> sq_charge_op;
-  sq_charge_op(num_atoms,
+  op::SqchargeOp<device::DEVICE_GPU>()(num_atoms,
     thrust::raw_pointer_cast(_device_data->_d_charge.data()),
     thrust::raw_pointer_cast(sq_charge.data()));
 
-  rbmd::Real sum_sq_charge = thrust::reduce(sq_charge.begin(), sq_charge.end(), 0.0f, thrust::plus<rbmd::Real>());
+  rbmd::Real sum_sq_charge = thrust::reduce(sq_charge.begin(),
+    sq_charge.end(), 0.0f, thrust::plus<rbmd::Real>());
   rbmd::Real total_self_energy = qqr2e * (- sqrt(alpha / M_PI) *sum_sq_charge);
 
   ave_self_energy =  total_self_energy / num_atoms;
 }
 
 void CVFF::ComputeKspaceEnergy(
-    Box* box,
+    Box box,
     rbmd::Id num_atoms,
     rbmd::Id Kmax,
     rbmd::Real alpha,
@@ -895,15 +901,14 @@ void CVFF::ComputeKspaceEnergy(
             {
                 if (!(i == 0 && j == 0 && k == 0))
                 {
-                    Real3 K = make_Real3(rbmd::Real(2 * M_PI * i / box->_length[0]),
-                                           rbmd::Real(2 * M_PI * j / box->_length[1]),
-                                           rbmd::Real(2 * M_PI * k / box->_length[2]));
+                    Real3 K = make_Real3(rbmd::Real(2 * M_PI * i / box._length[0]),
+                                           rbmd::Real(2 * M_PI * j / box._length[1]),
+                                           rbmd::Real(2 * M_PI * k / box._length[2]));
                     rbmd::Real Range_K = SQRT(K.x * K.x + K.y * K.y + K.z * K.z);
                     rbmd::Real Range_K2 = Range_K*Range_K;
                     rbmd::Real alpha_inv =  1 / alpha;
 
-                    op::ComputeChargeStructureFactorOp<device::DEVICE_GPU> charge_structure_factor_op;
-                    charge_structure_factor_op(num_atoms, K,
+                    op::ComputeChargeStructureFactorOp<device::DEVICE_GPU>()(num_atoms, K,
                         thrust::raw_pointer_cast(_device_data->_d_charge.data()),
                         thrust::raw_pointer_cast(_device_data->_d_px.data()),
                         thrust::raw_pointer_cast(_device_data->_d_py.data()),
@@ -922,7 +927,7 @@ void CVFF::ComputeKspaceEnergy(
         }
     }
 
-  rbmd::Real volume = box->_length[0] * box->_length[1]*box->_length[2];
+  rbmd::Real volume = box._length[0] * box._length[1]*box._length[2];
   total_energy_ewald = qqr2e * (2 * M_PI / volume) * total_energy_ewald;
   ave_ekspace = total_energy_ewald / num_atoms;
 }
@@ -944,8 +949,8 @@ void CVFF::ComputeBondForce()
 
   auto num_atoms = *(_structure_info_data->_num_atoms);
   auto num_bonds = *(_structure_info_data->_num_bonds);
-  op::ComputeBondForceOp<device::DEVICE_GPU> bond_force_op;
-  bond_force_op(_device_data->_d_box,num_bonds,thrust::raw_pointer_cast(_atom_id_to_idx.data()),
+  op::ComputeBondForceOp<device::DEVICE_GPU>()(
+    _box,num_bonds,thrust::raw_pointer_cast(_atom_id_to_idx.data()),
     thrust::raw_pointer_cast(_device_data->_d_bond_coeffs_k.data()),
     thrust::raw_pointer_cast(_device_data->_d_bond_coeffs_equilibrium.data()),
     thrust::raw_pointer_cast(_device_data->_d_bond_type.data()),
@@ -1035,8 +1040,8 @@ void CVFF::ComputeAngleForce()
     _device_data->_d_force_angle_z.end(), 0.0f);
 
   auto num_angles = *(_structure_info_data->_num_angles);
-  op::ComputeAngleForceOp<device::DEVICE_GPU> angle_force_op;
-  angle_force_op(_device_data->_d_box,num_angles,
+  op::ComputeAngleForceOp<device::DEVICE_GPU>()(
+    _box,num_angles,
     thrust::raw_pointer_cast(atom_id_to_idx.data()),
     thrust::raw_pointer_cast(_device_data->_d_angle_coeffs_k.data()),
     thrust::raw_pointer_cast(_device_data->_d_angle_coeffs_equilibrium.data()),
@@ -1130,8 +1135,8 @@ void CVFF::ComputeDihedralForce()
   CHECK_RUNTIME(MEMSET(_d_total_edihedral, 0, sizeof(rbmd::Real)));
 
   auto num_dihedrals = *(_structure_info_data->_num_dihedrals);
-  op::ComputeDihedralForceOp<device::DEVICE_GPU> dihedral_force_op;
-  dihedral_force_op(_device_data->_d_box,num_dihedrals,
+  op::ComputeDihedralForceOp<device::DEVICE_GPU>()(
+    _box,num_dihedrals,
     thrust::raw_pointer_cast(atom_id_to_idx.data()),
     thrust::raw_pointer_cast(_device_data->_d_dihedral_coeffs_k.data()),
     thrust::raw_pointer_cast(_device_data->_d_dihedral_coeffs_sign.data()),

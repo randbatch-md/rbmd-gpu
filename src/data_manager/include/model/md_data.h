@@ -46,7 +46,6 @@ class MDData : public Object {
       }
     
     _structure_info_data = std::make_shared<StructureInfoData>();
-    _h_box = std::make_shared<Box>();
     _h_erf_table = std::make_shared<ERFTable>();
   }
 
@@ -73,6 +72,6 @@ class MDData : public Object {
   std::shared_ptr<StructureData> _structure_data;
   std::shared_ptr<StructureInfoData> _structure_info_data;
   std::shared_ptr<ForceFieldData> _force_field_data;
-  std::shared_ptr<Box> _h_box;
+  Box _box;
   std::shared_ptr<ERFTable> _h_erf_table;
 };

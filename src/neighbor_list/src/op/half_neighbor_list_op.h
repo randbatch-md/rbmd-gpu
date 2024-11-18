@@ -25,7 +25,7 @@ struct EstimateHalfNeighborListOp {
                   rbmd::Id* in_atom_list_end_index, rbmd::Real cutoff_2,
                   rbmd::Id total_atom_num, rbmd::Real* px, rbmd::Real* py,
                   rbmd::Real* pz, rbmd::Id* neighbour_num,
-                  rbmd::Id* max_neighbour_num, Box* box,
+                  rbmd::Id* max_neighbour_num, Box box,
                   rbmd::Id* neighbor_cell, rbmd::Id neighbor_cell_num,bool without_pbc_or_rbl);
 };
 
@@ -37,7 +37,7 @@ struct GenerateHalfNeighborListOp {
                   rbmd::Id total_atom_num, rbmd::Real* px, rbmd::Real* py,
                   rbmd::Real* pz, rbmd::Id* max_neighbor_num,
                   rbmd::Id* neighbor_start, rbmd::Id* neighbor_end,
-                  rbmd::Id* neighbors, Box* d_box, rbmd::Id* should_realloc,
+                  rbmd::Id* neighbors, Box box, rbmd::Id* should_realloc,
                   rbmd::Id* neighbor_cell, rbmd::Id neighbor_cell_num,bool without_pbc);
 };
 
@@ -55,7 +55,7 @@ struct EstimateHalfNeighborListOp<device::DEVICE_GPU> {
                   rbmd::Id* in_atom_list_end_index, rbmd::Real cutoff_2,
                   rbmd::Id total_atom_num, rbmd::Real* px, rbmd::Real* py,
                   rbmd::Real* pz, rbmd::Id* neighbour_num,
-                  rbmd::Id* max_neighbour_num, Box* box,
+                  rbmd::Id* max_neighbour_num, Box box,
                   rbmd::Id* neighbor_cell, rbmd::Id neighbor_cell_num,bool without_pbc_or_rbl);
 };
 
@@ -67,7 +67,7 @@ struct GenerateHalfNeighborListOp<device::DEVICE_GPU> {
                   rbmd::Id total_atom_num, rbmd::Real* px, rbmd::Real* py,
                   rbmd::Real* pz, rbmd::Id* max_neighbor_num,
                   rbmd::Id* neighbor_start, rbmd::Id* neighbor_end,
-                  rbmd::Id* neighbors, Box* d_box, rbmd::Id* should_realloc,
+                  rbmd::Id* neighbors, Box box, rbmd::Id* should_realloc,
                   rbmd::Id* neighbor_cell, rbmd::Id neighbor_cell_num,bool without_pbc);
 };
 

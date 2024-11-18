@@ -24,7 +24,6 @@ int Application::Run() {
   // }
 
   return Execute();
-  return 0;
 }
 
 bool Application::Check() {

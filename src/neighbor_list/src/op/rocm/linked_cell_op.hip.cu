@@ -1,5 +1,3 @@
-#include <hip/hip_runtime.h>
-
 #include "common/device_types.h"
 #include "common/rbmd_define.h"
 #include "common/types.h"
@@ -7,7 +5,7 @@
 #include "linked_cell_op.h"
 
 namespace op {
-__global__ void InitializeCell(LinkedCellDeviceDataPtr* linked_cell, Box* box,
+__global__ void InitializeCell(LinkedCellDeviceDataPtr* linked_cell, Box box,
                                Cell* cells, rbmd::Id total_cells) {
   __shared__ Int3 s_per_dimension_cells;
   __shared__ Real3 s_cell_length;
@@ -20,7 +18,7 @@ __global__ void InitializeCell(LinkedCellDeviceDataPtr* linked_cell, Box* box,
                                linked_cell->_d_cell_length[1],
                                linked_cell->_d_cell_length[2]);
     s_box_min =
-        make_Real3(box->_coord_min[0], box->_coord_min[1], box->_coord_min[2]);
+        make_Real3(box._coord_min[0], box._coord_min[1], box._coord_min[2]);
   }
 
   __syncthreads();
@@ -46,7 +44,7 @@ __global__ void InitializeCell(LinkedCellDeviceDataPtr* linked_cell, Box* box,
 }
 
 __global__ void AssignAtomsToCell(rbmd::Real* px, rbmd::Real* py,
-                                  rbmd::Real* pz, Box* d_box,
+                                  rbmd::Real* pz, Box box,
                                   LinkedCellDeviceDataPtr* linked_cell,
                                   Cell* cells, rbmd::Id* per_atom_cell_id,
                                   rbmd::Id total_atoms_num) {
@@ -57,37 +55,37 @@ __global__ void AssignAtomsToCell(rbmd::Real* px, rbmd::Real* py,
   Int3 cell_idx;
   Real3 local_point = make_Real3(px[idx], py[idx], pz[idx]);
   // TODO 可以取消这段逻辑吗？  这里local point 并没有修改原来的
-  if (local_point.x <= d_box->_coord_min[0]) {
+  if (local_point.x <= box._coord_min[0]) {
     local_point.x += linked_cell->_d_cell_length[0] * 0.5;
-  } else if (local_point.x >= d_box->_coord_max[0]) {
+  } else if (local_point.x >= box._coord_max[0]) {
     local_point.x -= linked_cell->_d_cell_length[0] * 0.5;
   }
 
-  if (local_point.y <= d_box->_coord_min[1]) {
+  if (local_point.y <= box._coord_min[1]) {
     local_point.y += linked_cell->_d_cell_length[1] * 0.5;
-  } else if (local_point.y >= d_box->_coord_max[1]) {
+  } else if (local_point.y >= box._coord_max[1]) {
     local_point.y -= linked_cell->_d_cell_length[1] * 0.5;
   }
 
-  if (local_point.z <= d_box->_coord_min[2]) {
+  if (local_point.z <= box._coord_min[2]) {
     local_point.z += linked_cell->_d_cell_length[2] * 0.5;
-  } else if (local_point.z >= d_box->_coord_max[2]) {
+  } else if (local_point.z >= box._coord_max[2]) {
     local_point.z -= linked_cell->_d_cell_length[2] * 0.5;
   }
 
-  cell_idx.x = MIN(MAX((int)(FLOOR((double)(local_point.x - d_box->_coord_min[0]) *
+  cell_idx.x = MIN(MAX((int)(FLOOR((double)(local_point.x - box._coord_min[0]) *
                                    linked_cell->_d_cell_length_reciprocal[0])) +
                            0,
                        0),
                    linked_cell->_d_per_dimension_cells[0] - 1);
 
-  cell_idx.y = MIN(MAX((int)(FLOOR((double)(local_point.y - d_box->_coord_min[1]) *
+  cell_idx.y = MIN(MAX((int)(FLOOR((double)(local_point.y - box._coord_min[1]) *
                                    linked_cell->_d_cell_length_reciprocal[1])) +
                            0,
                        0),
                    linked_cell->_d_per_dimension_cells[1] - 1);
 
-  cell_idx.z = MIN(MAX((int)(FLOOR((double)(local_point.z - d_box->_coord_min[2]) *
+  cell_idx.z = MIN(MAX((int)(FLOOR((double)(local_point.z - box._coord_min[2]) *
                                    linked_cell->_d_cell_length_reciprocal[2])) +
                            0,
                        0),
@@ -174,7 +172,7 @@ __global__ void MapAtomidToIdx(rbmd::Id* d_atomid2idx,
 }
 
 void InitializeCellOp<device::DEVICE_GPU>::operator()(
-    LinkedCellDeviceDataPtr* linked_cell, Box* box, Cell* cells,
+    LinkedCellDeviceDataPtr* linked_cell, Box box, Cell* cells,
     rbmd::Id total_cells) {
   int threads_per_block = BLOCK_SIZE;
   int blocks_per_grid =
@@ -184,13 +182,13 @@ void InitializeCellOp<device::DEVICE_GPU>::operator()(
 }
 
 void AssignAtomsToCellOp<device::DEVICE_GPU>::operator()(
-    rbmd::Real* px, rbmd::Real* py, rbmd::Real* pz, Box* d_box,
+    rbmd::Real* px, rbmd::Real* py, rbmd::Real* pz, Box box,
     LinkedCellDeviceDataPtr* linked_cell, Cell* cells,
     rbmd::Id* per_atom_cell_id, rbmd::Id total_atoms_num) {
   unsigned int blocks_per_grid =
       (total_atoms_num + BLOCK_SIZE - 1) / BLOCK_SIZE;
   CHECK_KERNEL(AssignAtomsToCell<<<blocks_per_grid, BLOCK_SIZE, 0, 0>>>(
-      px, py, pz, d_box, linked_cell, cells, per_atom_cell_id,
+      px, py, pz, box, linked_cell, cells, per_atom_cell_id,
       total_atoms_num));
 }
 

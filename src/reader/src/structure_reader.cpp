@@ -1,6 +1,6 @@
 #include "../include/structure_reader.h"
 
-#include <hip/hip_runtime.h>
+#include "rbmd_define.h"
 
 #include <sstream>
 
@@ -8,15 +8,6 @@
 #include "model/md_data.h"
 #include "data_manager.h"
 
-#define HIP_CHECK(call)                                              \
-  {                                                                  \
-    hipError_t err = call;                                           \
-    if (err != hipSuccess) {                                         \
-      std::cerr << "HIP error: " << hipGetErrorString(err) << " at " \
-                << __FILE__ << ":" << __LINE__ << std::endl;         \
-      exit(err);                                                     \
-    }                                                                \
-  }
 StructureReder::StructureReder(const std::string& filePath, MDData& data)
     : MmapReader(filePath), _md_data(data) {}
 
@@ -48,17 +39,17 @@ int StructureReder::Execute() {
 int StructureReder::ReadHeader() {
   try {
     auto& info = _md_data._structure_info_data;
-    HIP_CHECK(MALLOCHOST(&(info->_num_atoms), sizeof(rbmd::Id)));
-    HIP_CHECK(MALLOCHOST(&(info->_num_bonds), sizeof(rbmd::Id)));
-    HIP_CHECK(MALLOCHOST(&(info->_num_angles), sizeof(rbmd::Id)));
-    HIP_CHECK(MALLOCHOST(&(info->_num_dihedrals), sizeof(rbmd::Id)));
-    HIP_CHECK(MALLOCHOST(&(info->_num_impropers), sizeof(rbmd::Id)));
-    HIP_CHECK(MALLOCHOST(&(info->_num_atoms_type), sizeof(rbmd::Id)));
-    HIP_CHECK(MALLOCHOST(&(info->_num_bounds_type), sizeof(rbmd::Id)));
-    HIP_CHECK(MALLOCHOST(&(info->_num_angles_type), sizeof(rbmd::Id)));
-    HIP_CHECK(MALLOCHOST(&(info->_num_dihedrals_type), sizeof(rbmd::Id)));
-    HIP_CHECK(MALLOCHOST(&(info->_range), sizeof(rbmd::Range)));
-    auto& box = _md_data._h_box;
+    CHECK_RUNTIME(MALLOCHOST(&(info->_num_atoms), sizeof(rbmd::Id)));
+    CHECK_RUNTIME(MALLOCHOST(&(info->_num_bonds), sizeof(rbmd::Id)));
+    CHECK_RUNTIME(MALLOCHOST(&(info->_num_angles), sizeof(rbmd::Id)));
+    CHECK_RUNTIME(MALLOCHOST(&(info->_num_dihedrals), sizeof(rbmd::Id)));
+    CHECK_RUNTIME(MALLOCHOST(&(info->_num_impropers), sizeof(rbmd::Id)));
+    CHECK_RUNTIME(MALLOCHOST(&(info->_num_atoms_type), sizeof(rbmd::Id)));
+    CHECK_RUNTIME(MALLOCHOST(&(info->_num_bounds_type), sizeof(rbmd::Id)));
+    CHECK_RUNTIME(MALLOCHOST(&(info->_num_angles_type), sizeof(rbmd::Id)));
+    CHECK_RUNTIME(MALLOCHOST(&(info->_num_dihedrals_type), sizeof(rbmd::Id)));
+    CHECK_RUNTIME(MALLOCHOST(&(info->_range), sizeof(rbmd::Range)));
+    auto& box = _md_data._box;
     rbmd::Real coord_min[3];
     rbmd::Real coord_max[3];
 
@@ -114,7 +105,7 @@ int StructureReder::ReadHeader() {
             (*info->_range)[2][0] = coord_min[2];
             (*info->_range)[2][1] = coord_max[2];
             bool pbc[3] = {1, 1, 1};
-            box->Init(box->_type, coord_min, coord_max, pbc);
+            box.Init(box._type, coord_min, coord_max, pbc);
             _line_start = &_mapped_memory[_locate];
             break;
           }
@@ -177,7 +168,7 @@ int StructureReder::ReadMass(const rbmd::Id& numAtomTypes) {
             auto force_filed =
                 std::dynamic_pointer_cast<CVFFForceFieldData>(_md_data._force_field_data);
             auto& mass = force_filed->_h_mass;
-            HIP_CHECK(MALLOCHOST(&mass, numAtomTypes * sizeof(rbmd::Real)));
+            CHECK_RUNTIME(MALLOCHOST(&mass, numAtomTypes * sizeof(rbmd::Real)));
             rbmd::Id atom_type;
             rbmd::Real value;
 
@@ -210,7 +201,7 @@ int StructureReder::ReadMass(const rbmd::Id& numAtomTypes) {
             auto force_filed =
                 std::dynamic_pointer_cast<LJForceFieldData>(_md_data._force_field_data);
             auto& mass = force_filed->_h_mass;
-            HIP_CHECK(MALLOCHOST(&mass, numAtomTypes * sizeof(rbmd::Id)));
+            CHECK_RUNTIME(MALLOCHOST(&mass, numAtomTypes * sizeof(rbmd::Id)));
             rbmd::Id atom_type;
             rbmd::Real value;
 
@@ -252,8 +243,8 @@ int StructureReder::ReadPairCoeffs(const rbmd::Id& numAtomTypes) {
                 std::dynamic_pointer_cast<CVFFForceFieldData>(_md_data._force_field_data);
             auto& eps = force_filed->_h_eps;
             auto& sigma = force_filed->_h_sigma;
-            HIP_CHECK(MALLOCHOST(&eps, numAtomTypes * sizeof(rbmd::Id)));
-            HIP_CHECK(MALLOCHOST(&sigma, numAtomTypes * sizeof(rbmd::Id)));
+            CHECK_RUNTIME(MALLOCHOST(&eps, numAtomTypes * sizeof(rbmd::Id)));
+            CHECK_RUNTIME(MALLOCHOST(&sigma, numAtomTypes * sizeof(rbmd::Id)));
             rbmd::Id atom_type;
             rbmd::Real eps_value;
             rbmd::Real sigma_value;
@@ -286,8 +277,8 @@ int StructureReder::ReadPairCoeffs(const rbmd::Id& numAtomTypes) {
                 std::dynamic_pointer_cast<LJForceFieldData>(_md_data._force_field_data);
             auto& eps = force_filed->_h_eps;
             auto& sigma = force_filed->_h_sigma;
-            HIP_CHECK(MALLOCHOST(&eps, numAtomTypes * sizeof(rbmd::Id)));
-            HIP_CHECK(MALLOCHOST(&sigma, numAtomTypes * sizeof(rbmd::Id)));
+            CHECK_RUNTIME(MALLOCHOST(&eps, numAtomTypes * sizeof(rbmd::Id)));
+            CHECK_RUNTIME(MALLOCHOST(&sigma, numAtomTypes * sizeof(rbmd::Id)));
             rbmd::Id atom_type;
             rbmd::Real eps_value;
             rbmd::Real sigma_value;
@@ -324,8 +315,8 @@ int StructureReder::ReadBondCoeffs(const rbmd::Id& numBondTypes) {
       auto force_filed = std::dynamic_pointer_cast<CVFFForceFieldData>(_md_data._force_field_data);
       auto& bond_coeffs_k = force_filed->_h_bond_coeffs_k;
       auto& bond_coeffs_equilibrium = force_filed->_h_bond_coeffs_equilibrium;
-      HIP_CHECK(MALLOCHOST(&bond_coeffs_k, numBondTypes * sizeof(rbmd::Real)));
-      HIP_CHECK(MALLOCHOST(&bond_coeffs_equilibrium, numBondTypes * sizeof(rbmd::Real)));
+      CHECK_RUNTIME(MALLOCHOST(&bond_coeffs_k, numBondTypes * sizeof(rbmd::Real)));
+      CHECK_RUNTIME(MALLOCHOST(&bond_coeffs_equilibrium, numBondTypes * sizeof(rbmd::Real)));
       rbmd::Id bound_type;
       rbmd::Real bond_coeffs_k_value;
       rbmd::Real equilibrium_value;
@@ -363,8 +354,8 @@ int StructureReder::ReadAngleCoeffs(const rbmd::Id& numAngleTypes)
       auto force_filed = std::dynamic_pointer_cast<CVFFForceFieldData>(_md_data._force_field_data);
       auto& angle_coeffs_k = force_filed->_h_angle_coeffs_k;
       auto& angle_coeffs_equilibrium = force_filed->_h_angle_coeffs_equilibrium;
-      HIP_CHECK(MALLOCHOST(&angle_coeffs_k, numAngleTypes * sizeof(rbmd::Real)));
-      HIP_CHECK(MALLOCHOST(&angle_coeffs_equilibrium, numAngleTypes * sizeof(rbmd::Real)));
+      CHECK_RUNTIME(MALLOCHOST(&angle_coeffs_k, numAngleTypes * sizeof(rbmd::Real)));
+      CHECK_RUNTIME(MALLOCHOST(&angle_coeffs_equilibrium, numAngleTypes * sizeof(rbmd::Real)));
       rbmd::Id angle_type;
       rbmd::Real angle_coeffs_k_value;
       rbmd::Real equilibrium_value;
@@ -402,9 +393,9 @@ int StructureReder::ReadDihedralsCoeffs(const rbmd::Id& numDihedralsTypes)
         auto& dihedral_coeffs_k = force_filed->_h_dihedral_coeffs_k;
         auto& dihedral_coeffs_sign = force_filed->_h_dihedral_coeffs_sign;
         auto& dihedral_coeffs_multiplicity = force_filed->_h_dihedral_coeffs_multiplicity;
-        HIP_CHECK(MALLOCHOST(&dihedral_coeffs_k, numDihedralsTypes * sizeof(rbmd::Real)));
-        HIP_CHECK(MALLOCHOST(&dihedral_coeffs_sign, numDihedralsTypes * sizeof(rbmd::Real)));
-        HIP_CHECK(MALLOCHOST(&dihedral_coeffs_multiplicity, numDihedralsTypes * sizeof(rbmd::Real)));
+        CHECK_RUNTIME(MALLOCHOST(&dihedral_coeffs_k, numDihedralsTypes * sizeof(rbmd::Real)));
+        CHECK_RUNTIME(MALLOCHOST(&dihedral_coeffs_sign, numDihedralsTypes * sizeof(rbmd::Real)));
+        CHECK_RUNTIME(MALLOCHOST(&dihedral_coeffs_multiplicity, numDihedralsTypes * sizeof(rbmd::Real)));
         rbmd::Id dihedral_type;
         rbmd::Real dihedral_coeffs_k_value;
         rbmd::Real dihedral_coeffs_sign_value;

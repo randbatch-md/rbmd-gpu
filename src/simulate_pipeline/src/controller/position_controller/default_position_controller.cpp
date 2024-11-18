@@ -25,8 +25,8 @@ void DefaultPositionController::Update() {
         thrust::copy(_device_data->_d_pz.begin(), _device_data->_d_pz.end(),
           _device_data->_d_shake_pz.begin());
 
-      op::UpdatePositionOp<device::DEVICE_GPU> update_position_op;
-      update_position_op(*(_structure_info_data->_num_atoms), _dt, _device_data->_d_box,
+      op::UpdatePositionOp<device::DEVICE_GPU> ()(
+                        *(_structure_info_data->_num_atoms), _dt, _box,
                          thrust::raw_pointer_cast(_device_data->_d_vx.data()),
                          thrust::raw_pointer_cast(_device_data->_d_vy.data()),
                          thrust::raw_pointer_cast(_device_data->_d_vz.data()),
@@ -35,8 +35,8 @@ void DefaultPositionController::Update() {
                          thrust::raw_pointer_cast(_device_data->_d_pz.data()));
     }
     else {
-    op::UpdatePositionFlagOp<device::DEVICE_GPU> update_position_op;
-    update_position_op(*(_structure_info_data->_num_atoms), _dt, _device_data->_d_box,
+    op::UpdatePositionFlagOp<device::DEVICE_GPU>()(
+                        *(_structure_info_data->_num_atoms), _dt, _box,
                        thrust::raw_pointer_cast(_device_data->_d_vx.data()),
                        thrust::raw_pointer_cast(_device_data->_d_vy.data()),
                        thrust::raw_pointer_cast(_device_data->_d_vz.data()),

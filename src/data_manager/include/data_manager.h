@@ -35,7 +35,9 @@ class DataManager {
         _device_data(std::make_shared<DeviceData>())
         //, _memory_scheduler(std::make_shared<MemoryScheduler>())
         {
-            _md_data = std::make_shared<MDData>(_config_data->Get<std::string>("atom_style", "init_configuration", "read_data"), _config_data->Get<std::string>("type", "hyper_parameters", "force_field"));
+            _md_data = std::make_shared<MDData>(_config_data->Get<std::string>
+              ("atom_style", "init_configuration", "read_data"),
+              _config_data->Get<std::string>("type", "hyper_parameters", "force_field"));
         };  // �����ʼ����_config_data ԭ����DataManager() = default;
 
   ~DataManager() = default;
@@ -83,6 +85,11 @@ class DataManager {
   void Fill2Device(const std::shared_ptr<MemoryScheduler>& memory_scheduler) {
     this->_memory_scheduler = memory_scheduler;
     this->_memory_scheduler->asyncMemoryH2D();
+  }
+
+  void unloadDeviceData()
+  {
+      _device_data->unload();
   }
 
  private:

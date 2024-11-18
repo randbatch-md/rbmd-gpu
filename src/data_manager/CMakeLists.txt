@@ -42,9 +42,18 @@ pkg_check_modules(JSONCPP REQUIRED jsoncpp IMPORTED_TARGET GLOBAL)
 pkg_check_modules(SPDLOG REQUIRED spdlog IMPORTED_TARGET GLOBAL)
 #pkg_check_modules(CXXOPTS REQUIRED cxxopts IMPORTED_TARGET GLOBAL)
 
-set(include_dir ${include_dirs} ${TOOLS_INCLUDE_PATH} ${rocthrust_INCLUDE_DIRS} ${SPDLOG_INCLUDE_DIRS} ${JSONCPP_INCLUDE_DIRS} "../common")  # ${jsoncpp_INCLUDE_DIRS}
+set(THRUST_INCLUDE_DIRS)
+set(THRUST_LINK_NAME)
+if(USE_ROCM)
+	set(THRUST_INCLUDE_DIRS ${rocthrust_INCLUDE_DIRS})
+	set(THRUST_LINK_NAME "roc::rocthrust")
+elseif(USE_CUDA)
+	set(THRUST_INCLUDE_DIRS ${CMAKE_CUDA_TOOLKIT_INCLUDE_DIRECTORIES})
+endif()
+
+set(include_dir ${include_dirs} ${TOOLS_INCLUDE_PATH} ${THRUST_INCLUDE_DIRS} ${SPDLOG_INCLUDE_DIRS} ${JSONCPP_INCLUDE_DIRS} "../common")  # ${jsoncpp_INCLUDE_DIRS}
 set(link_dir  ${TOOLS_LINK_PATH} ${rocthrust_LIBRARIES} ${SPDLOG_LIBRARY_DIRS} ${JSONCPP_LIBRARY_DIRS})  # ${jsoncpp_LIBRARIES}
-set(depends_name "roc::rocthrust" PkgConfig::JSONCPP PkgConfig::SPDLOG)
+set(depends_name ${THRUST_LINK_NAME} PkgConfig::JSONCPP PkgConfig::SPDLOG)
 
 cpp_library(
 name ${PROJECT_NAME}

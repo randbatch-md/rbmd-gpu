@@ -16,7 +16,7 @@ __global__ void GenerateRBLFullNeighborList(
     rbmd::Id* __restrict__ neighbor_start, rbmd::Id* __restrict__ neighbor_end,
     rbmd::Id* __restrict__ neighbors, rbmd::Id neighbor_sample_num,
     rbmd::Id* __restrict__ random_neighbors,
-    rbmd::Id* __restrict__ random_neighbors_num, Box* __restrict__ d_box,
+    rbmd::Id* __restrict__ random_neighbors_num, Box box,
     rbmd::Id* __restrict__ should_realloc, rbmd::Id* __restrict__ neighbor_cell,
     rbmd::Id neighbor_cell_num, rbmd::Id selection_frequency) {
   const unsigned int atom_idx = (blockIdx.x * blockDim.x + threadIdx.x);
@@ -50,7 +50,7 @@ __global__ void GenerateRBLFullNeighborList(
            ++neighbor_atom_idx) {
         if (atom_idx != neighbor_atom_idx && neighbor_atom_idx < end) {
           distance = CaculateDistance(
-              d_box, shared_px[threadIdx.x], shared_py[threadIdx.x],
+              box, shared_px[threadIdx.x], shared_py[threadIdx.x],
               shared_pz[threadIdx.x], __ldg(&px[neighbor_atom_idx]),
               __ldg(&py[neighbor_atom_idx]), __ldg(&pz[neighbor_atom_idx]));
           if (distance < trunc_distance_power_2) {
@@ -87,7 +87,7 @@ void GenerateRblFullNeighborListOp<device::DEVICE_GPU>::operator()(
     rbmd::Real* py, rbmd::Real* pz, rbmd::Id* max_neighbor_num,
     rbmd::Id* neighbor_start, rbmd::Id* neighbor_end, rbmd::Id* neighbors,
     rbmd::Id neighbor_sample_num, rbmd::Id* random_neighbors,
-    rbmd::Id* random_neighbors_num, Box* d_box, rbmd::Id* should_realloc,
+    rbmd::Id* random_neighbors_num, Box box, rbmd::Id* should_realloc,
     rbmd::Id* neighbor_cell, rbmd::Id neighbor_cell_num,
     rbmd::Id selection_frequency) {
   unsigned int blocks_per_grid = (total_atom_num + BLOCK_SIZE - 1) / BLOCK_SIZE;
@@ -96,7 +96,7 @@ void GenerateRblFullNeighborListOp<device::DEVICE_GPU>::operator()(
           per_atom_cell_id, in_atom_list_start_index, in_atom_list_end_index,
           trunc_distance_power_2, cutoff_2, total_atom_num, px, py, pz,
           max_neighbor_num, neighbor_start, neighbor_end, neighbors,
-          neighbor_sample_num, random_neighbors, random_neighbors_num, d_box,
+          neighbor_sample_num, random_neighbors, random_neighbors_num, box,
           should_realloc, neighbor_cell, neighbor_cell_num,
           selection_frequency));
 }

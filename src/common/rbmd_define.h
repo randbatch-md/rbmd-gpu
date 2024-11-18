@@ -1,9 +1,27 @@
 #pragma once
-#include <hip/hip_runtime.h>
-#include <hip/hip_runtime_api.h>
-#include <thrust/device_vector.h>
+#if defined(__CUDA)
+    #include <cuda_runtime.h>
+    #include <cuda_runtime_api.h>
+    #include <thrust/device_vector.h>
+    #include <cub/cub.cuh>
+    #include <cmath>
+    #include <thrust/gather.h>
+    #include <thrust/sort.h>
+    #include <thrust/copy.h>
+#elif defined (__ROCM)
+    #include <hip/hip_runtime.h>
+    #include <hip/hip_runtime_api.h>
+    #include <thrust/device_vector.h>
+    #include <hipcub/hipcub.hpp>
+    #include <thrust/gather.h>
+    #include <thrust/sort.h>
+    #include <thrust/copy.h>
+    #include <hipcub/backend/rocprim/device/device_radix_sort.hpp>
+    #include <hipcub/backend/rocprim/iterator/counting_input_iterator.hpp>
+#else
+     #error "This code must be compiled with either HIP or CUDA."
+#endif
 
-#include <hipcub/hipcub.hpp>
 
 #include "types.h"
 #if USE_DOUBLE
@@ -30,6 +48,11 @@
 #endif
 
 #if USE_DOUBLE
+    #if defined(__ROCM)
+        #define REAL_DATA(vec) (vec.data)
+    #elif defined(__CUDA)
+        #define REAL_DATA(vec) (const_cast<double*>(reinterpret_cast<const double*>(&vec)))
+    #endif
 typedef double3 Real3;
 typedef double2 Real2;
 #define make_Real3 make_double3
@@ -49,6 +72,11 @@ typedef double2 Real2;
 #define RINT rint
 
 #else
+    #if defined(__ROCM)
+        #define REAL_DATA(vec) (vec.data)
+    #elif defined(__CUDA)
+        #define REAL_DATA(vec) (const_cast<float*>(reinterpret_cast<const float*>(&vec)))
+    #endif
 typedef float3 Real3;
 typedef float2 Real2;
 typedef int3 Id3;
@@ -83,7 +111,7 @@ typedef int3 Int3;
 #define ALIGN_SIZE(type, n) \
   ((sizeof(type) > 4) ? NEXT_POWER_OF_TWO(n) * 8 : NEXT_POWER_OF_TWO(n) * 4)
 
-#if defined(__GNUC__)  // GCC
+#if defined(__GNUC__) || defined(__CUDA)  // GCC
 #define IS_POWER_OF_TWO(x) (((x) & ((x) - 1)) == 0)
 #define NEXT_POWER_OF_TWO(n)      \
   ((n) == 0 ? 1                   \
@@ -104,7 +132,7 @@ typedef int3 Int3;
 #error "Unsupported compiler"
 #endif
 
-#if defined(__CUDACC__)  // NVCC   //TODO   待验证
+#if defined(__CUDA)  // NVCC   //TODO   待验证
 #define ALIGN(n) __align__(n)
 #elif defined(__GNUC__)  // GCC
 #define ALIGN(n) __attribute__((aligned(n)))
@@ -114,55 +142,94 @@ typedef int3 Int3;
 #error "Please provide a definition for ALIGN macro for your host compiler!"
 #endif
 
-#define MALLOC hipMalloc
-#define MALLOCHOST hipHostMalloc
-#define MEMCPY hipMemcpy
-#define H2D hipMemcpyHostToDevice
-#define H2H hipMemcpyHostToHost
-#define D2H hipMemcpyDeviceToHost
-#define D2D hipMemcpyDeviceToDevice
-#define FREE hipFree
-#define MEMSET hipMemset
+#if defined (__CUDA)
+    #define MALLOC cudaMalloc
+    #define MALLOCHOST(ptr, size) cudaHostAlloc((void**)ptr, size,cudaHostAllocDefault)
+    #define MEMCPY cudaMemcpy
+    #define H2D cudaMemcpyHostToDevice
+    #define H2H cudaMemcpyHostToHost
+    #define D2H cudaMemcpyDeviceToHost
+    #define D2D cudaMemcpyDeviceToDevice
+    #define FREE cudaFree
+    #define MEMSET cudaMemset
+    #define REDUCE cub::DeviceReduce::Sum
+    #define ERROR_T cudaError_t
+    #define SUCCESS cudaSuccess
+    #define GETERRORSTRING cudaGetErrorString
+    #define GETERRORNAME cudaGetErrorName
+    #define LASTERROR cudaPeekAtLastError
+    #define EXCLUSIVESUM cub::DeviceScan::ExclusiveSum
+    #define WARPREDUCE cub::WarpReduce
+    #define WARPSCAN cub::WarpScan
+    #define SHUFFLEINDEX cub::ShuffleIndex
+    #define BLOCKREDUCE cub::BlockReduce
+    #define DEVICESYNC cudaDeviceSynchronize
+#elif defined (__ROCM)
+    #define MALLOC hipMalloc
+    #define MALLOCHOST hipHostMalloc
+    #define MEMCPY hipMemcpy
+    #define H2D hipMemcpyHostToDevice
+    #define H2H hipMemcpyHostToHost
+    #define D2H hipMemcpyDeviceToHost
+    #define D2D hipMemcpyDeviceToDevice
+    #define FREE hipFree
+    #define MEMSET hipMemset
+    #define REDUCE hipcub::DeviceReduce::Sum
+    #define ERROR_T hipError_t
+    #define SUCCESS hipSuccess
+    #define GETERRORSTRING hipGetErrorString
+    #define GETERRORNAME hipGetErrorName
+    #define LASTERROR hipPeekAtLastError
+    #define EXCLUSIVESUM hipcub::DeviceScan::ExclusiveSum
+    #define WARPREDUCE hipcub::WarpReduce
+    #define WARPSCAN hipcub::WarpScan
+    #define SHUFFLEINDEX hipcub::ShuffleIndex
+    #define BLOCKREDUCE hipcub::BlockReduce
+    #define DEVICESYNC hipDeviceSynchronize
+#endif
+
 
 template <typename T>
 static T *raw_ptr(thrust::device_vector<T> &vec) {
   return thrust::raw_pointer_cast(vec.data());
 }
 
-#define CHECK_RUNTIME(call) CheckHipRuntime(call, #call, __LINE__, __FILE__)
 
-static bool CheckHipRuntime(hipError_t e, const char *call, int line,
-                            const char *file) {
-  if (e != hipSuccess) {
-    printf("CUDA Runtime error %s # %s, code = %s [ %d ] in file %s:%d", call,
-           hipGetErrorString(e), hipGetErrorName(e), e, file, line);
-    return false;
-  }
-  return true;
+#define CHECK_RUNTIME(call) CheckRunTime(call, #call, __LINE__, __FILE__)
+static bool CheckRunTime(ERROR_T e, const char* call, int line,
+    const char* file)
+{
+    if (e != SUCCESS) {
+        printf("Runtime error %s # %s, code = %s [ %d ] in file %s:%d", call,
+            GETERRORSTRING(e), GETERRORNAME(e), e, file, line);
+        return false;
+    }
+    return true;
 }
 
 #define CHECK_KERNEL(...)                                               \
   __VA_ARGS__;                                                          \
   do {                                                                  \
-    hipError_t hip_status = hipPeekAtLastError();                       \
-    if (hip_status != hipSuccess) {                                     \
+    ERROR_T err = LASTERROR();                       \
+    if (err != SUCCESS) {                                     \
       printf("Launch Kernel Failed:  %s:%d '%s'\n", __FILE__, __LINE__, \
-             hipGetErrorString(hip_status));                            \
+             GETERRORSTRING(err));                            \
       exit(EXIT_FAILURE);                                               \
     }                                                                   \
   } while (0);
 
+
 template <typename T>
 // d_src_array input array  d_dst outputnum size：input array size
-static void ReductionSum(T *d_src_array, T *d_dst, rbmd::Id size) {
-  void *temp = nullptr;
-  size_t temp_bytes = 0;
-  CHECK_RUNTIME(hipcub::DeviceReduce::Sum(temp, temp_bytes, d_src_array, d_dst,
-                                          static_cast<int>(size)));
-  CHECK_RUNTIME(MALLOC(&temp, temp_bytes));
-  CHECK_RUNTIME(hipcub::DeviceReduce::Sum(temp, temp_bytes, d_src_array, d_dst,
-                                          static_cast<int>(size)));
-  CHECK_RUNTIME(FREE(temp));
+static void ReductionSum(T* d_src_array, T* d_dst, rbmd::Id size) {
+    void* temp = nullptr;
+    size_t temp_bytes = 0;
+    CHECK_RUNTIME(REDUCE(temp, temp_bytes, d_src_array, d_dst,
+        static_cast<int>(size)));
+    CHECK_RUNTIME(MALLOC(&temp, temp_bytes));
+    CHECK_RUNTIME(REDUCE(temp, temp_bytes, d_src_array, d_dst,
+        static_cast<int>(size)));
+    CHECK_RUNTIME(FREE(temp));
 }
 
 

@@ -23,7 +23,7 @@ public:
   void SumForces();
 
   void  ComputeChargeStructureFactorEwald(
-          Box* box,
+          Box box,
           rbmd::Id num_atoms,
           rbmd::Id Kmax,
           rbmd::Real alpha,
@@ -32,9 +32,9 @@ public:
           rbmd::Real* value_Im_array);
   void ComputeEwlad();//Ewald
 
-  void RBEInit(Box* box,rbmd::Real alpha,rbmd::Id RBE_P);
+  void RBEInit(Box box,rbmd::Real alpha,rbmd::Id RBE_P);
   void ComputeChargeStructureFactorRBE(
-         Box* box,
+         Box box,
          rbmd::Id num_atoms,
          rbmd::Id Kmax,
          rbmd::Real alpha,
@@ -53,7 +53,7 @@ public:
     rbmd::Real& ave_self_energy);  //self  Energy
 
   void ComputeKspaceEnergy(
-        Box* box,
+        Box box,
         rbmd::Id _num_atoms,
         rbmd::Id Kmax,
         rbmd::Real alpha,

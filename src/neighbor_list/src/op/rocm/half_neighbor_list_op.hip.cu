@@ -1,7 +1,3 @@
-#include <hip/hip_runtime.h>
-
-#include <hipcub/hipcub.hpp>
-
 #include "common/device_types.h"
 #include "common/rbmd_define.h"
 #include "common/types.h"
@@ -65,12 +61,11 @@ __global__ void EstimateHalfNeighborList(
     rbmd::Id total_atom_num, rbmd::Real* __restrict__ px,
     rbmd::Real* __restrict__ py, rbmd::Real* __restrict__ pz,
     rbmd::Id* __restrict__ neighbour_num,
-    rbmd::Id* __restrict__ max_neighbour_num, Box* __restrict__ box,
+    rbmd::Id* __restrict__ max_neighbour_num, Box box,
     rbmd::Id* __restrict__ neighbor_cell, rbmd::Id neighbor_cell_num,
     bool without_pbc_or_rbl) {
   // cutoff2是平方
-  extern __shared__ hipcub::WarpReduce<rbmd::Id>::TempStorage
-      reduce_temp_storage[];
+  extern __shared__ WARPREDUCE<rbmd::Id>::TempStorage reduce_temp_storage[];
   rbmd::Id atom_neighbor_num = MIN_NBNUM;
   __shared__ rbmd::Real shared_px[BLOCK_SIZE];
   __shared__ rbmd::Real shared_py[BLOCK_SIZE];
@@ -116,7 +111,7 @@ __global__ void EstimateHalfNeighborList(
         }
       }
     }
-    atom_neighbor_num = hipcub::WarpReduce<rbmd::Id>(
+    atom_neighbor_num = WARPREDUCE<rbmd::Id>(
                             reduce_temp_storage[threadIdx.x / warpSize])
                             .Sum(atom_neighbor_num);
     if (lane_id == 0) {
@@ -138,7 +133,7 @@ __global__ void EstimateHalfNeighborList(
 //     rbmd::Id* in_atom_list_end_index, rbmd::Real cutoff_2,
 //     rbmd::Id total_atom_num, rbmd::Real* px, rbmd::Real* py, rbmd::Real* pz,
 //     rbmd::Id* max_neighbor_num, rbmd::Id* neighbor_start,
-//     rbmd::Id* neighbor_end, rbmd::Id* neighbors, Box* d_box,
+//     rbmd::Id* neighbor_end, rbmd::Id* neighbors, Box box,
 //     rbmd::Id* should_realloc, rbmd::Id* neighbor_cell, rbmd::Id
 //     neighbor_cell_num, bool without_pbc) {
 //   const unsigned int atom_idx =
@@ -173,7 +168,7 @@ __global__ void EstimateHalfNeighborList(
 //         }
 //         if (valid_neighbor) {
 //           rbmd::Real distance =
-//               CaculateDistance(d_box, px[atom_idx], py[atom_idx],
+//               CaculateDistance(box, px[atom_idx], py[atom_idx],
 //               pz[atom_idx],
 //                                px[neighbor_atom_idx], py[neighbor_atom_idx],
 //                                pz[neighbor_atom_idx]);
@@ -218,7 +213,7 @@ __global__ void GenerateHalfNeighborListNoWarp(
     rbmd::Real* __restrict__ py, rbmd::Real* __restrict__ pz,
     rbmd::Id* __restrict__ max_neighbor_num,
     rbmd::Id* __restrict__ neighbor_start, rbmd::Id* __restrict__ neighbor_end,
-    rbmd::Id* __restrict__ neighbors, Box* __restrict__ d_box,
+    rbmd::Id* __restrict__ neighbors, Box  box,
     rbmd::Id* __restrict__ should_realloc, rbmd::Id* __restrict__ neighbor_cell,
     rbmd::Id neighbor_cell_num, bool without_pbc) {
   // cutoff2是平方
@@ -257,7 +252,7 @@ __global__ void GenerateHalfNeighborListNoWarp(
         }
         if (valid_neighbor) {
           distance = CaculateDistance(
-              d_box, shared_px[threadIdx.x], shared_py[threadIdx.x],
+              box, shared_px[threadIdx.x], shared_py[threadIdx.x],
               shared_pz[threadIdx.x], __ldg(&px[neighbor_atom_idx]),
               __ldg(&py[neighbor_atom_idx]), __ldg(&pz[neighbor_atom_idx]));
           if (distance < cutoff_2) {
@@ -289,7 +284,7 @@ void EstimateHalfNeighborListOp<device::DEVICE_GPU>::operator()(
     rbmd::Id* per_atom_cell_id, rbmd::Id* in_atom_list_start_index,
     rbmd::Id* in_atom_list_end_index, rbmd::Real cutoff_2,
     rbmd::Id total_atom_num, rbmd::Real* px, rbmd::Real* py, rbmd::Real* pz,
-    rbmd::Id* neighbour_num, rbmd::Id* max_neighbour_num, Box* box,
+    rbmd::Id* neighbour_num, rbmd::Id* max_neighbour_num, Box box,
     rbmd::Id* neighbor_cell, rbmd::Id neighbor_cell_num,
     bool without_pbc_or_rbl) {
   unsigned int threads_per_block = BLOCK_SIZE;
@@ -298,7 +293,7 @@ void EstimateHalfNeighborListOp<device::DEVICE_GPU>::operator()(
       (total_atom_num + warps_per_block - 1) / warps_per_block;
   CHECK_KERNEL(
       EstimateHalfNeighborList<<<blocks_per_grid, BLOCK_SIZE,
-                                 sizeof(hipcub::WarpReduce<int>::TempStorage) *
+                                 sizeof(WARPREDUCE<int>::TempStorage) *
                                      (BLOCK_SIZE / WARP_SIZE),
                                  0>>>(
           per_atom_cell_id, in_atom_list_start_index, in_atom_list_end_index,
@@ -312,7 +307,7 @@ void GenerateHalfNeighborListOp<device::DEVICE_GPU>::operator()(
     rbmd::Id* in_atom_list_end_index, rbmd::Real cutoff_2,
     rbmd::Id total_atom_num, rbmd::Real* px, rbmd::Real* py, rbmd::Real* pz,
     rbmd::Id* max_neighbor_num, rbmd::Id* neighbor_start,
-    rbmd::Id* neighbor_end, rbmd::Id* neighbors, Box* d_box,
+    rbmd::Id* neighbor_end, rbmd::Id* neighbors, Box box,
     rbmd::Id* should_realloc, rbmd::Id* neighbor_cell,
     rbmd::Id neighbor_cell_num, bool without_pbc) {
   // unsigned int threads_per_block = BLOCK_SIZE;
@@ -327,7 +322,7 @@ void GenerateHalfNeighborListOp<device::DEVICE_GPU>::operator()(
                                  0>>>(
           per_atom_cell_id, in_atom_list_start_index, in_atom_list_end_index,
           cutoff_2, total_atom_num, px, py, pz, max_neighbor_num,
-          neighbor_start, neighbor_end, neighbors, d_box, should_realloc,
+          neighbor_start, neighbor_end, neighbors, box, should_realloc,
           neighbor_cell, neighbor_cell_num, without_pbc));
 }
 

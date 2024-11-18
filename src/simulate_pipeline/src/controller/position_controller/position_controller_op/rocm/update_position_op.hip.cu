@@ -5,7 +5,7 @@ namespace op {
 #define THREADS_PER_BLOCK 256
 
 __global__ void UpdatePositionFlag(
-    const rbmd::Id num_atoms, const rbmd::Real dt, Box* box,
+    const rbmd::Id num_atoms, const rbmd::Real dt, Box  box  ,
     const rbmd::Real* vx, const rbmd::Real* vy, const rbmd::Real* vz,
     rbmd::Real* px, rbmd::Real* py, rbmd::Real* pz, rbmd::Id* flag_px,
     rbmd::Id* flag_py, rbmd::Id* flag_pz) {
@@ -29,7 +29,7 @@ __global__ void UpdatePositionFlag(
   }
 }
 
-__global__ void UpdatePosition(const rbmd::Id num_atoms, const rbmd::Real dt, Box* box,
+__global__ void UpdatePosition(const rbmd::Id num_atoms, const rbmd::Real dt, Box  box  ,
                                const rbmd::Real* vx, const rbmd::Real* vy,
                                const rbmd::Real* vz, rbmd::Real* px,
                                rbmd::Real* py, rbmd::Real* pz) {
@@ -53,7 +53,7 @@ __global__ void UpdatePosition(const rbmd::Id num_atoms, const rbmd::Real dt, Bo
 }
 
 void UpdatePositionFlagOp<device::DEVICE_GPU>::operator()(
-    const rbmd::Id num_atoms, const rbmd::Real dt, Box* box,
+    const rbmd::Id num_atoms, const rbmd::Real dt, Box  box  ,
     const rbmd::Real* vx, const rbmd::Real* vy, const rbmd::Real* vz,
     rbmd::Real* px, rbmd::Real* py, rbmd::Real* pz, rbmd::Id* flag_px,
     rbmd::Id* flag_py, rbmd::Id* flag_pz) {
@@ -63,7 +63,7 @@ void UpdatePositionFlagOp<device::DEVICE_GPU>::operator()(
 }
 
 void UpdatePositionOp<device::DEVICE_GPU>::operator()(
-    const rbmd::Id num_atoms, const rbmd::Real dt, Box* box, const rbmd::Real* vx,
+    const rbmd::Id num_atoms, const rbmd::Real dt, Box  box  , const rbmd::Real* vx,
     const rbmd::Real* vy, const rbmd::Real* vz, rbmd::Real* px, rbmd::Real* py,
     rbmd::Real* pz) {
   unsigned int blocks_per_grid = (num_atoms + BLOCK_SIZE - 1) / BLOCK_SIZE;

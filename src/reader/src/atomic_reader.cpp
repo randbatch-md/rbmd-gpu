@@ -1,6 +1,6 @@
 #include "../include/atomic_reader.h"
 
-#include <hip/hip_runtime.h>
+#include "rbmd_define.h"
 
 #include <sstream>
 #include <string>
@@ -9,15 +9,6 @@
 #include "data_manager.h"
 #include "model/md_data.h"
 
-#define HIP_CHECK(call)                                              \
-  {                                                                  \
-    hipError_t err = call;                                           \
-    if (err != hipSuccess) {                                         \
-      std::cerr << "HIP error: " << hipGetErrorString(err) << " at " \
-                << __FILE__ << ":" << __LINE__ << std::endl;         \
-      exit(err);                                                     \
-    }                                                                \
-  }
 AtomicReader::AtomicReader(const std::string& filePath, MDData& data)
     : StructureReder(filePath, data) {}
 
@@ -66,67 +57,67 @@ void AtomicReader::AllocateDataSpace() {
   if ("atomic" == atom_style) {
     auto& data = _md_data._structure_data;
 
-    HIP_CHECK(MALLOCHOST(&(data->_h_atoms_id),*(info->_num_atoms) * sizeof(rbmd::Id)));
-    HIP_CHECK(MALLOCHOST(&(data->_h_atoms_type),
+    CHECK_RUNTIME(MALLOCHOST(&(data->_h_atoms_id),*(info->_num_atoms) * sizeof(rbmd::Id)));
+    CHECK_RUNTIME(MALLOCHOST(&(data->_h_atoms_type),
                          *(info->_num_atoms) * sizeof(rbmd::Id)));
-    HIP_CHECK(
+    CHECK_RUNTIME(
         MALLOCHOST(&(data->_h_px), *(info->_num_atoms) * sizeof(rbmd::Id)));
-    HIP_CHECK(
+    CHECK_RUNTIME(
         MALLOCHOST(&(data->_h_py), *(info->_num_atoms) * sizeof(rbmd::Id)));
-    HIP_CHECK(
+    CHECK_RUNTIME(
         MALLOCHOST(&(data->_h_pz), *(info->_num_atoms) * sizeof(rbmd::Id)));
-    HIP_CHECK(
+    CHECK_RUNTIME(
         MALLOCHOST(&(data->_h_vx), *(info->_num_atoms) * sizeof(rbmd::Id)));
-    HIP_CHECK(
+    CHECK_RUNTIME(
         MALLOCHOST(&(data->_h_vy), *(info->_num_atoms) * sizeof(rbmd::Id)));
-    HIP_CHECK(
+    CHECK_RUNTIME(
         MALLOCHOST(&(data->_h_vz), *(info->_num_atoms) * sizeof(rbmd::Id)));
 
   } else if ("charge" == atom_style) {
     auto& charge_structure_data = _md_data._structure_data;
     ChargeStructureData* data =
         dynamic_cast<ChargeStructureData*>(charge_structure_data.get());
-    HIP_CHECK(MALLOCHOST(&(data->_h_atoms_id),
+    CHECK_RUNTIME(MALLOCHOST(&(data->_h_atoms_id),
                          *(info->_num_atoms) * sizeof(rbmd::Id)));
-    HIP_CHECK(MALLOCHOST(&(data->_h_atoms_type),
+    CHECK_RUNTIME(MALLOCHOST(&(data->_h_atoms_type),
                          *(info->_num_atoms) * sizeof(rbmd::Id)));
-    HIP_CHECK(
+    CHECK_RUNTIME(
         MALLOCHOST(&(data->_h_px), *(info->_num_atoms) * sizeof(rbmd::Id)));
-    HIP_CHECK(
+    CHECK_RUNTIME(
         MALLOCHOST(&(data->_h_py), *(info->_num_atoms) * sizeof(rbmd::Id)));
-    HIP_CHECK(
+    CHECK_RUNTIME(
         MALLOCHOST(&(data->_h_pz), *(info->_num_atoms) * sizeof(rbmd::Id)));
-    HIP_CHECK(
+    CHECK_RUNTIME(
         MALLOCHOST(&(data->_h_vx), *(info->_num_atoms) * sizeof(rbmd::Id)));
-    HIP_CHECK(
+    CHECK_RUNTIME(
         MALLOCHOST(&(data->_h_vy), *(info->_num_atoms) * sizeof(rbmd::Id)));
-    HIP_CHECK(
+    CHECK_RUNTIME(
         MALLOCHOST(&(data->_h_vz), *(info->_num_atoms) * sizeof(rbmd::Id)));
-    HIP_CHECK(
+    CHECK_RUNTIME(
         MALLOCHOST(&(data->_h_charge), *(info->_num_atoms) * sizeof(rbmd::Id)));
   } else if ("full" == atom_style) {
       auto& full_structure_data = _md_data._structure_data;
       FullStructureData* data =
           dynamic_cast<FullStructureData*>(full_structure_data.get());
-      HIP_CHECK(MALLOCHOST(&(data->_h_atoms_id),
+      CHECK_RUNTIME(MALLOCHOST(&(data->_h_atoms_id),
           *(info->_num_atoms) * sizeof(rbmd::Id)));
-      HIP_CHECK(MALLOCHOST(&(data->_h_atoms_type),
+      CHECK_RUNTIME(MALLOCHOST(&(data->_h_atoms_type),
           *(info->_num_atoms) * sizeof(rbmd::Id)));
-      HIP_CHECK(
+      CHECK_RUNTIME(
           MALLOCHOST(&(data->_h_px), *(info->_num_atoms) * sizeof(rbmd::Id)));
-      HIP_CHECK(
+      CHECK_RUNTIME(
           MALLOCHOST(&(data->_h_py), *(info->_num_atoms) * sizeof(rbmd::Id)));
-      HIP_CHECK(
+      CHECK_RUNTIME(
           MALLOCHOST(&(data->_h_pz), *(info->_num_atoms) * sizeof(rbmd::Id)));
-      HIP_CHECK(
+      CHECK_RUNTIME(
           MALLOCHOST(&(data->_h_vx), *(info->_num_atoms) * sizeof(rbmd::Id)));
-      HIP_CHECK(
+      CHECK_RUNTIME(
           MALLOCHOST(&(data->_h_vy), *(info->_num_atoms) * sizeof(rbmd::Id)));
-      HIP_CHECK(
+      CHECK_RUNTIME(
           MALLOCHOST(&(data->_h_vz), *(info->_num_atoms) * sizeof(rbmd::Id)));
-      HIP_CHECK(
+      CHECK_RUNTIME(
           MALLOCHOST(&(data->_h_charge), *(info->_num_atoms) * sizeof(rbmd::Id)));
-      HIP_CHECK(
+      CHECK_RUNTIME(
           MALLOCHOST(&(data->_h_molecules_id), *(info->_num_atoms) * sizeof(rbmd::Id)));
 
   }
@@ -296,11 +287,11 @@ void AtomicReader::SetMolecularGroup()
     FullStructureData* data =
         dynamic_cast<FullStructureData*>(full_structure_data.get());
 
-    HIP_CHECK(
+    CHECK_RUNTIME(
         MALLOCHOST(&(data->_h_atoms_vec_gro), atoms_vec_gro.size() * sizeof(rbmd::Id)));
-    HIP_CHECK(
+    CHECK_RUNTIME(
         MALLOCHOST(&(data->_h_count_vector), countVector.size() * sizeof(rbmd::Id)));
-    HIP_CHECK(
+    CHECK_RUNTIME(
      MALLOCHOST(&(data->_h_atoms_offset), (countVector.size()+1)* sizeof(rbmd::Id)));
 
     memcpy(data->_h_atoms_vec_gro, atoms_vec_gro.data(), atoms_vec_gro.size() * sizeof(rbmd::Id));
@@ -358,9 +349,9 @@ int AtomicReader::ReadBond(const rbmd::Id& num_bonds) {
         auto& bond_type = data->_h_bond_type;
         auto& bond_id0 = data->_h_bond_id0;
         auto& bond_id1 = data->_h_bond_id1;
-        HIP_CHECK(MALLOCHOST(&bond_type, num_bonds * sizeof(rbmd::Id)))
-        HIP_CHECK(MALLOCHOST(&bond_id0, num_bonds * sizeof(rbmd::Id)))
-        HIP_CHECK(MALLOCHOST(&bond_id1, num_bonds * sizeof(rbmd::Id)));
+        CHECK_RUNTIME(MALLOCHOST(&bond_type, num_bonds * sizeof(rbmd::Id)));
+        CHECK_RUNTIME(MALLOCHOST(&bond_id0, num_bonds * sizeof(rbmd::Id)));
+        CHECK_RUNTIME(MALLOCHOST(&bond_id1, num_bonds * sizeof(rbmd::Id)));
         rbmd::Id bound_id_value;
         rbmd::Id bound_type_value;
         rbmd::Real bond_id0_value;
@@ -411,11 +402,11 @@ int AtomicReader::ReadAngle(const rbmd::Id& num_angles)
         auto& angle_id1 = data->_h_angle_id1;
         auto& angle_id2 = data->_h_angle_id2;
         auto& angle_id_vec = data->_h_angle_id_vec;
-        HIP_CHECK(MALLOCHOST(&angle_type, num_angles * sizeof(rbmd::Id)))
-        HIP_CHECK(MALLOCHOST(&angle_id0, num_angles * sizeof(rbmd::Id)));
-        HIP_CHECK(MALLOCHOST(&angle_id1, num_angles * sizeof(rbmd::Id)))
-        HIP_CHECK(MALLOCHOST(&angle_id2, num_angles * sizeof(rbmd::Id)));
-        HIP_CHECK(MALLOCHOST(&angle_id_vec, num_angles * sizeof(Id3))); //TODO:qw:Do we need to "3*" ?
+        CHECK_RUNTIME(MALLOCHOST(&angle_type, num_angles * sizeof(rbmd::Id)));
+        CHECK_RUNTIME(MALLOCHOST(&angle_id0, num_angles * sizeof(rbmd::Id)));
+        CHECK_RUNTIME(MALLOCHOST(&angle_id1, num_angles * sizeof(rbmd::Id)));
+        CHECK_RUNTIME(MALLOCHOST(&angle_id2, num_angles * sizeof(rbmd::Id)));
+        CHECK_RUNTIME(MALLOCHOST(&angle_id_vec, num_angles * sizeof(Id3))); //TODO:qw:Do we need to "3*" ?
         rbmd::Id angle_id_value;
         rbmd::Id angle_type_value;
         rbmd::Id angle_id0_value;
@@ -466,11 +457,11 @@ int AtomicReader::ReadDihedrals(const rbmd::Id& num_dihedrals)
         auto& dihedral_id1 = data->_h_dihedral_id1;
         auto& dihedral_id2 = data->_h_dihedral_id2;
         auto& dihedral_id3 = data->_h_dihedral_id3;
-        HIP_CHECK(MALLOCHOST(&dihedral_type, num_dihedrals * sizeof(rbmd::Id)));
-        HIP_CHECK(MALLOCHOST(&dihedral_id0, num_dihedrals * sizeof(rbmd::Id)));
-        HIP_CHECK(MALLOCHOST(&dihedral_id1, num_dihedrals * sizeof(rbmd::Id)));
-        HIP_CHECK(MALLOCHOST(&dihedral_id2, num_dihedrals * sizeof(rbmd::Id)));
-        HIP_CHECK(MALLOCHOST(&dihedral_id3, num_dihedrals * sizeof(rbmd::Id)));
+        CHECK_RUNTIME(MALLOCHOST(&dihedral_type, num_dihedrals * sizeof(rbmd::Id)));
+        CHECK_RUNTIME(MALLOCHOST(&dihedral_id0, num_dihedrals * sizeof(rbmd::Id)));
+        CHECK_RUNTIME(MALLOCHOST(&dihedral_id1, num_dihedrals * sizeof(rbmd::Id)));
+        CHECK_RUNTIME(MALLOCHOST(&dihedral_id2, num_dihedrals * sizeof(rbmd::Id)));
+        CHECK_RUNTIME(MALLOCHOST(&dihedral_id3, num_dihedrals * sizeof(rbmd::Id)));
         rbmd::Id dihedral_id_value;
         rbmd::Id dihedral_type_value;
         rbmd::Id dihedral_id0_value;
@@ -585,10 +576,10 @@ void AtomicReader::SetSpecialBonds()
         special_offsets.push_back(offset);
     }
 
-    HIP_CHECK(MALLOCHOST(&weights, special_weights.size() * sizeof(rbmd::Real)));
-    HIP_CHECK(MALLOCHOST(&ids, special_ids.size() * sizeof(rbmd::Id)));
-    HIP_CHECK(MALLOCHOST(&offsets, (special_offsets.size()+1) * sizeof(rbmd::Id)));
-    HIP_CHECK(MALLOCHOST(&special_offset_count, special_offsets.size() * sizeof(rbmd::Id)));
+    CHECK_RUNTIME(MALLOCHOST(&weights, special_weights.size() * sizeof(rbmd::Real)));
+    CHECK_RUNTIME(MALLOCHOST(&ids, special_ids.size() * sizeof(rbmd::Id)));
+    CHECK_RUNTIME(MALLOCHOST(&offsets, (special_offsets.size()+1) * sizeof(rbmd::Id)));
+    CHECK_RUNTIME(MALLOCHOST(&special_offset_count, special_offsets.size() * sizeof(rbmd::Id)));
 
     memcpy(weights, special_weights.data(), special_weights.size() * sizeof(rbmd::Real));
     memcpy(ids, special_ids.data(), special_ids.size() * sizeof(rbmd::Id));

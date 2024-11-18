@@ -47,7 +47,7 @@ void RblFullNeighborListBuilder::GetRblParams() {
 #pragma region rbl prarms
   _system_rho =
       _linked_cell->_total_atoms_num /
-      CalculateVolume(DataManager::getInstance().getMDData()->_h_box.get());
+      CalculateVolume(_box);
 
   rbmd::Real coeff_rcs = 1.0 + (0.05 / _system_rho - 0.05);
   rbmd::Id Id_coeff_rcs = std::round(static_cast<double>(coeff_rcs));
@@ -94,7 +94,7 @@ rbmd::Id RblFullNeighborListBuilder::GenerateNeighborsList() {
       thrust::raw_pointer_cast(this->_neighbor_list->_d_random_neighbor.data()),
       thrust::raw_pointer_cast(
           this->_neighbor_list->_d_random_neighbor_num.data()),
-      _d_box, _d_should_realloc,
+      this->_box, _d_should_realloc,
       thrust::raw_pointer_cast(_linked_cell->_neighbor_cell.data()),
       _neighbor_cell_num, _selection_frequency);
   CHECK_RUNTIME(

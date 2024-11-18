@@ -6,13 +6,13 @@
 namespace op {
 template <typename DEVICE>
 struct InitializeCellOp {
-  void operator()(LinkedCellDeviceDataPtr* linked_cell, Box* box, Cell* cells,
+  void operator()(LinkedCellDeviceDataPtr* linked_cell, Box box, Cell* cells,
                   rbmd::Id total_cells);
 };
 
 template <typename DEVICE>
 struct AssignAtomsToCellOp {
-  void operator()(rbmd::Real* px, rbmd::Real* py, rbmd::Real* pz, Box* d_box,
+  void operator()(rbmd::Real* px, rbmd::Real* py, rbmd::Real* pz, Box box,
                   LinkedCellDeviceDataPtr* linked_cell, Cell* cells,
                   rbmd::Id* per_atom_cell_id, rbmd::Id total_atoms_num);
 };
@@ -33,13 +33,13 @@ struct ComputeCellRangesIndicesOp {
 
 template <>
 struct InitializeCellOp<device::DEVICE_GPU> {
-  void operator()(LinkedCellDeviceDataPtr* linked_cell, Box* box, Cell* cells,
+  void operator()(LinkedCellDeviceDataPtr* linked_cell, Box box, Cell* cells,
                   rbmd::Id total_cells);
 };
 
 template <>
 struct AssignAtomsToCellOp<device::DEVICE_GPU> {
-  void operator()(rbmd::Real* px, rbmd::Real* py, rbmd::Real* pz, Box* d_box,
+  void operator()(rbmd::Real* px, rbmd::Real* py, rbmd::Real* pz, Box box,
                   LinkedCellDeviceDataPtr* linked_cell, Cell* cells,
                   rbmd::Id* per_atom_cell_id, rbmd::Id total_atoms_num);
 };

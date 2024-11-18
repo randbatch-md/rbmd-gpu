@@ -43,4 +43,5 @@ class LJForce : public Force {
   rbmd::Real _ave_pe_rbl = 0;
 
   rbmd::Real virial[6];
+  Box _box;
 };

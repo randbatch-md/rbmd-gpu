@@ -10,7 +10,7 @@ namespace op
         template <typename DEVICE>
         struct LJForceOp
         {
-          void operator()(Box* box,
+          void operator()( Box box,
                           const rbmd::Real cut_off,
                           const rbmd::Id num_atoms,
                           const rbmd::Id* atoms_type,
@@ -32,7 +32,7 @@ namespace op
 	template <typename DEVICE>
 	struct LJRBLForceOp
 	{
-		void operator()(Box* box,
+		void operator()( Box box,
 			const rbmd::Real rs,
 			const rbmd::Real rc,
 			const rbmd::Id num_atoms,
@@ -70,7 +70,7 @@ namespace op
 	template <typename DEVICE>
 	struct LJEnergyOp
 	{
-		void operator()(Box* box,
+		void operator()( Box box,
 			const rbmd::Real cut_off,
 			const rbmd::Id num_atoms,
 			const rbmd::Id* atoms_type,
@@ -89,7 +89,7 @@ namespace op
         template <typename DEVICE>
         struct LJCutCoulForceOp
         {
-          void operator()(Box* box,ERFTable* erf_table,
+          void operator()( Box box,ERFTable* erf_table,
                 const rbmd::Real cut_off,
                 const rbmd::Id num_atoms,
                 const rbmd::Real alpha,
@@ -116,7 +116,7 @@ namespace op
        template <typename DEVICE>
        struct LJCutCoulRBLForceOp
        {
-         void operator()(Box* box,
+         void operator()( Box box,
                   const rbmd::Real rs,
                   const rbmd::Real rc,
                   const rbmd::Id num_atoms,
@@ -144,7 +144,7 @@ namespace op
         template <typename DEVICE>
         struct LJCutCoulEnergyOp
         {
-          void operator()(Box* box,ERFTable* erf_table,
+          void operator()( Box box,ERFTable* erf_table,
                const rbmd::Real cut_off,
                const rbmd::Id num_atoms,
                const rbmd::Real alpha,
@@ -182,7 +182,7 @@ namespace op
 	struct ComputeEwaldForceOp
 	{
 		void operator()(
-			Box* box,
+			 Box box,
 			const rbmd::Id num_atoms,
 			const rbmd::Id  Kmax,
 			const rbmd::Real alpha,
@@ -223,7 +223,7 @@ namespace op
        struct ComputePnumberChargeStructureFactorOp
        {
          void operator()(
-            Box* box,
+             Box box,
             const rbmd::Id num_atoms,
             const rbmd::Id p_number,
             const rbmd::Real* charge,
@@ -241,7 +241,7 @@ namespace op
       struct ComputeRBEForceOp
       {
         void operator()(
-           Box* box,
+            Box box,
            const rbmd::Id num_atoms,
            const rbmd::Id  p_number,
            const rbmd::Real alpha,
@@ -278,7 +278,7 @@ namespace op
         template <>
         struct LJForceOp<device::DEVICE_GPU>
         {
-          void operator()(Box* box,
+          void operator()(const Box  box,
                           const rbmd::Real cut_off,
                           const rbmd::Id num_atoms,
                           const rbmd::Id* atoms_type,
@@ -300,7 +300,7 @@ namespace op
 	template <>
 	struct LJRBLForceOp<device::DEVICE_GPU>
 	{
-		void operator()(Box* box,
+		void operator()(const  Box box,
 			const rbmd::Real rs,
 			const rbmd::Real rc,
 			const rbmd::Id num_atoms,
@@ -338,7 +338,7 @@ namespace op
 	template <>
 	struct LJEnergyOp<device::DEVICE_GPU>
 	{
-		void operator()(Box* box,
+		void operator()( Box box,
 			const rbmd::Real cut_off,
 			const rbmd::Id num_atoms,
 			const rbmd::Id* atoms_type,
@@ -357,7 +357,7 @@ namespace op
         template <>
         struct LJCutCoulForceOp<device::DEVICE_GPU>
         {
-          void operator()(Box* box,ERFTable* erf_table,
+          void operator()( Box box,ERFTable* erf_table,
                 const rbmd::Real cut_off,
                 const rbmd::Id num_atoms,
                 const rbmd::Real alpha,
@@ -383,7 +383,7 @@ namespace op
      template <>
      struct LJCutCoulRBLForceOp<device::DEVICE_GPU>
      {
-       void operator()(Box* box,ERFTable* erf_table,
+       void operator()( Box box,ERFTable* erf_table,
                 const rbmd::Real rs,
                 const rbmd::Real rc,
                 const rbmd::Id num_atoms,
@@ -412,7 +412,7 @@ namespace op
        template <>
        struct LJCutCoulEnergyOp<device::DEVICE_GPU>
        {
-         void operator()(Box* box,ERFTable* erf_table,
+         void operator()( Box box,ERFTable* erf_table,
               const rbmd::Real cut_off,
               const rbmd::Id num_atoms,
               const rbmd::Real alpha,
@@ -452,7 +452,7 @@ namespace op
 	struct ComputeEwaldForceOp<device::DEVICE_GPU>
 	{
 		void operator()(
-			Box* box,
+			 Box box,
 			const rbmd::Id num_atoms,
 			const rbmd::Id  Kmax,
 			const rbmd::Real alpha,
@@ -494,7 +494,7 @@ namespace op
        struct ComputePnumberChargeStructureFactorOp<device::DEVICE_GPU>
        {
          void operator()(
-            Box* box,
+             Box box,
             const rbmd::Id num_atoms,
             const rbmd::Id p_number,
             const rbmd::Real* charge,
@@ -512,7 +512,7 @@ namespace op
       struct ComputeRBEForceOp<device::DEVICE_GPU>
       {
         void operator()(
-           Box* box,
+            Box box,
            const rbmd::Id num_atoms,
            const rbmd::Id  p_number,
            const rbmd::Real alpha,

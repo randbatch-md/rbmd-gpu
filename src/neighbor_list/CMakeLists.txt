@@ -19,13 +19,26 @@ foreach(header_file ${all_include_dirs})
 endforeach()
 list(REMOVE_DUPLICATES include_dirs)
 
-find_package(hipcub REQUIRED)
+
+set(INCLUDE_DIRS)
+set(LINK_NAME)
+set(LINK_DIRS)
+if(USE_ROCM)
+    find_package(hipcub REQUIRED)
+	set(INCLUDE_DIRS ${hipcub_INCLUDE_DIRS})
+	set(LINK_NAME "hip::hipcub")
+    set(LINK_DIRS ${hipcub_LIBRARIES})
+elseif(USE_CUDA)
+	set(INCLUDE_DIRS ${CMAKE_CUDA_TOOLKIT_INCLUDE_DIRECTORIES})
+endif()
+
+
 get_property(TOOLS_INCLUDE_PATH GLOBAL PROPERTY TOOLS_INCLUDE_PATH)
 get_property(TOOLS_LINK_PATH GLOBAL PROPERTY TOOLS_LINK_PATH)
-set(inclue_files ${TOOLS_INCLUDE_PATH}  "../data_manager/include"  ${include_dirs} ${spdlog_include} ${hipcub_INCLUDE_DIRS})
-set(link_dirs ${TOOLS_LINK_PATH}  ${spdlog_link} ${hipcub_LIBRARIES} )
+set(inclue_files ${TOOLS_INCLUDE_PATH}  "../data_manager/include"  ${include_dirs} ${spdlog_include} ${INCLUDE_DIRS})
+set(link_dirs ${TOOLS_LINK_PATH}  ${spdlog_link} ${LINK_DIRS})
 #set(link_name "hip::device" "spdlog" "hip::hipcub")
-set(depend_names  "hip::hipcub"  "data_manager")
+set(depend_names ${LINK_NAME} "data_manager")
 
 
 

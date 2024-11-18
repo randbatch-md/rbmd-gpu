@@ -14,7 +14,7 @@ struct GenerateRblHalfNeighborListOp {
                   rbmd::Id* neighbor_start, rbmd::Id* neighbor_end,
                   rbmd::Id* neighbors, rbmd::Id neighbor_sample_num,
                   rbmd::Id* random_neighbors, rbmd::Id* random_neighbors_num,
-                  Box* d_box, rbmd::Id* should_realloc, rbmd::Id* neighbor_cell,
+                  Box box, rbmd::Id* should_realloc, rbmd::Id* neighbor_cell,
                   rbmd::Id neighbor_cell_num, rbmd::Id selection_frequency);
 };
 
@@ -29,7 +29,7 @@ struct GenerateRblHalfNeighborListOp<device::DEVICE_GPU> {
                   rbmd::Id* neighbor_start, rbmd::Id* neighbor_end,
                   rbmd::Id* neighbors, rbmd::Id neighbor_sample_num,
                   rbmd::Id* random_neighbors, rbmd::Id* random_neighbors_num,
-                  Box* d_box, rbmd::Id* should_realloc, rbmd::Id* neighbor_cell,
+                  Box box, rbmd::Id* should_realloc, rbmd::Id* neighbor_cell,
                   rbmd::Id neighbor_cell_num, rbmd::Id selection_frequency);
 };
 

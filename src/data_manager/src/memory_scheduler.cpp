@@ -158,9 +158,6 @@ bool MemoryScheduler::asyncMemoryH2D() {
   //              _device_data->_d_molecular_id.begin());
 
   // copy box
-  CHECK_RUNTIME(MALLOC(&_device_data->_d_box, sizeof(Box)));
-  CHECK_RUNTIME(
-      MEMCPY(_device_data->_d_box, _md_data->_h_box.get(), sizeof(Box), H2D));
 
   //
   CHECK_RUNTIME(MALLOC(&_device_data->_d_erf_table, sizeof(ERFTable)));

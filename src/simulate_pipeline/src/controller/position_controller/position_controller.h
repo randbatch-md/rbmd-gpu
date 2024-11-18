@@ -4,6 +4,7 @@
 #include "model/md_data.h"
 #include "model/structure_info_data.h"
 #include "shake_controller.h"
+#include "../data_manager/include/model/box.h"
 class PositionController {
  public:
   PositionController()
@@ -28,4 +29,5 @@ class PositionController {
   std::shared_ptr<StructureInfoData> _structure_info_data;
   std::shared_ptr<ShakeController> _shake_controller;
   std::shared_ptr<DeviceData> _device_data;
+  Box _box;
 };
