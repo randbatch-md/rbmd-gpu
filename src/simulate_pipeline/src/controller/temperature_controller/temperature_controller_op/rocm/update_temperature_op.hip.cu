@@ -1,5 +1,3 @@
-#include <hipcub/hipcub.hpp>
-
 #include "rbmd_define.h"
 #include "update_temperature_op.h"
 
@@ -12,7 +10,7 @@ __global__ void ComputeTemperature(const rbmd::Id num_atoms,
                                    const rbmd::Real* mass, const rbmd::Real* vx,
                                    const rbmd::Real* vy, const rbmd::Real* vz,
                                    rbmd::Real* temp_contrib) {
-  __shared__ typename hipcub::BlockReduce<rbmd::Real, BLOCK_SIZE>::TempStorage
+  __shared__ typename BLOCKREDUCE<rbmd::Real, BLOCK_SIZE>::TempStorage
       temp_storage;
 
   rbmd::Real local_temp = 0;
@@ -23,7 +21,7 @@ __global__ void ComputeTemperature(const rbmd::Id num_atoms,
   }
 
   rbmd::Real block_sum =
-      hipcub::BlockReduce<rbmd::Real, BLOCK_SIZE>(temp_storage).Sum(local_temp);
+      BLOCKREDUCE<rbmd::Real, BLOCK_SIZE>(temp_storage).Sum(local_temp);
   if (threadIdx.x == 0) {
     atomicAdd(temp_contrib, block_sum);
   }

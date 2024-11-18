@@ -66,7 +66,6 @@ void LJCutCoulKspaceForce::Init()
     _Kmax = DataManager::getInstance().getConfigData()->Get<rbmd::Id>(
 "kmax", "hyper_parameters", "coulomb");
     _num_k =  POW(2 * _Kmax + 1,3.0) - 1;
-    ERFInit();
     RBEInit(_device_data->_d_box,_alpha,_RBE_P);
 }
 
@@ -340,10 +339,7 @@ void LJCutCoulKspaceForce::ComputeEwlad()
     CHECK_RUNTIME(FREE(value_Im_array));
 }
 
-void LJCutCoulKspaceForce::ERFInit()
-{
-  _device_data->_d_erf_table->init();
-}
+
 
 void LJCutCoulKspaceForce::RBEInit(Box* box,rbmd::Real alpha,rbmd::Id RBE_P)
 {

@@ -1,12 +1,12 @@
 #pragma once
-#include <hip/hip_runtime.h>
-
 #include "common/object.h"
+#include "common/rbmd_define.h"
 
 // #include "../data_manager/include/data_manager.h"
 #include "../data_manager/include/model/device_data.h"
 #include "../data_manager/include/model/md_data.h"
 
+extern "C"
 class MemoryScheduler : public Object {
  public:
   /**

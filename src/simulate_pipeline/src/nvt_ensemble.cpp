@@ -16,7 +16,7 @@ NVTensemble::NVTensemble()
 {
   _position_controller = std::make_shared<DefaultPositionController>();
   _velocity_controller = std::make_shared<DefaultVelocityController>();
-  _force_controller = std::make_shared<CVFF>(); // TODO: json file forcetype
+  _force_controller = std::make_shared<LJForce>(); // TODO: json file forcetype
   _temperature_controller = std::make_shared<BerendsenController>();
 }
 
@@ -67,7 +67,7 @@ void NVTensemble::Solve() {
 
   _temperature_controller->Update();
 
-  CHECK_RUNTIME(hipDeviceSynchronize());
+  CHECK_RUNTIME(DEVICESYNC());
   auto end = std::chrono::high_resolution_clock::now();
   std::chrono::duration<rbmd::Real> duration = end - start;
 

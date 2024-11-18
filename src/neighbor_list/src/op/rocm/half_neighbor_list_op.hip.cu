@@ -1,7 +1,3 @@
-#include <hip/hip_runtime.h>
-
-#include <hipcub/hipcub.hpp>
-
 #include "common/device_types.h"
 #include "common/rbmd_define.h"
 #include "common/types.h"
@@ -69,8 +65,7 @@ __global__ void EstimateHalfNeighborList(
     rbmd::Id* __restrict__ neighbor_cell, rbmd::Id neighbor_cell_num,
     bool without_pbc_or_rbl) {
   // cutoff2是平方
-  extern __shared__ hipcub::WarpReduce<rbmd::Id>::TempStorage
-      reduce_temp_storage[];
+  extern __shared__ WARPREDUCE<rbmd::Id>::TempStorage reduce_temp_storage[];
   rbmd::Id atom_neighbor_num = MIN_NBNUM;
   __shared__ rbmd::Real shared_px[BLOCK_SIZE];
   __shared__ rbmd::Real shared_py[BLOCK_SIZE];
@@ -116,7 +111,7 @@ __global__ void EstimateHalfNeighborList(
         }
       }
     }
-    atom_neighbor_num = hipcub::WarpReduce<rbmd::Id>(
+    atom_neighbor_num = WARPREDUCE<rbmd::Id>(
                             reduce_temp_storage[threadIdx.x / warpSize])
                             .Sum(atom_neighbor_num);
     if (lane_id == 0) {
@@ -298,7 +293,7 @@ void EstimateHalfNeighborListOp<device::DEVICE_GPU>::operator()(
       (total_atom_num + warps_per_block - 1) / warps_per_block;
   CHECK_KERNEL(
       EstimateHalfNeighborList<<<blocks_per_grid, BLOCK_SIZE,
-                                 sizeof(hipcub::WarpReduce<int>::TempStorage) *
+                                 sizeof(WARPREDUCE<int>::TempStorage) *
                                      (BLOCK_SIZE / WARP_SIZE),
                                  0>>>(
           per_atom_cell_id, in_atom_list_start_index, in_atom_list_end_index,

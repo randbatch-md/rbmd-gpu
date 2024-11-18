@@ -77,8 +77,7 @@ void CVFF::Init()
     _Kmax = DataManager::getInstance().getConfigData()->Get<rbmd::Id>(
 "kmax", "hyper_parameters", "coulomb");
     _num_k =  POW(2 * _Kmax + 1,3.0) - 1;
-    ERFInit();
-    RBEInit(_device_data->_d_box,_alpha,_RBE_P);
+    RBEInit(DataManager::getInstance().getMDData()->_h_box.get(),_alpha,_RBE_P);
 }
 
 void CVFF::Execute()
@@ -505,10 +504,7 @@ void CVFF::ComputeEwlad()
   // output_file.close();
 }
 
-void CVFF::ERFInit()
-{
-  _device_data->_d_erf_table->init();
-}
+
 
 void CVFF::RBEInit(Box* box,rbmd::Real alpha,rbmd::Id RBE_P)
 {
@@ -517,15 +513,18 @@ void CVFF::RBEInit(Box* box,rbmd::Real alpha,rbmd::Id RBE_P)
                   rbmd::Real((SQRT(alpha / 2.0) * box->_length[2]/M_PI))};
   auto random = true;
   RBEPSAMPLE rbe_presolve_psample = { alpha, box, RBE_P, random};
+  thrust::host_vector<rbmd::Real> _h_P_Sample_x(RBE_P);
+  thrust::host_vector<rbmd::Real> _h_P_Sample_y(RBE_P);
+  thrust::host_vector<rbmd::Real> _h_P_Sample_z(RBE_P);
 
-  _P_Sample_x.resize(RBE_P);
-  _P_Sample_y.resize(RBE_P);
-  _P_Sample_z.resize(RBE_P);
-
+  // TODO 用随机数生成器重构！
   rbe_presolve_psample.Fetch_P_Sample(0.0, sigma,
-    thrust::raw_pointer_cast(_P_Sample_x.data()),
-    raw_pointer_cast(_P_Sample_y.data()),
-    raw_pointer_cast(_P_Sample_z.data()));
+    thrust::raw_pointer_cast(_h_P_Sample_x.data()),
+    thrust::raw_pointer_cast(_h_P_Sample_y.data()),
+    thrust::raw_pointer_cast(_h_P_Sample_z.data()));
+  _P_Sample_x = _h_P_Sample_x;
+  _P_Sample_y = _h_P_Sample_y;
+  _P_Sample_z = _h_P_Sample_z;
 
   //index key
   auto num_atoms = *(_structure_info_data->_num_atoms);
@@ -582,9 +581,9 @@ void CVFF::ComputeChargeStructureFactorRBE(
 
   //charge self energy//
   ComputeSelfEnergy(alpha,qqr2e,_ave_self_energy);
-
+  auto h_box = DataManager::getInstance().getMDData()->_h_box.get();
   //kspace energy
-  ComputeKspaceEnergy(_device_data->_d_box, num_atoms, Kmax,
+  ComputeKspaceEnergy(h_box, num_atoms, Kmax,
       alpha, qqr2e ,_ave_ekspace);
   _ave_ekspace = _ave_ekspace +_ave_self_energy;
 

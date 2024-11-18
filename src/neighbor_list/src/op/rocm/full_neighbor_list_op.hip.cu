@@ -1,7 +1,3 @@
-#include <hip/hip_runtime.h>
-
-#include <hipcub/hipcub.hpp>
-
 #include "common/device_types.h"
 #include "common/rbmd_define.h"
 #include "common/types.h"
@@ -79,7 +75,7 @@ __global__ void EstimateFullNeighborList(
     rbmd::Id* __restrict__ max_neighbour_num, Box* __restrict__ box,
     rbmd::Id* __restrict__ neighbor_cell, rbmd::Id neighbor_cell_num) {
   // cutoff2是平方
-  extern __shared__ hipcub::WarpReduce<rbmd::Id>::TempStorage
+  extern __shared__ WARPREDUCE<rbmd::Id>::TempStorage
       reduce_temp_storage[];
   rbmd::Id atom_neighbor_num = MIN_NBNUM;
   __shared__ rbmd::Real shared_px[BLOCK_SIZE];
@@ -119,7 +115,7 @@ __global__ void EstimateFullNeighborList(
         }
            }
     }
-    atom_neighbor_num = hipcub::WarpReduce<rbmd::Id>(
+    atom_neighbor_num = WARPREDUCE<rbmd::Id>(
                             reduce_temp_storage[threadIdx.x / warpSize])
                             .Sum(atom_neighbor_num);
     if (lane_id == 0) {
@@ -149,7 +145,7 @@ __global__ void GenerateFullNeighborList(
   const unsigned int lane_id =
       (blockIdx.x * blockDim.x + threadIdx.x) % warpSize;
 
-  extern __shared__ hipcub::WarpScan<int>::TempStorage temp_storage[];
+  extern __shared__ WARPSCAN<int>::TempStorage temp_storage[];
   __shared__ rbmd::Real shared_px[BLOCK_SIZE];
   __shared__ rbmd::Real shared_py[BLOCK_SIZE];
   __shared__ rbmd::Real shared_pz[BLOCK_SIZE];
@@ -190,13 +186,13 @@ __global__ void GenerateFullNeighborList(
         }
 
         int offset;
-        hipcub::WarpScan<int>(temp_storage[threadIdx.x / warpSize])
+        WARPSCAN<int>(temp_storage[threadIdx.x / warpSize])
             .ExclusiveSum(is_neighbor, offset);
         if (is_neighbor) {
           neighbors[neighbor_num + offset] = neighbor_atom_idx;
         }
 
-        neighbor_num += hipcub::ShuffleIndex<WARP_SIZE, rbmd::Id>(
+        neighbor_num += SHUFFLEINDEX<WARP_SIZE, rbmd::Id>(
             offset + is_neighbor, warpSize - 1,
             0xffffffff);  // 广播线程束最后一个
       }
@@ -301,7 +297,7 @@ void EstimateFullNeighborListOp<device::DEVICE_GPU>::operator()(
       (total_atom_num + warps_per_block - 1) / warps_per_block;
   CHECK_KERNEL(
       EstimateFullNeighborList<<<blocks_per_grid, BLOCK_SIZE,
-                                 sizeof(hipcub::WarpReduce<int>::TempStorage) *
+                                 sizeof(WARPREDUCE<int>::TempStorage) *
                                      (BLOCK_SIZE / WARP_SIZE),
                                  0>>>(
           per_atom_cell_id, in_atom_list_start_index, in_atom_list_end_index,
@@ -324,7 +320,7 @@ void GenerateFullNeighborListOp<device::DEVICE_GPU>::operator()(
         (total_atom_num + warps_per_block - 1) / warps_per_block;
     CHECK_KERNEL(
         GenerateFullNeighborList<<<blocks_per_grid, BLOCK_SIZE,
-                                   sizeof(hipcub::WarpScan<int>::TempStorage) *
+                                   sizeof(WARPSCAN<int>::TempStorage) *
                                        (BLOCK_SIZE / WARP_SIZE),
                                    0>>>(
             per_atom_cell_id, in_atom_list_start_index, in_atom_list_end_index,

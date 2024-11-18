@@ -11,11 +11,12 @@
 #include <spdlog/sinks/basic_file_sink.h>
 #include "box.h"
 #include "simulate.h"
-#include <filesystem>
+//#include <filesystem>
 TrajectoryOutput::TrajectoryOutput()
 : _interval(DataManager::getInstance().getConfigData()->Get<rbmd::Id>("interval", "outputs", "trajectory_out"))
 {
-    std::filesystem::remove("rbmd.trj");
+    //std::filesystem::remove("rbmd.trj");
+    std::remove("rbmd.trj");
     spdlog::init_thread_pool(10000, 1);
     auto async_file_logger = spdlog::basic_logger_mt<spdlog::async_factory>("async_file_logger", "rbmd.trj", false);
     async_file_logger->set_level(spdlog::level::debug);

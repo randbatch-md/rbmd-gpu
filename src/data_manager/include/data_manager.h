@@ -85,6 +85,11 @@ class DataManager {
     this->_memory_scheduler->asyncMemoryH2D();
   }
 
+  void unloadDeviceData()
+  {
+      _device_data->unload();
+  }
+
  private:
   std::shared_ptr<MDData> _md_data;
   std::shared_ptr<PostProcessData> _postProcess_data;

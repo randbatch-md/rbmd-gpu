@@ -1,6 +1,6 @@
 #pragma once
 #include <fstream>
-
+#include <cmath>
 #include "../common/object.h"
 #include "json/reader.h"
 #include "json/value.h"

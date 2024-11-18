@@ -1,5 +1,4 @@
-#include <hip/hip_runtime.h>
-
+//#include  "common/rbmd_define.h"
 #include "application/md_application.h"
 int main(int argc, char* argv[]) {
   // CHECK_RUNTIME(hipSetDevice(1));
