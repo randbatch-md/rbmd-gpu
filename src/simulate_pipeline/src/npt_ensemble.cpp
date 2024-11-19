@@ -20,6 +20,7 @@ NPTensemble::NPTensemble() {
   _force_controller = std::make_shared<LJCutCoulKspace>(); // TODO: json file forcetype
   _temperature_controller = std::make_shared<BerendsenController>();
   _pressure_controller = std::make_shared<BerendsenPressureController>();
+  _NoseHoover_controller = std::make_shared<NoseHooverPressureController>();
 }
 
 void NPTensemble::Init() {
@@ -27,6 +28,7 @@ void NPTensemble::Init() {
   _velocity_controller->Init();
   _temperature_controller->Init();
   _pressure_controller->Init();
+  _NoseHoover_controller->Init();
 
   _force_controller->Init();
   _force_controller->Execute();
@@ -37,38 +39,66 @@ void NPTensemble::Presolve() {}
 void NPTensemble::Solve() {
   auto start = std::chrono::high_resolution_clock::now();
 
-  _velocity_controller->Update();
+  bool use_shake = DataManager::getInstance().getConfigData()->GetJudge
+    <bool>("fix_shake", "hyper_parameters", "extend");
+  auto press_ctrl_type = DataManager::getInstance().getConfigData()->Get
+    <std::string>("press_ctrl_type", "execution");
 
-  _position_controller->Update();
-
-  bool use_shake = false; //TODO: json file
-  if (true == use_shake)
+  if("NOSE_HOOVER" == press_ctrl_type)
   {
-    _shake_controller->ShakeA();
+    _NoseHoover_controller->InitialIntegrate();
+
+    if (true == use_shake)
+    {
+      _shake_controller->ShakeA();
+    }
+
+    _force_controller->Execute();
+
+    _NoseHoover_controller->FinalIntegrate();
+
+    if (true == use_shake)
+    {
+      _shake_controller->ShakeB();
+    }
   }
-
-  _force_controller->Execute();
-
-  if ("LANGEVIN"==DataManager::getInstance().getConfigData()->Get<std::string>("temp_ctrl_type", "execution"))
+  else
   {
+    _velocity_controller->Update();
+
+    _position_controller->Update();
+
+    bool use_shake = false; //TODO: json file
+    if (true == use_shake)
+    {
+      _shake_controller->ShakeA();
+    }
+
+    _force_controller->Execute();
+
+    if ("LANGEVIN"==DataManager::getInstance().getConfigData()->
+      Get<std::string>("temp_ctrl_type", "execution"))
+    {
+      _temperature_controller->Update();
+    }
+
+    _velocity_controller->Update();
+
+    if (true == use_shake)
+    {
+      _shake_controller->ShakeB();
+    }
+
+    _temperature_controller->ComputeTemp();
+
+    if ("LANGEVIN" == DataManager::getInstance().getConfigData()->Get<std::string>("temp_ctrl_type", "execution"))
+      return;
+
     _temperature_controller->Update();
+    //
+    _pressure_controller->Update();
   }
 
-  _velocity_controller->Update();
-
-  if (true == use_shake)
-  {
-    _shake_controller->ShakeB();
-  }
-
-  _temperature_controller->ComputeTemp();
-
-  if ("LANGEVIN" == DataManager::getInstance().getConfigData()->Get<std::string>("temp_ctrl_type", "execution"))
-    return;
-
-  _temperature_controller->Update();
-  //
-  _pressure_controller->Update();
 
   CHECK_RUNTIME(hipDeviceSynchronize());
   auto end = std::chrono::high_resolution_clock::now();

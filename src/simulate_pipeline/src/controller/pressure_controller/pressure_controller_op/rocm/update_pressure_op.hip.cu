@@ -56,7 +56,18 @@ __global__ void Lamda2X(Box box, const rbmd::Id num_atoms,rbmd::Real* px,
   }
 }
 
+__global__ void UpdataVelocityRescalePressure(const rbmd::Id num_atoms,
+                                      const Real3 factor,
+                                      rbmd::Real* vx, rbmd::Real* vy,
+                                      rbmd::Real* vz) {
+  int tid = threadIdx.x + blockIdx.x * blockDim.x;
 
+  if (tid < num_atoms) {
+    vx[tid] *= factor.x;
+    vy[tid] *= factor.y;
+    vz[tid] *= factor.z;
+  }
+}
 
 
 void X2LamdaOp<device::DEVICE_GPU>::operator()(
@@ -77,6 +88,14 @@ void Lamda2XOp<device::DEVICE_GPU>::operator()(
     (box, num_atoms,px, py, pz));
 }
 
+void UpdataVelocityRescalePressureOp<device::DEVICE_GPU>::operator()(
+    const rbmd::Id num_atoms, const Real3 factor, rbmd::Real* vx,
+    rbmd::Real* vy, rbmd::Real* vz) {
+  unsigned int blocks_per_grid = (num_atoms + BLOCK_SIZE - 1) / BLOCK_SIZE;
+  CHECK_KERNEL(UpdataVelocityRescalePressure<<<blocks_per_grid, BLOCK_SIZE, 0, 0>>>(
+      num_atoms, factor, vx, vy, vz));
+
+}
 }
 
 

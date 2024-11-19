@@ -1,0 +1,707 @@
+#include "nose_hoover_pressure_controller.h"
+#include "temperature_controller.h"
+#include "update_temperature_op.h"
+#include <thrust/device_ptr.h>
+
+#include <cmath>
+
+#include "device_types.h"
+#include "unit_factor.h"
+#include "update_pressure_op.h"
+#include "simulate.h"
+
+extern int test_current_step;
+
+NoseHooverPressureController::NoseHooverPressureController() {
+  std::remove("pressure.txt");
+  CHECK_RUNTIME(MALLOC(&_d_temp_contrib, sizeof(rbmd::Real)));
+}
+NoseHooverPressureController::~NoseHooverPressureController() {
+  CHECK_RUNTIME(FREE(_d_temp_contrib));
+};
+
+void NoseHooverPressureController::Init() {
+  //read temp array
+  auto temperature_array=DataManager::getInstance().getConfigData()->
+    GetArray<rbmd::Real>("temperature", "execution"); //[1.0,1.0,1.0,10.0]
+  _t_start = temperature_array[0];
+  _t_stop = temperature_array[1];
+  _t_damp = temperature_array[2];
+
+  //read pressure array
+  auto pressure_array=DataManager::getInstance().getConfigData()->
+    GetArray<rbmd::Real>("pressure", "execution"); //[1.0,1.0,1.0,10.0]
+  _pressure_start = pressure_array[0];
+  _pressure_stop = pressure_array[1];
+  _pressure_damp = pressure_array[2];
+  _bulkmodulus = pressure_array[3];
+
+  //read timestep
+  _dt =  DataManager::getInstance().getConfigData()->Get<rbmd::Real>(
+          "timestep", "execution");//0.001
+
+  auto unit = DataManager::getInstance().getConfigData()->Get
+    <std::string>("unit", "init_configuration", "read_data");
+
+  UNIT unit_factor = unit_factor_map[unit];
+  switch (unit_factor) {
+    case UNIT::LJ:
+      _nktv2p = UnitFactor<UNIT::LJ>::_nktv2p;
+      _mvv2e = UnitFactor<UNIT::LJ>::_mvv2e;
+      _kB = UnitFactor<UNIT::LJ>::_kb;
+      _fmt2v = UnitFactor<UNIT::LJ>::_fmt2v;
+      break;
+    case UNIT::REAL:
+      _nktv2p = UnitFactor<UNIT::REAL>::_mvv2e;
+      _mvv2e = UnitFactor<UNIT::REAL>::_mvv2e;
+      _kB = UnitFactor<UNIT::REAL>::_kb;
+      _fmt2v = UnitFactor<UNIT::REAL>::_fmt2v;
+      break;
+    default:
+      break;
+  }
+
+  //compute tdof
+  Computedof();
+
+  //pressure
+  REAL_DATA(_p_start)[0] = REAL_DATA(_p_start)[1] = REAL_DATA(_p_start)[2]
+  = _pressure_start;
+  REAL_DATA(_p_stop)[0]  = REAL_DATA(_p_stop)[1]  = REAL_DATA(_p_stop)[2]
+  = _pressure_stop;
+  REAL_DATA(_p_damp)[0]  = REAL_DATA(_p_damp)[1]  = REAL_DATA(_p_damp)[2]
+  = _pressure_damp;
+  REAL_DATA(_p_freq)[0] = REAL_DATA(_p_freq)[1] = REAL_DATA(_p_freq)[2]
+  = 1 / _pressure_damp;
+
+  _t_freq = 1 / _t_damp;
+
+  _p_freq_max = 0.0;
+  _p_freq_max = MAX(REAL_DATA(_p_freq)[0], REAL_DATA(_p_freq)[1]);
+  _p_freq_max = MAX(_p_freq_max, REAL_DATA(_p_freq)[2]);
+  _p_flag[0] = _p_flag[1] = _p_flag[2] = 1;
+  _pdim = _p_flag[0] + _p_flag[1] + _p_flag[2];
+
+  //defult values
+  _eta_mass_flag = 1;
+  _nc_tchain = _nc_pchain = 1;
+  _mtchain = _mpchain = 3;  //defult=3
+  _mtk_flag = 1;
+
+  // set timesteps and frequencies_dt
+  _dtf = _dt * _fmt2v;
+  _dthalf = 0.5 * _dt;
+  _dt4 = 0.25 * _dt;
+  _dt8 = 0.125 * _dt;
+  _dto = _dthalf;
+
+  _drag = 0.0;
+  _tdrag_factor = 1.0 - (_dt * _t_freq * _drag / _nc_tchain);
+  _pdrag_factor = 1.0 - (_dt * _p_freq_max * _drag / _nc_pchain);
+
+  SetUp();
+}
+
+void NoseHooverPressureController::Update()
+{
+}
+
+void NoseHooverPressureController::ComputeTemp(){
+  rbmd::Id num_atoms = *(_structure_info_data->_num_atoms);
+  CHECK_RUNTIME(MEMSET(_d_temp_contrib, 0, sizeof(rbmd::Real)));
+
+  op::ComputeTemperatureOp<device::DEVICE_GPU>()(num_atoms, _mvv2e,
+      thrust::raw_pointer_cast(_device_data->_d_atoms_type.data()),
+      thrust::raw_pointer_cast(_device_data->_d_mass.data()),
+      thrust::raw_pointer_cast(_device_data->_d_vx.data()),
+      thrust::raw_pointer_cast(_device_data->_d_vy.data()),
+      thrust::raw_pointer_cast(_device_data->_d_vz.data()), _d_temp_contrib);
+
+  CHECK_RUNTIME(MEMCPY(&_temp_sum, _d_temp_contrib, sizeof(rbmd::Real), D2H));
+
+  bool shake = DataManager::getInstance().getConfigData()->GetJudge<bool>
+  ( "fix_shake", "hyper_parameters", "extend");
+  if (shake) {
+    _temperature = 0.5 * _temp_sum / ((3 * num_atoms - num_atoms - 3) * _kB / 2.0);
+  }else {
+    _temperature = 0.5 * _temp_sum / ((3 * num_atoms - 3) * _kB / 2.0);
+  }
+
+  std::cout << "temperature= " << _temperature << std::endl;
+  // out
+  std::ofstream outfile("temperature.txt", std::ios::app);
+  outfile << test_current_step << " " << _temperature << std::endl;
+  outfile.close();
+
+}
+
+void NoseHooverPressureController::ComputeVirial()
+{
+  TransformForces(_device_data->_d_virial,_device_data->_d_virial_lj,
+    _device_data->_d_virial_specialcoul,_device_data->_d_virial_kspace,
+    _device_data->_d_virial_bond,_device_data->_d_virial_angle,
+    _device_data->_d_virial_dihedral);
+}
+
+void NoseHooverPressureController::ComputePressure()
+{
+  auto volume = CalculateVolume(*_box);
+  auto  inv_volume = 1/volume;
+
+  ComputeVirial();
+
+  //compute pressure
+  _pressure = (_tdof * _kB * _temperature+_device_data->_d_virial[0]
+    + _device_data->_d_virial[1] +_device_data->_d_virial[2])
+  /3.0 * inv_volume * _nktv2p;
+
+  std::cout << " pressure=" << _pressure << std::endl;
+  // out
+  std::ofstream outfile("pressure.txt", std::ios::app);
+  outfile << test_current_step << " " << _pressure << std::endl;
+  outfile.close();
+}
+
+void NoseHooverPressureController::Couple()
+{
+  _p_current.data[0] = _p_current.data[1] = _p_current.data[2] = _pressure;
+}
+
+void NoseHooverPressureController::SetUp()
+{
+  rbmd::Id num_atoms = *(_structure_info_data->_num_atoms);
+
+  ComputeTemp();       //t_current
+  ComputeTempTarget();  //t_target
+
+  auto press_ctrl_type = DataManager::getInstance().getConfigData()->Get
+    <std::string>("press_ctrl_type", "execution");
+  if ("NOSE_HOOVER" ==  press_ctrl_type)
+  {
+    ComputePressTarget();        //p_target
+    ComputePressure();   //p_current
+    Couple();
+  }
+
+  // masses and initial forces on thermostat variables
+  _eta_mass[0] = _tdof * _kB * _t_target / (_t_freq * _t_freq);
+  for (int ich = 1; ich < _mtchain; ich++)
+  {
+    _eta_mass[ich] = _kB * _t_target / (_t_freq * _t_freq);
+  }
+
+  for (int ich = 1; ich < _mtchain; ich++)
+  {
+    _eta_dotdot[ich] = (_eta_mass[ich - 1] * _eta_dot[ich - 1] *
+      _eta_dot[ich - 1] - _kB * _t_target) /_eta_mass[ich];
+  }
+
+  if ("NOSE_HOOVER" ==  press_ctrl_type)
+  {
+    // masses and initial forces on barostat variables
+    rbmd::Real kt = _kB * _t_target;
+    rbmd::Real nkt = (num_atoms + 1) * kt;
+    for (int i = 0; i < 3; i++)
+    {
+      if (_p_flag[i])
+      {
+        _omega_mass[i] = nkt / (REAL_DATA(_p_freq)[i] * REAL_DATA(_p_freq)[i]);
+      }
+    }
+    // masses and initial forces on barostat thermostat variables
+    if (_mpchain)
+    {
+      _etap_mass[0] = _kB* _t_target / (_p_freq_max * _p_freq_max);
+      for (int ich = 1; ich < _mpchain; ich++)
+      {
+        _etap_mass[ich] = _kB * _t_target / (_p_freq_max * _p_freq_max);
+      }
+
+      for (int ich = 1; ich < _mpchain; ich++)
+      {
+        _etap_dotdot[ich] = (_etap_mass[ich - 1] * _etap_dot[ich - 1] * _etap_dot[ich - 1] -
+                            _kB * _t_target) /
+          _etap_mass[ich];
+      }
+    }
+  }
+}
+
+void NoseHooverPressureController::ComputeTempTarget()
+{
+    if (_t_stop == _t_start) //Thermostatic simulation
+    {
+        _t_target = _t_stop= _t_start;
+    }
+    else                    //anisothermal simulation
+    {
+        auto currentstep = test_current_step;
+        auto beginstep = 0;
+        auto endstep = DataManager::getInstance().getConfigData()->
+          Get<rbmd::Real>("num_steps", "execution");
+
+        rbmd::Real delta = currentstep - beginstep;
+
+        if (delta != 0.0)
+        {
+            delta = delta / static_cast<rbmd::Real >(endstep - beginstep);
+        }
+
+        _t_target = _t_start + delta * (_t_stop - _t_start);
+    }
+    //
+    _ke_target = _tdof * _kB * _t_target;
+}
+
+void NoseHooverPressureController::ComputePressTarget()
+{
+    _p_hydro = 0.0;
+    for (int i = 0; i < 3; i++)
+    {
+        if (REAL_DATA(_p_stop)[i] == REAL_DATA(_p_start)[i])
+        {
+            REAL_DATA(_p_target)[i] = REAL_DATA(_p_stop)[i] = REAL_DATA(_p_start)[i];
+        }
+        else
+        {
+          auto currentstep = test_current_step;
+          auto beginstep = 0;
+          auto endstep = DataManager::getInstance().getConfigData()->
+            Get<rbmd::Real>("num_steps", "execution");
+
+            rbmd::Real delta = currentstep - beginstep;
+            if (delta != 0.0)
+            {
+                delta = delta / static_cast<rbmd::Real>(endstep - beginstep);
+            }
+            for (int i = 0; i < 3; i++)
+            {
+                REAL_DATA(_p_target)[i] = REAL_DATA(_p_start)[i] + delta *
+                  (REAL_DATA(_p_stop)[i] - REAL_DATA(_p_start)[i]);
+            }
+        }
+
+        //
+        _p_hydro += REAL_DATA(_p_target)[i];
+        if (_pdim > 0)
+        {
+            _p_hydro /= _pdim;
+        }
+    }
+ //TRICLINIC TODO:
+  // if deviatoric, recompute sigma each time p_target changes
+
+}
+
+void NoseHooverPressureController::NHOmegaDot()
+{
+  rbmd::Id num_atoms = *(_structure_info_data->_num_atoms);
+
+  //
+  rbmd::Real f_omega, volume;
+  volume  = _box->_length[0]*_box->_length[1]-_box->_length[2];
+
+  _mtk_term1 = 0.0;
+  if (_mtk_flag)
+  {
+    _mtk_term1 = _tdof * _kB * _temperature;
+    _mtk_term1 /= _pdim * num_atoms;
+  }
+  for (int i = 0; i < 3; i++)
+  {
+    if (_p_flag[i])
+    {
+      f_omega = (REAL_DATA(_p_current)[i] - _p_hydro) * volume / (_omega_mass[i] * _nktv2p)
+      + _mtk_term1 / _omega_mass[i];
+      omega_dot[i] += f_omega * _dthalf;
+      omega_dot[i] *= _pdrag_factor;
+    }
+  }
+
+  _mtk_term2 = 0.0;
+  if (_mtk_flag)
+  {
+    for (int i = 0; i < 3; i++)
+    {
+      if (_p_flag[i])
+      {
+        _mtk_term2 += omega_dot[i];
+      }
+    }
+    if (_pdim > 0)
+    {
+      _mtk_term2 /= _pdim * num_atoms;
+    }
+
+  }
+
+}
+
+void NoseHooverPressureController::NH_V_Press()
+{
+  Real3 factor;
+  REAL_DATA(factor)[0] = EXP(-_dt4 * (omega_dot[0] + _mtk_term2));
+  REAL_DATA(factor)[1] = EXP(-_dt4 * (omega_dot[1] + _mtk_term2));
+  REAL_DATA(factor)[2] = EXP(-_dt4 * (omega_dot[2] + _mtk_term2));
+
+  // perform half-step barostat scaling of velocities
+  op::UpdataVelocityRescalePressureOp<device::DEVICE_GPU>()(
+              *(_structure_info_data->_num_atoms), factor,
+                   thrust::raw_pointer_cast(_device_data->_d_vx.data()),
+                   thrust::raw_pointer_cast(_device_data->_d_vy.data()),
+                   thrust::raw_pointer_cast(_device_data->_d_vz.data()));
+
+  op::UpdataVelocityRescalePressureOp<device::DEVICE_GPU>()(
+             *(_structure_info_data->_num_atoms), factor,
+                  thrust::raw_pointer_cast(_device_data->_d_vx.data()),
+                  thrust::raw_pointer_cast(_device_data->_d_vy.data()),
+                  thrust::raw_pointer_cast(_device_data->_d_vz.data()));
+}
+
+void NoseHooverPressureController::InitialIntegrate()
+{
+  auto press_ctrl_type = DataManager::getInstance().getConfigData()->Get
+    <std::string>("press_ctrl_type", "execution");
+  if ("NOSE_HOOVER" ==  press_ctrl_type)
+  {
+    // update eta_press_dot
+    NHCPressIntegrate();
+  }
+
+  // update eta_dot
+  ComputeTempTarget();
+  NHCTempIntegrate();  //perform half-step update of chain thermostat variables
+
+  // need to recompute pressure to account for change in KE
+  if ("NOSE_HOOVER" ==  press_ctrl_type)
+  {
+    //Compute
+    //ComputeTempe();             //Tempe
+    ComputePressure();  //Pressure
+    Couple();
+
+     //
+    ComputePressTarget();
+    NHOmegaDot();
+    NH_V_Press();
+  }
+
+  _velocity_controller->Update();  //NVE_v();
+
+  if ("NOSE_HOOVER" ==  press_ctrl_type)
+  {
+    ReMap();    // remap simulation box by 1/2 step
+  }
+
+    _position_controller->Update();  //NVE_v();; // NVE_x();
+
+  if ("NOSE_HOOVER" ==  press_ctrl_type)
+  {
+    ReMap(); // remap simulation box by 1/2 step
+  }
+}
+
+void NoseHooverPressureController::FinalIntegrate()
+{
+
+  _velocity_controller->Update();  //NVE_v();
+
+  auto press_ctrl_type = DataManager::getInstance().getConfigData()->Get
+    <std::string>("press_ctrl_type", "execution");
+  if ("NOSE_HOOVER" ==  press_ctrl_type)
+  {
+    NH_V_Press();
+  }
+
+  // compute new T,P after velocities rescaled by nh_v_press()
+  // compute appropriately coupled elements of mvv_current
+  ComputeTemp(); //t_current
+
+  // need to recompute pressure to account for change in KE
+  if ("NOSE_HOOVER" ==  press_ctrl_type)
+  {
+    ComputePressure();
+    Couple();
+    NHOmegaDot();
+  }
+
+  // update eta_dot
+  // update eta_press_dot
+  NHCTempIntegrate();
+  if ("NOSE_HOOVER" ==  press_ctrl_type)
+  {
+    NHCPressIntegrate();
+  }
+}
+
+
+void NoseHooverPressureController::NHCTempIntegrate()
+{
+  rbmd::Real expfac;
+  rbmd::Real kecurrent = _tdof * _kB * _temperature;
+
+  // Update masses, to preserve initial freq, if flag set
+  if (_eta_mass_flag)
+  {
+    _eta_mass[0] = _tdof * _kB * _t_target / (_t_freq * _t_freq);
+    for (int ich = 1; ich < _mtchain; ich++)
+    {
+      _eta_mass[ich] = _kB * _t_target / (_t_freq * _t_freq);
+    }
+  }
+
+  if (_eta_mass[0] > 0.0)
+  {
+    _eta_dotdot[0] = (kecurrent - _ke_target) / _eta_mass[0]; //链的加速度
+  }else{
+    _eta_dotdot[0] = 0.0;
+  }
+
+  //
+  rbmd::Real ncfac = 1.0 / _nc_tchain;
+  for (int iloop = 0; iloop < _nc_tchain; iloop++)
+  {
+    for (int ich = _mtchain - 1; ich > 0; ich--) // 反向传播,为了正确传播影响，必须从最后一个链节开始，逐步向前传播至第一个链节。
+                                                //这样可以确保上游链节（更靠近粒子的链节）的更新能准确反映下游链节的影响。
+
+    {
+      expfac = EXP(-ncfac * _dt8 * _eta_dot[ich + 1]);  // 使用 exp(-dt/8) 对速度进行指数更新, 第 ich 链节会受到后续链节 𝜂(ich + 1)的影响.
+      _eta_dot[ich] *= expfac;
+      _eta_dot[ich] += _eta_dotdot[ich] * ncfac * _dt4;  // 基于当前链节的加速度 eta_dotdot 更新链的速度，时间步长为 dt/4
+      _eta_dot[ich] *= _tdrag_factor;                  // 乘以阻尼因子
+      _eta_dot[ich] *= expfac;                        // 再次使用 exp(-dt/8) 进行指数更新,完成另一个半步更新,这一步确保动量的完整更新，使其演化符合时间反演对称性。
+    }                                                //两次应用指数缩放因子是为了模拟 Nose-Hoover 链系统的哈密顿力学方程。
+
+    expfac = EXP(-ncfac * _dt8 * _eta_dot[1]);
+    _eta_dot[0] *= expfac;
+    _eta_dot[0] += _eta_dotdot[0] * ncfac * _dt4;
+    _eta_dot[0] *= _tdrag_factor;
+    _eta_dot[0] *= expfac;
+
+    _factor_eta = EXP(-ncfac * _dthalf * _eta_dot[0]);
+    //nh_v_temp();  dt/2的更新
+    op::UpdataVelocityRescaleOp<device::DEVICE_GPU>()(
+      *(_structure_info_data->_num_atoms), _factor_eta,
+      thrust::raw_pointer_cast(_device_data->_d_vx.data()),
+      thrust::raw_pointer_cast(_device_data->_d_vy.data()),
+      thrust::raw_pointer_cast(_device_data->_d_vz.data()));
+
+
+    // rescale temperature due to velocity scaling
+    // should not be necessary to explicitly recompute the temperature
+
+    //_tempT *= factor_eta * factor_eta;
+     _temperature = _temperature * _factor_eta * _factor_eta;
+
+    //
+    kecurrent = _tdof * _kB * _temperature;
+
+    if (_eta_mass[0] > 0.0)
+      _eta_dotdot[0] = (kecurrent - _ke_target) / _eta_mass[0];
+    else
+      _eta_dotdot[0] = 0.0;
+
+    for (int ich = 0; ich < _mtchain; ich++)
+      _eta[ich] += ncfac * _dthalf * _eta_dot[ich];   //链的位置
+
+    _eta_dot[0] *= expfac;
+    _eta_dot[0] += _eta_dotdot[0] * ncfac * _dt4;
+    _eta_dot[0] *= expfac;
+
+    for (int ich = 1; ich < _mtchain; ich++) //正向循环（从头到尾）：用于更新加速度
+    {
+      expfac = EXP(-ncfac * _dt8 * _eta_dot[ich + 1]);
+      _eta_dot[ich] *= expfac;
+      _eta_dotdot[ich] =(_eta_mass[ich - 1] * _eta_dot[ich - 1] *
+        _eta_dot[ich - 1] - _kB * _t_target) / _eta_mass[ich];
+      _eta_dot[ich] += _eta_dotdot[ich] * ncfac * _dt4;
+      _eta_dot[ich] *= expfac;
+    }
+  }
+}
+
+void NoseHooverPressureController::NHCPressIntegrate()
+{
+  rbmd::Id pdof;
+  rbmd::Real expfac, factor_etap, kecurrent;
+  rbmd::Real kt = _kB * _t_target;
+  rbmd::Real lkt_press;
+
+  kecurrent = 0.0;
+  pdof = 0;
+  for (int i = 0; i < 3; i++)
+  {
+    if (_p_flag[i])
+    {
+      kecurrent += _omega_mass[i] * omega_dot[i] * omega_dot[i];
+      pdof++;
+    }
+  }
+
+  //
+  lkt_press = kt;  //iso
+  _etap_dotdot[0] = (kecurrent - lkt_press) / _etap_mass[0]; //压力浴链的加速度
+
+
+  //
+  rbmd::Real ncfac = 1.0 / _nc_pchain;
+  for (int iloop = 0; iloop < _nc_pchain; iloop++)
+  {
+
+    for (int ich = _mpchain - 1; ich > 0; ich--) //反向传播
+    {
+      expfac = EXP(-ncfac * _dt8 * _etap_dot[ich + 1]);
+      _etap_dot[ich] *= expfac;
+      _etap_dot[ich] += _etap_dotdot[ich] * ncfac * _dt4;
+      _etap_dot[ich] *= _pdrag_factor;
+      _etap_dot[ich] *= expfac;
+    }
+
+    expfac = EXP(-ncfac * _dt8 * _etap_dot[1]);
+    _etap_dot[0] *= expfac;
+    _etap_dot[0] += _etap_dotdot[0] * ncfac * _dt4;
+    _etap_dot[0] *= _pdrag_factor;
+    _etap_dot[0] *= expfac;              //压力浴链的速度
+
+    for (int ich = 0; ich < _mpchain; ich++)
+    {
+      _etap[ich] += ncfac * _dthalf * _etap_dot[ich];  //压力浴链的位置
+    }
+
+
+    factor_etap = EXP(-ncfac * _dthalf * _etap_dot[0]);
+    for (int i = 0; i < 3; i++)
+    {
+      if (_p_flag[i])
+      {
+        omega_dot[i] *= factor_etap; //ISO
+      }
+    }
+
+    kecurrent = 0.0;
+    for (int i = 0; i < 3; i++)
+    {
+      if (_p_flag[i])
+      {
+        kecurrent += _omega_mass[i] * omega_dot[i] * omega_dot[i];
+      }
+    }
+
+    _etap_dotdot[0] = (kecurrent - lkt_press) / _etap_mass[0];
+
+    _etap_dot[0] *= expfac;
+    _etap_dot[0] += _etap_dotdot[0] * ncfac * _dt4;
+    _etap_dot[0] *= expfac;
+
+    for (int ich = 1; ich < _mpchain; ich++) //正向循环（从头到尾）：用于更新加速度
+    {
+      expfac = EXP(-ncfac * _dt8 * _etap_dot[ich + 1]);
+      _etap_dot[ich] *= expfac;
+      _etap_dotdot[ich] = (_etap_mass[ich - 1] * _etap_dot[ich - 1] *
+        _etap_dot[ich - 1] -_kB * _t_target) / _etap_mass[ich];
+      _etap_dot[ich] += _etap_dotdot[ich] * ncfac * _dt4;
+      _etap_dot[ich] *= expfac;
+    }
+  }
+}
+
+void NoseHooverPressureController::ReMap()
+{
+  rbmd::Real oldlo, oldhi;
+  rbmd::Real expfac;
+
+  rbmd::Id num_atoms = *(_structure_info_data->_num_atoms);
+
+  //  convert lamda coords
+  X2Lamda();
+  // Ordering of operations preserves time symmetry.
+
+  //double dto2 = dto / 2.0;
+  //double dto4 = dto / 4.0;
+  //double dto8 = dto / 8.0;
+
+  if (_p_flag[0])
+  {
+    oldlo = _box->_coord_min[0];
+    oldhi = _box->_coord_max[0];
+    expfac = EXP(_dto * omega_dot[0]);
+    _box->_coord_min[0] = (oldlo - _box->_median_point[0]) * expfac
+    + _box->_median_point[0];
+    _box->_coord_max[0] = (oldhi - _box->_median_point[0]) * expfac
+    + _box->_median_point[0];
+  }
+
+  if (_p_flag[1])
+  {
+    oldlo = _box->_coord_min[1];
+    oldhi = _box->_coord_max[1];
+    expfac = EXP(_dto * omega_dot[1]);
+    _box->_coord_min[1] = (oldlo - _box->_median_point[1]) * expfac
+    + _box->_median_point[1];
+    _box->_coord_max[1]  = (oldhi - _box->_median_point[1]) * expfac
+    + _box->_median_point[1];
+    //if (scalexy)
+    //{
+    //  h[5] *= expfac;
+    //}
+  }
+
+  if (_p_flag[2])
+  {
+    oldlo = _box->_coord_min[2];
+    oldhi = _box->_coord_max[2];
+    expfac = EXP(_dto * omega_dot[2]);
+    _box->_coord_min[2] = (oldlo - _box->_median_point[2]) * expfac
+    + _box->_median_point[2];
+    _box->_coord_min[2]= (oldhi - _box->_median_point[2]) * expfac
+    + _box->_median_point[2];
+    //if (scalexz)
+    //{
+    //  h[4] *= expfac;
+    //}
+    //if (scaleyz)
+    //{
+    //  h[3] *= expfac;
+    //}
+  }
+
+  bool pbc[3] = {1, 1, 1};
+  _box->Setup(_box->_type, _box->_coord_min, _box->_coord_max, pbc);
+
+  // convert real coords
+  Lamda2X();
+
+}
+
+void NoseHooverPressureController::X2Lamda(){
+  auto num_atoms = *(_structure_info_data->_num_atoms);
+
+  op::X2LamdaOp<device::DEVICE_GPU>()(
+    *_box,num_atoms,
+    thrust::raw_pointer_cast(_device_data->_d_px.data()),
+    thrust::raw_pointer_cast(_device_data->_d_py.data()),
+    thrust::raw_pointer_cast(_device_data->_d_pz.data()));
+}
+
+void NoseHooverPressureController::Lamda2X(){
+  auto num_atoms = *(_structure_info_data->_num_atoms);
+
+  op::Lamda2XOp<device::DEVICE_GPU>()(
+    *_box,num_atoms,
+    thrust::raw_pointer_cast(_device_data->_d_px.data()),
+    thrust::raw_pointer_cast(_device_data->_d_py.data()),
+    thrust::raw_pointer_cast(_device_data->_d_pz.data()));
+}
+
+void NoseHooverPressureController::Computedof()
+{
+  rbmd::Id num_atoms = *(_structure_info_data->_num_atoms);
+  auto extra_dof = 3; //dimension =3
+  _tdof = 3 * num_atoms - extra_dof;
+  bool shake = DataManager::getInstance().getConfigData()->GetJudge<bool>
+  ( "fix_shake", "hyper_parameters", "extend");
+  if (shake == true)
+  {
+    _tdof = _tdof - num_atoms;
+  }
+}

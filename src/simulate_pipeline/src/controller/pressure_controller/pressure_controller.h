@@ -20,9 +20,9 @@ public:
   virtual ~PressureController() = default;
 
   /**
-   * @brief Update Temperature
+   * @brief Update Pressure
    */
-  virtual void Update() = 0;
+  virtual void Update(){};
 
   virtual void ComputePressure() {};
   /**

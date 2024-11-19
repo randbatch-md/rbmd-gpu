@@ -8,6 +8,7 @@ void Box::Setup(BoxType box_type, const rbmd::Real coord_min[3],
     this->_coord_max[i] = coord_max[i];
     this->_length[i] = coord_max[i] - coord_min[i];
     this->_length_inv[i] = 1 / _length[i];
+    this->_median_point[i] = 0.5 *(coord_max[i] + coord_min[i]);
   }
   this->_length[3] = 0;  // yz
   this->_length[4] = 0;  // xz

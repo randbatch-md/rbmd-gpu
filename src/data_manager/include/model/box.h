@@ -33,6 +33,7 @@ class Box {
 
   rbmd::Real ALIGN(ALIGN_SIZE(rbmd::Real, 6)) _length[6]{};
   rbmd::Real ALIGN(ALIGN_SIZE(rbmd::Real, 6)) _length_inv[6]{};
+  rbmd::Real ALIGN(ALIGN_SIZE(rbmd::Real, 3)) _median_point[3]{};
 
   /// （local）盒子的左下角坐标（x,y,z）
   rbmd::Real ALIGN(ALIGN_SIZE(rbmd::Real, 3)) _coord_min[3]{};

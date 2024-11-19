@@ -24,6 +24,14 @@ struct Lamda2XOp
                    rbmd::Real* pz);
 };
 
+template <typename DEVICE>
+struct UpdataVelocityRescalePressureOp
+{
+  void operator()(const rbmd::Id num_atoms, const Real3 factor,
+                  rbmd::Real* vx, rbmd::Real* vy, rbmd::Real* vz);
+};
+
+//////////////
 
 template <>
 struct X2LamdaOp<device::DEVICE_GPU>
@@ -43,6 +51,12 @@ struct Lamda2XOp<device::DEVICE_GPU>
                    rbmd::Real* px,
                    rbmd::Real* py,
                    rbmd::Real* pz);
+};
+
+template <>
+struct UpdataVelocityRescalePressureOp<device::DEVICE_GPU> {
+  void operator()(const rbmd::Id num_atoms, const Real3 factor,
+                  rbmd::Real* vx, rbmd::Real* vy, rbmd::Real* vz);
 };
 
 }
