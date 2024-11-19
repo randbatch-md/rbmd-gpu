@@ -28,5 +28,5 @@ protected:
   std::vector<rbmd::Real> _shake_vy;
   std::vector<rbmd::Real> _shake_vz;
 
-  Box _box;
+  std::shared_ptr<Box> _box;
 };

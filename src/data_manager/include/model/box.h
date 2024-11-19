@@ -20,7 +20,7 @@ class Box {
    * @param coord_max 盒子左上角坐标（xyz最达值）
    * @param pbc 是否使用周期性边界条件 bool数组，对应xyz维度
    */
-  void Init(BoxType box_type, const rbmd::Real coord_min[3],
+  void Setup(BoxType box_type, const rbmd::Real coord_min[3],
             const rbmd::Real coord_max[3], const bool pbc[3]);
 
   // TODO 边长角度  不经常访问的就直接做成对齐数组了    xyz 半的xyz

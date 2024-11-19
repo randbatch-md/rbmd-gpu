@@ -26,7 +26,7 @@ void DefaultPositionController::Update() {
           _device_data->_d_shake_pz.begin());
 
       op::UpdatePositionOp<device::DEVICE_GPU> ()(
-                        *(_structure_info_data->_num_atoms), _dt, _box,
+                        *(_structure_info_data->_num_atoms), _dt,*_box,
                          thrust::raw_pointer_cast(_device_data->_d_vx.data()),
                          thrust::raw_pointer_cast(_device_data->_d_vy.data()),
                          thrust::raw_pointer_cast(_device_data->_d_vz.data()),
@@ -36,7 +36,7 @@ void DefaultPositionController::Update() {
     }
     else {
     op::UpdatePositionFlagOp<device::DEVICE_GPU>()(
-                        *(_structure_info_data->_num_atoms), _dt, _box,
+                        *(_structure_info_data->_num_atoms), _dt,*_box,
                        thrust::raw_pointer_cast(_device_data->_d_vx.data()),
                        thrust::raw_pointer_cast(_device_data->_d_vy.data()),
                        thrust::raw_pointer_cast(_device_data->_d_vz.data()),

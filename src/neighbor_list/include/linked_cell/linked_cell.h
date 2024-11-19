@@ -55,7 +55,7 @@ class LinkedCell {
   rbmd::Id _cell_count_within_cutoff = 1;
 
   thrust::device_vector<rbmd::Id> _per_atom_cell_id{};
-  __host__ void Build(Box box);
+  __host__ void Build();
 
   LinkedCellDeviceDataPtr* GetDataPtr();
 
@@ -90,5 +90,5 @@ class LinkedCell {
   std::shared_ptr<ConfigData> _config_data;
   void AllocDeviceMemory();
 
-  Box _box;   // TODO 可能不太适合 待重构
+  std::shared_ptr<Box> _box;   // TODO 可能不太适合 待重构
 };

@@ -105,7 +105,7 @@ int StructureReder::ReadHeader() {
             (*info->_range)[2][0] = coord_min[2];
             (*info->_range)[2][1] = coord_max[2];
             bool pbc[3] = {1, 1, 1};
-            box.Init(box._type, coord_min, coord_max, pbc);
+            box->Setup(box->_type, coord_min, coord_max, pbc);
             _line_start = &_mapped_memory[_locate];
             break;
           }

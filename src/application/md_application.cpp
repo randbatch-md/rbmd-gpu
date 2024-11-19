@@ -35,7 +35,7 @@ int MDApplication::Execute() {
   //		_executioner = std::make_shared<Executioner>(_simulate_nodes[i],
   //_simulate_pipelines[i]);
   //
-  //		_executioner->Init();
+  //		_executioner->Setup();
   //
   //		if (-1 == _executioner->Execute())
   //		{

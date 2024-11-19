@@ -23,7 +23,6 @@ LJCutCoulKspace::LJCutCoulKspace()
 {
   _rbl_neighbor_list_builder = std::make_shared<RblFullNeighborListBuilder>();
   _neighbor_list_builder = std::make_shared<FullNeighborListBuilder>();
-  this->_box = DataManager::getInstance().getMDData()->_box;
 
   CHECK_RUNTIME(MALLOC(&_d_total_evdwl, sizeof(rbmd::Real)));
   CHECK_RUNTIME(MALLOC(&_d_total_ecoul, sizeof(rbmd::Real)));
@@ -71,7 +70,7 @@ void LJCutCoulKspace::Init()
     _num_k =  POW(2 * _Kmax + 1,3.0) - 1;
 
   //Box box;
-  RBEInit(_box,_alpha,_RBE_P);
+  RBEInit(*_box,_alpha,_RBE_P);
 }
 
 void LJCutCoulKspace::Execute()
@@ -118,7 +117,7 @@ void LJCutCoulKspace::ComputeLJRBL()
 
     auto num_atoms = *(_structure_info_data->_num_atoms);
     op::LJCutCoulRBLForceOp<device::DEVICE_GPU>()(
-        _box,_device_data->_d_erf_table,
+        *_box,_device_data->_d_erf_table,
         r_core, _cut_off,num_atoms,neighbor_sample_num,
         _rbl_list->_selection_frequency,_alpha,_qqr2e,
         thrust::raw_pointer_cast(_device_data->_d_atoms_type.data()),
@@ -183,7 +182,7 @@ void LJCutCoulKspace::ComputeLJVerlet()
   //
   auto num_atoms = *(_structure_info_data->_num_atoms);
   op::LJCutCoulForceOp<device::DEVICE_GPU>()(
-                    _box,_device_data->_d_erf_table, _cut_off, num_atoms,_alpha,_qqr2e,
+                    *_box,_device_data->_d_erf_table, _cut_off, num_atoms,_alpha,_qqr2e,
                     thrust::raw_pointer_cast(_device_data->_d_atoms_type.data()),
                     thrust::raw_pointer_cast(_device_data->_d_sigma.data()),
                     thrust::raw_pointer_cast(_device_data->_d_eps.data()),
@@ -343,12 +342,12 @@ void LJCutCoulKspace::ComputeEwlad()
     CHECK_RUNTIME(MEMSET(value_Re_array, 0, _num_k *sizeof(rbmd::Real)));
     CHECK_RUNTIME(MEMSET(value_Im_array, 0, _num_k *sizeof(rbmd::Real)));
 
-    ComputeChargeStructureFactorEwald(_box, num_atoms, _Kmax,
+    ComputeChargeStructureFactorEwald(*_box, num_atoms, _Kmax,
       _alpha,_qqr2e, value_Re_array, value_Im_array);
 
 
     op::ComputeEwaldForceOp<device::DEVICE_GPU>()(
-        _box,num_atoms, _Kmax, _alpha,_qqr2e,
+        *_box,num_atoms, _Kmax, _alpha,_qqr2e,
         value_Re_array,value_Im_array,
         thrust::raw_pointer_cast(_device_data->_d_charge.data()),
         thrust::raw_pointer_cast(_device_data->_d_px.data()),
@@ -471,12 +470,12 @@ void LJCutCoulKspace::ComputeRBE()
   auto num_atoms = *(_structure_info_data->_num_atoms);
   _rhok_real_redue.resize(_RBE_P);
   _rhok_image_redue.resize(_RBE_P);
-  ComputeChargeStructureFactorRBE(_box, num_atoms, _Kmax,
+  ComputeChargeStructureFactorRBE(*_box, num_atoms, _Kmax,
       _alpha,_RBE_P,_qqr2e,_rhok_real_redue,_rhok_image_redue);
 
    //RBE Force
   op::ComputeRBEForceOp<device::DEVICE_GPU>()(
-        _box,num_atoms, _RBE_P,_alpha,_qqr2e,
+        *_box,num_atoms, _RBE_P,_alpha,_qqr2e,
         thrust::raw_pointer_cast(_rhok_real_redue.data()),
         thrust::raw_pointer_cast(_rhok_image_redue.data()),
         thrust::raw_pointer_cast(_device_data->_d_charge.data()),
@@ -530,7 +529,7 @@ void LJCutCoulKspace::ComputeLJCoulEnergy()
 
   auto num_atoms = *(_structure_info_data->_num_atoms);
   op::LJCutCoulEnergyOp<device::DEVICE_GPU>()(
-                _box,_device_data->_d_erf_table,_cut_off,num_atoms,_alpha,_qqr2e,
+                *_box,_device_data->_d_erf_table,_cut_off,num_atoms,_alpha,_qqr2e,
                 thrust::raw_pointer_cast(_device_data->_d_atoms_type.data()),
                 thrust::raw_pointer_cast(_device_data->_d_sigma.data()),
                 thrust::raw_pointer_cast(_device_data->_d_eps.data()),

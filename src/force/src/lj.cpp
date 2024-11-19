@@ -18,8 +18,6 @@ rbmd::Real test_ave_pe_init;
 LJ::LJ() {
   _rbl_neighbor_list_builder = std::make_shared<RblFullNeighborListBuilder>();
   _neighbor_list_builder = std::make_shared<FullNeighborListBuilder>();
-  this->_box = DataManager::getInstance().getMDData()->_box;
-
   CHECK_RUNTIME(MALLOC(&_d_total_evdwl, sizeof(rbmd::Real)));
   std::remove("thermo_local.txt");
 }
@@ -75,7 +73,7 @@ void LJ::ComputeLJRBL()
 
     auto num_atoms = *(_structure_info_data->_num_atoms);
     op::LJRBLForceOp<device::DEVICE_GPU>()(
-        _box, r_core, _cut_off,
+        *_box, r_core, _cut_off,
         num_atoms,neighbor_sample_num,_rbl_list->_selection_frequency,
         thrust::raw_pointer_cast(_device_data->_d_atoms_type.data()),
         thrust::raw_pointer_cast(_device_data->_d_sigma.data()),
@@ -133,7 +131,7 @@ void LJ::ComputeLJVerlet()
   auto num_atoms = *(_structure_info_data->_num_atoms);
   // compute LJ
   op::LJForceOp<device::DEVICE_GPU>()(
-              _box, _cut_off,num_atoms,
+              *_box, _cut_off,num_atoms,
               thrust::raw_pointer_cast(_device_data->_d_atoms_type.data()),
               thrust::raw_pointer_cast(_device_data->_d_sigma.data()),
               thrust::raw_pointer_cast(_device_data->_d_eps.data()),
@@ -189,7 +187,7 @@ void LJ::ComputeLJEnergy()
 
   auto num_atoms = *(_structure_info_data->_num_atoms);
   op::LJEnergyOp<device::DEVICE_GPU>()(
-                _box, _cut_off, num_atoms,
+                *_box, _cut_off, num_atoms,
                thrust::raw_pointer_cast(_device_data->_d_atoms_type.data()),
                thrust::raw_pointer_cast(_device_data->_d_sigma.data()),
                thrust::raw_pointer_cast(_device_data->_d_eps.data()),

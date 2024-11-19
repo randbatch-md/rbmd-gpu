@@ -16,7 +16,7 @@ class LinkedCellLocator {
   ~LinkedCellLocator() = default;
 
   std::shared_ptr<LinkedCell> _linked_cell = nullptr;
-  Box _box;   // TODO 可能不太适合 待重构
+  std::shared_ptr<Box> _box;   // TODO 可能不太适合 待重构
 
  public:
   static LinkedCellLocator &GetInstance();

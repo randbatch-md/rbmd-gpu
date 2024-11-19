@@ -1,6 +1,6 @@
 #include "model/box.h"
 
-void Box::Init(BoxType box_type, const rbmd::Real coord_min[3],
+void Box::Setup(BoxType box_type, const rbmd::Real coord_min[3],
                const rbmd::Real coord_max[3], const bool pbc[3]) {
   this->_type = box_type;
   for (int i = 0; i < 3; ++i) {

@@ -26,7 +26,6 @@ CVFF::CVFF()
 {
   _rbl_neighbor_list_builder = std::make_shared<RblFullNeighborListBuilder>();
   _neighbor_list_builder = std::make_shared<FullNeighborListBuilder>();
-  this->_box = DataManager::getInstance().getMDData()->_box;
 
   CHECK_RUNTIME(MALLOC(&_d_total_evdwl, sizeof(rbmd::Real)));
   CHECK_RUNTIME(MALLOC(&_d_total_ecoul, sizeof(rbmd::Real)));
@@ -84,7 +83,7 @@ void CVFF::Init()
     _num_k =  POW(2 * _Kmax + 1,3.0) - 1;
 
   //auto h_box = DataManager::getInstance().getMDData()->_box.get();
-  RBEInit(_box,_alpha,_RBE_P);
+  RBEInit(*_box,_alpha,_RBE_P);
 }
 
 void CVFF::Execute()
@@ -137,7 +136,7 @@ void CVFF::ComputeLJRBL()
 
     auto num_atoms = *(_structure_info_data->_num_atoms);
     op::SpecialLJCutCoulRBLForceOp<device::DEVICE_GPU>()(
-        _box,_device_data->_d_erf_table,
+        *_box,_device_data->_d_erf_table,
       r_core, _cut_off, num_atoms,neighbor_sample_num,
       _rbl_list->_selection_frequency,_alpha,_qqr2e,
         thrust::raw_pointer_cast(_device_data->_d_atoms_type.data()),
@@ -229,7 +228,7 @@ void CVFF::ComputeLJVerlet()
   //
   auto num_atoms = *(_structure_info_data->_num_atoms);
   op::SpecialLJCutCoulForceOp<device::DEVICE_GPU>()(
-                  _box,_device_data->_d_erf_table, _cut_off, num_atoms,_alpha,_qqr2e,
+                  *_box,_device_data->_d_erf_table, _cut_off, num_atoms,_alpha,_qqr2e,
                   thrust::raw_pointer_cast(_device_data->_d_atoms_type.data()),
                   thrust::raw_pointer_cast(_device_data->_d_atoms_id.data()),
                   thrust::raw_pointer_cast(_device_data->_d_sigma.data()),
@@ -332,7 +331,7 @@ void CVFF::ComputeSpecialCoulForce()
   //
   auto num_atoms = *(_structure_info_data->_num_atoms);
   op::ComputeSpecialCoulForceOp<device::DEVICE_GPU>()(
-    _box,num_atoms,_qqr2e,
+    *_box,num_atoms,_qqr2e,
   thrust::raw_pointer_cast(_device_data->_d_atoms_id.data()),
   thrust::raw_pointer_cast(_atom_id_to_idx.data()),
     thrust::raw_pointer_cast(_device_data->_d_atoms_vec.data()),
@@ -544,12 +543,12 @@ void CVFF::ComputeEwlad()
     CHECK_RUNTIME(MEMSET(value_Re_array, 0, _num_k *sizeof(rbmd::Real)));
     CHECK_RUNTIME(MEMSET(value_Im_array, 0, _num_k *sizeof(rbmd::Real)));
 
-    ComputeChargeStructureFactorEwald(_box, num_atoms, _Kmax,
+    ComputeChargeStructureFactorEwald(*_box, num_atoms, _Kmax,
       _alpha,_qqr2e, value_Re_array, value_Im_array);
 
 
     op::ComputeEwaldForceOp<device::DEVICE_GPU>()(
-        _box,num_atoms, _Kmax, _alpha,_qqr2e,
+        *_box,num_atoms, _Kmax, _alpha,_qqr2e,
         value_Re_array,value_Im_array,
         thrust::raw_pointer_cast(_device_data->_d_charge.data()),
         thrust::raw_pointer_cast(_device_data->_d_px.data()),
@@ -710,12 +709,12 @@ void CVFF::ComputeRBE()
   _rhok_real_redue.resize(_RBE_P);
   _rhok_image_redue.resize(_RBE_P);
 
-  ComputeChargeStructureFactorRBE(_box, num_atoms, _Kmax,
+  ComputeChargeStructureFactorRBE(*_box, num_atoms, _Kmax,
       _alpha,_RBE_P,_qqr2e,_rhok_real_redue,_rhok_image_redue);
 
    //RBE Force
   op::ComputeRBEForceOp<device::DEVICE_GPU>()(
-        _box,num_atoms, _RBE_P,_alpha,_qqr2e,
+        *_box,num_atoms, _RBE_P,_alpha,_qqr2e,
         thrust::raw_pointer_cast(_rhok_real_redue.data()),
         thrust::raw_pointer_cast(_rhok_image_redue.data()),
         thrust::raw_pointer_cast(_device_data->_d_charge.data()),
@@ -801,7 +800,7 @@ void CVFF::ComputeLJCoulEnergy()
 
   auto num_atoms = *(_structure_info_data->_num_atoms);
   op::SpeciaLJCutCoulEnergyOp<device::DEVICE_GPU>()(
-                _box,_device_data->_d_erf_table,_cut_off, num_atoms,_alpha,_qqr2e,
+                *_box,_device_data->_d_erf_table,_cut_off, num_atoms,_alpha,_qqr2e,
                 thrust::raw_pointer_cast(_device_data->_d_atoms_type.data()),
                 thrust::raw_pointer_cast(_device_data->_d_atoms_id.data()),
                 thrust::raw_pointer_cast(_device_data->_d_sigma.data()),
@@ -951,7 +950,7 @@ void CVFF::ComputeBondForce()
   auto num_atoms = *(_structure_info_data->_num_atoms);
   auto num_bonds = *(_structure_info_data->_num_bonds);
   op::ComputeBondForceOp<device::DEVICE_GPU>()(
-    _box,num_bonds,thrust::raw_pointer_cast(_atom_id_to_idx.data()),
+    *_box,num_bonds,thrust::raw_pointer_cast(_atom_id_to_idx.data()),
     thrust::raw_pointer_cast(_device_data->_d_bond_coeffs_k.data()),
     thrust::raw_pointer_cast(_device_data->_d_bond_coeffs_equilibrium.data()),
     thrust::raw_pointer_cast(_device_data->_d_bond_type.data()),
@@ -1042,7 +1041,7 @@ void CVFF::ComputeAngleForce()
 
   auto num_angles = *(_structure_info_data->_num_angles);
   op::ComputeAngleForceOp<device::DEVICE_GPU>()(
-    _box,num_angles,
+    *_box,num_angles,
     thrust::raw_pointer_cast(atom_id_to_idx.data()),
     thrust::raw_pointer_cast(_device_data->_d_angle_coeffs_k.data()),
     thrust::raw_pointer_cast(_device_data->_d_angle_coeffs_equilibrium.data()),
@@ -1137,7 +1136,7 @@ void CVFF::ComputeDihedralForce()
 
   auto num_dihedrals = *(_structure_info_data->_num_dihedrals);
   op::ComputeDihedralForceOp<device::DEVICE_GPU>()(
-    _box,num_dihedrals,
+    *_box,num_dihedrals,
     thrust::raw_pointer_cast(atom_id_to_idx.data()),
     thrust::raw_pointer_cast(_device_data->_d_dihedral_coeffs_k.data()),
     thrust::raw_pointer_cast(_device_data->_d_dihedral_coeffs_sign.data()),

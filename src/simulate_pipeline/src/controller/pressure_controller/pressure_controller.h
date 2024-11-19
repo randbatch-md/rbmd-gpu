@@ -10,9 +10,11 @@
 class PressureController {
 public:
   PressureController()
-      :_box( DataManager::getInstance().getMDData()->_box)
+      : _structure_info_data(
+           DataManager::getInstance().getMDData()->_structure_info_data)
       , _device_data(DataManager::getInstance().getDeviceData())
-      ,_structure_info_data(DataManager::getInstance().getMDData()->_structure_info_data)
+      ,
+       _box(DataManager::getInstance().getMDData()->_box)
       , _pressure(0){};
 
   virtual ~PressureController() = default;
@@ -32,7 +34,7 @@ public:
 protected:
   std::shared_ptr<StructureInfoData> _structure_info_data;
   std::shared_ptr<DeviceData> _device_data;
-  Box& _box;
+  std::shared_ptr<Box>  _box;
 
   rbmd::Real _pressure;
 };

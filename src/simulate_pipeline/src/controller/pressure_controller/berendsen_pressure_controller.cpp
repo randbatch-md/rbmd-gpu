@@ -88,7 +88,7 @@ void BerendsenPressureController::Update()
 
 void BerendsenPressureController::ComputePressure()
 {
-  auto volume = CalculateVolume(_box);
+  auto volume = CalculateVolume(*_box);
   auto  inv_volume = 1/volume;
 
   ComputeVirial();
@@ -140,19 +140,19 @@ void BerendsenPressureController::ReMap()
   bool pbc[3] = {1, 1, 1};
   for (int i = 0; i < 3; i++)
   {
-    oldlo = _box._coord_min[i];
-    oldhi = _box._coord_max[i];
+    oldlo = _box->_coord_min[i];
+    oldhi = _box->_coord_max[i];
     ctr = 0.5 * (oldlo + oldhi);
-    _box._coord_min[i] = (oldlo - ctr) * _dilation.data[i] + ctr;
-    _box._coord_max[i] = (oldhi - ctr) * _dilation.data[i] + ctr;
+    _box->_coord_min[i] = (oldlo - ctr) * _dilation.data[i] + ctr;
+    _box->_coord_max[i] = (oldhi - ctr) * _dilation.data[i] + ctr;
   }
-  _box.Init(_box._type, _box._coord_min, _box._coord_max, pbc);
+  _box->Setup(_box->_type, _box->_coord_min, _box->_coord_max, pbc);
 
   // CHECK_RUNTIME(
   //     MEMCPY(_box., h_box, sizeof(Box), H2D));
 
-  std::cout << "range.Min=" <<  _box._coord_min[0] << ",range.Max="
-  << _box._coord_max[0] << std::endl;
+  std::cout << "range.Min=" <<  _box->_coord_min[0] << ",range.Max="
+  << _box->_coord_max[0] << std::endl;
 
   // convert real coords
   Lamda2X();
@@ -163,7 +163,7 @@ void BerendsenPressureController::X2Lamda(){
   auto num_atoms = *(_structure_info_data->_num_atoms);
 
   op::X2LamdaOp<device::DEVICE_GPU>()(
-    _box,num_atoms,
+    *_box,num_atoms,
     thrust::raw_pointer_cast(_device_data->_d_px.data()),
     thrust::raw_pointer_cast(_device_data->_d_py.data()),
     thrust::raw_pointer_cast(_device_data->_d_pz.data()));
@@ -173,7 +173,7 @@ void BerendsenPressureController::Lamda2X(){
   auto num_atoms = *(_structure_info_data->_num_atoms);
 
   op::Lamda2XOp<device::DEVICE_GPU>()(
-    _box,num_atoms,
+    *_box,num_atoms,
     thrust::raw_pointer_cast(_device_data->_d_px.data()),
     thrust::raw_pointer_cast(_device_data->_d_py.data()),
     thrust::raw_pointer_cast(_device_data->_d_pz.data()));
