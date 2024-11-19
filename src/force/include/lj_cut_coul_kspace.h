@@ -5,11 +5,11 @@
 #include "../common/erf_table.h"
 #include "neighbor_list/include/neighbor_list/neighbor_list.h"
 #include "neighbor_list/include/neighbor_list_builder/full_neighbor_list_builder.h"
-class LJCutCoulKspaceForce : public Force
+class LJCutCoulKspace : public Force
 {
 public:
-  LJCutCoulKspaceForce();
-  virtual ~LJCutCoulKspaceForce();
+  LJCutCoulKspace();
+  virtual ~LJCutCoulKspace();
 
   void Init() override;
   void  Execute() override;

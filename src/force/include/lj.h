@@ -4,10 +4,10 @@
 #include "model/box.h"
 #include "neighbor_list/include/neighbor_list/neighbor_list.h"
 #include "neighbor_list/include/neighbor_list_builder/full_neighbor_list_builder.h"
-class LJForce : public Force {
+class LJ : public Force {
  public:
-  LJForce();
-  virtual ~LJForce();
+  LJ();
+  virtual ~LJ();
 
  void Init() override;
  void  Execute() override;

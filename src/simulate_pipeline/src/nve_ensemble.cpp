@@ -3,8 +3,8 @@
 
 #include "default_position_controller.h"
 #include "default_velocity_controller.h"
-#include "ljforce.h"
-#include "lj_cut_coul_kspace_force.h"
+#include "lj.h"
+#include "lj_cut_coul_kspace.h"
 #include "cvff.h"
 #include "tersoff.h"
 #include "energy_stable_scheme_controller.h"
@@ -13,7 +13,7 @@
 NVEensemble::NVEensemble() {
   _position_controller = std::make_shared<DefaultPositionController>();
   _velocity_controller = std::make_shared<DefaultVelocityController>();
-  _force_controller = std::make_shared<LJForce>(); // TODO: json file forcetype
+  _force_controller = std::make_shared<LJ>(); // TODO: json file forcetype
   _energy_stable_scheme_controller = std::make_shared<EnergyStableSchemeController>();
 }
 

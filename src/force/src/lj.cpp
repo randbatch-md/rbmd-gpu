@@ -1,4 +1,4 @@
-#include "ljforce.h"
+#include "lj.h"
 
 #include <thrust/device_ptr.h>
 
@@ -6,7 +6,7 @@
 #include "../../common/rbmd_define.h"
 #include "../../common/types.h"
 #include "../data_manager/include/model/md_data.h"
-#include "ljforce_op/ljforce_op.h"
+#include "lj_op/lj_op.h"
 #include "neighbor_list/include/neighbor_list_builder/full_neighbor_list_builder.h"
 #include "neighbor_list/include/neighbor_list_builder/half_neighbor_list_builder.h"
 #include "neighbor_list/include/neighbor_list_builder/rbl_full_neighbor_list_builder.h"
@@ -15,7 +15,7 @@
 extern int test_current_step;
 rbmd::Real test_ave_pe_rbl;
 rbmd::Real test_ave_pe_init;
-LJForce::LJForce() {
+LJ::LJ() {
   _rbl_neighbor_list_builder = std::make_shared<RblFullNeighborListBuilder>();
   _neighbor_list_builder = std::make_shared<FullNeighborListBuilder>();
   this->_box = DataManager::getInstance().getMDData()->_box;
@@ -24,12 +24,12 @@ LJForce::LJForce() {
   std::remove("thermo_local.txt");
 }
 
-LJForce::~LJForce()
+LJ::~LJ()
 {
   CHECK_RUNTIME(FREE(_d_total_evdwl));
 }
 
-void LJForce::Init() {
+void LJ::Init() {
   _cut_off = DataManager::getInstance().getConfigData()->Get
  <rbmd::Real>("cut_off", "hyper_parameters", "neighbor");
 
@@ -38,7 +38,7 @@ void LJForce::Init() {
         "type", "hyper_parameters", "neighbor");
 }
 
-void LJForce::Execute()
+void LJ::Execute()
 {
   if (_neighbor_type == "RBL")  // RBL
   {
@@ -53,7 +53,7 @@ void LJForce::Execute()
   EvaluatePotentialenergy();
 }
 
-void LJForce::ComputeLJRBL()
+void LJ::ComputeLJRBL()
 {
     // rbl_neighbor_list_build
     auto start = std::chrono::high_resolution_clock::now();
@@ -113,7 +113,7 @@ void LJForce::ComputeLJRBL()
     ComputeLJEnergy();
 }
 
-void LJForce::ComputeLJVerlet()
+void LJ::ComputeLJVerlet()
 {
   // neighbor_list_build
   auto start = std::chrono::high_resolution_clock::now();
@@ -131,7 +131,7 @@ void LJForce::ComputeLJVerlet()
   CHECK_RUNTIME(MEMSET(_d_total_evdwl, 0, sizeof(rbmd::Real)));
 
   auto num_atoms = *(_structure_info_data->_num_atoms);
-  // compute LJForce
+  // compute LJ
   op::LJForceOp<device::DEVICE_GPU>()(
               _box, _cut_off,num_atoms,
               thrust::raw_pointer_cast(_device_data->_d_atoms_type.data()),
@@ -178,7 +178,7 @@ void LJForce::ComputeLJVerlet()
 
 }
 
-void LJForce::ComputeLJEnergy()
+void LJ::ComputeLJEnergy()
 {
   // energy
   _list = _neighbor_list_builder->Build();
@@ -230,7 +230,7 @@ void LJForce::ComputeLJEnergy()
 
 }
 
-void LJForce::EvaluatePotentialenergy()
+void LJ::EvaluatePotentialenergy()
 {
   _ave_pe_rbl = _ave_evdwl_rbl;
   test_ave_pe_rbl = _ave_pe_rbl;

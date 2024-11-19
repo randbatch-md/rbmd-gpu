@@ -49,20 +49,20 @@ private:
   std::string, std::string>, TersoffParams> TersoffData;
   std::ifstream _potential_file;
 
-  TersoffParams*  params;
-  rbmd::Id nelements;        // # of unique elements
-  char **elements;      // names of unique elements
-  rbmd::Id *map;             // mapping from atom types to elements
-  int **setflag;      // 0/1 = whether each i,j has been set
+  TersoffParams*  _params;
+  rbmd::Id _nelements;        // # of unique elements
+  char**    _elements;      // names of unique elements
+  rbmd::Id* _map;             // mapping from atom types to elements
+  rbmd::Id** _setflag;      // 0/1 = whether each i,j has been set
 
 
   //
-  int *elem1param;      // mapping from elements to parameters
-  int **elem2param;     // mapping from element pairs to parameters
-  int ***elem3param;    // mapping from element triplets to parameters
-  int nparams;          // # of stored parameter sets
-  int maxparam;         // max # of parameter sets
+  rbmd::Id* _elem1param;      // mapping from elements to parameters
+  rbmd::Id** _elem2param;     // mapping from element pairs to parameters
+  rbmd::Id*** _elem3param;    // mapping from element triplets to parameters
+  rbmd::Id _nparams;          // # of stored parameter sets
+  rbmd::Id _maxparam;         // max # of parameter sets
 
-  rbmd::Real cutmax;   //max cutoff for all elements
+  rbmd::Real _cutmax;   //max cutoff for all elements
 };
 

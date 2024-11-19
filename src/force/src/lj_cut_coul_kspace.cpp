@@ -1,4 +1,4 @@
-#include "lj_cut_coul_kspace_force.h"
+#include "lj_cut_coul_kspace.h"
 
 #include <thrust/device_ptr.h>
 
@@ -6,7 +6,8 @@
 #include "../../common/rbmd_define.h"
 #include "../../common/types.h"
 #include "../../common/unit_factor.h"
-#include "ljforce_op/ljforce_op.h"
+#include "lj_op/lj_op.h"
+#include "lj_cut_coul_kspace_op/lj_cut_coul_kspace_op.h"
 #include "../common/RBEPSample.h"
 #include "../common/erf_table.h"
 #include "neighbor_list/include/neighbor_list_builder/half_neighbor_list_builder.h"
@@ -18,7 +19,7 @@
 extern int test_current_step;
 extern std::map<std::string, UNIT> unit_factor_map;
 
-LJCutCoulKspaceForce::LJCutCoulKspaceForce()
+LJCutCoulKspace::LJCutCoulKspace()
 {
   _rbl_neighbor_list_builder = std::make_shared<RblFullNeighborListBuilder>();
   _neighbor_list_builder = std::make_shared<FullNeighborListBuilder>();
@@ -29,14 +30,14 @@ LJCutCoulKspaceForce::LJCutCoulKspaceForce()
   std::remove("thermo_local.txt");
 }
 
-LJCutCoulKspaceForce::~LJCutCoulKspaceForce()
+LJCutCoulKspace::~LJCutCoulKspace()
 {
   CHECK_RUNTIME(FREE(_d_total_evdwl));
   CHECK_RUNTIME(FREE(_d_total_ecoul));
 
 }
 
-void LJCutCoulKspaceForce::Init()
+void LJCutCoulKspace::Init()
 {
   auto unit = DataManager::getInstance().getConfigData()->Get
 <std::string>("unit", "init_configuration", "read_data");
@@ -73,7 +74,7 @@ void LJCutCoulKspaceForce::Init()
   RBEInit(_box,_alpha,_RBE_P);
 }
 
-void LJCutCoulKspaceForce::Execute()
+void LJCutCoulKspace::Execute()
 {
   ComputeLJCutCoulForce();
   ComputeKspaceForce();
@@ -82,7 +83,7 @@ void LJCutCoulKspaceForce::Execute()
   EvaluatePotentialenergy();
 }
 
-void LJCutCoulKspaceForce::ComputeLJCutCoulForce()
+void LJCutCoulKspace::ComputeLJCutCoulForce()
 {
   //
   if ("RBL" ==_neighbor_type)
@@ -95,7 +96,7 @@ void LJCutCoulKspaceForce::ComputeLJCutCoulForce()
   }
 }
 
-void LJCutCoulKspaceForce::ComputeLJRBL()
+void LJCutCoulKspace::ComputeLJRBL()
 {
     // rbl_neighbor_list_build
     auto start = std::chrono::high_resolution_clock::now();
@@ -160,7 +161,7 @@ void LJCutCoulKspaceForce::ComputeLJRBL()
     ComputeLJCoulEnergy();
 }
 
-void LJCutCoulKspaceForce::ComputeLJVerlet()
+void LJCutCoulKspace::ComputeLJVerlet()
 {
   //neighbor_list_build
   auto start = std::chrono::high_resolution_clock::now();
@@ -229,7 +230,7 @@ void LJCutCoulKspaceForce::ComputeLJVerlet()
 
 }
 
-void LJCutCoulKspaceForce::ComputeKspaceForce()
+void LJCutCoulKspace::ComputeKspaceForce()
 {
   if("RBE" == _coulomb_type)
   {
@@ -241,7 +242,7 @@ void LJCutCoulKspaceForce::ComputeKspaceForce()
   }
 }
 
-void LJCutCoulKspaceForce::SumForces()
+void LJCutCoulKspace::SumForces()
 {
   TransformForces(_device_data->_d_fx,_device_data->_d_force_ljcoul_x,
     _device_data->_d_force_kspace_x);
@@ -253,7 +254,7 @@ void LJCutCoulKspaceForce::SumForces()
     _device_data->_d_force_kspace_z);
 }
 
-void LJCutCoulKspaceForce::ComputeChargeStructureFactorEwald(
+void LJCutCoulKspace::ComputeChargeStructureFactorEwald(
     Box box,
     rbmd::Id num_atoms,
     rbmd::Id Kmax,
@@ -330,7 +331,7 @@ void LJCutCoulKspaceForce::ComputeChargeStructureFactorEwald(
 
 }
 
-void LJCutCoulKspaceForce::ComputeEwlad()
+void LJCutCoulKspace::ComputeEwlad()
 {
     auto num_atoms = *(_structure_info_data->_num_atoms);
     rbmd::Real* value_Re_array;
@@ -380,7 +381,7 @@ void LJCutCoulKspaceForce::ComputeEwlad()
 }
 
 
-void LJCutCoulKspaceForce::RBEInit(Box box,rbmd::Real alpha,rbmd::Id RBE_P)
+void LJCutCoulKspace::RBEInit(Box box,rbmd::Real alpha,rbmd::Id RBE_P)
 {
   auto num_atoms = *(_structure_info_data->_num_atoms);
   Real3 sigma = { rbmd::Real((SQRT(alpha / 2.0) * box._length[0]/M_PI)),
@@ -405,7 +406,7 @@ void LJCutCoulKspaceForce::RBEInit(Box box,rbmd::Real alpha,rbmd::Id RBE_P)
     thrust::raw_pointer_cast(_psample_key.data()));
 }
 
-void LJCutCoulKspaceForce::ComputeChargeStructureFactorRBE(
+void LJCutCoulKspace::ComputeChargeStructureFactorRBE(
    Box box,
    rbmd::Id num_atoms,
    rbmd::Id Kmax,
@@ -464,7 +465,7 @@ void LJCutCoulKspaceForce::ComputeChargeStructureFactorRBE(
 
 }
 
-void LJCutCoulKspaceForce::ComputeRBE()
+void LJCutCoulKspace::ComputeRBE()
 {
   //
   auto num_atoms = *(_structure_info_data->_num_atoms);
@@ -508,7 +509,7 @@ void LJCutCoulKspaceForce::ComputeRBE()
   virial_kspace.end(), _device_data->_d_virial_kspace.begin());
 }
 
-void LJCutCoulKspaceForce::ComputeLJCoulEnergy()
+void LJCutCoulKspace::ComputeLJCoulEnergy()
 {
   // energy
   //neighbor_list_build
@@ -572,7 +573,7 @@ void LJCutCoulKspaceForce::ComputeLJCoulEnergy()
 
 }
 
-void LJCutCoulKspaceForce::ComputeSelfEnergy(
+void LJCutCoulKspace::ComputeSelfEnergy(
   rbmd::Real  alpha,
   rbmd::Real  qqr2e,
   rbmd::Real& ave_self_energy)
@@ -592,7 +593,7 @@ void LJCutCoulKspaceForce::ComputeSelfEnergy(
   ave_self_energy =  total_self_energy / num_atoms;
 }
 
-void LJCutCoulKspaceForce::ComputeKspaceEnergy(
+void LJCutCoulKspace::ComputeKspaceEnergy(
     Box box,
     rbmd::Id num_atoms,
     rbmd::Id Kmax,
@@ -646,7 +647,7 @@ void LJCutCoulKspaceForce::ComputeKspaceEnergy(
   ave_ekspace = total_energy_ewald / num_atoms;
 }
 
-void LJCutCoulKspaceForce::EvaluatePotentialenergy()
+void LJCutCoulKspace::EvaluatePotentialenergy()
 {
   _ave_pe_rbl = _ave_evdwl_rbl + _ave_ecoul_rbl +_ave_ekspace;
   //test_ave_pe_rbl = _ave_pe_rbl;

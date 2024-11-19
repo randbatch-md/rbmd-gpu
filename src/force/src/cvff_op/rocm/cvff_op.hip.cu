@@ -3,7 +3,7 @@
 #include "../common/rbmd_define.h"
 #include "cvff_op.h"
 #include "model/box.h"
-#include "../ljforce_op/rocm/ljforce_op.hip.cu"
+#include "../lj_cut_coul_kspace_op/rocm/lj_cut_coul_kspace_op.hip.cu"
 
 namespace op{
 //verlet-list : SpecialLJCutCoul

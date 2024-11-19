@@ -1,4 +1,4 @@
-//#include "ljforce_op.h"
+//#include "lj_op.h"
 
 //namespace op {
 // template <typename FPTYPE>
