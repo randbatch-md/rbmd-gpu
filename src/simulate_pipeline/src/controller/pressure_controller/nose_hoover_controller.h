@@ -3,10 +3,10 @@
 #include "position_controller.h"
 #include "velocity_controller.h"
 
-class NoseHooverPressureController : public PressureController {
+class NoseHooverController : public PressureController {
 public:
-  NoseHooverPressureController();
-  virtual ~NoseHooverPressureController();
+  NoseHooverController();
+  virtual ~NoseHooverController();
 
   void Init() override;
   void Update() override;
@@ -100,4 +100,7 @@ private:
   rbmd::Id _eta_mass_flag;
   rbmd::Real _drag, _tdrag_factor; // drag factor on particle thermostat
   rbmd::Real _pdrag_factor;       // drag factor on barostat
+
+  std::string _ensemble_type;
+  bool  _pressure_flag = false;
 };

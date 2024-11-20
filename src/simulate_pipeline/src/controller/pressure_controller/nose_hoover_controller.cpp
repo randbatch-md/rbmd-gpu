@@ -1,4 +1,4 @@
-#include "nose_hoover_pressure_controller.h"
+#include "nose_hoover_controller.h"
 #include "temperature_controller.h"
 #include "update_temperature_op.h"
 #include <thrust/device_ptr.h>
@@ -14,21 +14,27 @@
 
 extern int test_current_step;
 
-NoseHooverPressureController::NoseHooverPressureController() {
+NoseHooverController::NoseHooverController() {
   std::remove("temperature.txt");
   CHECK_RUNTIME(MALLOC(&_d_temp_contrib, sizeof(rbmd::Real)));
 
   _position_controller = std::make_shared<DefaultPositionController>();
   _velocity_controller = std::make_shared<DefaultVelocityController>();
 }
-NoseHooverPressureController::~NoseHooverPressureController() {
+NoseHooverController::~NoseHooverController() {
   CHECK_RUNTIME(FREE(_d_temp_contrib));
 };
 
-void NoseHooverPressureController::Init() {
+void NoseHooverController::Init() {
 
   _velocity_controller->Init();
   _position_controller->Init();
+
+  _ensemble_type =DataManager::getInstance().getConfigData()->
+  Get<std::string>("ensemble", "execution");
+  if("NPT" == _ensemble_type) {
+    _pressure_flag = true;
+  }
 
   //read target temperature_array
   auto temperature_array=DataManager::getInstance().getConfigData()->
@@ -38,12 +44,14 @@ void NoseHooverPressureController::Init() {
   _t_damp = temperature_array[2];
 
   //read target pressure_array
-  auto pressure_array=DataManager::getInstance().getConfigData()->
-    GetArray<rbmd::Real>("pressure", "execution"); //[1.0,1.0,1.0,10.0]
-  _pressure_start = pressure_array[0];
-  _pressure_stop = pressure_array[1];
-  _pressure_damp = pressure_array[2];
-  _bulkmodulus = pressure_array[3];
+  if(_pressure_flag) {
+    auto pressure_array=DataManager::getInstance().getConfigData()->
+      GetArray<rbmd::Real>("pressure", "execution"); //[1.0,1.0,1.0,10.0]
+    _pressure_start = pressure_array[0];
+    _pressure_stop = pressure_array[1];
+    _pressure_damp = pressure_array[2];
+    _bulkmodulus = pressure_array[3];
+  }
 
   //read timestep
   _dt =  DataManager::getInstance().getConfigData()->Get<rbmd::Real>(
@@ -149,11 +157,11 @@ void NoseHooverPressureController::Init() {
   SetUp();
 }
 
-void NoseHooverPressureController::Update()
+void NoseHooverController::Update()
 {
 }
 
-void NoseHooverPressureController::ComputeTemperature(){
+void NoseHooverController::ComputeTemperature(){
   rbmd::Id num_atoms = *(_structure_info_data->_num_atoms);
   CHECK_RUNTIME(MEMSET(_d_temp_contrib, 0, sizeof(rbmd::Real)));
 
@@ -170,7 +178,7 @@ void NoseHooverPressureController::ComputeTemperature(){
   // std::cout << "temperature= " << _temperature << std::endl;
 }
 
-void NoseHooverPressureController::ComputeVirial()
+void NoseHooverController::ComputeVirial()
 {
   TransformForces(_device_data->_d_virial,_device_data->_d_virial_lj,
     _device_data->_d_virial_specialcoul,_device_data->_d_virial_kspace,
@@ -178,7 +186,7 @@ void NoseHooverPressureController::ComputeVirial()
     _device_data->_d_virial_dihedral);
 }
 
-void NoseHooverPressureController::ComputePressure()
+void NoseHooverController::ComputePressure()
 {
   auto volume = CalculateVolume(*_box);
   auto  inv_volume = 1/volume;
@@ -193,22 +201,20 @@ void NoseHooverPressureController::ComputePressure()
   //std::cout << " pressure=" << _pressure << std::endl;
 }
 
-void NoseHooverPressureController::Couple()
+void NoseHooverController::Couple()
 {
   REAL_DATA(_p_current)[0] = REAL_DATA(_p_current)[1] =
     REAL_DATA(_p_current)[2] = _pressure;
 }
 
-void NoseHooverPressureController::SetUp()
+void NoseHooverController::SetUp()
 {
   rbmd::Id num_atoms = *(_structure_info_data->_num_atoms);
 
   ComputeTemperature();       // current temperature
   ComputeTempTarget();  //target temperature and ke
 
-  auto press_ctrl_type = DataManager::getInstance().getConfigData()->Get
-    <std::string>("press_ctrl_type", "execution");
-  if ("NOSE_HOOVER" ==  press_ctrl_type)
+  if (_pressure_flag)
   {
     ComputePressTarget();  //target pressure
     ComputePressure();   //current pressure
@@ -228,7 +234,7 @@ void NoseHooverPressureController::SetUp()
       _eta_dot[ich - 1] - _kB * _t_target) /_eta_mass[ich];
   }
 
-  if ("NOSE_HOOVER" ==  press_ctrl_type)
+  if (_pressure_flag)
   {
     // masses and initial forces on barostat variables
     rbmd::Real kt = _kB * _t_target;
@@ -259,7 +265,7 @@ void NoseHooverPressureController::SetUp()
 
 }
 
-void NoseHooverPressureController::ComputeTempTarget()
+void NoseHooverController::ComputeTempTarget()
 {
     if (_t_stop == _t_start) //Thermostatic simulation
     {
@@ -285,7 +291,7 @@ void NoseHooverPressureController::ComputeTempTarget()
     _ke_target = _tdof * _kB * _t_target;
 }
 
-void NoseHooverPressureController::ComputePressTarget()
+void NoseHooverController::ComputePressTarget()
 {
     _p_hydro = 0.0;
     for (int i = 0; i < 3; i++)
@@ -324,7 +330,7 @@ void NoseHooverPressureController::ComputePressTarget()
   // if deviatoric, recompute sigma each time p_target changes
 }
 
-void NoseHooverPressureController::NHOmegaDot()
+void NoseHooverController::NHOmegaDot()
 {
   rbmd::Id num_atoms = *(_structure_info_data->_num_atoms);
 
@@ -369,7 +375,7 @@ void NoseHooverPressureController::NHOmegaDot()
   }
 }
 
-void NoseHooverPressureController::NH_V_Press()
+void NoseHooverController::NH_V_Press()
 {
   Real3 factor;
   REAL_DATA(factor)[0] = EXP(-_dt4 * (_omega_dot[0] + _mtk_term2));
@@ -390,11 +396,9 @@ void NoseHooverPressureController::NH_V_Press()
                   thrust::raw_pointer_cast(_device_data->_d_vz.data()));
 }
 
-void NoseHooverPressureController::InitialIntegrate()
+void NoseHooverController::InitialIntegrate()
 {
-  auto press_ctrl_type = DataManager::getInstance().getConfigData()->Get
-    <std::string>("press_ctrl_type", "execution");
-  if ("NOSE_HOOVER" ==  press_ctrl_type)
+  if (_pressure_flag)
   {
     // update eta_press_dot
     NHCPressIntegrate();
@@ -405,7 +409,7 @@ void NoseHooverPressureController::InitialIntegrate()
   NHCTempIntegrate();  //perform half-step update of chain thermostat variables
 
   // need to recompute pressure to account for change in KE
-  if ("NOSE_HOOVER" ==  press_ctrl_type)
+  if (_pressure_flag)
   {
     //ComputeTempe();     //current temperature
     ComputePressure();  //current pressure
@@ -419,27 +423,25 @@ void NoseHooverPressureController::InitialIntegrate()
 
   _velocity_controller->Update();
 
-  if ("NOSE_HOOVER" ==  press_ctrl_type)
+  if (_pressure_flag)
   {
     ResetBox();    // reset box in the first half-step
   }
 
   _position_controller->Update();
 
-  if ("NOSE_HOOVER" ==  press_ctrl_type)
+  if (_pressure_flag)
   {
     ResetBox(); // Reset the box in the second half-step
   }
 }
 
-void NoseHooverPressureController::FinalIntegrate()
+void NoseHooverController::FinalIntegrate()
 {
 
   _velocity_controller->Update();
 
-  auto press_ctrl_type = DataManager::getInstance().getConfigData()->Get
-    <std::string>("press_ctrl_type", "execution");
-  if ("NOSE_HOOVER" ==  press_ctrl_type)
+  if (_pressure_flag)
   {
     NH_V_Press();
   }
@@ -447,7 +449,7 @@ void NoseHooverPressureController::FinalIntegrate()
   // need to compute new temperature and pressure after velocities rescaled
   ComputeTemperature(); // current temperature
 
-  if ("NOSE_HOOVER" ==  press_ctrl_type)
+  if (_pressure_flag)
   {
     ComputePressure(); // current pressure
     Couple();
@@ -458,7 +460,7 @@ void NoseHooverPressureController::FinalIntegrate()
   // update eta_press_dot
   NHCTempIntegrate();
 
-  if ("NOSE_HOOVER" ==  press_ctrl_type)
+  if (_pressure_flag)
   {
     NHCPressIntegrate();
   }
@@ -478,7 +480,7 @@ void NoseHooverPressureController::FinalIntegrate()
   outfile.close();
 }
 
-void NoseHooverPressureController::NHCTempIntegrate()
+void NoseHooverController::NHCTempIntegrate()
 {
   rbmd::Real expfac;
   rbmd::Real ke_current = _tdof * _kB * _temperature;
@@ -561,7 +563,7 @@ void NoseHooverPressureController::NHCTempIntegrate()
   }
 }
 
-void NoseHooverPressureController::NHCPressIntegrate()
+void NoseHooverController::NHCPressIntegrate()
 {
   rbmd::Id pdof;
   rbmd::Real expfac, factor_etap, ke_current;
@@ -645,7 +647,7 @@ void NoseHooverPressureController::NHCPressIntegrate()
   }
 }
 
-void NoseHooverPressureController::ResetBox()
+void NoseHooverController::ResetBox()
 {
   rbmd::Real oldlo, oldhi;
   rbmd::Real expfac;
@@ -712,7 +714,7 @@ void NoseHooverPressureController::ResetBox()
 
 }
 
-void NoseHooverPressureController::X2Lamda(){
+void NoseHooverController::X2Lamda(){
   auto num_atoms = *(_structure_info_data->_num_atoms);
 
   op::X2LamdaOp<device::DEVICE_GPU>()(
@@ -722,7 +724,7 @@ void NoseHooverPressureController::X2Lamda(){
     thrust::raw_pointer_cast(_device_data->_d_pz.data()));
 }
 
-void NoseHooverPressureController::Lamda2X(){
+void NoseHooverController::Lamda2X(){
   auto num_atoms = *(_structure_info_data->_num_atoms);
 
   op::Lamda2XOp<device::DEVICE_GPU>()(
@@ -732,7 +734,7 @@ void NoseHooverPressureController::Lamda2X(){
     thrust::raw_pointer_cast(_device_data->_d_pz.data()));
 }
 
-void NoseHooverPressureController::Computedof()
+void NoseHooverController::Computedof()
 {
   rbmd::Id num_atoms = *(_structure_info_data->_num_atoms);
   auto extra_dof = 3; //dimension =3

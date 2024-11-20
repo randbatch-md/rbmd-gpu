@@ -5,7 +5,7 @@
 #include "shake_controller.h"
 #include "temperature_controller.h"
 #include "pressure_controller.h"
-#include "nose_hoover_pressure_controller.h"
+#include "nose_hoover_controller.h"
 #include "velocity_controller.h"
 #include "energy_stable_scheme_controller.h"
 
@@ -54,6 +54,8 @@ class Ensemble : public Object {
   std::shared_ptr<ShakeController> _shake_controller;
   std::shared_ptr<TemperatureController> _temperature_controller;
   std::shared_ptr<PressureController> _pressure_controller;
-  std::shared_ptr<NoseHooverPressureController> _NoseHoover_controller;
+  std::shared_ptr<NoseHooverController> _NoseHoover_controller;
   std::shared_ptr<EnergyStableSchemeController> _energy_stable_scheme_controller;
+
+  std::string _temp_ctrl_type, _press_ctrl_type;
 };

@@ -20,7 +20,7 @@ BerendsenController::~BerendsenController() {
 
 void BerendsenController::Init() {
   auto temperature_array=DataManager::getInstance().getConfigData()->
-GetArray<rbmd::Real>("temperature", "execution"); //[1.0,1.0,0.1]
+    GetArray<rbmd::Real>("temperature", "execution"); //[1.0,1.0,0.1]
   _temperature_start = temperature_array[0];
   _temperature_stop = temperature_array[1];
   _temperature_damp = temperature_array[2];
@@ -69,7 +69,8 @@ void BerendsenController::ComputeTemperature() {
 
   if (available_shake)  // H2O / NACl / EAM ...
   {
-    bool shake = DataManager::getInstance().getConfigData()->GetJudge<bool>( "fix_shake", "hyper_parameters", "extend");
+    bool shake = DataManager::getInstance().getConfigData()->GetJudge<bool>
+      ("fix_shake", "hyper_parameters", "extend");
     if (shake) {
       _temperature = 0.5 * _temp_sum / ((3 * num_atoms - num_atoms - 3) * _kB / 2.0);
     } else {

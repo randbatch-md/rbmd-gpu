@@ -21,6 +21,8 @@ NVTensemble::NVTensemble()
   _force_controller = std::make_shared<LJCutCoulKspace>(); // TODO: json file forcetype
   _temperature_controller = std::make_shared<BerendsenController>();
   _shake_controller = std::make_shared<ShakeController>();
+
+  _NoseHoover_controller = std::make_shared<NoseHooverController>();
 }
 
 void NVTensemble::Init() {
@@ -31,52 +33,83 @@ void NVTensemble::Init() {
   _force_controller->Init();
   _force_controller->Execute();
   _shake_controller->Init();
+
+  _temp_ctrl_type = DataManager::getInstance().getConfigData()->Get
+  <std::string>("temp_ctrl_type", "execution");
+  if("NOSE_HOOVER" == _temp_ctrl_type) {
+    _NoseHoover_controller->Init();
+  }
 }
 
 void NVTensemble::Presolve() {}
 
 void NVTensemble::Solve() {
-  auto start = std::chrono::high_resolution_clock::now();
+   bool use_shake = DataManager::getInstance().getConfigData()->GetJudge
+    <bool>("fix_shake", "hyper_parameters", "extend");
 
-  _velocity_controller->Update();
-
-  _position_controller->Update();
-
-  bool use_shake = DataManager::getInstance().getConfigData()->GetJudge<bool>
-  ( "fix_shake", "hyper_parameters", "extend");; //TODO: json file
-  if (use_shake)
+  if("NOSE_HOOVER" == _temp_ctrl_type)
   {
-    _shake_controller->ShakeA();
+    _NoseHoover_controller->InitialIntegrate();//_velocity_controller->Update();
+                                  //_position_controller->Update();
+    if (true == use_shake)
+    {
+      _shake_controller->ShakeA();
+    }
+
+    _force_controller->Execute();
+
+    _NoseHoover_controller->FinalIntegrate(); //_velocity_controller->Update();
+
+    if (true == use_shake)
+    {
+      _shake_controller->ShakeB();
+    }
   }
-
-  _force_controller->Execute();
-
-  if ("LANGEVIN"==DataManager::getInstance().getConfigData()->Get<std::string>
-    ("temp_ctrl_type", "execution"))
+  else
   {
+    auto start = std::chrono::high_resolution_clock::now();
+
+    _velocity_controller->Update();
+
+    _position_controller->Update();
+
+    bool use_shake = DataManager::getInstance().getConfigData()->GetJudge<bool>
+    ( "fix_shake", "hyper_parameters", "extend");; //TODO: json file
+    if (use_shake)
+    {
+      _shake_controller->ShakeA();
+    }
+
+    _force_controller->Execute();
+
+    if ("LANGEVIN"==DataManager::getInstance().getConfigData()->Get<std::string>
+      ("temp_ctrl_type", "execution"))
+    {
+      _temperature_controller->Update();
+    }
+
+    _velocity_controller->Update();
+
+    if (use_shake)
+    {
+      _shake_controller->ShakeB();
+    }
+
+    _temperature_controller->ComputeTemperature();
+
+    if ("LANGEVIN" == DataManager::getInstance().getConfigData()->Get<std::string>
+      ("temp_ctrl_type", "execution"))
+      return;
+
     _temperature_controller->Update();
+
+    CHECK_RUNTIME(DEVICESYNC());
+    auto end = std::chrono::high_resolution_clock::now();
+    std::chrono::duration<rbmd::Real> duration = end - start;
+
+    std::cout << "time pre step "<< duration.count() << "秒" << std::endl;
   }
 
-  _velocity_controller->Update();
-
-  if (use_shake)
-  {
-    _shake_controller->ShakeB();
-  }
-
-  _temperature_controller->ComputeTemperature();
-
-  if ("LANGEVIN" == DataManager::getInstance().getConfigData()->Get<std::string>
-    ("temp_ctrl_type", "execution"))
-    return;
-
-  _temperature_controller->Update();
-
-  CHECK_RUNTIME(DEVICESYNC());
-  auto end = std::chrono::high_resolution_clock::now();
-  std::chrono::duration<rbmd::Real> duration = end - start;
-
-  std::cout << "time pre step "<< duration.count() << "秒" << std::endl;
 }
 
 void NVTensemble::Postsolve() {}
