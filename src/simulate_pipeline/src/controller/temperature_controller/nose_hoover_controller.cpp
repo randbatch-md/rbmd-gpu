@@ -55,7 +55,7 @@ void NoseHooverController::Update() {
   UpdataVelocity();
 }
 
-void NoseHooverController::ComputeTemp() {
+void NoseHooverController::ComputeTemperature() {
     rbmd::Id num_atoms = *(_structure_info_data->_num_atoms);
 
     CHECK_RUNTIME(MEMSET(_d_temp_contrib, 0, sizeof(rbmd::Real)));

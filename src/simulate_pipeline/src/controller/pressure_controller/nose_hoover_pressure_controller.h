@@ -1,7 +1,7 @@
 #pragma once
 #include "pressure_controller.h"
-#include "default_velocity_controller.h"
-#include "default_position_controller.h"
+#include "position_controller.h"
+#include "velocity_controller.h"
 
 class NoseHooverPressureController : public PressureController {
 public:
@@ -20,7 +20,7 @@ public:
   void Couple();
   void ComputeVirial();
 
-  void ComputeTemp();
+  void ComputeTemperature();
   void Computedof();
 
   void SetUp();
@@ -34,14 +34,14 @@ public:
   //
   void NHOmegaDot();
   void NH_V_Press();
-  void ReMap();
+  void ResetBox();
 
   void X2Lamda();
   void Lamda2X();
 
 protected:
-  std::shared_ptr<DefaultPositionController>  _position_controller;
-  std::shared_ptr<DefaultVelocityController>  _velocity_controller;
+  std::shared_ptr<PositionController> _position_controller;
+  std::shared_ptr<VelocityController> _velocity_controller;
 
 private:
   rbmd::Real _dt;
@@ -55,11 +55,10 @@ private:
   rbmd::Real _temp_sum;
   rbmd::Real _temperature;
 
-  // pressure :read
-  rbmd::Real _pressure_start, _pressure_stop, _pressure_damp,_bulkmodulus;
+  // pressure
+  rbmd::Real _pressure_start, _pressure_stop, _pressure_damp,_bulkmodulus;//read
 
-  //pressure : compute
-  Real3  _p_current, _dilation;
+  Real3  _p_current, _dilation; //compute
   Real3 _p_start, _p_stop, _p_damp, _p_target;
   rbmd::Real  _scale_factor, _pressure_coupling;
 
@@ -70,15 +69,15 @@ private:
   std::vector<rbmd::Id> _p_flag;    //size =6
   rbmd::Id _pdim; // number of barostatted dims
 
-  std::vector<rbmd::Real> _omega, omega_dot; //size =6
+  std::vector<rbmd::Real> _omega, _omega_dot; //size =6
   std::vector<rbmd::Real> _omega_mass;       //size =6
   rbmd::Real _mtk_term1, _mtk_term2; // Martyna-Tobias-Klein corrections
   rbmd::Id _mtk_flag;              // 0 if using Hoover barostat
 
 
-  //temperature :
-  rbmd::Real _t_start, _t_stop, _t_damp;
-  rbmd::Real  _t_target, _ke_target,_t_freq;
+  //temperature
+  rbmd::Real _t_start, _t_stop, _t_damp;   //read
+  rbmd::Real  _t_target, _ke_target,_t_freq;//compute
   rbmd::Real _tdof;
 
   std::vector<rbmd::Real> _eta, _eta_dot; // chain thermostat for particles

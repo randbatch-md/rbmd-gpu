@@ -43,7 +43,7 @@ void LangevinController::Update() {
   UpdataForce();
 }
 
-void LangevinController::ComputeTemp() {
+void LangevinController::ComputeTemperature() {
     extern int test_current_step;
     rbmd::Id num_atoms = *(_structure_info_data->_num_atoms);
 

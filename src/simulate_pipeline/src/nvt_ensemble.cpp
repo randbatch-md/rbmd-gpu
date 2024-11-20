@@ -64,7 +64,7 @@ void NVTensemble::Solve() {
     _shake_controller->ShakeB();
   }
 
-  _temperature_controller->ComputeTemp();
+  _temperature_controller->ComputeTemperature();
 
   if ("LANGEVIN" == DataManager::getInstance().getConfigData()->Get<std::string>
     ("temp_ctrl_type", "execution"))

@@ -49,7 +49,7 @@ void RescaleController::Update() {
   UpdataVelocity();
 }
 
-void RescaleController::ComputeTemp() {
+void RescaleController::ComputeTemperature() {
     rbmd::Id num_atoms = *(_structure_info_data->_num_atoms);
     CHECK_RUNTIME(MEMSET(_d_temp_contrib, 0, sizeof(rbmd::Real)));
 

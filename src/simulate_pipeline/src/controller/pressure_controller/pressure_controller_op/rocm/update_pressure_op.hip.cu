@@ -12,20 +12,20 @@ __global__ void X2Lamda(Box box, const rbmd::Id num_atoms,rbmd::Real* px,
   unsigned int tid1 = blockIdx.x * blockDim.x + threadIdx.x;
   if (tid1 < num_atoms) {
     Real3 delta;
-    delta.data[0] = px[tid1]- box._coord_min[0];
-    delta.data[1] = py[tid1]- box._coord_min[1];
-    delta.data[2] = pz[tid1]- box._coord_min[2];
+    REAL_DATA(delta)[0] = px[tid1]- box._coord_min[0];
+    REAL_DATA(delta)[1] = py[tid1]- box._coord_min[1];
+    REAL_DATA(delta)[2] = pz[tid1]- box._coord_min[2];
 
     Real3 lamda_position;
-    lamda_position.data[0] = box._length_inv[0] * delta.data[0] + box._length_inv[5]
-    * delta.data[1] + box._length_inv[4] * delta.data[2];
-    lamda_position.data[1] = box._length_inv[1] * delta.data[1] + box._length_inv[3]
-    * delta.data[2];
-    lamda_position.data[2] = box._length_inv[2] * delta.data[2];
+    REAL_DATA(lamda_position)[0] = box._length_inv[0] * REAL_DATA(delta)[0] + box._length_inv[5]
+    * REAL_DATA(delta)[1] + box._length_inv[4] * REAL_DATA(delta)[2];
+    REAL_DATA(lamda_position)[1] = box._length_inv[1] * REAL_DATA(delta)[1] + box._length_inv[3]
+    * REAL_DATA(delta)[2];
+    REAL_DATA(lamda_position)[2] = box._length_inv[2] * REAL_DATA(delta)[2];
 
-    px[tid1] =  lamda_position.data[0];
-    py[tid1] =  lamda_position.data[1];
-    pz[tid1] =  lamda_position.data[2];
+    px[tid1] =  REAL_DATA(lamda_position)[0];
+    py[tid1] =  REAL_DATA(lamda_position)[1];
+    pz[tid1] =  REAL_DATA(lamda_position)[2];
   }
 }
 
@@ -34,24 +34,24 @@ __global__ void Lamda2X(Box box, const rbmd::Id num_atoms,rbmd::Real* px,
   unsigned int tid1 = blockIdx.x * blockDim.x + threadIdx.x;
   if (tid1 < num_atoms) {
     Real3 position_base;
-    position_base.data[0] = px[tid1];
-    position_base.data[1] = py[tid1];
-    position_base.data[2] = pz[tid1];
+    REAL_DATA(position_base)[0] = px[tid1];
+    REAL_DATA(position_base)[1] = py[tid1];
+    REAL_DATA(position_base)[2] = pz[tid1];
 
     // compute  real position
     Real3 x_position;
-    x_position.data[0] = box._length[0] * position_base.data[0] +
-      box._length[5] * position_base.data[1] +box._length[4] *
-        position_base.data[2] + box._coord_min[0];
+    REAL_DATA(x_position)[0] = box._length[0] * REAL_DATA(position_base)[0] +
+      box._length[5] * REAL_DATA(position_base)[1] +box._length[4] *
+        REAL_DATA(position_base)[2] + box._coord_min[0];
 
-    x_position.data[1] = box._length[1] * position_base.data[1] +
-      box._length[3] * position_base.data[2] +box._coord_min[1];
+    REAL_DATA(x_position)[1] = box._length[1] * REAL_DATA(position_base)[1] +
+      box._length[3] * REAL_DATA(position_base)[2] +box._coord_min[1];
 
-    x_position.data[2] = box._length[2] * position_base.data[2] + box._coord_min[2];
+    REAL_DATA(x_position)[2] = box._length[2] * REAL_DATA(position_base)[2] + box._coord_min[2];
 
-    px[tid1]= x_position.data[0];
-    py[tid1]= x_position.data[1];
-    pz[tid1]= x_position.data[2];
+    px[tid1]= REAL_DATA(x_position)[0];
+    py[tid1]= REAL_DATA(x_position)[1];
+    pz[tid1]= REAL_DATA(x_position)[2];
 
   }
 }

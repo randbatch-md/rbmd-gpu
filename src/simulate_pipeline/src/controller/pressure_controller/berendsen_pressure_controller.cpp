@@ -49,9 +49,12 @@ GetArray<rbmd::Real>("pressure", "execution"); //[1.0,1.0,1.0,10.0]
   //tdof
   Computedof();
   //
-  _p_start.data[0] = _p_start.data[1] = _p_start.data[2] = _pressure_start;
-  _p_stop.data[0] = _p_stop.data[1] = _p_stop.data[2] = _pressure_stop;
-  _p_damp.data[0] = _p_damp.data[1] = _p_damp.data[2] = _pressure_damp;
+  REAL_DATA(_p_start)[0] = REAL_DATA(_p_start)[1] = REAL_DATA(_p_start)[2]
+  = _pressure_start;
+   REAL_DATA(_p_stop)[0] = REAL_DATA(_p_stop)[1] = REAL_DATA(_p_stop)[2]
+  = _pressure_stop;
+   REAL_DATA(_p_damp)[0] = REAL_DATA(_p_damp)[1] = REAL_DATA(_p_damp)[2]
+  = _pressure_damp;
 }
 
 void BerendsenPressureController::Update()
@@ -75,15 +78,16 @@ void BerendsenPressureController::Update()
   {
     auto dt_over_period = _dt / _p_damp.data[i];
     auto bulkmodulus_inv = 1.0 / _bulkmodulus;
-    _p_target.data[i] = _p_start.data[i] + delta * (_p_stop.data[i] - _p_start.data[i]);
+    REAL_DATA(_p_target)[i] = REAL_DATA(_p_start)[i] +
+      delta * (REAL_DATA(_p_stop)[i] - REAL_DATA(_p_start)[i]);
 
-    _dilation.data[i] =
-      POW(1.0 - dt_over_period * (_p_target.data[0] - _p_current.data[i])
-        * bulkmodulus_inv, 1.0 / 3.0);
+    REAL_DATA(_dilation)[i] =
+      POW(1.0 - dt_over_period * (REAL_DATA(_p_target)[0] -
+        REAL_DATA(_p_current)[i])* bulkmodulus_inv, 1.0 / 3.0);
   }
 
-  //remap simulation box and atoms
-  ReMap();
+  //reset box and atoms
+  ResetBox();
 }
 
 void BerendsenPressureController::ComputePressure()
@@ -126,10 +130,11 @@ void BerendsenPressureController::Computedof()
 
 void BerendsenPressureController::Couple()
 {
-  _p_current.data[0] = _p_current.data[1] = _p_current.data[2] = _pressure;
+  REAL_DATA(_p_current)[0] = REAL_DATA(_p_current)[1] =
+  REAL_DATA(_p_current)[2] = _pressure;
 }
 
-void BerendsenPressureController::ReMap()
+void BerendsenPressureController::ResetBox()
 {
   //  convert lamda coords
   X2Lamda();
@@ -143,8 +148,8 @@ void BerendsenPressureController::ReMap()
     oldlo = _box->_coord_min[i];
     oldhi = _box->_coord_max[i];
     ctr = 0.5 * (oldlo + oldhi);
-    _box->_coord_min[i] = (oldlo - ctr) * _dilation.data[i] + ctr;
-    _box->_coord_max[i] = (oldhi - ctr) * _dilation.data[i] + ctr;
+    _box->_coord_min[i] = (oldlo - ctr) * REAL_DATA(_dilation)[i] + ctr;
+    _box->_coord_max[i] = (oldhi - ctr) * REAL_DATA(_dilation)[i] + ctr;
   }
   _box->Setup(_box->_type, _box->_coord_min, _box->_coord_max, pbc);
 

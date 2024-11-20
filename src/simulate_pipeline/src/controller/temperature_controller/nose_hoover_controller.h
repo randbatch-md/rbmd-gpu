@@ -12,7 +12,7 @@ class NoseHooverController : public TemperatureController {
   /**
    * @brief Calculate the current stage temperature
    */
-  void ComputeTemp() override;
+  void ComputeTemperature() override;
 
   /**
    * @brief Update current speed through temperature

@@ -17,7 +17,7 @@ public:
 
   void Computedof();
   void Couple();
-  void ReMap();
+  void ResetBox();
   void X2Lamda();
   void Lamda2X();
 
