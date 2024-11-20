@@ -647,9 +647,9 @@ namespace op {
         //compute ewald_virial
         force_Ewald_single = -0.5*force_Ewald_single;
         Real3 K;
-        K.x = 2.0 * M_PI * M.data[0] / box._length[0];
-        K.y = 2.0 * M_PI * M.data[1] / box._length[1];
-        K.z = 2.0 * M_PI * M.data[2] / box._length[2];
+        K.x = 2.0 * M_PI * M.x / box._length[0];
+        K.y = 2.0 * M_PI * M.y / box._length[1];
+        K.z = 2.0 * M_PI * M.z / box._length[2];
         sum_virial[0] += (p_x * K.x + p_x * K.x) * force_Ewald_single; //_xx
         sum_virial[1] += (p_y * K.y + p_y * K.y) * force_Ewald_single; // yy
         sum_virial[2] += (p_z * K.z + p_z * K.z) * force_Ewald_single; // zz

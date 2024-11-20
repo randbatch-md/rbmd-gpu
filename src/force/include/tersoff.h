@@ -27,8 +27,8 @@ public:
     rbmd::Real m, gamma, lambda3, c, d, costheta0, n, beta;
     rbmd::Real lambda2, B, R, D, lambda1, A;
 
-    double cut, cutsq;
-    double c1, c2, c3, c4;
+    rbmd::Real cut, cutsq;
+    rbmd::Real c1, c2, c3, c4;
   };
 
 private:
