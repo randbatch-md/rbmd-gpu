@@ -172,8 +172,8 @@ void LJCutCoulKspace::ComputeLJVerlet()
   std::cout << "构建verlet-list耗时" << duration.count() << "秒" << std::endl;
 
   //
-  thrust::device_vector<rbmd::Real> _d_total_evdwl(1, 0.0);
-  thrust::device_vector<rbmd::Real> _d_total_ecoul(1, 0.0);
+  thrust::device_vector<rbmd::Real> d_total_evdwl(1, 0.0);
+  thrust::device_vector<rbmd::Real> d_total_ecoul(1, 0.0);
   //
   auto num_atoms = *(_structure_info_data->_num_atoms);
   op::LJCutCoulForceOp<device::DEVICE_GPU>()(
@@ -192,12 +192,12 @@ void LJCutCoulKspace::ComputeLJVerlet()
                     thrust::raw_pointer_cast(_device_data->_d_force_ljcoul_y.data()),
                     thrust::raw_pointer_cast(_device_data->_d_force_ljcoul_z.data()),
                     thrust::raw_pointer_cast(_device_data->_d_flat_virial_lj.data()),
-                    thrust::raw_pointer_cast(_d_total_evdwl.data()),
-                      thrust::raw_pointer_cast(_d_total_ecoul.data()));
+                    thrust::raw_pointer_cast(d_total_evdwl.data()),
+                      thrust::raw_pointer_cast(d_total_ecoul.data()));
 
   // 从设备端拷贝数据到主机端
-  thrust::host_vector<rbmd::Real> h_total_evdwl(_d_total_evdwl);
-  thrust::host_vector<rbmd::Real> h_total_ecoul(_d_total_ecoul);
+  thrust::host_vector<rbmd::Real> h_total_evdwl(d_total_evdwl);
+  thrust::host_vector<rbmd::Real> h_total_ecoul(d_total_ecoul);
 
   // 打印累加后的总能量
   _ave_evdwl = h_total_evdwl[0]/num_atoms;
@@ -384,14 +384,18 @@ void LJCutCoulKspace::RBEInit(Box box,rbmd::Real alpha,rbmd::Id RBE_P)
   auto random = true;
   RBEPSAMPLE rbe_presolve_psample = { alpha, box, RBE_P, random};
 
-  _P_Sample_x.resize(RBE_P);
-  _P_Sample_y.resize(RBE_P);
-  _P_Sample_z.resize(RBE_P);
+  thrust::host_vector<rbmd::Real> h_P_Sample_x(RBE_P);
+  thrust::host_vector<rbmd::Real> h_P_Sample_y(RBE_P);
+  thrust::host_vector<rbmd::Real> h_P_Sample_z(RBE_P);
 
   rbe_presolve_psample.Fetch_P_Sample(0.0, sigma,
-    thrust::raw_pointer_cast(_P_Sample_x.data()),
-    raw_pointer_cast(_P_Sample_y.data()),
-    raw_pointer_cast(_P_Sample_z.data()));
+    thrust::raw_pointer_cast(h_P_Sample_x.data()),
+    thrust::raw_pointer_cast(h_P_Sample_y.data()),
+    thrust::raw_pointer_cast(h_P_Sample_z.data()));
+
+  _P_Sample_x = h_P_Sample_x;
+  _P_Sample_y = h_P_Sample_y;
+  _P_Sample_z = h_P_Sample_z;
 
   //index key
   _psample_key.resize(num_atoms * RBE_P);

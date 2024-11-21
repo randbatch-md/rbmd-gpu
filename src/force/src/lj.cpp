@@ -121,7 +121,7 @@ void LJ::ComputeLJVerlet()
   std::cout << "构建verlet-list耗时" << duration.count() << "秒" << std::endl;
 
   //
-  thrust::device_vector<rbmd::Real> _d_total_evdwl(1, 0.0);
+  thrust::device_vector<rbmd::Real> d_total_evdwl(1, 0.0);
   auto num_atoms = *(_structure_info_data->_num_atoms);
   // compute LJ
   op::LJForceOp<device::DEVICE_GPU>()(
@@ -139,9 +139,9 @@ void LJ::ComputeLJVerlet()
               thrust::raw_pointer_cast(_device_data->_d_fy.data()),
               thrust::raw_pointer_cast(_device_data->_d_fz.data()),
               thrust::raw_pointer_cast(_device_data->_d_flat_virial.data()),
-              thrust::raw_pointer_cast(_d_total_evdwl.data()));
+              thrust::raw_pointer_cast(d_total_evdwl.data()));
   // 从设备端拷贝数据到主机端
-  thrust::host_vector<rbmd::Real> h_total_evdwl(_d_total_evdwl);
+  thrust::host_vector<rbmd::Real> h_total_evdwl(d_total_evdwl);
 
   // 打印累加后的总能量
   _ave_evdwl = h_total_evdwl[0] / num_atoms;
@@ -174,7 +174,7 @@ void LJ::ComputeLJEnergy()
   // energy
   _list = _neighbor_list_builder->Build();
 
-  thrust::device_vector<rbmd::Real> _d_total_evdwl(1, 0.0);
+  thrust::device_vector<rbmd::Real> d_total_evdwl(1, 0.0);
   auto num_atoms = *(_structure_info_data->_num_atoms);
   op::LJEnergyOp<device::DEVICE_GPU>()(
                 *_box, _cut_off, num_atoms,
@@ -188,10 +188,10 @@ void LJ::ComputeLJEnergy()
                thrust::raw_pointer_cast(_device_data->_d_py.data()),
                thrust::raw_pointer_cast(_device_data->_d_pz.data()),
                thrust::raw_pointer_cast(_device_data->_d_flat_virial.data()),
-               thrust::raw_pointer_cast(_d_total_evdwl.data()));
+               thrust::raw_pointer_cast(d_total_evdwl.data()));
 
   // 从设备端拷贝数据到主机端
-  thrust::host_vector<rbmd::Real> h_total_evdwl(_d_total_evdwl);
+  thrust::host_vector<rbmd::Real> h_total_evdwl(d_total_evdwl);
 
   // 打印累加后的总能量
   _ave_evdwl = h_total_evdwl[0] / num_atoms;

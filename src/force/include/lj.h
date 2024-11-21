@@ -23,19 +23,7 @@ class LJ : public Force {
   std::shared_ptr<NeighborList> _rbl_list;
   std::shared_ptr<NeighborList> _list;
 
-  rbmd::Real _corr_value_x =0.0;
-  rbmd::Real _corr_value_y =0.0;
-  rbmd::Real _corr_value_z =0.0;
-  // rbmd::Real* _d_total_evdwl;
-  rbmd::Real* _d_total_evdwl_rbl;
-  rbmd::Real* _d_total_virial;
-
-  //RBL
-  std::string _neighbor_type;
-  rbmd::Real _cut_off;
-
   //energy
-  thrust::device_vector<rbmd::Real> _d_total_evdwl;
   rbmd::Real _ave_evdwl= 0.0;
   rbmd::Real _ave_pe = 0;
   rbmd::Real _ave_pe_init = 0;
@@ -44,4 +32,14 @@ class LJ : public Force {
   rbmd::Real _ave_pe_rbl = 0;
 
   rbmd::Real virial[6];
+
+  //RBL
+  std::string _neighbor_type;
+  rbmd::Real _cut_off;
+
+  rbmd::Real _corr_value_x =0.0;
+  rbmd::Real _corr_value_y =0.0;
+  rbmd::Real _corr_value_z =0.0;
+
+
 };

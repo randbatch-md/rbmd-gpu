@@ -67,9 +67,6 @@ private:
   std::shared_ptr<NeighborList> _list;
 
   //energy
-  thrust::device_vector<rbmd::Real> _d_total_evdwl;
-  thrust::device_vector<rbmd::Real> _d_total_ecoul;
-
   rbmd::Real _ave_evdwl= 0.0;
   rbmd::Real _ave_ecoul= 0.0;
   rbmd::Real _ave_self_energy= 0.0;
@@ -83,6 +80,7 @@ private:
   //RBL
   std::string _neighbor_type;
   rbmd::Real _cut_off;
+
   rbmd::Real _corr_value_x = 0.0;
   rbmd::Real _corr_value_y = 0.0;
   rbmd::Real _corr_value_z = 0.0;
