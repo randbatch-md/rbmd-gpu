@@ -211,10 +211,10 @@ namespace op {
     for (rbmd::Id i = -k_maxconst; i <= k_maxconst; i++) {
       for (rbmd::Id j = -k_maxconst; j <= k_maxconst; j++) {
         for (rbmd::Id k = -k_maxconst; k <= k_maxconst; k++) {
-          if (i != 0 || j != 0 || k != 0) {
-            indexEwald++;
+          if(!(i == 0 && j == 0 && k == 0)){
             int3 M = make_Int3(i, j, k);
             function(M, indexEwald);
+            indexEwald++;
           }
         }
       }
@@ -632,8 +632,8 @@ namespace op {
       rbmd::Real charge_i = charge[tid1];
 
       auto function = [&](const int3& M, const rbmd::Id& indexEwald) {
-        const rbmd::Real rhok_real_i = real_array[indexEwald - 1];
-        const rbmd::Real rhok_imag_i = imag_array[indexEwald - 1];
+        const rbmd::Real rhok_real_i = real_array[indexEwald];
+        const rbmd::Real rhok_imag_i = imag_array[indexEwald];
 
         rbmd::Real force_Ewald_x, force_Ewald_y, force_Ewald_z;
         rbmd::Real force_Ewald_single;

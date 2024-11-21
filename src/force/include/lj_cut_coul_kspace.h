@@ -66,13 +66,10 @@ private:
   std::shared_ptr<NeighborList> _rbl_list;
   std::shared_ptr<NeighborList> _list;
 
-  rbmd::Real _corr_value_x = 0.0;
-  rbmd::Real _corr_value_y = 0.0;
-  rbmd::Real _corr_value_z = 0.0;
-  rbmd::Real* _d_total_evdwl;
-  rbmd::Real* _d_total_ecoul;
-
   //energy
+  thrust::device_vector<rbmd::Real> _d_total_evdwl;
+  thrust::device_vector<rbmd::Real> _d_total_ecoul;
+
   rbmd::Real _ave_evdwl= 0.0;
   rbmd::Real _ave_ecoul= 0.0;
   rbmd::Real _ave_self_energy= 0.0;
@@ -86,6 +83,13 @@ private:
   //RBL
   std::string _neighbor_type;
   rbmd::Real _cut_off;
+  rbmd::Real _corr_value_x = 0.0;
+  rbmd::Real _corr_value_y = 0.0;
+  rbmd::Real _corr_value_z = 0.0;
+
+  //EWALD
+  rbmd::Real* _h_Re_array;
+  rbmd::Real* _h_Im_array;
 
   //RBE
   std::string _coulomb_type;
@@ -97,7 +101,6 @@ private:
   thrust::device_vector<rbmd::Real>  _P_Sample_x;
   thrust::device_vector<rbmd::Real>  _P_Sample_y;
   thrust::device_vector<rbmd::Real>  _P_Sample_z;
-
   //
   thrust::device_vector<rbmd::Id>  _psample_key;
   thrust::device_vector<rbmd::Real> _rhok_real_redue;

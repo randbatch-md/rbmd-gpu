@@ -76,7 +76,7 @@ void BerendsenPressureController::Update()
 
   for (int i = 0; i < 3; i++)
   {
-    auto dt_over_period = _dt / _p_damp.data[i];
+    auto dt_over_period = _dt / REAL_DATA(_p_damp)[i];
     auto bulkmodulus_inv = 1.0 / _bulkmodulus;
     REAL_DATA(_p_target)[i] = REAL_DATA(_p_start)[i] +
       delta * (REAL_DATA(_p_stop)[i] - REAL_DATA(_p_start)[i]);

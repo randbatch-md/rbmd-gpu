@@ -24,16 +24,18 @@ LJCutCoulKspace::LJCutCoulKspace()
   _rbl_neighbor_list_builder = std::make_shared<RblFullNeighborListBuilder>();
   _neighbor_list_builder = std::make_shared<FullNeighborListBuilder>();
 
-  CHECK_RUNTIME(MALLOC(&_d_total_evdwl, sizeof(rbmd::Real)));
-  CHECK_RUNTIME(MALLOC(&_d_total_ecoul, sizeof(rbmd::Real)));
+  _Kmax = DataManager::getInstance().getConfigData()->Get<rbmd::Id>(
+"kmax", "hyper_parameters", "coulomb");
+  _num_k =  (2*_Kmax +1)  * (2*_Kmax +1) * (2*_Kmax +1) - 1;
+  _h_Re_array = static_cast<rbmd::Real*>(malloc(_num_k * sizeof(rbmd::Real)));
+  _h_Im_array = static_cast<rbmd::Real*>(malloc(_num_k * sizeof(rbmd::Real)));
   std::remove("thermo_local.txt");
 }
 
 LJCutCoulKspace::~LJCutCoulKspace()
 {
-  CHECK_RUNTIME(FREE(_d_total_evdwl));
-  CHECK_RUNTIME(FREE(_d_total_ecoul));
-
+  free(_h_Re_array);
+  free(_h_Im_array);
 }
 
 void LJCutCoulKspace::Init()
@@ -61,16 +63,14 @@ void LJCutCoulKspace::Init()
 
    _coulomb_type =DataManager::getInstance().getConfigData()->Get<std::string>(
         "type", "hyper_parameters", "coulomb");
-    _RBE_P = DataManager::getInstance().getConfigData()->Get<rbmd::Id>(
-      "coulomb_sample_num", "hyper_parameters", "coulomb");
     _alpha = DataManager::getInstance().getConfigData()->Get<rbmd::Real>(
   "alpha", "hyper_parameters", "coulomb");
-    _Kmax = DataManager::getInstance().getConfigData()->Get<rbmd::Id>(
-"kmax", "hyper_parameters", "coulomb");
-    _num_k =  POW(2 * _Kmax + 1,3.0) - 1;
 
-  //Box box;
-  RBEInit(*_box,_alpha,_RBE_P);
+  if("RBE" == _coulomb_type) {
+    _RBE_P = DataManager::getInstance().getConfigData()->Get<rbmd::Id>(
+  "coulomb_sample_num", "hyper_parameters", "coulomb");
+    RBEInit(*_box,_alpha,_RBE_P);
+  }
 }
 
 void LJCutCoulKspace::Execute()
@@ -172,13 +172,8 @@ void LJCutCoulKspace::ComputeLJVerlet()
   std::cout << "构建verlet-list耗时" << duration.count() << "秒" << std::endl;
 
   //
-
-  rbmd::Real h_total_evdwl = 0.0;
-  rbmd::Real h_total_ecoul = 0.0;
-
-  CHECK_RUNTIME(MEMSET(_d_total_evdwl, 0, sizeof(rbmd::Real)));
-  CHECK_RUNTIME(MEMSET(_d_total_ecoul, 0, sizeof(rbmd::Real)));
-
+  thrust::device_vector<rbmd::Real> _d_total_evdwl(1, 0.0);
+  thrust::device_vector<rbmd::Real> _d_total_ecoul(1, 0.0);
   //
   auto num_atoms = *(_structure_info_data->_num_atoms);
   op::LJCutCoulForceOp<device::DEVICE_GPU>()(
@@ -197,18 +192,19 @@ void LJCutCoulKspace::ComputeLJVerlet()
                     thrust::raw_pointer_cast(_device_data->_d_force_ljcoul_y.data()),
                     thrust::raw_pointer_cast(_device_data->_d_force_ljcoul_z.data()),
                     thrust::raw_pointer_cast(_device_data->_d_flat_virial_lj.data()),
-                    _d_total_evdwl,_d_total_ecoul);
+                    thrust::raw_pointer_cast(_d_total_evdwl.data()),
+                      thrust::raw_pointer_cast(_d_total_ecoul.data()));
 
-  CHECK_RUNTIME(MEMCPY(&h_total_evdwl,_d_total_evdwl , sizeof(rbmd::Real), D2H));
-  CHECK_RUNTIME(MEMCPY(&h_total_ecoul,_d_total_ecoul , sizeof(rbmd::Real), D2H));
+  // 从设备端拷贝数据到主机端
+  thrust::host_vector<rbmd::Real> h_total_evdwl(_d_total_evdwl);
+  thrust::host_vector<rbmd::Real> h_total_ecoul(_d_total_ecoul);
 
   // 打印累加后的总能量
-  _ave_evdwl = h_total_evdwl/num_atoms;
-  _ave_ecoul = h_total_ecoul/num_atoms;
+  _ave_evdwl = h_total_evdwl[0]/num_atoms;
+  _ave_ecoul = h_total_ecoul[0]/num_atoms;
 
   std::cout << "test_current_step:" << test_current_step <<  " ,"
   << "average_vdwl_energy:" << _ave_evdwl << " ," <<  "average_coul_energy:" << _ave_ecoul << std::endl;
-
 
   // 主机端累加virial
   std::vector<rbmd::Real> h_flat_virial_lj(num_atoms * 6);
@@ -226,7 +222,6 @@ void LJCutCoulKspace::ComputeLJVerlet()
 
   thrust::copy(virial_lj.begin(),
     virial_lj.end(), _device_data->_d_virial_lj.begin());
-
 }
 
 void LJCutCoulKspace::ComputeKspaceForce()
@@ -332,23 +327,26 @@ void LJCutCoulKspace::ComputeChargeStructureFactorEwald(
 
 void LJCutCoulKspace::ComputeEwlad()
 {
-    auto num_atoms = *(_structure_info_data->_num_atoms);
-    rbmd::Real* value_Re_array;
-    rbmd::Real* value_Im_array;
+  auto num_atoms = *(_structure_info_data->_num_atoms);
 
-    //EwaldForce//
-    CHECK_RUNTIME(MALLOC(&value_Re_array, _num_k * sizeof(rbmd::Real)));
-    CHECK_RUNTIME(MALLOC(&value_Im_array, _num_k * sizeof(rbmd::Real)));
-    CHECK_RUNTIME(MEMSET(value_Re_array, 0, _num_k *sizeof(rbmd::Real)));
-    CHECK_RUNTIME(MEMSET(value_Im_array, 0, _num_k *sizeof(rbmd::Real)));
+  memset(_h_Re_array, 0, _num_k * sizeof(rbmd::Real));
+  memset(_h_Im_array, 0, _num_k * sizeof(rbmd::Real));
 
-    ComputeChargeStructureFactorEwald(*_box, num_atoms, _Kmax,
-      _alpha,_qqr2e, value_Re_array, value_Im_array);
+  //compute charge structure factor
+  ComputeChargeStructureFactorEwald(*_box, num_atoms, _Kmax,
+    _alpha,_qqr2e, _h_Re_array,_h_Im_array);
 
 
-    op::ComputeEwaldForceOp<device::DEVICE_GPU>()(
+  thrust::device_vector<rbmd::Real> d_real_array(_num_k);
+  thrust::device_vector<rbmd::Real> d_imag_array(_num_k);
+  thrust::copy(_h_Re_array,_h_Re_array+_num_k,d_real_array.begin());
+  thrust::copy(_h_Im_array,_h_Im_array+_num_k,d_imag_array.begin());
+
+  //EwaldForce//
+  op::ComputeEwaldForceOp<device::DEVICE_GPU>()(
         *_box,num_atoms, _Kmax, _alpha,_qqr2e,
-        value_Re_array,value_Im_array,
+        thrust::raw_pointer_cast(d_real_array.data()),
+          thrust::raw_pointer_cast(d_imag_array.data()),
         thrust::raw_pointer_cast(_device_data->_d_charge.data()),
         thrust::raw_pointer_cast(_device_data->_d_px.data()),
         thrust::raw_pointer_cast(_device_data->_d_py.data()),
@@ -357,9 +355,6 @@ void LJCutCoulKspace::ComputeEwlad()
         thrust::raw_pointer_cast(_device_data->_d_force_kspace_y.data()),
         thrust::raw_pointer_cast(_device_data->_d_force_kspace_z.data()),
         thrust::raw_pointer_cast(_device_data->_d_flat_virial_kspace.data()));
-
-    CHECK_RUNTIME(FREE(value_Re_array));
-    CHECK_RUNTIME(FREE(value_Im_array));
 
   // 主机端累加virial
   std::vector<rbmd::Real> h_flat_virial_kspace(num_atoms * 6);
@@ -520,13 +515,9 @@ void LJCutCoulKspace::ComputeLJCoulEnergy()
   std::chrono::duration<rbmd::Real> duration = end - start;
   std::cout << "后处理---构建verlet-list耗时---" << duration.count() << "秒" << std::endl;
 
-
-  rbmd::Real h_total_evdwl = 0.0;
-  rbmd::Real h_total_ecoul = 0.0;
-
-  CHECK_RUNTIME(MEMSET(_d_total_evdwl, 0, sizeof(rbmd::Real)));
-  CHECK_RUNTIME(MEMSET(_d_total_ecoul, 0, sizeof(rbmd::Real)));
-
+  //
+  thrust::device_vector<rbmd::Real> _d_total_evdwl(1, 0.0);
+  thrust::device_vector<rbmd::Real> _d_total_ecoul(1, 0.0);
   auto num_atoms = *(_structure_info_data->_num_atoms);
   op::LJCutCoulEnergyOp<device::DEVICE_GPU>()(
                 *_box,_device_data->_d_erf_table,_cut_off,num_atoms,_alpha,_qqr2e,
@@ -541,13 +532,16 @@ void LJCutCoulKspace::ComputeLJCoulEnergy()
                 thrust::raw_pointer_cast(_device_data->_d_py.data()),
                 thrust::raw_pointer_cast(_device_data->_d_pz.data()),
                 thrust::raw_pointer_cast(_device_data->_d_flat_virial_lj.data()),
-                _d_total_evdwl,_d_total_ecoul);
-  CHECK_RUNTIME(MEMCPY(&h_total_evdwl,_d_total_evdwl , sizeof(rbmd::Real), D2H));
-  CHECK_RUNTIME(MEMCPY(&h_total_ecoul,_d_total_ecoul , sizeof(rbmd::Real), D2H));
+                thrust::raw_pointer_cast(_d_total_evdwl.data()),
+                thrust::raw_pointer_cast(_d_total_ecoul.data()));
+
+  // 从设备端拷贝数据到主机端
+  thrust::host_vector<rbmd::Real> h_total_evdwl(_d_total_evdwl);
+  thrust::host_vector<rbmd::Real> h_total_ecoul(_d_total_ecoul);
 
   // 打印累加后的总能量
-  _ave_evdwl = h_total_evdwl/num_atoms;
-  _ave_ecoul = h_total_ecoul/num_atoms;
+  _ave_evdwl = h_total_evdwl[0]/num_atoms;
+  _ave_ecoul = h_total_ecoul[0]/num_atoms;
 
   std::cout << "test_current_step:" << test_current_step <<  " ,"
   << "average_vdwl_energy:" << _ave_evdwl << " ," <<  "average_coul_energy:" << _ave_ecoul << std::endl;

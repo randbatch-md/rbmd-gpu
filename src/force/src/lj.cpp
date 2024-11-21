@@ -18,13 +18,11 @@ rbmd::Real test_ave_pe_init;
 LJ::LJ() {
   _rbl_neighbor_list_builder = std::make_shared<RblFullNeighborListBuilder>();
   _neighbor_list_builder = std::make_shared<FullNeighborListBuilder>();
-  CHECK_RUNTIME(MALLOC(&_d_total_evdwl, sizeof(rbmd::Real)));
   std::remove("thermo_local.txt");
 }
 
 LJ::~LJ()
 {
-  CHECK_RUNTIME(FREE(_d_total_evdwl));
 }
 
 void LJ::Init() {
@@ -123,11 +121,7 @@ void LJ::ComputeLJVerlet()
   std::cout << "构建verlet-list耗时" << duration.count() << "秒" << std::endl;
 
   //
-
-  rbmd::Real h_total_evdwl = 0.0;
-
-  CHECK_RUNTIME(MEMSET(_d_total_evdwl, 0, sizeof(rbmd::Real)));
-
+  thrust::device_vector<rbmd::Real> _d_total_evdwl(1, 0.0);
   auto num_atoms = *(_structure_info_data->_num_atoms);
   // compute LJ
   op::LJForceOp<device::DEVICE_GPU>()(
@@ -145,13 +139,12 @@ void LJ::ComputeLJVerlet()
               thrust::raw_pointer_cast(_device_data->_d_fy.data()),
               thrust::raw_pointer_cast(_device_data->_d_fz.data()),
               thrust::raw_pointer_cast(_device_data->_d_flat_virial.data()),
-              _d_total_evdwl);
-
-  CHECK_RUNTIME(
-      MEMCPY(&h_total_evdwl, _d_total_evdwl, sizeof(rbmd::Real), D2H));
+              thrust::raw_pointer_cast(_d_total_evdwl.data()));
+  // 从设备端拷贝数据到主机端
+  thrust::host_vector<rbmd::Real> h_total_evdwl(_d_total_evdwl);
 
   // 打印累加后的总能量
-  _ave_evdwl = h_total_evdwl / num_atoms;
+  _ave_evdwl = h_total_evdwl[0] / num_atoms;
   std::cout << "test_current_step:" << test_current_step << " "
             << "average_vdwl_energy:" << _ave_evdwl << std::endl;
 
@@ -181,10 +174,7 @@ void LJ::ComputeLJEnergy()
   // energy
   _list = _neighbor_list_builder->Build();
 
-  rbmd::Real h_total_evdwl = 0.0;
-
-  CHECK_RUNTIME(MEMSET(_d_total_evdwl, 0, sizeof(rbmd::Real)));
-
+  thrust::device_vector<rbmd::Real> _d_total_evdwl(1, 0.0);
   auto num_atoms = *(_structure_info_data->_num_atoms);
   op::LJEnergyOp<device::DEVICE_GPU>()(
                 *_box, _cut_off, num_atoms,
@@ -198,13 +188,13 @@ void LJ::ComputeLJEnergy()
                thrust::raw_pointer_cast(_device_data->_d_py.data()),
                thrust::raw_pointer_cast(_device_data->_d_pz.data()),
                thrust::raw_pointer_cast(_device_data->_d_flat_virial.data()),
-               _d_total_evdwl);
+               thrust::raw_pointer_cast(_d_total_evdwl.data()));
 
-  CHECK_RUNTIME(
-      MEMCPY(&h_total_evdwl, _d_total_evdwl, sizeof(rbmd::Real), D2H));
+  // 从设备端拷贝数据到主机端
+  thrust::host_vector<rbmd::Real> h_total_evdwl(_d_total_evdwl);
 
   // 打印累加后的总能量
-  _ave_evdwl = h_total_evdwl / num_atoms;
+  _ave_evdwl = h_total_evdwl[0] / num_atoms;
   std::cout << "test_current_step:" << test_current_step << " "
             << "average_vdwl_energy:" << _ave_evdwl << std::endl;
 

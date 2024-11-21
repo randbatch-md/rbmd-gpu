@@ -189,6 +189,9 @@ typedef int3 Int3;
 #endif
 
 
+#define FREEHOST free
+
+
 template <typename T>
 static T *raw_ptr(thrust::device_vector<T> &vec) {
   return thrust::raw_pointer_cast(vec.data());

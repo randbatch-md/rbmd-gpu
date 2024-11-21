@@ -26,7 +26,7 @@ class LJ : public Force {
   rbmd::Real _corr_value_x =0.0;
   rbmd::Real _corr_value_y =0.0;
   rbmd::Real _corr_value_z =0.0;
-  rbmd::Real* _d_total_evdwl;
+  // rbmd::Real* _d_total_evdwl;
   rbmd::Real* _d_total_evdwl_rbl;
   rbmd::Real* _d_total_virial;
 
@@ -35,6 +35,7 @@ class LJ : public Force {
   rbmd::Real _cut_off;
 
   //energy
+  thrust::device_vector<rbmd::Real> _d_total_evdwl;
   rbmd::Real _ave_evdwl= 0.0;
   rbmd::Real _ave_pe = 0;
   rbmd::Real _ave_pe_init = 0;

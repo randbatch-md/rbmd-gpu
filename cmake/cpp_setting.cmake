@@ -7,7 +7,8 @@ macro(config_cpp name)
 	${CMAKE_CURRENT_LIST_DIR}/../
 	${CMAKE_CURRENT_LIST_DIR}/include/)
 
-	target_compile_features(${name} PRIVATE cxx_std_17)
+	#target_compile_features(${name} PRIVATE cxx_std_17)
+	target_compile_features(${name} PRIVATE cxx_std_14)
 
 	#default release
 	if(CMAKE_BUILD_TYPE STREQUAL "")
@@ -72,7 +73,7 @@ function(cpp_library)
 	add_library(${lib_name} STATIC ${SRC} ${H_FILE} ${H_FILE_I} ${CU_FILE})
 
 	if(USE_CUDA)
-		target_compile_options(${lib_name} PRIVATE --extended-lambda)
+		target_compile_options(${lib_name} PRIVATE --extended-lambda -w)
 	endif()
 
 	config_cpp(${lib_name})

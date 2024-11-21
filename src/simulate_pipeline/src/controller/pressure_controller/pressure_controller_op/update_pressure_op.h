@@ -1,6 +1,8 @@
 #pragma once
-#include "device_types.h"
+
 #include "types.h"
+#include  "../common/device_types.h"
+#include "model/box.h"
 
 namespace op {
 

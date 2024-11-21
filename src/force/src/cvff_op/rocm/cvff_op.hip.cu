@@ -1,4 +1,4 @@
-#include <hip/hip_runtime.h>
+//#include <hip/hip_runtime.h>
 
 #include "../common/rbmd_define.h"
 #include "cvff_op.h"

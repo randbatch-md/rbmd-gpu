@@ -1,7 +1,4 @@
-#include <hipcub/hipcub.hpp>
-
-#include "rbmd_define.h"
-#include "model/box.h"
+#include "../common/rbmd_define.h"
 #include "update_pressure_op.h"
 
 namespace op {

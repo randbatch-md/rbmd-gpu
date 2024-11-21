@@ -1,8 +1,7 @@
-#include <hip/hip_runtime.h>
-
 #include "rbmd_define.h"
 #include "shake_controller_op.h"
 #include <math.h>
+
 namespace op {
 #define THREADS_PER_BLOCK 256
 
