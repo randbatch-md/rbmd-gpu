@@ -18,7 +18,8 @@ RescaleController::~RescaleController() {
 
 void RescaleController::Init() {
 
-  auto temperature_array= DataManager::getInstance().getConfigData()-> GetArray<rbmd::Real>("temperature", "execution"); //[1.0,1.0,0.1]
+  auto temperature_array= DataManager::getInstance().
+    getConfigData()-> GetArray<rbmd::Real>("temperature", "execution"); //[1.0,1.0,0.1]
   _temperature_start = temperature_array[0];
   _temperature_stop = temperature_array[1];
   _temperature_damp = temperature_array[2];
@@ -91,7 +92,8 @@ void RescaleController::ComputeTemperature() {
 void RescaleController::UpdataVelocity() {
   rbmd::Real coeff_rescale = SQRT(_temperature_start / _temperature);
 
-  op::UpdataVelocityRescaleOp<device::DEVICE_GPU>()(*(_structure_info_data->_num_atoms), coeff_rescale,
+  op::UpdataVelocityRescaleOp<device::DEVICE_GPU>()(
+                    *(_structure_info_data->_num_atoms), coeff_rescale,
                      thrust::raw_pointer_cast(_device_data->_d_vx.data()),
                      thrust::raw_pointer_cast(_device_data->_d_vy.data()),
                      thrust::raw_pointer_cast(_device_data->_d_vz.data()));

@@ -10,7 +10,8 @@ DefaultPositionController::DefaultPositionController(){};
 
 void DefaultPositionController::Init() 
 {
-  _dt = DataManager::getInstance().getConfigData()->Get<rbmd::Real>("timestep", "execution");//0.001
+  _dt = DataManager::getInstance().getConfigData()->
+    Get<rbmd::Real>("timestep", "execution");//0.001
 }
 
 void DefaultPositionController::Update() {

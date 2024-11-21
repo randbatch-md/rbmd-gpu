@@ -40,8 +40,8 @@ void ShakeController::Init() {
 void ShakeController::ShakeA() {
   auto atom_id_to_idx =
       LinkedCellLocator::GetInstance().GetLinkedCell()->_atom_id_to_idx;
-  op::ShakeAOp<device::DEVICE_GPU> shakeA_op;
-  shakeA_op(*(_structure_info_data->_num_angles), _dt, _fmt2v, *_box,
+  op::ShakeAOp<device::DEVICE_GPU>()(
+            *(_structure_info_data->_num_angles), _dt, _fmt2v, *_box,
             thrust::raw_pointer_cast(atom_id_to_idx.data()),
             thrust::raw_pointer_cast(_device_data->_d_mass.data()),
             thrust::raw_pointer_cast(_device_data->_d_atoms_type.data()),
@@ -79,8 +79,8 @@ void ShakeController::ShakeA() {
 void ShakeController::ShakeB() {
   auto atom_id_to_idx =
       LinkedCellLocator::GetInstance().GetLinkedCell()->_atom_id_to_idx;
-  op::ShakeBOp<device::DEVICE_GPU> shakeB_op;
-  shakeB_op(*(_structure_info_data->_num_angles), _dt, _fmt2v, *_box,
+  op::ShakeBOp<device::DEVICE_GPU>()
+            (*(_structure_info_data->_num_angles), _dt, _fmt2v, *_box,
             thrust::raw_pointer_cast(atom_id_to_idx.data()),
             thrust::raw_pointer_cast(_device_data->_d_mass.data()),
             thrust::raw_pointer_cast(_device_data->_d_atoms_type.data()),

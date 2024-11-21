@@ -92,7 +92,9 @@ void LangevinController::UpdataForce() {
   
   rbmd::Real kbT = 1;
   rbmd::Real gamma = 100.0;
-  op::UpdataForceLangevinOp<device::DEVICE_GPU>()(*(_structure_info_data->_num_atoms), gaussian[0], gaussian[1], gaussian[2], kbT, gamma,_dt,
+  op::UpdataForceLangevinOp<device::DEVICE_GPU>()(
+                  *(_structure_info_data->_num_atoms), gaussian[0],
+                  gaussian[1], gaussian[2], kbT, gamma,_dt,
                   thrust::raw_pointer_cast(_device_data->_d_mass.data()),
                   thrust::raw_pointer_cast(_device_data->_d_vx.data()),
                   thrust::raw_pointer_cast(_device_data->_d_vy.data()),
@@ -102,7 +104,8 @@ void LangevinController::UpdataForce() {
                   thrust::raw_pointer_cast(_device_data->_d_fz.data()));
 }
 
-rbmd::Real LangevinController:: FetchSample_1D(const bool& random, const rbmd::Real& mu,const rbmd::Real& sigma) // Fetch 1D sample from Gaussion contribution
+rbmd::Real LangevinController:: FetchSample_1D(const bool& random,
+  const rbmd::Real& mu,const rbmd::Real& sigma) // Fetch 1D sample from Gaussion contribution
 {
     rbmd::Real U1, U2, epsilon;
     epsilon = 1e-6;

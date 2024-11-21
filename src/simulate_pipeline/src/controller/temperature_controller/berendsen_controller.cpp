@@ -95,7 +95,8 @@ void BerendsenController::UpdataVelocity() {
   rbmd::Real coeff_Berendsen =
       SQRT(1.0 + (_dt / _temperature_damp) * (_temperature_start/ _temperature - 1.0));
 
-  op::UpdataVelocityRescaleOp<device::DEVICE_GPU>()(*(_structure_info_data->_num_atoms), coeff_Berendsen,
+  op::UpdataVelocityRescaleOp<device::DEVICE_GPU>()(
+                    *(_structure_info_data->_num_atoms), coeff_Berendsen,
                      thrust::raw_pointer_cast(_device_data->_d_vx.data()),
                      thrust::raw_pointer_cast(_device_data->_d_vy.data()),
                      thrust::raw_pointer_cast(_device_data->_d_vz.data()));
