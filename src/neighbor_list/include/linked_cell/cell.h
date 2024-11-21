@@ -3,7 +3,7 @@
 #include "common/types.h"
 
 struct Cell {
-  /// 当前cell的id TODO：考虑时候需要CellManager
+  /// 当前cell的id
   rbmd::Id _cell_id = 0;
   rbmd::Real ALIGN(ALIGN_SIZE(rbmd::Real, 3)) cell_coord_min[3]{};
   rbmd::Real ALIGN(ALIGN_SIZE(rbmd::Real, 3)) cell_coord_max[3]{};

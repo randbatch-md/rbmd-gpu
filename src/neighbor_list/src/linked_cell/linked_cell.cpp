@@ -1,20 +1,19 @@
 #include "linked_cell/linked_cell.h"
 
-
-#include "../common/rbmd_define.h"
 #include "../common/device_types.h"
+#include "../common/rbmd_define.h"
 #include "../common/types.h"
 #include "data_manager.h"
 #include "linked_cell_op.h"
 #include "model/md_data.h"
 
 LinkedCell::LinkedCell() {
+  // 从数据管理器获取所需数据
   this->_device_data = DataManager::getInstance().getDeviceData();
   this->_structure_info_data =
       DataManager::getInstance().getMDData()->_structure_info_data;
   this->_config_data = DataManager::getInstance().getConfigData();
   this->_per_atom_cell_id.resize(*(_structure_info_data->_num_atoms));
-  // TODO  反序列化
   this->_cutoff =
       _config_data->Get<rbmd::Real>("cut_off", "hyper_parameters", "neighbor");
   this->_total_atoms_num =
@@ -26,10 +25,14 @@ LinkedCell::~LinkedCell() {
   CHECK_RUNTIME(FREE(this->_linked_cell_device_data_ptr));
 }
 
+
 __host__ void LinkedCell::Build(Box* box) {
   rbmd::Id _cells_number = 1;
+  // 计算每个单元的长度
   auto per_cell_length = _cutoff / _cell_count_within_cutoff;
+  // 循环遍历每个维度（x, y, z）
   for (int dim = 0; dim < 3; dim++) {
+    // 计算当前维度中的单元数量
     box->_box_width_as_cell_units[dim] = static_cast<rbmd::Id>(
         floor(static_cast<double>(box->_coord_max[dim] - box->_coord_min[dim]) /
               per_cell_length));
@@ -37,15 +40,18 @@ __host__ void LinkedCell::Build(Box* box) {
     _cells_number *= _per_dimension_cells[dim];
 
     const rbmd::Real diff = box->_coord_max[dim] - box->_coord_min[dim];
+    // 计算单元格每个维度的长度
     _cell_length[dim] = diff / box->_box_width_as_cell_units[dim];
 
-    // Calculate start and end indices for each dimension
     box->_length[dim] = box->_coord_max[dim] - box->_coord_min[dim];
+    // 计算单元格每个维度的长度的倒数
     _cell_length_reciprocal[dim] = 1.0 / _cell_length[dim];
   }
   this->_total_cells = _cells_number;
+  // 调整原子列表起始索引和结束索引的大小
   this->_in_atom_list_start_index.resize(_cells_number);
   this->_in_atom_list_end_index.resize(_cells_number);
+  // 调整单元列表的大小
   this->_cells.resize(_cells_number);
   // update device box
   CHECK_RUNTIME(MEMCPY(DataManager::getInstance().getDeviceData()->_d_box,
@@ -60,7 +66,6 @@ LinkedCellDeviceDataPtr* LinkedCell::GetDataPtr() {
   }
   return this->_linked_cell_device_data_ptr;
 }
-
 void LinkedCell::InitializeCells() {
   op::InitializeCellOp<device::DEVICE_GPU> initialize_cell_op;
   initialize_cell_op(GetDataPtr(), _device_data->_d_box,
@@ -129,6 +134,7 @@ void LinkedCell::SortAtomsByCellKey() {
   map_atomid_to_idx_op(thrust::raw_pointer_cast(_atom_id_to_idx.data()),
                        raw_ptr(_device_data->_d_atoms_id), _total_atoms_num);
 }
+
 template <typename T>
 void LinkedCell::MapAtomId(thrust::device_vector<T>& d_target) {
   auto* d_atom_id_to_idx = thrust::raw_pointer_cast(_atom_id_to_idx.data());

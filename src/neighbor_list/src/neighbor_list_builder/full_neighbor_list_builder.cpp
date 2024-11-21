@@ -7,6 +7,7 @@
 #include "full_neighbor_list_op.h"
 
 FullNeighborListBuilder::FullNeighborListBuilder() {
+  // 计算邻居cell数量的固定公式
   this->_neighbor_cell_num =
       (2 * _linked_cell->_cell_count_within_cutoff + 1) *
       (2 * _linked_cell->_cell_count_within_cutoff + 1) *
@@ -73,6 +74,7 @@ void FullNeighborListBuilder::EstimateNeighborsList() {
                        sizeof(rbmd::Id), H2D));
   op::EstimateFullNeighborListOp<device::DEVICE_GPU>
       estimate_full_neighbor_list_op;
+  // 估计全邻居列表的操作
   estimate_full_neighbor_list_op(
       thrust::raw_pointer_cast(_linked_cell->_per_atom_cell_id.data()),
       thrust::raw_pointer_cast(_linked_cell->_in_atom_list_start_index.data()),
@@ -87,14 +89,18 @@ void FullNeighborListBuilder::EstimateNeighborsList() {
       this->_d_box,
       thrust::raw_pointer_cast(_linked_cell->_neighbor_cell.data()),
       _neighbor_cell_num);
+  // 将设备上的最大邻居数量求和，存储到d_total_max_neighbor_num
   ReductionSum(
       thrust::raw_pointer_cast(_neighbor_list->_d_max_neighbor_num.data()),
       d_total_max_neighbor_num, _linked_cell->_total_atoms_num);
+  // 从设备复制总的最大邻居数量到主机
   CHECK_RUNTIME(MEMCPY(&(_neighbor_list->_h_total_max_neighbor_num),
                        d_total_max_neighbor_num, sizeof(rbmd::Id), D2H));
   CHECK_RUNTIME(FREE(d_total_max_neighbor_num));
+  // 根据总的最大邻居数量调整邻居列表的大小
   _neighbor_list->_d_neighbors.resize(
       _neighbor_list->_h_total_max_neighbor_num);
+  // 初始化邻居列表的开始和结束索引
   InitNeighborListIndices();
   this->should_realloc = false;
 }

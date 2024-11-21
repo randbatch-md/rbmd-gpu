@@ -54,24 +54,24 @@ __global__ void AssignAtomsToCell(rbmd::Real* px, rbmd::Real* py,
   }
   Int3 cell_idx;
   Real3 local_point = make_Real3(px[idx], py[idx], pz[idx]);
-  // TODO 可以取消这段逻辑吗？  这里local point 并没有修改原来的
-  if (local_point.x <= d_box->_coord_min[0]) {
-    local_point.x += linked_cell->_d_cell_length[0] * 0.5;
-  } else if (local_point.x >= d_box->_coord_max[0]) {
-    local_point.x -= linked_cell->_d_cell_length[0] * 0.5;
-  }
-
-  if (local_point.y <= d_box->_coord_min[1]) {
-    local_point.y += linked_cell->_d_cell_length[1] * 0.5;
-  } else if (local_point.y >= d_box->_coord_max[1]) {
-    local_point.y -= linked_cell->_d_cell_length[1] * 0.5;
-  }
-
-  if (local_point.z <= d_box->_coord_min[2]) {
-    local_point.z += linked_cell->_d_cell_length[2] * 0.5;
-  } else if (local_point.z >= d_box->_coord_max[2]) {
-    local_point.z -= linked_cell->_d_cell_length[2] * 0.5;
-  }
+  // // TODO 可以取消这段逻辑吗？  这里local point 并没有修改原来的
+  // if (local_point.x <= d_box->_coord_min[0]) {
+  //   local_point.x += linked_cell->_d_cell_length[0] * 0.5;
+  // } else if (local_point.x >= d_box->_coord_max[0]) {
+  //   local_point.x -= linked_cell->_d_cell_length[0] * 0.5;
+  // }
+  //
+  // if (local_point.y <= d_box->_coord_min[1]) {
+  //   local_point.y += linked_cell->_d_cell_length[1] * 0.5;
+  // } else if (local_point.y >= d_box->_coord_max[1]) {
+  //   local_point.y -= linked_cell->_d_cell_length[1] * 0.5;
+  // }
+  //
+  // if (local_point.z <= d_box->_coord_min[2]) {
+  //   local_point.z += linked_cell->_d_cell_length[2] * 0.5;
+  // } else if (local_point.z >= d_box->_coord_max[2]) {
+  //   local_point.z -= linked_cell->_d_cell_length[2] * 0.5;
+  // }
 
   cell_idx.x = MIN(MAX((int)(FLOOR((double)(local_point.x - d_box->_coord_min[0]) *
                                    linked_cell->_d_cell_length_reciprocal[0])) +
@@ -136,7 +136,34 @@ __global__ void AssignAtomsToCell(rbmd::Real* px, rbmd::Real* py,
 }
 
 // 核函数来设置每个cell的start_index和end_index
-
+/**
+* @brief 计算每个单元格在排序后的原子列表中的起始和结束索引。
+*
+* 该函数通过并行化方式，扫描已排序的 `_per_atom_cell_id`（作为 `sorted_cell_index` 输入）
+* 确定每个单元格对应的原子范围，并更新到 `d_in_atom_list_start_index` 和
+* `d_in_atom_list_end_index` 中。
+*
+* 功能逻辑：
+* - 对每个线程分配一个原子索引 `idx`，并根据其所属单元格ID进行以下操作：
+*   1. 起始索引记录：当检测到当前原子是其单元格中第一个原子（首个原子或与前一原子的单元格ID不同），
+*      更新 `d_in_atom_list_start_index[cell]` 为当前索引 `idx`。
+*   2. 结束索引记录：当检测到当前原子是其单元格中最后一个原子（最后一个原子或与下一原子的单元格ID不同），
+*      更新 `d_in_atom_list_end_index[cell]` 为当前索引的后一个值 `idx + 1`（区间为半开区间）。
+*
+* 输入参数：
+* - `sorted_cell_index`：已按单元格ID排序的原子单元格ID数组，对应 `_per_atom_cell_id`。
+* - `d_in_atom_list_start_index`：输出，每个单元格的起始索引，按单元格ID存储。
+* - `d_in_atom_list_end_index`：输出，每个单元格的结束索引（半开区间）。
+* - `num_atoms`：原子总数，表示数组的大小。
+*
+* 实现细节：
+* - 使用 `atomicExch` 来保证在并行环境下对 `d_in_atom_list_start_index` 和
+*   `d_in_atom_list_end_index` 的更新是线程安全的。性能上可能有优化空间。
+* - `atomicExch` 操作：
+*   - `d_in_atom_list_start_index[cell]` 在首次遇到单元格时更新。
+*   - `d_in_atom_list_end_index[cell]` 在最后一次遇到单元格时更新。
+*
+*/
 __global__ void ComputeCellRangesIndices(rbmd::Id* sorted_cell_index,
                                          rbmd::Id* d_in_atom_list_start_index,
                                          rbmd::Id* d_in_atom_list_end_index,
