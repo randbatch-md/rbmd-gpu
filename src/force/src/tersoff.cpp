@@ -23,29 +23,29 @@ extern int test_current_step;
 extern std::map<std::string, UNIT> unit_factor_map;
 
 TerSoff::TerSoff():
-  _elements(nullptr),
-  _map(nullptr)
+  _elements(nullptr)
 {
   _rbl_neighbor_list_builder = std::make_shared<RblFullNeighborListBuilder>();
   _neighbor_list_builder = std::make_shared<FullNeighborListBuilder>();
   _params = nullptr;
 
   // 初始化 map
-  rbmd::Id desired_size = 100;  // 假设需要 100 个元素
-  _map = new rbmd::Id[desired_size];
-  std::fill(_map, _map + desired_size, -1);  // 初始化为 -1
+  _map.resize(100,-1);
+
+  auto atoms_type = *(_structure_info_data->_num_atoms_type);
+  _setflag.resize(atoms_type + 1,std::vector<rbmd::Id>(atoms_type + 1, 0));
+
 }
 
 TerSoff::~TerSoff()
 {
-  CHECK_RUNTIME(FREE(_params));
+  free(_params);
 
   if (_elements) {
     for (int i = 0; i < _nelements; i++) {delete[] _elements[i];}
   }
   delete[] _elements;
 
-  delete[] _map;
 }
 
 void TerSoff::Init()
@@ -77,6 +77,7 @@ void TerSoff::Init()
   }
 
   ReadPotentialFile_fix(_potential_file);
+  _potential_file.close();
 
   SetupParams();
 }
@@ -139,45 +140,61 @@ void TerSoff::Element2Type(rbmd::Id narg, char **arg, bool update_setflag)
   _nelements = 0;
   _map[0] = -1;  // 保证类型0为无效
 
-  // 遍历每个输入元素名称并映射
-  for (i = 1; i <= narg; i++)
-  {
-    std::string entry = arg[i - 1];
+  for (i = 1; i <= narg; i++) {
+    std::string entry = arg[i-1];
     if (entry == "NULL") {
-      _map[i] = -1;  // "NULL" 映射为 -1
+      _map[i] = -1;
       continue;
     }
-
-    // 如果元素已经存在，则直接使用现有的索引
-    auto it = element_to_index.find(entry);
-    if (it != element_to_index.end()) {
-      _map[i] = it->second;
-    } else {
-      // 新元素，存入 _elements 和 map
-      _elements[_nelements] = StrDup(entry);
-      element_to_index[entry] = _nelements;
-      _map[i] = _nelements;
+    for (j = 0; j < _nelements; j++)
+      if (entry == _elements[j]) break;
+    _map[i] = j;
+    if (j == _nelements) {
+      _elements[j] = StrDup(entry);
       _nelements++;
     }
   }
 
-  // // 更新 setflag 数组
-  // if (update_setflag) {
-  //   int count = 0;
-  //   for (i = 1; i <= ntypes; i++) {
-  //     for (j = i; j <= ntypes; j++) {
-  //       setflag[i][j] = 0;
-  //       if ((map[i] >= 0) && (map[j] >= 0)) {
-  //         setflag[i][j] = 1;
-  //         count++;
-  //       }
-  //     }
+
+  // // 遍历每个输入元素名称并映射
+  // for (i = 1; i <= narg; i++)
+  // {
+  //   std::string entry = arg[i - 1];
+  //   if (entry == "NULL") {
+  //     _map[i] = -1;  // "NULL" 映射为 -1
+  //     continue;
   //   }
   //
-  //   if (count == 0) {
-  //     std::cerr << "Incorrect args for tersoff coefficients"<< std::endl;
+  //   // 如果元素已经存在，则直接使用现有的索引
+  //   auto it = element_to_index.find(entry);
+  //   if (it != element_to_index.end()) {
+  //     _map[i] = it->second;
+  //   } else {
+  //     // 新元素，存入 _elements 和 map
+  //     _elements[_nelements] = StrDup(entry);
+  //     element_to_index[entry] = _nelements;
+  //     _map[i] = _nelements;
+  //     _nelements++;
   //   }
   // }
+
+  // 更新 setflag 数组
+  update_setflag = true;
+  if (update_setflag) {
+    int count = 0;
+    for (i = 1; i <= ntypes; i++) {
+      for (j = i; j <= ntypes; j++) {
+        _setflag[i][j] = 0;
+        if ((_map[i] >= 0) && (_map[j] >= 0)) {
+          _setflag[i][j] = 1;
+          count++;
+        }
+      }
+    }
+    if (count == 0) {
+      std::cerr << "Incorrect args for tersoff coefficients"<< std::endl;
+    }
+  }
 }
 
 // void TerSoff::ReadPotentialFile(std::ifstream& file)
@@ -242,19 +259,60 @@ void TerSoff::Element2Type(rbmd::Id narg, char **arg, bool update_setflag)
 //   file.close();
 // }
 
+// void readTersoffParams(std::ifstream& file, std::vector<TersoffParams>& paramsList)
+// {
+//
+//   std::string line;
+//   while (std::getline(file, line)) {
+//     // 跳过空行和注释行
+//     if (line.empty() || line[0] == '#') {
+//       continue;
+//     }
+//
+//     // 使用 stringstream 解析一行内容
+//     std::istringstream iss(line);
+//     double m, gamma, lambda3, c, d, costheta0, n, beta;
+//     double lambda2, B, R, D, lambda1, A;
+//     std::string element1, element2, element3;
+//
+//     try
+//     {
+//       // 按指定顺序解析每一列
+//       if (!(iss >> element1 >> element2 >> element3  >>m >> gamma >> lambda3
+//         >> c >> d >> costheta0 >> n >> beta>> lambda2 >> B >> R >> D
+//         >> lambda1 >> A))
+//         {
+//           throw std::runtime_error("Invalid format in line: " + line);
+//         }
+//
+//       // 创建 TersoffParams 对象并加入列表
+//       paramsList.emplace_back(element1, element2, element3,m, gamma, lambda3,
+//         c, d, costheta0, n, beta,lambda2, B, R, D, lambda1, A);
+//     }
+//     catch (const std::exception& e) {
+//       std::cerr << "Error parsing line: " << line << "\n" << e.what() << std::endl;
+//     }
+//   }
+// }
+
 void TerSoff::ReadPotentialFile_fix(std::ifstream& file)
 {
-    // 清理现有数据并初始化
-    //TersoffData.clear();
-    //_params = nullptr;
+
     _nparams = _maxparam = 0;
 
     std::string line;
     while (std::getline(file, line))
     {
-        std::istringstream iss(line);
+      // 去掉前后的空格
+      line = line.substr(line.find_first_not_of(" \t"), line.find_last_not_of(" \t") + 1);
 
-        try {
+      // 跳过注释行
+      if (line.empty() || line[0] == '#'){
+        continue;
+      }
+
+      std::istringstream iss(line);
+      try {
             // 解析行数据
             std::string iname, jname, kname;
             iss >> iname >> jname >> kname;
@@ -291,23 +349,24 @@ void TerSoff::ReadPotentialFile_fix(std::ifstream& file)
           _params[_nparams].B >> _params[_nparams].R >>_params[_nparams].D >>
           _params[_nparams].lambda1 >> _params[_nparams].A;
 
-          std::cout << "Read parameters: "
-          << "m = " << _params[_nparams].m << ", "
-          << "gamma = " << _params[_nparams].gamma << ", "
-          << "lambda3 = " << _params[_nparams].lambda3 << ", "
-          << "c = " << _params[_nparams].c << ", "
-          << "d = " << _params[_nparams].d << ", "
-          << "costheta0 = " << _params[_nparams].costheta0 << ", "
-          << "n = " << _params[_nparams].n << ", "
-          << "beta = " << _params[_nparams].beta << ", "
-          << "lambda2 = " << _params[_nparams].lambda2 << ", "
-          << "B = " << _params[_nparams].B << ", "
-          << "R = " << _params[_nparams].R << ", "
-          << "D = " << _params[_nparams].D << ", "
-          << "lambda1 = " << _params[_nparams].lambda1 << ", "
-          << "A = " << _params[_nparams].A
-          << std::endl;
+          _params[_nparams].m_int = rbmd::Id(_params[_nparams].m);//
 
+            std::cout << "Read parameters: "
+            << "m = " << _params[_nparams].m << ", "
+            << "gamma = " << _params[_nparams].gamma << ", "
+            << "lambda3 = " << _params[_nparams].lambda3 << ", "
+            << "c = " << _params[_nparams].c << ", "
+            << "d = " << _params[_nparams].d << ", "
+            << "costheta0 = " << _params[_nparams].costheta0 << ", "
+            << "n = " << _params[_nparams].n << ", "
+            << "beta = " << _params[_nparams].beta << ", "
+            << "lambda2 = " << _params[_nparams].lambda2 << ", "
+            << "B = " << _params[_nparams].B << ", "
+            << "R = " << _params[_nparams].R << ", "
+            << "D = " << _params[_nparams].D << ", "
+            << "lambda1 = " << _params[_nparams].lambda1 << ", "
+            << "A = " << _params[_nparams].A
+            << std::endl;
 
             // 单位转换（如需要）
             bool unit_convert_flag =true;
@@ -319,15 +378,12 @@ void TerSoff::ReadPotentialFile_fix(std::ifstream& file)
 
             // 存储参数到 map 数据结构
             //TersoffData[key] = params;
-            ++_nparams;
-
-        } catch (const std::exception& e) {
-            std::cerr << "Error parsing line: " << line << "\n"
-                      << "Error: " << e.what() << std::endl;
-            continue; // 跳过错误的行
-        }
+            } catch (const std::exception& e) {
+              std::cerr << "Error parsing line: " << line << "\n"
+                        << "Error: " << e.what() << std::endl;
+              }
+        ++_nparams;
     }
-
     // 确保至少有一个参数被读取
     if (_nparams == 0) {
         throw std::runtime_error("No valid parameters found in the potential file.");
@@ -336,14 +392,17 @@ void TerSoff::ReadPotentialFile_fix(std::ifstream& file)
   std::cout<< "_nparams: " <<_nparams<<std::endl;
 }
 
-
-
 void TerSoff::SetupParams()
 {
     int i, j, k, m, n;
     //TersoffData params;
     // 分配内存给 elem3param，大小为 n_elements x n_elements x n_elements
-  //elem3param[n_elements][n_elements][n_elements];
+  _elem3param = std::vector<std::vector<std::vector<rbmd::Id>>>(
+      _nelements,
+      std::vector<std::vector<rbmd::Id>>(
+          _nelements,
+          std::vector<rbmd::Id>(_nelements, -1)
+      ));
 
     // 设置 elem3param，确保每个 (i, j, k) 组合在 params 中有唯一匹配
     for (i = 0; i < _nelements; ++i) {
@@ -402,5 +461,7 @@ void TerSoff::SetupParams()
       }
     }
   }
+
+
 
 }

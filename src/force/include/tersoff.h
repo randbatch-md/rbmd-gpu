@@ -29,7 +29,27 @@ public:
 
     rbmd::Real cut, cutsq;
     rbmd::Real c1, c2, c3, c4;
+    rbmd::Id m_int;
+    std::string iname ,jname ,kname;
   };
+
+  // struct TersoffParams {
+  //   double m, gamma, lambda3, c, d, costheta0, n, beta;
+  //   double lambda2, B, R, D, lambda1, A;
+  //   std::string element1, element2, element3;
+  //   rbmd::Real cut, cutsq;
+  //   rbmd::Real c1, c2, c3, c4;
+  //   rbmd::Id m_int;
+  //   std::string iname ,jname ,kname;
+  //
+  //   TersoffParams(const std::string& e1, const std::string& e2, const std::string& e3,
+  //                 double m_, double gamma_, double lambda3_, double c_, double d_,
+  //                 double costheta0_, double n_, double beta_, double lambda2_, double B_,
+  //                 double R_, double D_, double lambda1_, double A_)
+  //       : element1(e1), element2(e2), element3(e3),m(m_), gamma(gamma_),
+  //         lambda3(lambda3_), c(c_), d(d_),costheta0(costheta0_), n(n_), beta(beta_),
+  //         lambda2(lambda2_), B(B_),R(R_), D(D_), lambda1(lambda1_), A(A_){}
+  // };
 
 private:
   std::shared_ptr<BaseNeighborListBuilder> _rbl_neighbor_list_builder;
@@ -52,14 +72,17 @@ private:
   TersoffParams*  _params;
   rbmd::Id _nelements;        // # of unique elements
   char**    _elements;      // names of unique elements
-  rbmd::Id* _map;             // mapping from atom types to elements
-  rbmd::Id** _setflag;      // 0/1 = whether each i,j has been set
+  std::vector<rbmd::Id> _map;             // mapping from atom types to elements
+  //rbmd::Id** _setflag;      // 0/1 = whether each i,j has been set
+  std::vector<std::vector<rbmd::Id>> _setflag;
+
 
 
   //
-  rbmd::Id* _elem1param;      // mapping from elements to parameters
-  rbmd::Id** _elem2param;     // mapping from element pairs to parameters
-  rbmd::Id*** _elem3param;    // mapping from element triplets to parameters
+  //std::vector<rbmd::Id> _elem1param;      // mapping from elements to parameters
+  //std::vector<std::vector<rbmd::Id>> _elem2param;     // mapping from element pairs to parameters
+  std::vector<std::vector<std::vector<rbmd::Id>>> _elem3param;
+  //rbmd::Id*** _elem3param;    // mapping from element triplets to parameters
   rbmd::Id _nparams;          // # of stored parameter sets
   rbmd::Id _maxparam;         // max # of parameter sets
 
