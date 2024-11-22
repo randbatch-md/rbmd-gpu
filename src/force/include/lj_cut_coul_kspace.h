@@ -33,6 +33,7 @@ public:
   void ComputeEwlad();//Ewald
 
   void RBEInit(Box box,rbmd::Real alpha,rbmd::Id RBE_P);
+  void GetPsampleKey();
   void ComputeChargeStructureFactorRBE(
          Box box,
          rbmd::Id num_atoms,

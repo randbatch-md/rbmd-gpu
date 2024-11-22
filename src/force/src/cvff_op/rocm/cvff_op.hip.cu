@@ -508,7 +508,7 @@ __global__ void ComputeBondForce(
     const rbmd::Id* bond_type, const rbmd::Id* bondlisti,
     const rbmd::Id* bondlistj, const rbmd::Real* px, const rbmd::Real* py,
     const rbmd::Real* pz, rbmd::Real* fx, rbmd::Real* fy, rbmd::Real* fz,
-    rbmd::Real* flat_virial, rbmd::Real* energy_bond) {
+    rbmd::Real* flat_virial,rbmd::Real* energy_bond) {
   __shared__ typename BLOCKREDUCE<rbmd::Real, BLOCK_SIZE>::TempStorage
       temp_storage;
   rbmd::Real local_energy_bond = 0;
@@ -550,7 +550,7 @@ __global__ void ComputeBondForce(
     // fy[bondjj] = -forcebondij * y12;
     // fz[bondjj] = -forcebondij * z12;
 
-    // // 计算作用力分量
+    // //
     rbmd::Real fx_ij = forcebondij * x12;
     rbmd::Real fy_ij = forcebondij * y12;
     rbmd::Real fz_ij = forcebondij * z12;
@@ -561,12 +561,12 @@ __global__ void ComputeBondForce(
     // //printf("tid1  %i bondii  %i  bondjj  %i\n",tid1, temp_atom_ids[tid1 *
     // 2], temp_atom_ids[tid1 * 2 + 1]);
     //
-    // fx[tid1 * 2] = fx_ij;          // bondii 力
-    // fx[tid1 * 2 + 1] = -fx_ij;     // bondjj 力的相反数
-    // fy[tid1 * 2] = fy_ij;          // bondii 力
-    // fy[tid1 * 2 + 1] = -fy_ij;     // bondjj 力的相反数
-    // fz[tid1 * 2] = fz_ij;          // bondii 力
-    // fz[tid1 * 2 + 1] = -fz_ij;     // bondjj 力的相反数
+    // fx[tid1 * 2] = fx_ij;          // bondii
+    // fx[tid1 * 2 + 1] = -fx_ij;     // bondjj
+    // fy[tid1 * 2] = fy_ij;          // bondii
+    // fy[tid1 * 2 + 1] = -fy_ij;     // bondjj
+    // fz[tid1 * 2] = fz_ij;          // bondii
+    // fz[tid1 * 2 + 1] = -fz_ij;     // bondjj
 
     atomicAdd(&fx[bondii], fx_ij);  // 将作用力添加到原子bondi
     atomicAdd(&fy[bondii], fy_ij);
@@ -584,20 +584,20 @@ __global__ void ComputeBondForce(
     local_virial[4]  = x12 *fz_ij;
     local_virial[5]  = y12 *fz_ij;
 
-    // // 将每个 bond 的 virial 分量加到相应的原子
-    // atomicAdd(&flat_virial[bondii * 6 + 0], 0.5*local_virial[0]);
-    // atomicAdd(&flat_virial[bondii * 6 + 1], 0.5*local_virial[1]);
-    // atomicAdd(&flat_virial[bondii * 6 + 2], 0.5*local_virial[2]);
-    // atomicAdd(&flat_virial[bondii * 6 + 3], 0.5*local_virial[3]);
-    // atomicAdd(&flat_virial[bondii * 6 + 4], 0.5*local_virial[4]);
-    // atomicAdd(&flat_virial[bondii * 6 + 5], 0.5*local_virial[5]);
+    // 将每个 bond 的 virial 分量加到相应的原子
+    // atomicAdd(&flat_virial_atom[bondii * 6 + 0], 0.5*local_virial[0]);
+    // atomicAdd(&flat_virial_atom[bondii * 6 + 1], 0.5*local_virial[1]);
+    // atomicAdd(&flat_virial_atom[bondii * 6 + 2], 0.5*local_virial[2]);
+    // atomicAdd(&flat_virial_atom[bondii * 6 + 3], 0.5*local_virial[3]);
+    // atomicAdd(&flat_virial_atom[bondii * 6 + 4], 0.5*local_virial[4]);
+    // atomicAdd(&flat_virial_atom[bondii * 6 + 5], 0.5*local_virial[5]);
     //
-    // atomicAdd(&flat_virial[bondjj * 6 + 0], 0.5*local_virial[0]);
-    // atomicAdd(&flat_virial[bondjj * 6 + 1], 0.5*local_virial[1]);
-    // atomicAdd(&flat_virial[bondjj * 6 + 2], 0.5*local_virial[2]);
-    // atomicAdd(&flat_virial[bondjj * 6 + 3], 0.5*local_virial[3]);
-    // atomicAdd(&flat_virial[bondjj * 6 + 4], 0.5*local_virial[4]);
-    // atomicAdd(&flat_virial[bondjj * 6 + 5], 0.5*local_virial[5]);
+    // atomicAdd(&flat_virial_atom[bondjj * 6 + 0], 0.5*local_virial[0]);
+    // atomicAdd(&flat_virial_atom[bondjj * 6 + 1], 0.5*local_virial[1]);
+    // atomicAdd(&flat_virial_atom[bondjj * 6 + 2], 0.5*local_virial[2]);
+    // atomicAdd(&flat_virial_atom[bondjj * 6 + 3], 0.5*local_virial[3]);
+    // atomicAdd(&flat_virial_atom[bondjj * 6 + 4], 0.5*local_virial[4]);
+    // atomicAdd(&flat_virial_atom[bondjj * 6 + 5], 0.5*local_virial[5]);
     //
     for(int i =0;i<6;++i) {
       flat_virial[ tid1 * 6 + i ] = local_virial[i];
@@ -728,6 +728,28 @@ __global__ void ComputeBondForce(
       for(int i =0;i<6;++i) {
         flat_virial[ tid1 * 6 + i ] = local_virial[i];
       }
+
+    // // 将每个 angle 的 virial 分量加到相应的原子
+    // atomicAdd(&flat_virial_atom[anglelii * 6 + 0], 0.5*local_virial[0]);
+    // atomicAdd(&flat_virial_atom[anglelii * 6 + 1], 0.5*local_virial[1]);
+    // atomicAdd(&flat_virial_atom[anglelii * 6 + 2], 0.5*local_virial[2]);
+    // atomicAdd(&flat_virial_atom[anglelii * 6 + 3], 0.5*local_virial[3]);
+    // atomicAdd(&flat_virial_atom[anglelii * 6 + 4], 0.5*local_virial[4]);
+    // atomicAdd(&flat_virial_atom[anglelii * 6 + 5], 0.5*local_virial[5]);
+    //
+    // atomicAdd(&flat_virial_atom[anglelkk * 6 + 0], 0.5*local_virial[0]);
+    // atomicAdd(&flat_virial_atom[anglelkk * 6 + 1], 0.5*local_virial[1]);
+    // atomicAdd(&flat_virial_atom[anglelkk * 6 + 2], 0.5*local_virial[2]);
+    // atomicAdd(&flat_virial_atom[anglelkk * 6 + 3], 0.5*local_virial[3]);
+    // atomicAdd(&flat_virial_atom[anglelkk * 6 + 4], 0.5*local_virial[4]);
+    // atomicAdd(&flat_virial_atom[anglelkk * 6 + 5], 0.5*local_virial[5]);
+    //
+    // atomicAdd(&flat_virial_atom[angleljj * 6 + 0], 0.5*local_virial[0]);
+    // atomicAdd(&flat_virial_atom[angleljj * 6 + 1], 0.5*local_virial[1]);
+    // atomicAdd(&flat_virial_atom[angleljj * 6 + 2], 0.5*local_virial[2]);
+    // atomicAdd(&flat_virial_atom[angleljj * 6 + 3], 0.5*local_virial[3]);
+    // atomicAdd(&flat_virial_atom[angleljj * 6 + 4], 0.5*local_virial[4]);
+    // atomicAdd(&flat_virial_atom[angleljj * 6 + 5], 0.5*local_virial[5]);
     }
 
     rbmd::Real block_sum =
@@ -1059,7 +1081,7 @@ __global__ void ComputeBondForce(
 
     CHECK_KERNEL(ComputeBondForce<<<blocks_per_grid, BLOCK_SIZE, 0, 0>>>(
         box, num_bonds, atom_id_to_idx, bond_coeffs_k, bond_coeffs_equilibrium,
-        bond_type, bondlisti, bondlistj, px, py, pz, fx, fy, fz, flat_virial,
+        bond_type, bondlisti, bondlistj, px, py, pz, fx, fy, fz,flat_virial,
         energy_bond));
   }
 

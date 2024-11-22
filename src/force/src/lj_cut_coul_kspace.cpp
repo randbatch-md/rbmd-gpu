@@ -69,7 +69,8 @@ void LJCutCoulKspace::Init()
   if("RBE" == _coulomb_type) {
     _RBE_P = DataManager::getInstance().getConfigData()->Get<rbmd::Id>(
   "coulomb_sample_num", "hyper_parameters", "coulomb");
-    RBEInit(*_box,_alpha,_RBE_P);
+    GetPsampleKey();
+    //RBEInit(*_box,_alpha,_RBE_P);
   }
 }
 
@@ -404,6 +405,15 @@ void LJCutCoulKspace::RBEInit(Box box,rbmd::Real alpha,rbmd::Id RBE_P)
     thrust::raw_pointer_cast(_psample_key.data()));
 }
 
+void LJCutCoulKspace::GetPsampleKey()
+{
+  //index key
+  auto num_atoms = *(_structure_info_data->_num_atoms);
+  _psample_key.resize(num_atoms * _RBE_P);
+  op::GenerateIndexArrayOp<device::DEVICE_GPU>()(num_atoms,_RBE_P,
+    thrust::raw_pointer_cast(_psample_key.data()));
+}
+
 void LJCutCoulKspace::ComputeChargeStructureFactorRBE(
    Box box,
    rbmd::Id num_atoms,
@@ -414,10 +424,11 @@ void LJCutCoulKspace::ComputeChargeStructureFactorRBE(
    thrust::device_vector<rbmd::Real> rhok_real_redue,
    thrust::device_vector<rbmd::Real> rhok_image_redue)
 {
-  //
+  //get P_Sample
+  RBEInit(*_box,_alpha,_RBE_P);
+
   thrust::device_vector<rbmd::Real>  rhok_real_atom;
   thrust::device_vector<rbmd::Real>  rhok_image_atom;
-
   rhok_real_atom.resize(num_atoms* RBE_P);
   rhok_image_atom.resize(num_atoms* RBE_P);
   auto p_number= RBE_P;

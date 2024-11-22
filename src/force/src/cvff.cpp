@@ -74,7 +74,8 @@ void CVFF::Init()
   if("RBE" == _coulomb_type) {
     _RBE_P = DataManager::getInstance().getConfigData()->Get<rbmd::Id>(
   "coulomb_sample_num", "hyper_parameters", "coulomb");
-    RBEInit(*_box,_alpha,_RBE_P);
+    GetPsampleKey();
+    //RBEInit(*_box,_alpha,_RBE_P);
   }
 }
 
@@ -630,11 +631,14 @@ void CVFF::RBEInit(Box box,rbmd::Real alpha,rbmd::Id RBE_P)
   _P_Sample_x = h_P_Sample_x;
   _P_Sample_y = h_P_Sample_y;
   _P_Sample_z = h_P_Sample_z;
+}
 
+void CVFF::GetPsampleKey()
+{
   //index key
   auto num_atoms = *(_structure_info_data->_num_atoms);
-  _psample_key.resize(num_atoms * RBE_P);
-  op::GenerateIndexArrayOp<device::DEVICE_GPU>()(num_atoms,RBE_P,
+  _psample_key.resize(num_atoms * _RBE_P);
+  op::GenerateIndexArrayOp<device::DEVICE_GPU>()(num_atoms,_RBE_P,
     thrust::raw_pointer_cast(_psample_key.data()));
 }
 
@@ -648,10 +652,11 @@ void CVFF::ComputeChargeStructureFactorRBE(
    thrust::device_vector<rbmd::Real> rhok_real_redue,
    thrust::device_vector<rbmd::Real> rhok_image_redue)
 {
-  //
+  //get P_Sample
+  RBEInit(*_box,_alpha,_RBE_P);
+
   thrust::device_vector<rbmd::Real>  rhok_real_atom;
   thrust::device_vector<rbmd::Real>  rhok_image_atom;
-
   rhok_real_atom.resize(num_atoms* RBE_P);
   rhok_image_atom.resize(num_atoms* RBE_P);
   auto p_number= RBE_P;
@@ -961,41 +966,15 @@ void CVFF::ComputeBondForce()
     thrust::raw_pointer_cast(_device_data->_d_flat_virial_bond.data()),
     thrust::raw_pointer_cast(d_total_ebond.data()));
 
-  // 从设备端拷贝数据到主机端
+  // D2H
   thrust::host_vector<rbmd::Real> h_total_ebond(d_total_ebond);
-  // 打印累加后的总能量
   _ave_ebond = h_total_ebond[0]/num_bonds;
 
   std::cout << "test_current_step:" << test_current_step <<  " ,"
   << "average_energy_bond:" << _ave_ebond  << std::endl;
 
-  // //out
-  // std::ofstream outfile("ave_energy_bond.txt", std::ios::app);
-  // outfile << test_current_step << " " << _ave_ebond << std::endl;
-  // outfile.close();
 
-  // //append force bond
-  // std::vector<rbmd::Real> h_force_bondx(num_atoms);
-  // std::vector<rbmd::Real> h_force_bondy(num_atoms);
-  // std::vector<rbmd::Real> h_force_bondz(num_atoms);
-  //
-  // thrust::copy(_device_data->_d_force_bond_x.begin(),
-  //   _device_data->_d_force_bond_x.end(), h_force_bondx.begin());
-  // thrust::copy(_device_data->_d_force_bond_y.begin(),
-  // _device_data->_d_force_bond_y.end(), h_force_bondy.begin());
-  // thrust::copy(_device_data->_d_force_bond_z.begin(),
-  // _device_data->_d_force_bond_z.end(), h_force_bondz.begin());
-  //
-  //  thrust::host_vector<rbmd::Real> h_atoms_id = _device_data->_d_atoms_id;
-  // std::ofstream output_file("output_force_bond_atomadd.txt");
-  // for (size_t i = 0; i < h_force_bondx.size(); ++i)
-  // {
-  //   output_file  << h_atoms_id[i] << " "<< h_force_bondx[i] << " "
-  //   << h_force_bondy[i]  << " " << h_force_bondz[i] << std::endl;
-  // }
-  // output_file.close();
-
-  // 主机端累加virial
+  // sum virial on host
   std::vector<rbmd::Real> h_flat_virial_bond(num_bonds * 6);
   thrust::copy(_device_data->_d_flat_virial_bond.begin(),
     _device_data->_d_flat_virial_bond.end(), h_flat_virial_bond.begin());
@@ -1053,43 +1032,14 @@ void CVFF::ComputeAngleForce()
     thrust::raw_pointer_cast(_device_data->_d_flat_virial_angle.data()),
     thrust::raw_pointer_cast(d_total_eangle.data()));
 
-  // 从设备端拷贝数据到主机端
+  // D2H
   thrust::host_vector<rbmd::Real> h_total_eangle(d_total_eangle);
-
-  // 打印累加后的总能量
   _ave_eangle = h_total_eangle[0]/num_angles;
 
   std::cout << "test_current_step:" << test_current_step <<  " ," <<
     "average_energy_angle:" << _ave_eangle << std::endl;
 
-  // //out
-  // std::ofstream outfile("ave_energy_angle.txt", std::ios::app);
-  // outfile << test_current_step << " " << _ave_eangle << std::endl;
-  // outfile.close();
-
-  // //append force angle
-  // std::vector<rbmd::Real> h_force_anglex(num_atoms);
-  // std::vector<rbmd::Real> h_force_angley(num_atoms);
-  // std::vector<rbmd::Real> h_force_anglez(num_atoms);
-  //
-  // thrust::copy(_device_data->_d_force_angle_x.begin(),
-  //   _device_data->_d_force_angle_x.end(), h_force_anglex.begin());
-  // thrust::copy(_device_data->_d_force_angle_y.begin(),
-  // _device_data->_d_force_angle_y.end(), h_force_angley.begin());
-  // thrust::copy(_device_data->_d_force_angle_z.begin(),
-  // _device_data->_d_force_angle_z.end(), h_force_anglez.begin());
-  //
-  // thrust::host_vector<rbmd::Real> h_atoms_id = _device_data->_d_atoms_id;
-  // std::ofstream output_file("output_force_angle.txt");
-  // for (size_t i = 0; i < h_force_anglex.size(); ++i)
-  // {
-  //   output_file << h_atoms_id[i]<< " "
-  //   << h_force_anglex[i] << " " << h_force_angley[i]  << " " << h_force_anglez[i]
-  //   << std::endl;
-  // }
-  // output_file.close();
-
-  // 主机端累加virial
+  //sum virial on host
   std::vector<rbmd::Real> h_flat_virial_angle(num_angles * 6);
   thrust::copy(_device_data->_d_flat_virial_angle.begin(),
     _device_data->_d_flat_virial_angle.end(), h_flat_virial_angle.begin());
@@ -1150,42 +1100,14 @@ void CVFF::ComputeDihedralForce()
     thrust::raw_pointer_cast(_device_data->_d_flat_virial_dihedral.data()),
     thrust::raw_pointer_cast(d_total_edihedral.data()));
 
-  // 从设备端拷贝数据到主机端
+  // D2H
   thrust::host_vector<rbmd::Real> h_total_edihedral(d_total_edihedral);
-
-
-  // 打印累加后的总能量
   _ave_edihedral = h_total_edihedral[0]/num_dihedrals;
 
   std::cout << "test_current_step:" << test_current_step <<  " ,"
    << "average_dihedral_energy:" << _ave_edihedral << std::endl;
 
-
-  // //append force dihedral
-  // auto num_atoms = *(_structure_info_data->_num_atoms);
-  // std::vector<rbmd::Real> h_force_dihedralx(num_atoms);
-  // std::vector<rbmd::Real> h_force_dihedraly(num_atoms);
-  // std::vector<rbmd::Real> h_force_dihedralz(num_atoms);
-  //
-  // thrust::copy(_device_data->_d_force_dihedral_x.begin(),
-  //   _device_data->_d_force_dihedral_x.end(), h_force_dihedralx.begin());
-  // thrust::copy(_device_data->_d_force_dihedral_y.begin(),
-  // _device_data->_d_force_dihedral_y.end(), h_force_dihedraly.begin());
-  // thrust::copy(_device_data->_d_force_dihedral_z.begin(),
-  // _device_data->_d_force_dihedral_z.end(), h_force_dihedralz.begin());
-  //
-  // thrust::host_vector<rbmd::Real> h_atoms_id = _device_data->_d_atoms_id;
-  // std::ofstream output_file("output_force_dihedral.txt");
-  // for (size_t i = 0; i < h_force_dihedralx.size(); ++i)
-  // {
-  //   output_file << h_atoms_id[i]<< " "
-  //   << h_force_dihedralx[i] << " " << h_force_dihedraly[i]  << " " << h_force_dihedralz[i]
-  //   << std::endl;
-  // }
-  // output_file.close();
-
-
-  // 主机端累加virial
+  //sum virial on host
   std::vector<rbmd::Real> h_flat_virial_dihedral(num_dihedrals * 6);
   thrust::copy(_device_data->_d_flat_virial_dihedral.begin(),
     _device_data->_d_flat_virial_dihedral.end(), h_flat_virial_dihedral.begin());
@@ -1230,9 +1152,9 @@ void CVFF::ReduceByKey()
 
     thrust::reduce_by_key(
       _device_data->_d_temp_atom_ids.begin(), _device_data->_d_temp_atom_ids.end(),
-      _device_data->_d_temp_forces_bondx.begin(),   // 输入的 x 方向力
-      reduce_atom_ids_x.begin(),   // 按键聚合后的原子id
-      _device_data->_d_force_bond_x.begin()    // 聚合后的 x 方向力
+      _device_data->_d_temp_forces_bondx.begin(),
+      reduce_atom_ids_x.begin(),
+      _device_data->_d_force_bond_x.begin()
     );
     thrust::reduce_by_key(
       _device_data->_d_temp_atom_ids.begin(), _device_data->_d_temp_atom_ids.end(),
