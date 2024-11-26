@@ -66,7 +66,7 @@ public:
   void ComputeBondForce(); //Harmonic
   void ComputeAngleForce(); //Harmonic
   void ComputeDihedralForce(); //Harmonic
-  void ReduceByKey();
+  void ComputeImproperForce(); //Harmonic
 
 private:
   std::shared_ptr<BaseNeighborListBuilder> _rbl_neighbor_list_builder;

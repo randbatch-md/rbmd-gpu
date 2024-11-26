@@ -26,9 +26,9 @@ namespace op {
       rbmd::Real dis_6 = POW(dis_2, 3.0);
       rbmd::Real sigmaij_dis_6 = sigmaij_6 / dis_6;
 
-      force_lj = -24 * eps_ij * ((2 * sigmaij_dis_6 - 1) * sigmaij_dis_6) / dis_2;
+      force_lj = 24 * eps_ij * ((2 * sigmaij_dis_6 - 1) * sigmaij_dis_6) / dis_2;//+
       energy_lj =
-          0.5 * (4 * eps_ij * (sigmaij_6 / dis_6 - 1) * (sigmaij_6 / dis_6));
+          0.5 * (4 * eps_ij * (sigmaij_6 / dis_6 - 1) * sigmaij_dis_6);
     } else {
       force_lj = 0.0;
       energy_lj = 0.0;
@@ -84,6 +84,20 @@ namespace op {
     local_virial_xy = -0.5* px12 *py12 * force;
     local_virial_xz = -0.5* px12 *pz12 * force;
     local_virial_yz = -0.5* py12 *pz12 * force;
+  }
+
+inline __device__ void ComputeVirial_fix(rbmd::Real px12, rbmd::Real py12,
+                      rbmd::Real pz12,rbmd::Real force,
+                      rbmd::Real& local_virial_xx,rbmd::Real& local_virial_yy,
+                      rbmd::Real& local_virial_zz,rbmd::Real& local_virial_xy,
+                      rbmd::Real& local_virial_xz,rbmd::Real& local_virial_yz)
+  {
+    local_virial_xx = 0.5* px12 *px12 * force;
+    local_virial_yy = 0.5* py12 *py12 * force;
+    local_virial_zz = 0.5* pz12 *pz12 * force;
+    local_virial_xy = 0.5* px12 *py12 * force;
+    local_virial_xz = 0.5* px12 *pz12 * force;
+    local_virial_yz = 0.5* py12 *pz12 * force;
   }
 
   //------global---------//

@@ -199,15 +199,13 @@ void LJCutCoulKspace::ComputeLJVerlet()
   // 从设备端拷贝数据到主机端
   thrust::host_vector<rbmd::Real> h_total_evdwl(d_total_evdwl);
   thrust::host_vector<rbmd::Real> h_total_ecoul(d_total_ecoul);
-
-  // 打印累加后的总能量
   _ave_evdwl = h_total_evdwl[0]/num_atoms;
   _ave_ecoul = h_total_ecoul[0]/num_atoms;
 
   std::cout << "test_current_step:" << test_current_step <<  " ,"
   << "average_vdwl_energy:" << _ave_evdwl << " ," <<  "average_coul_energy:" << _ave_ecoul << std::endl;
 
-  // 主机端累加virial
+  //sum virial on host
   std::vector<rbmd::Real> h_flat_virial_lj(num_atoms * 6);
   thrust::copy(_device_data->_d_flat_virial_lj.begin(),
     _device_data->_d_flat_virial_lj.end(), h_flat_virial_lj.begin());
@@ -500,7 +498,7 @@ void LJCutCoulKspace::ComputeRBE()
         thrust::raw_pointer_cast(_device_data->_d_force_kspace_z.data()),
         thrust::raw_pointer_cast(_device_data->_d_flat_virial_kspace.data()));
 
-  // 主机端累加virial
+  //sum virial on host
   std::vector<rbmd::Real> h_flat_virial_kspace(num_atoms * 6);
   thrust::copy(_device_data->_d_flat_virial_kspace.begin(),
     _device_data->_d_flat_virial_kspace.end(), h_flat_virial_kspace.begin());
@@ -553,16 +551,13 @@ void LJCutCoulKspace::ComputeLJCoulEnergy()
   // 从设备端拷贝数据到主机端
   thrust::host_vector<rbmd::Real> h_total_evdwl(_d_total_evdwl);
   thrust::host_vector<rbmd::Real> h_total_ecoul(_d_total_ecoul);
-
-  // 打印累加后的总能量
   _ave_evdwl = h_total_evdwl[0]/num_atoms;
   _ave_ecoul = h_total_ecoul[0]/num_atoms;
 
   std::cout << "test_current_step:" << test_current_step <<  " ,"
   << "average_vdwl_energy:" << _ave_evdwl << " ," <<  "average_coul_energy:" << _ave_ecoul << std::endl;
 
-
-  // 主机端累加virial
+  //sum virial on host
   std::vector<rbmd::Real> h_flat_virial_lj(num_atoms * 6);
   thrust::copy(_device_data->_d_flat_virial_lj.begin(),
     _device_data->_d_flat_virial_lj.end(), h_flat_virial_lj.begin());

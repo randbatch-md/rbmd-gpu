@@ -22,7 +22,7 @@ namespace op {
       rbmd::Real gnear_value = (1.0 - ERF(erfcx)) / dis_2 +
                                2 * SQRT(alpha) * EXP(expx) / (SQRT(M_PI) * dis);
 
-      force_coul = qqr2e * (-charge_i * charge_j * gnear_value / dis);
+      force_coul = qqr2e * (charge_i * charge_j * gnear_value / dis);//+
       energy_coul = qqr2e * (0.5 * charge_i * charge_j *
                              (1.0 - ERF(SQRT(alpha) * dis)) / dis);
     } else {
@@ -144,7 +144,7 @@ namespace op {
     rbmd::Real dot_product = K.x * px + K.y * py + K.z * pz;
     rbmd::Real alpha_inv = 1 / alpha;
 
-    rbmd::Real factor_a = -4 * M_PI * charge;
+    rbmd::Real factor_a = 4 * M_PI * charge; //+
     rbmd::Real factor_b = EXP(-0.25 * range_K_2 * alpha_inv);
     rbmd::Real factor_c = COS(dot_product) * rhok_imag_i;
     rbmd::Real factor_d = SIN(dot_product) * rhok_real_i;
@@ -645,7 +645,8 @@ namespace op {
         sum_fz += force_Ewald_z;
 
         //compute ewald_virial
-        force_Ewald_single = -0.5*force_Ewald_single;
+        //force_Ewald_single = -0.5*force_Ewald_single;
+        //force_Ewald_single = 0.5*force_Ewald_single;
         Real3 K;
         K.x = 2.0 * M_PI * M.x / box._length[0];
         K.y = 2.0 * M_PI * M.y / box._length[1];
@@ -664,7 +665,7 @@ namespace op {
       fz[tid1] = sum_fz;
       //
       for(int i =0;i<6;++i) {
-        flat_virial[ tid1 * 6 + i ] = sum_virial[i];
+        flat_virial[  i * num_atoms + tid1] = sum_virial[i];
       }
     }
   }

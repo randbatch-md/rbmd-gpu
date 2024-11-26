@@ -140,17 +140,16 @@ void LJ::ComputeLJVerlet()
               thrust::raw_pointer_cast(_device_data->_d_fz.data()),
               thrust::raw_pointer_cast(_device_data->_d_flat_virial.data()),
               thrust::raw_pointer_cast(d_total_evdwl.data()));
+
   // 从设备端拷贝数据到主机端
   thrust::host_vector<rbmd::Real> h_total_evdwl(d_total_evdwl);
-
-  // 打印累加后的总能量
   _ave_evdwl = h_total_evdwl[0] / num_atoms;
+
   std::cout << "test_current_step:" << test_current_step << " "
             << "average_vdwl_energy:" << _ave_evdwl << std::endl;
-
   std::cout << "out of force execute" << std::endl;
 
-  // 主机端累加virial
+  //sum virial on host
   std::vector<rbmd::Real> h_total_virial(num_atoms * 6);
   thrust::copy(_device_data->_d_flat_virial.begin(),
     _device_data->_d_flat_virial.end(), h_total_virial.begin());
@@ -192,13 +191,12 @@ void LJ::ComputeLJEnergy()
 
   // 从设备端拷贝数据到主机端
   thrust::host_vector<rbmd::Real> h_total_evdwl(d_total_evdwl);
-
-  // 打印累加后的总能量
   _ave_evdwl = h_total_evdwl[0] / num_atoms;
+
   std::cout << "test_current_step:" << test_current_step << " "
             << "average_vdwl_energy:" << _ave_evdwl << std::endl;
 
-  // 主机端累加virial
+  //sum virial on host
   std::vector<rbmd::Real> h_total_virial(num_atoms * 6);
   thrust::copy(_device_data->_d_flat_virial.begin(),
     _device_data->_d_flat_virial.end(), h_total_virial.begin());

@@ -16,7 +16,8 @@ bool MemoryScheduler::asyncMemoryH2D() {
   auto& num_atoms = *(_structure_info_data->_num_atoms);
   auto& num_bonds = *(_structure_info_data->_num_bonds);
   auto& num_angles = *(_structure_info_data->_num_angles);
-  auto& num_dihedrals = *(_structure_info_data->_num_angles);
+  auto& num_dihedrals = *(_structure_info_data->_num_dihedrals);
+  auto& num_impropers = *(_structure_info_data->_num_impropers);
 
   auto& h_px = _structure_data->_h_px;
   auto& h_py = _structure_data->_h_py;
@@ -125,6 +126,10 @@ bool MemoryScheduler::asyncMemoryH2D() {
   _device_data->_d_force_dihedral_x.resize(num_atoms);
   _device_data->_d_force_dihedral_y.resize(num_atoms);
   _device_data->_d_force_dihedral_z.resize(num_atoms);
+  //improper
+  _device_data->_d_force_improper_x.resize(num_atoms);
+  _device_data->_d_force_improper_y.resize(num_atoms);
+  _device_data->_d_force_improper_z.resize(num_atoms);
 
   //cpoy virial
   _device_data->_d_flat_virial.resize(6*num_atoms);
@@ -135,9 +140,11 @@ bool MemoryScheduler::asyncMemoryH2D() {
   _device_data->_d_flat_virial_bond.resize(6*num_bonds);
   _device_data->_d_flat_virial_angle.resize(6*num_angles);
   _device_data->_d_flat_virial_dihedral.resize(6*num_dihedrals);
+  _device_data->_d_flat_virial_dihedral.resize(6*num_impropers);
 
   _device_data->_d_flat_virial_bond_atom.resize(6*num_atoms);
   _device_data->_d_flat_virial_angle_atom.resize(6*num_atoms);
+  _device_data->_d_flat_virial_dihedral_atom.resize(6*num_atoms);
 
   _device_data->_d_virial.resize(6);
   _device_data->_d_virial_lj.resize(6);
@@ -146,7 +153,7 @@ bool MemoryScheduler::asyncMemoryH2D() {
   _device_data->_d_virial_bond.resize(6);
   _device_data->_d_virial_angle.resize(6);
   _device_data->_d_virial_dihedral.resize(6);
-  _device_data->_d_energy_dihedral.resize(num_dihedrals);
+  _device_data->_d_virial_improper.resize(6);
 
   /// copy other
   _device_data->_d_atoms_id.resize(num_atoms);
