@@ -34,13 +34,30 @@ find_package(PkgConfig REQUIRED)
 pkg_check_modules(JSONCPP REQUIRED jsoncpp IMPORTED_TARGET GLOBAL)
 pkg_check_modules(SPDLOG REQUIRED spdlog IMPORTED_TARGET GLOBAL)
 
-set(inclue_files "../data_manager/include" ${include_dirs} ${TOOLS_INCLUDE_PATH} ${rocthrust_INCLUDE_DIRS} ${SPDLOG_INCLUDE_DIRS} ${JSONCPP_INCLUDE_DIRS} ${hipcub_INCLUDE_DIRS} ${HIP_INCLUDE_DIRS})
+set(include_files "../data_manager/include" ${include_dirs} ${TOOLS_INCLUDE_PATH} ${rocthrust_INCLUDE_DIRS} ${SPDLOG_INCLUDE_DIRS} ${JSONCPP_INCLUDE_DIRS} ${hipcub_INCLUDE_DIRS} ${HIP_INCLUDE_DIRS})
 set(link_dirs ${LIBRARY_DIR} ${TOOLS_LINK_PATH} ${rocthrust_LIBRARIES} ${hipcub_LIBRARIES} ${HIP_LIBRARIES} ${SPDLOG_LIBRARY_DIRS} ${JSONCPP_LIBRARY_DIRS})
 set(depend_names "hip::device" "roc::rocthrust" PkgConfig::JSONCPP PkgConfig::SPDLOG)
+find_package(hipblas REQUIRED)
+find_package(hipfft REQUIRED)
+find_package(hiprand REQUIRED)
+find_package(hipsparse REQUIRED)
+find_package(hipsolver REQUIRED)
+set(CMAKE_PREFIX_PATH "/home/amd/zkh/gflags" "/home/amd/libtorch" ${CMAKE_PREFIX_PATH})
+find_package(gflags REQUIRED)
+set(TORCH_DIR "/home/amd/libtorch")
+find_package(Torch REQUIRED)
+list(APPEND link_dirs "${TORCH_DIR}/lib")
+message(STATUS "114514: ${TORCH_LIBRARIES}")
+list(APPEND depend_names ${TORCH_LIBRARIES})
+list(APPEND depend_names PkgConfig::JSONCPP)
+list(APPEND include_files "${TORCH_DIR}/include")
+list(APPEND include_files "${TORCH_DIR}/include/torch/csrc/api/include")
+list(APPEND include_files "${TORCH_DIR}/include/torch/csrc/autograd")
+list(APPEND include_files "${TORCH_DIR}/include/torch/csrc/cuda")
 
 cpp_library(
 name ${PROJECT_NAME}
-depends_include ${inclue_files}
+depends_include ${include_files}
 depends_link_dir ${link_dirs}
 depends_name ${depend_names}
 )

@@ -39,6 +39,38 @@ struct GenerateFullNeighborListOp {
                   rbmd::Id* neighbors, Box* d_box, rbmd::Id* should_realloc,
                   rbmd::Id* neighbor_cell, rbmd::Id neighbor_cell_num);
 };
+template <typename DEVICE>
+struct GenerateMaceNeighborListOp {
+  void operator()(    rbmd::Id* __restrict__ per_atom_cell_id,
+    rbmd::Id* __restrict__ in_atom_list_start_index,
+    rbmd::Id* __restrict__ in_atom_list_end_index, rbmd::Real cutoff_2,
+    rbmd::Id total_atom_num, rbmd::Real* __restrict__ px,
+    rbmd::Real* __restrict__ py, rbmd::Real* __restrict__ pz,
+    rbmd::Id* __restrict__ max_neighbor_num,
+    rbmd::Id* __restrict__ neighbor_start, rbmd::Id* __restrict__ neighbor_end,
+    rbmd::Id* __restrict__ neighbors, Box* __restrict__ d_box,
+        rbmd::Id* __restrict__ neighbors_atoms, rbmd::Real* __restrict__  unit_shiftx,
+        rbmd::Real* __restrict__  unit_shifty,  rbmd::Real* __restrict__  unit_shiftz,
+        rbmd::Real* __restrict__  shiftx,	rbmd::Real* __restrict__  shifty,
+        rbmd::Real* __restrict__  shiftz,
+    rbmd::Id* __restrict__ should_realloc, rbmd::Id* __restrict__ neighbor_cell,
+    rbmd::Id neighbor_cell_num);
+};
+/*template <typename DEVICE>
+struct ComputeMaceNeighborListOp {
+  void operator()(rbmd::Id* per_atom_cell_id,
+                  rbmd::Id* in_atom_list_start_index,
+                  rbmd::Id* in_atom_list_end_index, rbmd::Real cutoff_2,
+                  rbmd::Id total_atom_num, rbmd::Real* px, rbmd::Real* py,
+                  rbmd::Real* pz, rbmd::Id* max_neighbor_num,
+                  rbmd::Id* neighbor_start, rbmd::Id* neighbor_end,
+                  rbmd::Id* neighbors,rbmd::Id* neighbors_atoms,
+                  rbmd::Real* unit_shiftx,rbmd::Real* unit_shifty,
+                  rbmd::Real* unit_shiftz,rbmd::Real* shiftx,
+                  rbmd::Real* shifty,rbmd::Real* shiftz,
+                  Box* d_box, rbmd::Id* should_realloc,
+                  rbmd::Id* neighbor_cell, rbmd::Id neighbor_cell_num);
+};*/
 
 template <>
 struct ComputeFullNeighborsOp<device::DEVICE_GPU> {
@@ -74,6 +106,23 @@ struct GenerateFullNeighborListOp<device::DEVICE_GPU> {
                   rbmd::Id* neighbor_start, rbmd::Id* neighbor_end,
                   rbmd::Id* neighbors, Box* d_box, rbmd::Id* should_realloc,
                   rbmd::Id* neighbor_cell, rbmd::Id neighbor_cell_num);
+};
+template <>
+struct GenerateMaceNeighborListOp<device::DEVICE_GPU> {
+  void operator()(    rbmd::Id* __restrict__ per_atom_cell_id,
+    rbmd::Id* __restrict__ in_atom_list_start_index,
+    rbmd::Id* __restrict__ in_atom_list_end_index, rbmd::Real cutoff_2,
+    rbmd::Id total_atom_num, rbmd::Real* __restrict__ px,
+    rbmd::Real* __restrict__ py, rbmd::Real* __restrict__ pz,
+    rbmd::Id* __restrict__ max_neighbor_num,
+    rbmd::Id* __restrict__ neighbor_start, rbmd::Id* __restrict__ neighbor_end,
+    rbmd::Id* __restrict__ neighbors, Box* __restrict__ d_box,
+        rbmd::Id* __restrict__ neighbors_atoms, rbmd::Real* __restrict__  unit_shiftx,
+        rbmd::Real* __restrict__  unit_shifty,  rbmd::Real* __restrict__  unit_shiftz,
+        rbmd::Real* __restrict__  shiftx,	rbmd::Real* __restrict__  shifty,
+        rbmd::Real* __restrict__  shiftz,
+    rbmd::Id* __restrict__ should_realloc, rbmd::Id* __restrict__ neighbor_cell,
+    rbmd::Id neighbor_cell_num);
 };
 
 }  // namespace op

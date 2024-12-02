@@ -102,7 +102,31 @@ void FullNeighborListBuilder::EstimateNeighborsList() {
 rbmd::Id FullNeighborListBuilder::GenerateNeighborsList() {
   CHECK_RUNTIME(
       MEMCPY(_d_should_realloc, &(this->should_realloc), sizeof(rbmd::Id), H2D));
-  op::GenerateFullNeighborListOp<device::DEVICE_GPU>
+  op::GenerateMaceNeighborListOp<device::DEVICE_GPU> generate_mace_neighbor_list_op;
+  generate_mace_neighbor_list_op(
+  thrust::raw_pointer_cast(_linked_cell->_per_atom_cell_id.data()),
+ thrust::raw_pointer_cast(_linked_cell->_in_atom_list_start_index.data()),
+ thrust::raw_pointer_cast(_linked_cell->_in_atom_list_end_index.data()),
+ _trunc_distance_power_2, _linked_cell->_total_atoms_num,
+ thrust::raw_pointer_cast(_device_data->_d_px.data()),
+ thrust::raw_pointer_cast(_device_data->_d_py.data()),
+ thrust::raw_pointer_cast(_device_data->_d_pz.data()),
+ thrust::raw_pointer_cast(
+     this->_neighbor_list->_d_max_neighbor_num.data()),
+ thrust::raw_pointer_cast(this->_neighbor_list->_start_idx.data()),
+ thrust::raw_pointer_cast(this->_neighbor_list->_end_idx.data()),
+ thrust::raw_pointer_cast(this->_neighbor_list->_d_neighbors.data()),
+ _d_box, thrust::raw_pointer_cast(_device_data->_d_neighbors_atoms.data()),
+      thrust::raw_pointer_cast(_device_data->_d_unit_shiftx.data()),
+      thrust::raw_pointer_cast(_device_data->_d_unit_shifty.data()),
+      thrust::raw_pointer_cast(_device_data->_d_unit_shiftz.data()),
+      thrust::raw_pointer_cast(_device_data->_d_shiftx.data()),
+      thrust::raw_pointer_cast(_device_data->_d_shifty.data()),
+      thrust::raw_pointer_cast(_device_data->_d_shiftz.data()),_d_should_realloc,
+ thrust::raw_pointer_cast(_linked_cell->_neighbor_cell.data()),
+ _neighbor_cell_num
+  );
+  /*op::GenerateFullNeighborListOp<device::DEVICE_GPU>
       generate_full_neighbor_list_op;
   generate_full_neighbor_list_op(
       thrust::raw_pointer_cast(_linked_cell->_per_atom_cell_id.data()),
@@ -119,7 +143,7 @@ rbmd::Id FullNeighborListBuilder::GenerateNeighborsList() {
       thrust::raw_pointer_cast(this->_neighbor_list->_d_neighbors.data()),
       _d_box, _d_should_realloc,
       thrust::raw_pointer_cast(_linked_cell->_neighbor_cell.data()),
-      _neighbor_cell_num);
+      _neighbor_cell_num);*/
   CHECK_RUNTIME(
       MEMCPY(&(this->should_realloc), _d_should_realloc, sizeof(rbmd::Id), D2H));
   return this->should_realloc;

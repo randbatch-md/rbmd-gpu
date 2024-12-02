@@ -67,6 +67,15 @@ class DeviceData {
   thrust::device_vector<rbmd::Id> _d_dihedral_id2;
   thrust::device_vector<rbmd::Id> _d_dihedral_id3;
 
+  /// maceedges
+  thrust::device_vector<rbmd::Id> _d_neighbors_atoms;
+  //thrust::device_vector<rbmd::Id> _d_dihedral_type;
+  thrust::device_vector<rbmd::Real> _d_unit_shiftx;
+  thrust::device_vector<rbmd::Real> _d_unit_shifty;
+  thrust::device_vector<rbmd::Real> _d_unit_shiftz;
+  thrust::device_vector<rbmd::Real> _d_shiftx;
+  thrust::device_vector<rbmd::Real> _d_shifty;
+  thrust::device_vector<rbmd::Real> _d_shiftz;
   /// Processing data
   // thrust::device_vector<rbmd::Id> _d_special_source_array;
   // thrust::device_vector<rbmd::Id> _d_special_offsets_array;
@@ -108,6 +117,10 @@ class DeviceData {
   thrust::device_vector<rbmd::Real> _d_fx;
   thrust::device_vector<rbmd::Real> _d_fy;
   thrust::device_vector<rbmd::Real> _d_fz;
+
+  thrust::device_vector<rbmd::Real> _d_force_mace_x;
+  thrust::device_vector<rbmd::Real> _d_force_mace_y;
+  thrust::device_vector<rbmd::Real> _d_force_mace_z;
 
   thrust::device_vector<rbmd::Real> _d_force_ljcoul_x;
   thrust::device_vector<rbmd::Real> _d_force_ljcoul_y;
