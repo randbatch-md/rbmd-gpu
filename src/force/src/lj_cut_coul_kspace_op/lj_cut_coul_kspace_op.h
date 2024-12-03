@@ -194,6 +194,16 @@ namespace op
                 rbmd::Real* fz);
       };
 
+    template <typename DEVICE>
+    struct EikOp
+    {
+      void operator()(
+      const rbmd::Id num_atoms,const rbmd::Real gsqmx,Real3 unitk, Int3 kmax_array,
+      const rbmd::Real* px, const rbmd::Real* py,const rbmd::Real* pz,
+      const rbmd::Real* charge,rbmd::Real* cs, rbmd::Real* sn,
+      rbmd::Real* sfacrl, rbmd::Real* sfacim);
+    };
+
         // // // // // // // // // // // // // // // // // // //
         template <>
         struct LJCutCoulForceOp<device::DEVICE_GPU>
@@ -385,5 +395,16 @@ namespace op
               rbmd::Real* fy,
               rbmd::Real* fz);
     };
+
+  template <>
+  struct EikOp<device::DEVICE_GPU>
+  {
+    void operator()(
+    const rbmd::Id num_atoms,const rbmd::Real gsqmx,Real3 unitk, Int3 kmax_array,
+    const rbmd::Real* px, const rbmd::Real* py,const rbmd::Real* pz,
+    const rbmd::Real* charge,rbmd::Real* cs, rbmd::Real* sn,
+    rbmd::Real* sfacrl, rbmd::Real* sfacim);
+  };
+
 
 }// namespace op

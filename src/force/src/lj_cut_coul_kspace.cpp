@@ -24,22 +24,12 @@ LJCutCoulKspace::LJCutCoulKspace()
   _rbl_neighbor_list_builder = std::make_shared<RblFullNeighborListBuilder>();
   _neighbor_list_builder = std::make_shared<FullNeighborListBuilder>();
 
-  _Kmax = DataManager::getInstance().getConfigData()->Get<rbmd::Id>(
-"kmax", "hyper_parameters", "coulomb");
-  _num_k =  (2*_Kmax +1)  * (2*_Kmax +1) * (2*_Kmax +1) - 1;
-  _h_Re_array = static_cast<rbmd::Real*>(malloc(_num_k * sizeof(rbmd::Real)));
-  _h_Im_array = static_cast<rbmd::Real*>(malloc(_num_k * sizeof(rbmd::Real)));
-  std::remove("thermo_local.txt");
-}
+//   _Kmax = DataManager::getInstance().getConfigData()->Get<rbmd::Id>(
+// "kmax", "hyper_parameters", "coulomb");
 
-LJCutCoulKspace::~LJCutCoulKspace()
-{
-  free(_h_Re_array);
-  free(_h_Im_array);
-}
+  _cut_off = DataManager::getInstance().getConfigData()->Get
+ <rbmd::Real>("cut_off", "hyper_parameters", "neighbor");
 
-void LJCutCoulKspace::Init()
-{
   auto unit = DataManager::getInstance().getConfigData()->Get
 <std::string>("unit", "init_configuration", "read_data");
   UNIT unit_factor = unit_factor_map[unit];
@@ -56,15 +46,63 @@ void LJCutCoulKspace::Init()
     default:
       break;
   }
-   _cut_off = DataManager::getInstance().getConfigData()->Get
-    <rbmd::Real>("cut_off", "hyper_parameters", "neighbor");
+  auto start = std::chrono::high_resolution_clock::now();
+  //  sum q_sq
+  ComputeQsqSum(); //q2
+
+  _accuracy = DataManager::getInstance().getConfigData()->Get<rbmd::Real>(
+"accuracy", "hyper_parameters", "coulomb");
+  auto box =  DataManager::getInstance().getMDData()->_box;
+  auto volue = CalculateVolume(*box);
+  auto num_atoms = *(_structure_info_data->_num_atoms);
+
+  //compute g_ewald
+  _g_ewald = _accuracy*SQRT(num_atoms*_cut_off*volue) / (2.0*_q2);
+  if (_g_ewald >= 1.0) _g_ewald = (1.35 - 0.15*LOG(_accuracy))/_cut_off;
+  else _g_ewald = SQRT(-LOG(_g_ewald)) / _cut_off;
+  _alpha = _g_ewald*_g_ewald;
+
+  //automatically compute kmax
+  auto start1 = std::chrono::high_resolution_clock::now();
+  SetKspacePara(); //kmax
+  auto end1 = std::chrono::high_resolution_clock::now();
+
+  std::chrono::duration<rbmd::Real> duration1 = end1 - start1;
+  std::cout << "计算kmax耗时" << duration1.count() << "秒" << std::endl;
+
+  _num_k =  (2*_Kmax +1)  * (2*_Kmax +1) * (2*_Kmax +1) - 1;
+  std::cout << "g_ewald: " << _g_ewald  <<", alpha: "<<
+    _alpha  << ", num_k: " << _num_k << std::endl;
+
+  _h_Re_array = static_cast<rbmd::Real*>(malloc(_num_k * sizeof(rbmd::Real)));
+  _h_Im_array = static_cast<rbmd::Real*>(malloc(_num_k * sizeof(rbmd::Real)));
+  std::remove("thermo_local.txt");
+  auto end = std::chrono::high_resolution_clock::now();
+
+  std::chrono::duration<rbmd::Real> duration = end - start;
+  std::cout << "初始化总kspace耗时" << duration.count() << "秒" << std::endl;
+}
+
+LJCutCoulKspace::~LJCutCoulKspace()
+{
+  free(_h_Re_array);
+  free(_h_Im_array);
+}
+
+void LJCutCoulKspace::Init()
+{
+
+   // _cut_off = DataManager::getInstance().getConfigData()->Get
+   //  <rbmd::Real>("cut_off", "hyper_parameters", "neighbor");
    _neighbor_type = DataManager::getInstance().getConfigData()->Get
       <std::string>("type", "hyper_parameters", "neighbor");
 
    _coulomb_type =DataManager::getInstance().getConfigData()->Get<std::string>(
         "type", "hyper_parameters", "coulomb");
-    _alpha = DataManager::getInstance().getConfigData()->Get<rbmd::Real>(
-  "alpha", "hyper_parameters", "coulomb");
+  //   _alpha = DataManager::getInstance().getConfigData()->Get<rbmd::Real>(
+  // "alpha", "hyper_parameters", "coulomb");
+
+
 
   if("RBE" == _coulomb_type) {
     _RBE_P = DataManager::getInstance().getConfigData()->Get<rbmd::Id>(
@@ -590,7 +628,8 @@ void LJCutCoulKspace::ComputeSelfEnergy(
     thrust::raw_pointer_cast(_device_data->_d_charge.data()),
     thrust::raw_pointer_cast(sq_charge.data()));
 
-  rbmd::Real sum_sq_charge = thrust::reduce(sq_charge.begin(), sq_charge.end(), 0.0f, thrust::plus<rbmd::Real>());
+  rbmd::Real sum_sq_charge = thrust::reduce(sq_charge.begin(),
+    sq_charge.end(), 0.0f, thrust::plus<rbmd::Real>());
   rbmd::Real total_self_energy = qqr2e * (- sqrt(alpha / M_PI) *sum_sq_charge);
 
   ave_self_energy =  total_self_energy / num_atoms;
@@ -668,3 +707,397 @@ void LJCutCoulKspace::EvaluatePotentialenergy()
   outfile.close();
 }
 
+void LJCutCoulKspace::ComputeQsqSum()
+{
+  auto num_atoms = *(_structure_info_data->_num_atoms);
+  thrust::device_vector<rbmd::Real> sq_charge;
+  sq_charge.resize(num_atoms);
+  op::SqchargeOp<device::DEVICE_GPU>()(num_atoms,
+    thrust::raw_pointer_cast(_device_data->_d_charge.data()),
+    thrust::raw_pointer_cast(sq_charge.data()));
+
+  rbmd::Real sum_sq_charge = thrust::reduce(sq_charge.begin(),
+    sq_charge.end(), 0.0f, thrust::plus<rbmd::Real>());
+
+  _q2 = _qqr2e* sum_sq_charge;
+}
+
+rbmd::Real LJCutCoulKspace::ComputeRMS(rbmd::Id kmax,rbmd::Real box_length,rbmd::Real q2)
+{
+  auto num_atoms = *(_structure_info_data->_num_atoms);
+  rbmd::Real rms = 2.0*q2*_g_ewald/box_length *
+    SQRT(1.0/(M_PI*kmax*num_atoms)) *
+    EXP(-M_PI*M_PI*kmax*kmax/(_g_ewald*_g_ewald*box_length*box_length));
+
+  return rms;
+}
+
+void LJCutCoulKspace::coeffs()
+{
+  kxvecs.resize(_Kmax3D,0);
+  kyvecs.resize(_Kmax3D,0);
+  kzvecs.resize(_Kmax3D,0);
+  ug.resize(_Kmax3D,0);
+
+  eg.resize(_Kmax3D, std::vector<rbmd::Real>(3, 0.0));
+  vg.resize(_Kmax3D, std::vector<rbmd::Real>(6, 0.0));
+
+  auto box =  DataManager::getInstance().getMDData()->_box;
+  auto volume = CalculateVolume(*box);
+  rbmd::Id k,l,m;
+  rbmd::Real sqk,vterm;
+
+  rbmd::Real alpha_inv = 1.0 / _alpha;
+  rbmd::Real preu = 4.0*M_PI/volume;
+
+  kcount = 0;
+
+  // (k,0,0), (0,l,0), (0,0,m)
+
+  for (m = 1; m <= _Kmax; m++) {
+    sqk = (m*REAL_DATA(_unitk)[0]) * (m*REAL_DATA(_unitk)[0]);
+    if (sqk <= _gsqmx) {
+      kxvecs[kcount] = m;
+      kyvecs[kcount] = 0;
+      kzvecs[kcount] = 0;
+      ug[kcount] = preu*EXP(-0.25*sqk*alpha_inv)/sqk;
+      eg[kcount][0] = 2.0*REAL_DATA(_unitk)[0]*m*ug[kcount];
+      eg[kcount][1] = 0.0;
+      eg[kcount][2] = 0.0;
+      vterm = -2.0*(1.0/sqk + 0.25*alpha_inv);
+      vg[kcount][0] = 1.0 + vterm*(REAL_DATA(_unitk)[0]*m)*(REAL_DATA(_unitk)[0]*m);
+      vg[kcount][1] = 1.0;
+      vg[kcount][2] = 1.0;
+      vg[kcount][3] = 0.0;
+      vg[kcount][4] = 0.0;
+      vg[kcount][5] = 0.0;
+      kcount++;
+    }
+    sqk = (m*REAL_DATA(_unitk)[1]) * (m*REAL_DATA(_unitk)[1]);
+    if (sqk <= _gsqmx) {
+      kxvecs[kcount] = 0;
+      kyvecs[kcount] = m;
+      kzvecs[kcount] = 0;
+      ug[kcount] = preu*EXP(-0.25*sqk*alpha_inv)/sqk;
+      eg[kcount][0] = 0.0;
+      eg[kcount][1] = 2.0*REAL_DATA(_unitk)[1]*m*ug[kcount];
+      eg[kcount][2] = 0.0;
+      vterm = -2.0*(1.0/sqk + 0.25*alpha_inv);
+      vg[kcount][0] = 1.0;
+      vg[kcount][1] = 1.0 + vterm*(REAL_DATA(_unitk)[1]*m)*(REAL_DATA(_unitk)[1]*m);
+      vg[kcount][2] = 1.0;
+      vg[kcount][3] = 0.0;
+      vg[kcount][4] = 0.0;
+      vg[kcount][5] = 0.0;
+      kcount++;
+    }
+    sqk = (m*REAL_DATA(_unitk)[2]) * (m*REAL_DATA(_unitk)[2]);
+    if (sqk <= _gsqmx) {
+      kxvecs[kcount] = 0;
+      kyvecs[kcount] = 0;
+      kzvecs[kcount] = m;
+      ug[kcount] = preu*EXP(-0.25*sqk*alpha_inv)/sqk;
+      eg[kcount][0] = 0.0;
+      eg[kcount][1] = 0.0;
+      eg[kcount][2] = 2.0*REAL_DATA(_unitk)[2]*m*ug[kcount];
+      vterm = -2.0*(1.0/sqk + 0.25*alpha_inv);
+      vg[kcount][0] = 1.0;
+      vg[kcount][1] = 1.0;
+      vg[kcount][2] = 1.0 + vterm*(REAL_DATA(_unitk)[2]*m)*(REAL_DATA(_unitk)[2]*m);
+      vg[kcount][3] = 0.0;
+      vg[kcount][4] = 0.0;
+      vg[kcount][5] = 0.0;
+      kcount++;
+    }
+  }
+
+  // 1 = (k,l,0), 2 = (k,-l,0)
+
+  for (k = 1; k <= kmax_x; k++) {
+    for (l = 1; l <= kmax_y; l++) {
+      sqk = (REAL_DATA(_unitk)[0]*k) * (REAL_DATA(_unitk)[0]*k) + (REAL_DATA(_unitk)[1]*l) * (REAL_DATA(_unitk)[1]*l);
+      if (sqk <= _gsqmx) {
+        kxvecs[kcount] = k;
+        kyvecs[kcount] = l;
+        kzvecs[kcount] = 0;
+        ug[kcount] = preu*EXP(-0.25*sqk*alpha_inv)/sqk;
+        eg[kcount][0] = 2.0*REAL_DATA(_unitk)[0]*k*ug[kcount];
+        eg[kcount][1] = 2.0*REAL_DATA(_unitk)[1]*l*ug[kcount];
+        eg[kcount][2] = 0.0;
+        vterm = -2.0*(1.0/sqk + 0.25*alpha_inv);
+        vg[kcount][0] = 1.0 + vterm*(REAL_DATA(_unitk)[0]*k)*(REAL_DATA(_unitk)[0]*k);
+        vg[kcount][1] = 1.0 + vterm*(REAL_DATA(_unitk)[1]*l)*(REAL_DATA(_unitk)[1]*l);
+        vg[kcount][2] = 1.0;
+        vg[kcount][3] = vterm*REAL_DATA(_unitk)[0]*k*REAL_DATA(_unitk)[1]*l;
+        vg[kcount][4] = 0.0;
+        vg[kcount][5] = 0.0;
+        kcount++;
+
+        kxvecs[kcount] = k;
+        kyvecs[kcount] = -l;
+        kzvecs[kcount] = 0;
+        ug[kcount] = preu*EXP(-0.25*sqk*alpha_inv)/sqk;
+        eg[kcount][0] = 2.0*REAL_DATA(_unitk)[0]*k*ug[kcount];
+        eg[kcount][1] = -2.0*REAL_DATA(_unitk)[1]*l*ug[kcount];
+        eg[kcount][2] = 0.0;
+        vg[kcount][0] = 1.0 + vterm*(REAL_DATA(_unitk)[0]*k)*(REAL_DATA(_unitk)[0]*k);
+        vg[kcount][1] = 1.0 + vterm*(REAL_DATA(_unitk)[1]*l)*(REAL_DATA(_unitk)[1]*l);
+        vg[kcount][2] = 1.0;
+        vg[kcount][3] = -vterm*REAL_DATA(_unitk)[0]*k*REAL_DATA(_unitk)[1]*l;
+        vg[kcount][4] = 0.0;
+        vg[kcount][5] = 0.0;
+        kcount++;
+      }
+    }
+  }
+
+  // 1 = (0,l,m), 2 = (0,l,-m)
+
+  for (l = 1; l <= kmax_y; l++) {
+    for (m = 1; m <= kmax_z; m++) {
+      sqk = (REAL_DATA(_unitk)[1]*l) * (REAL_DATA(_unitk)[1]*l) + (REAL_DATA(_unitk)[2]*m) * (REAL_DATA(_unitk)[2]*m);
+      if (sqk <= _gsqmx) {
+        kxvecs[kcount] = 0;
+        kyvecs[kcount] = l;
+        kzvecs[kcount] = m;
+        ug[kcount] = preu*EXP(-0.25*sqk*alpha_inv)/sqk;
+        eg[kcount][0] =  0.0;
+        eg[kcount][1] =  2.0*REAL_DATA(_unitk)[1]*l*ug[kcount];
+        eg[kcount][2] =  2.0*REAL_DATA(_unitk)[2]*m*ug[kcount];
+        vterm = -2.0*(1.0/sqk + 0.25*alpha_inv);
+        vg[kcount][0] = 1.0;
+        vg[kcount][1] = 1.0 + vterm*(REAL_DATA(_unitk)[1]*l)*(REAL_DATA(_unitk)[1]*l);
+        vg[kcount][2] = 1.0 + vterm*(REAL_DATA(_unitk)[2]*m)*(REAL_DATA(_unitk)[2]*m);
+        vg[kcount][3] = 0.0;
+        vg[kcount][4] = 0.0;
+        vg[kcount][5] = vterm*REAL_DATA(_unitk)[1]*l*REAL_DATA(_unitk)[2]*m;
+        kcount++;
+
+        kxvecs[kcount] = 0;
+        kyvecs[kcount] = l;
+        kzvecs[kcount] = -m;
+        ug[kcount] = preu*EXP(-0.25*sqk*alpha_inv)/sqk;
+        eg[kcount][0] =  0.0;
+        eg[kcount][1] =  2.0*REAL_DATA(_unitk)[1]*l*ug[kcount];
+        eg[kcount][2] = -2.0*REAL_DATA(_unitk)[2]*m*ug[kcount];
+        vg[kcount][0] = 1.0;
+        vg[kcount][1] = 1.0 + vterm*(REAL_DATA(_unitk)[1]*l)*(REAL_DATA(_unitk)[1]*l);
+        vg[kcount][2] = 1.0 + vterm*(REAL_DATA(_unitk)[2]*m)*(REAL_DATA(_unitk)[2]*m);
+        vg[kcount][3] = 0.0;
+        vg[kcount][4] = 0.0;
+        vg[kcount][5] = -vterm*REAL_DATA(_unitk)[1]*l*REAL_DATA(_unitk)[2]*m;
+        kcount++;
+      }
+    }
+  }
+
+  // 1 = (k,0,m), 2 = (k,0,-m)
+
+  for (k = 1; k <= kmax_x; k++) {
+    for (m = 1; m <= kmax_z; m++) {
+      sqk = (REAL_DATA(_unitk)[0]*k) * (REAL_DATA(_unitk)[0]*k) + (REAL_DATA(_unitk)[2]*m) * (REAL_DATA(_unitk)[2]*m);
+      if (sqk <= _gsqmx) {
+        kxvecs[kcount] = k;
+        kyvecs[kcount] = 0;
+        kzvecs[kcount] = m;
+        ug[kcount] = preu*EXP(-0.25*sqk*alpha_inv)/sqk;
+        eg[kcount][0] =  2.0*REAL_DATA(_unitk)[0]*k*ug[kcount];
+        eg[kcount][1] =  0.0;
+        eg[kcount][2] =  2.0*REAL_DATA(_unitk)[2]*m*ug[kcount];
+        vterm = -2.0*(1.0/sqk + 0.25*alpha_inv);
+        vg[kcount][0] = 1.0 + vterm*(REAL_DATA(_unitk)[0]*k)*(REAL_DATA(_unitk)[0]*k);
+        vg[kcount][1] = 1.0;
+        vg[kcount][2] = 1.0 + vterm*(REAL_DATA(_unitk)[2]*m)*(REAL_DATA(_unitk)[2]*m);
+        vg[kcount][3] = 0.0;
+        vg[kcount][4] = vterm*REAL_DATA(_unitk)[0]*k*REAL_DATA(_unitk)[2]*m;
+        vg[kcount][5] = 0.0;
+        kcount++;
+
+        kxvecs[kcount] = k;
+        kyvecs[kcount] = 0;
+        kzvecs[kcount] = -m;
+        ug[kcount] = preu*EXP(-0.25*sqk*alpha_inv)/sqk;
+        eg[kcount][0] =  2.0*REAL_DATA(_unitk)[0]*k*ug[kcount];
+        eg[kcount][1] =  0.0;
+        eg[kcount][2] = -2.0*REAL_DATA(_unitk)[2]*m*ug[kcount];
+        vg[kcount][0] = 1.0 + vterm*(REAL_DATA(_unitk)[0]*k)*(REAL_DATA(_unitk)[0]*k);
+        vg[kcount][1] = 1.0;
+        vg[kcount][2] = 1.0 + vterm*(REAL_DATA(_unitk)[2]*m)*(REAL_DATA(_unitk)[2]*m);
+        vg[kcount][3] = 0.0;
+        vg[kcount][4] = -vterm*REAL_DATA(_unitk)[0]*k*REAL_DATA(_unitk)[2]*m;
+        vg[kcount][5] = 0.0;
+        kcount++;
+      }
+    }
+  }
+
+  // 1 = (k,l,m), 2 = (k,-l,m), 3 = (k,l,-m), 4 = (k,-l,-m)
+
+  for (k = 1; k <= kmax_x; k++) {
+    for (l = 1; l <= kmax_y; l++) {
+      for (m = 1; m <= kmax_z; m++) {
+        sqk = (REAL_DATA(_unitk)[0]*k) * (REAL_DATA(_unitk)[0]*k) + (REAL_DATA(_unitk)[1]*l) * (REAL_DATA(_unitk)[1]*l) +
+          (REAL_DATA(_unitk)[2]*m) * (REAL_DATA(_unitk)[2]*m);
+        if (sqk <= _gsqmx) {
+          kxvecs[kcount] = k;
+          kyvecs[kcount] = l;
+          kzvecs[kcount] = m;
+          ug[kcount] = preu*EXP(-0.25*sqk*alpha_inv)/sqk;
+          eg[kcount][0] = 2.0*REAL_DATA(_unitk)[0]*k*ug[kcount];
+          eg[kcount][1] = 2.0*REAL_DATA(_unitk)[1]*l*ug[kcount];
+          eg[kcount][2] = 2.0*REAL_DATA(_unitk)[2]*m*ug[kcount];
+          vterm = -2.0*(1.0/sqk + 0.25*alpha_inv);
+          vg[kcount][0] = 1.0 + vterm*(REAL_DATA(_unitk)[0]*k)*(REAL_DATA(_unitk)[0]*k);
+          vg[kcount][1] = 1.0 + vterm*(REAL_DATA(_unitk)[1]*l)*(REAL_DATA(_unitk)[1]*l);
+          vg[kcount][2] = 1.0 + vterm*(REAL_DATA(_unitk)[2]*m)*(REAL_DATA(_unitk)[2]*m);
+          vg[kcount][3] = vterm*REAL_DATA(_unitk)[0]*k*REAL_DATA(_unitk)[1]*l;
+          vg[kcount][4] = vterm*REAL_DATA(_unitk)[0]*k*REAL_DATA(_unitk)[2]*m;
+          vg[kcount][5] = vterm*REAL_DATA(_unitk)[1]*l*REAL_DATA(_unitk)[2]*m;
+          kcount++;
+
+          kxvecs[kcount] = k;
+          kyvecs[kcount] = -l;
+          kzvecs[kcount] = m;
+          ug[kcount] = preu*EXP(-0.25*sqk*alpha_inv)/sqk;
+          eg[kcount][0] = 2.0*REAL_DATA(_unitk)[0]*k*ug[kcount];
+          eg[kcount][1] = -2.0*REAL_DATA(_unitk)[1]*l*ug[kcount];
+          eg[kcount][2] = 2.0*REAL_DATA(_unitk)[2]*m*ug[kcount];
+          vg[kcount][0] = 1.0 + vterm*(REAL_DATA(_unitk)[0]*k)*(REAL_DATA(_unitk)[0]*k);
+          vg[kcount][1] = 1.0 + vterm*(REAL_DATA(_unitk)[1]*l)*(REAL_DATA(_unitk)[1]*l);
+          vg[kcount][2] = 1.0 + vterm*(REAL_DATA(_unitk)[2]*m)*(REAL_DATA(_unitk)[2]*m);
+          vg[kcount][3] = -vterm*REAL_DATA(_unitk)[0]*k*REAL_DATA(_unitk)[1]*l;
+          vg[kcount][4] = vterm*REAL_DATA(_unitk)[0]*k*REAL_DATA(_unitk)[2]*m;
+          vg[kcount][5] = -vterm*REAL_DATA(_unitk)[1]*l*REAL_DATA(_unitk)[2]*m;
+          kcount++;
+
+          kxvecs[kcount] = k;
+          kyvecs[kcount] = l;
+          kzvecs[kcount] = -m;
+          ug[kcount] = preu*EXP(-0.25*sqk*alpha_inv)/sqk;
+          eg[kcount][0] = 2.0*REAL_DATA(_unitk)[0]*k*ug[kcount];
+          eg[kcount][1] = 2.0*REAL_DATA(_unitk)[1]*l*ug[kcount];
+          eg[kcount][2] = -2.0*REAL_DATA(_unitk)[2]*m*ug[kcount];
+          vg[kcount][0] = 1.0 + vterm*(REAL_DATA(_unitk)[0]*k)*(REAL_DATA(_unitk)[0]*k);
+          vg[kcount][1] = 1.0 + vterm*(REAL_DATA(_unitk)[1]*l)*(REAL_DATA(_unitk)[1]*l);
+          vg[kcount][2] = 1.0 + vterm*(REAL_DATA(_unitk)[2]*m)*(REAL_DATA(_unitk)[2]*m);
+          vg[kcount][3] = vterm*REAL_DATA(_unitk)[0]*k*REAL_DATA(_unitk)[1]*l;
+          vg[kcount][4] = -vterm*REAL_DATA(_unitk)[0]*k*REAL_DATA(_unitk)[2]*m;
+          vg[kcount][5] = -vterm*REAL_DATA(_unitk)[1]*l*REAL_DATA(_unitk)[2]*m;
+          kcount++;
+
+          kxvecs[kcount] = k;
+          kyvecs[kcount] = -l;
+          kzvecs[kcount] = -m;
+          ug[kcount] = preu*EXP(-0.25*sqk*alpha_inv)/sqk;
+          eg[kcount][0] = 2.0*REAL_DATA(_unitk)[0]*k*ug[kcount];
+          eg[kcount][1] = -2.0*REAL_DATA(_unitk)[1]*l*ug[kcount];
+          eg[kcount][2] = -2.0*REAL_DATA(_unitk)[2]*m*ug[kcount];
+          vg[kcount][0] = 1.0 + vterm*(REAL_DATA(_unitk)[0]*k)*(REAL_DATA(_unitk)[0]*k);
+          vg[kcount][1] = 1.0 + vterm*(REAL_DATA(_unitk)[1]*l)*(REAL_DATA(_unitk)[1]*l);
+          vg[kcount][2] = 1.0 + vterm*(REAL_DATA(_unitk)[2]*m)*(REAL_DATA(_unitk)[2]*m);
+          vg[kcount][3] = -vterm*REAL_DATA(_unitk)[0]*k*REAL_DATA(_unitk)[1]*l;
+          vg[kcount][4] = -vterm*REAL_DATA(_unitk)[0]*k*REAL_DATA(_unitk)[2]*m;
+          vg[kcount][5] = vterm*REAL_DATA(_unitk)[1]*l*REAL_DATA(_unitk)[2]*m;
+          kcount++;
+        }
+      }
+    }
+  }
+}
+
+void LJCutCoulKspace::SetKspacePara()
+{
+  auto box =  DataManager::getInstance().getMDData()->_box;
+
+  REAL_DATA(_unitk)[0] = 2.0*M_PI/box->_length[0];
+  REAL_DATA(_unitk)[1] = 2.0*M_PI/box->_length[1];
+  REAL_DATA(_unitk)[2] = 2.0*M_PI/box->_length[2];
+  auto num_atoms = *(_structure_info_data->_num_atoms);
+
+  rbmd::Id kmax_x = 1;
+  rbmd::Id kmax_y = 1;
+  rbmd::Id kmax_z = 1;
+  rbmd::Real rms;
+
+  rms = ComputeRMS(kmax_x,box->_length[0],_q2);
+  while (rms > _accuracy) {
+    kmax_x++;
+    rms = ComputeRMS(kmax_x,box->_length[0],_q2);
+  }
+
+  rms = ComputeRMS(kmax_y,box->_length[1],_q2);
+  while (rms > _accuracy) {
+    kmax_y++;
+    rms = ComputeRMS(kmax_y,box->_length[1],_q2);
+  }
+
+  rms = ComputeRMS(kmax_z,box->_length[2],_q2);
+  while (rms > _accuracy) {
+    kmax_z++;
+    rms = ComputeRMS(kmax_z,box->_length[2],_q2);
+  }
+
+  _Kmax = MAX(kmax_x,kmax_y);
+  _Kmax = MAX(_Kmax,kmax_z);
+  _Kmax3D = 4*_Kmax*_Kmax*_Kmax + 6*_Kmax*_Kmax + 3*_Kmax;
+  _kmax_array = {kmax_x,kmax_y,kmax_z};
+
+  std::cout<< "Kmax: "<< _Kmax << ", Kmax3D: "<<  _Kmax3D <<std::endl;
+
+  rbmd::Real gsqxmx = REAL_DATA(_unitk)[0] *REAL_DATA(_unitk)[0] *kmax_x*kmax_x;
+  rbmd::Real gsqymx = REAL_DATA(_unitk)[1] *REAL_DATA(_unitk)[1] *kmax_y*kmax_y;
+  rbmd::Real gsqzmx = REAL_DATA(_unitk)[2] *REAL_DATA(_unitk)[2] *kmax_z*kmax_z;
+  _gsqmx = MAX(gsqxmx,gsqymx);
+  _gsqmx = MAX(_gsqmx,gsqzmx);
+
+  _kmax_x_orig = kmax_x;
+  _kmax_y_orig = kmax_y;
+  _kmax_z_orig = kmax_z;
+
+  auto ggg = 0 ;
+  if(ggg)
+  { kmax_x = _Kmax;
+    kmax_y = _Kmax;
+    kmax_z = _Kmax;
+
+    _kmax_x_orig = kmax_x;
+    _kmax_y_orig = kmax_y;
+    _kmax_z_orig = kmax_z;
+
+    _Kmax = MAX(kmax_x,kmax_y);
+    _Kmax = MAX(_Kmax,kmax_z);
+    _Kmax3D = 4*_Kmax*_Kmax*_Kmax + 6*_Kmax*_Kmax + 3*_Kmax;
+
+    rbmd::Real gsqxmx = REAL_DATA(_unitk)[0] *REAL_DATA(_unitk)[0] *kmax_x*kmax_x;
+    rbmd::Real gsqymx = REAL_DATA(_unitk)[1] *REAL_DATA(_unitk)[1] *kmax_y*kmax_y;
+    rbmd::Real gsqzmx = REAL_DATA(_unitk)[2] *REAL_DATA(_unitk)[2] *kmax_z*kmax_z;
+    _gsqmx = MAX(gsqxmx,gsqymx);
+    _gsqmx = MAX(_gsqmx,gsqzmx);
+  }
+  _gsqmx *= 1.00001;
+  coeffs();//
+  std::cout << "kcount: " << kcount  <<std::endl;
+  eik_dot_r();
+
+}
+
+
+void LJCutCoulKspace::eik_dot_r()
+{
+  auto num_atoms = *(_structure_info_data->_num_atoms);
+  _d_cs.resize(num_atoms * 3 * _Kmax);
+  _d_sn.resize(num_atoms * 3 * _Kmax);
+  _d_sfacrl.resize(_Kmax3D);
+  _d_sfacim.resize(_Kmax3D);
+
+  op::EikOp<device::DEVICE_GPU>()(
+    num_atoms,_gsqmx,_unitk,_kmax_array,
+    thrust::raw_pointer_cast(_device_data->_d_px.data()),
+ thrust::raw_pointer_cast(_device_data->_d_py.data()),
+ thrust::raw_pointer_cast(_device_data->_d_pz.data()),
+ thrust::raw_pointer_cast(_device_data->_d_charge.data()),
+ thrust::raw_pointer_cast(_d_cs.data()),
+ thrust::raw_pointer_cast(_d_sn.data()),
+ thrust::raw_pointer_cast(_d_sfacrl.data()),
+ thrust::raw_pointer_cast(_d_sfacim.data()));
+}
