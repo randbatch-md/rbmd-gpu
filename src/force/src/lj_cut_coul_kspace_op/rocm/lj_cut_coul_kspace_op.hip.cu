@@ -851,6 +851,52 @@ __global__ void Eik(const rbmd::Id num_atoms,const rbmd::Real gsqmx,
     }
 }
 
+
+__global__ void EwaldForceFix(const rbmd::Id num_atoms,const rbmd::Id kcount,
+  const rbmd::Id k_index,const rbmd::Real qqr2e,Int3 kmax_array,
+  const rbmd::Real* eg,const rbmd::Real* cs,const rbmd::Real* sn,
+  const rbmd::Real* charge,const rbmd::Real* qfactor_real,
+  const rbmd::Real* qfactor_image,rbmd::Real* fx, rbmd::Real* fy, rbmd::Real* fz)
+{
+    rbmd::Real sum_fx = 0;
+    rbmd::Real sum_fy = 0;
+    rbmd::Real sum_fz = 0;
+
+    unsigned int tid1 = blockIdx.x * blockDim.x + threadIdx.x;
+    if (tid1 < num_atoms)
+    {
+      rbmd::Real charge_i = charge[tid1];
+      rbmd::Real cos_couple_yz,sin_couple_yz;
+      rbmd::Real position_phase_real,position_phase_image;
+      rbmd::Real partial;
+      cos_couple_yz = cs[kmax_array.y  * num_atoms + 1 * num_atoms + tid1] *
+        cs[kmax_array.z  * num_atoms + 2 * num_atoms + tid1] -
+          sn[kmax_array.y * num_atoms + 1 * num_atoms + tid1] *
+            sn[kmax_array.z * num_atoms + 2 * num_atoms + tid1];
+
+      sin_couple_yz = sn[kmax_array.y * num_atoms + 1 * num_atoms + tid1] *
+        cs[kmax_array.z * num_atoms + 2 * num_atoms + tid1] +
+                    cs[kmax_array.y * num_atoms + 1 * num_atoms + tid1] *
+                      sn[kmax_array.z  * num_atoms + 2 * num_atoms + tid1];
+
+       position_phase_real = cs[kmax_array.x * num_atoms + 0 * num_atoms + tid1] *cos_couple_yz
+        -sn[kmax_array.x * num_atoms + 0 * num_atoms + tid1] *sin_couple_yz;
+       position_phase_image = sn[kmax_array.x * num_atoms + 0 * num_atoms + tid1] *cos_couple_yz
+        +cs[kmax_array.x * num_atoms + 0 * num_atoms + tid1] * sin_couple_yz;
+
+       partial = position_phase_real * qfactor_real[k_index] -
+                  position_phase_image * qfactor_image[k_index];
+       sum_fx += partial * eg[kcount * 3 + 0];
+       sum_fy += partial * eg[kcount * 3 + 0];
+       sum_fz += partial * eg[kcount * 3 + 0];
+      printf("force: %f %f  %f\n", sum_fx,sum_fy,sum_fz);
+      fx[tid1] = qqr2e * charge_i *sum_fx;
+      fy[tid1] = qqr2e * charge_i *sum_fy;
+      fz[tid1] = qqr2e * charge_i *sum_fz;
+    }
+}
+
+
   // EwaldForce
   __global__ void ComputeEwaldForce(
        Box box, const rbmd::Id num_atoms, const rbmd::Id Kmax,
@@ -1185,17 +1231,32 @@ __global__ void Eik(const rbmd::Id num_atoms,const rbmd::Real gsqmx,
                     (num_atoms, input_fx, input_fy, input_fz, fx, fy, fz));
           }
 
-void EikOp<device::DEVICE_GPU>::operator()(
-  const rbmd::Id num_atoms,const rbmd::Real gsqmx,Real3 unitk, Int3 kmax_array,
-  const rbmd::Real* px, const rbmd::Real* py,const rbmd::Real* pz,
-  const rbmd::Real* charge,rbmd::Real* cs, rbmd::Real* sn,
-  rbmd::Real* sfacrl, rbmd::Real* sfacim) {
-    unsigned int blocks_per_grid = (num_atoms + BLOCK_SIZE - 1) / BLOCK_SIZE;
+  void EikOp<device::DEVICE_GPU>::operator()(
+    const rbmd::Id num_atoms,const rbmd::Real gsqmx,Real3 unitk, Int3 kmax_array,
+    const rbmd::Real* px, const rbmd::Real* py,const rbmd::Real* pz,
+    const rbmd::Real* charge,rbmd::Real* cs, rbmd::Real* sn,
+    rbmd::Real* sfacrl, rbmd::Real* sfacim) {
+      unsigned int blocks_per_grid = (num_atoms + BLOCK_SIZE - 1) / BLOCK_SIZE;
 
-    CHECK_KERNEL(Eik <<<blocks_per_grid, BLOCK_SIZE, 0, 0 >>>
-                    (num_atoms, gsqmx, unitk, kmax_array, px, py, pz,
-                      charge,cs,sn,sfacrl,sfacim));
+      CHECK_KERNEL(Eik <<<blocks_per_grid, BLOCK_SIZE, 0, 0 >>>
+                      (num_atoms, gsqmx, unitk, kmax_array, px, py, pz,
+                        charge,cs,sn,sfacrl,sfacim));
 
-  }
+    }
+
+  void EwaldForceFixOp<device::DEVICE_GPU>::operator()(
+    const rbmd::Id num_atoms,const rbmd::Id kcount,const rbmd::Id k_index,
+    const rbmd::Real qqr2e,Int3 kmax_array,const rbmd::Real* eg,const rbmd::Real* cs,
+    const rbmd::Real* sn,const rbmd::Real* charge,const rbmd::Real* qfactor_real,
+    const rbmd::Real* qfactor_image,rbmd::Real* fx, rbmd::Real* fy, rbmd::Real* fz)
+  {
+      unsigned int blocks_per_grid = (num_atoms + BLOCK_SIZE - 1) / BLOCK_SIZE;
+
+      CHECK_KERNEL(EwaldForceFix <<<blocks_per_grid, BLOCK_SIZE, 0, 0 >>>
+                      (num_atoms,kcount,k_index,qqr2e, kmax_array,eg,cs,sn,
+                        charge,qfactor_real,qfactor_image,fx,fy,fz));
+
+    }
+
 }
 

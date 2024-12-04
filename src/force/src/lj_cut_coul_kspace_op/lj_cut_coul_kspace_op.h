@@ -204,6 +204,17 @@ namespace op
       rbmd::Real* sfacrl, rbmd::Real* sfacim);
     };
 
+    template <typename DEVICE>
+    struct EwaldForceFixOp
+    {
+      void operator()(
+      const rbmd::Id num_atoms,const rbmd::Id kcount,const rbmd::Id k_index,
+      const rbmd::Real qqr2e,Int3 kmax_array,const rbmd::Real* eg,
+      const rbmd::Real* cs,const rbmd::Real* sn,const rbmd::Real* charge,
+      const rbmd::Real* qfactor_real,const rbmd::Real* qfactor_image,
+      rbmd::Real* fx, rbmd::Real* fy, rbmd::Real* fz);
+
+    };
         // // // // // // // // // // // // // // // // // // //
         template <>
         struct LJCutCoulForceOp<device::DEVICE_GPU>
@@ -404,6 +415,18 @@ namespace op
     const rbmd::Real* px, const rbmd::Real* py,const rbmd::Real* pz,
     const rbmd::Real* charge,rbmd::Real* cs, rbmd::Real* sn,
     rbmd::Real* sfacrl, rbmd::Real* sfacim);
+  };
+
+  template <>
+  struct EwaldForceFixOp<device::DEVICE_GPU>
+  {
+    void operator()(
+    const rbmd::Id num_atoms,const rbmd::Id kcount, const rbmd::Id k_index,
+    const rbmd::Real qqr2e, Int3 kmax_array,const rbmd::Real* eg,
+    const rbmd::Real* cs,const rbmd::Real* sn,const rbmd::Real* charge,
+    const rbmd::Real* qfactor_real,const rbmd::Real* qfactor_image,
+    rbmd::Real* fx, rbmd::Real* fy, rbmd::Real* fz);
+
   };
 
 

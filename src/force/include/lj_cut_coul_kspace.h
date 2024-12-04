@@ -22,11 +22,14 @@ public:
   void ComputeKspaceForce();
   void SumForces();
 
+  //
   void ComputeQsqSum();
   rbmd::Real ComputeRMS(rbmd::Id kmax,rbmd::Real box_length,rbmd::Real q2);
   void SetKspacePara();
-  void eik_dot_r();
+  void ComputeQsf();//Charge Structure Factor
   void coeffs();
+  void ComputeEwlad_fix();
+
   void  ComputeChargeStructureFactorEwald(
           Box box,
           rbmd::Id num_atoms,
@@ -95,7 +98,7 @@ private:
   rbmd::Real _accuracy;
   rbmd::Real _g_ewald;
   rbmd::Real _alpha;
-  rbmd::Real _q2;
+  rbmd::Real _sum_sq_charge;
 
   rbmd::Id _Kmax;
   rbmd::Id _Kmax3D;
@@ -108,8 +111,14 @@ private:
 
   std::vector<rbmd::Id> kxvecs,kyvecs,kzvecs; //_Kmax3D
   std::vector<rbmd::Real> ug;  //_Kmax3D
-  std::vector<std::vector<rbmd::Real>> eg;  //_Kmax3D 3
-  std::vector<std::vector<rbmd::Real>> vg; //_Kmax3D 6
+
+  // std::vector<rbmd::Real> eg_flat;
+  // std::vector<rbmd::Real> vg_flat;
+  thrust::host_vector<rbmd::Real> eg_flat;
+  thrust::host_vector<rbmd::Real> vg_flat;
+
+  thrust::device_vector<rbmd::Real> _d_eg_flat;
+  thrust::device_vector<rbmd::Real> _d_vg_flat;
 
   // std::vector<rbmd::Real> sfacrl,sfacrl_all;  //_Kmax3D
   // std::vector<rbmd::Real> sfacim,sfacim_all;  //_Kmax3D
@@ -117,8 +126,8 @@ private:
   // std::vector<std::vector<std::vector<rbmd::Real>>> cs, sn;
 
   thrust::device_vector<rbmd::Real>  _d_cs,_d_sn;
-  thrust::device_vector<rbmd::Real>  _d_sfacrl,_d_sfacrl_all;
-  thrust::device_vector<rbmd::Real>  _d_sfacim,_d_sfacim_all;
+  thrust::device_vector<rbmd::Real>  _d_qfactor_real,_d_qfactor_real_all;
+  thrust::device_vector<rbmd::Real>  _d_qfactor_image,_d_qfactor_image_all;
 
 
   rbmd::Id _num_k;

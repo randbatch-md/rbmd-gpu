@@ -29,11 +29,12 @@ LJCutCoulKspace::LJCutCoulKspace()
 
   _cut_off = DataManager::getInstance().getConfigData()->Get
  <rbmd::Real>("cut_off", "hyper_parameters", "neighbor");
-
   auto unit = DataManager::getInstance().getConfigData()->Get
 <std::string>("unit", "init_configuration", "read_data");
-  UNIT unit_factor = unit_factor_map[unit];
+  _accuracy = DataManager::getInstance().getConfigData()->Get<rbmd::Real>(
+"accuracy", "hyper_parameters", "coulomb");
 
+  UNIT unit_factor = unit_factor_map[unit];
   switch (unit_factor) {
     case UNIT::LJ:
       _qqr2e = UnitFactor<UNIT::LJ>::_qqr2e;
@@ -46,29 +47,24 @@ LJCutCoulKspace::LJCutCoulKspace()
     default:
       break;
   }
-  auto start = std::chrono::high_resolution_clock::now();
-  //  sum q_sq
-  ComputeQsqSum(); //q2
 
-  _accuracy = DataManager::getInstance().getConfigData()->Get<rbmd::Real>(
-"accuracy", "hyper_parameters", "coulomb");
   auto box =  DataManager::getInstance().getMDData()->_box;
   auto volue = CalculateVolume(*box);
   auto num_atoms = *(_structure_info_data->_num_atoms);
+  //  sum q_sq
+  ComputeQsqSum(); //q2
 
   //compute g_ewald
-  _g_ewald = _accuracy*SQRT(num_atoms*_cut_off*volue) / (2.0*_q2);
+  _g_ewald = _accuracy*SQRT(num_atoms*_cut_off*volue) / (2.0*_sum_sq_charge);
   if (_g_ewald >= 1.0) _g_ewald = (1.35 - 0.15*LOG(_accuracy))/_cut_off;
   else _g_ewald = SQRT(-LOG(_g_ewald)) / _cut_off;
   _alpha = _g_ewald*_g_ewald;
 
   //automatically compute kmax
-  auto start1 = std::chrono::high_resolution_clock::now();
   SetKspacePara(); //kmax
-  auto end1 = std::chrono::high_resolution_clock::now();
 
-  std::chrono::duration<rbmd::Real> duration1 = end1 - start1;
-  std::cout << "计算kmax耗时" << duration1.count() << "秒" << std::endl;
+  ComputeEwlad_fix();
+
 
   _num_k =  (2*_Kmax +1)  * (2*_Kmax +1) * (2*_Kmax +1) - 1;
   std::cout << "g_ewald: " << _g_ewald  <<", alpha: "<<
@@ -77,10 +73,6 @@ LJCutCoulKspace::LJCutCoulKspace()
   _h_Re_array = static_cast<rbmd::Real*>(malloc(_num_k * sizeof(rbmd::Real)));
   _h_Im_array = static_cast<rbmd::Real*>(malloc(_num_k * sizeof(rbmd::Real)));
   std::remove("thermo_local.txt");
-  auto end = std::chrono::high_resolution_clock::now();
-
-  std::chrono::duration<rbmd::Real> duration = end - start;
-  std::cout << "初始化总kspace耗时" << duration.count() << "秒" << std::endl;
 }
 
 LJCutCoulKspace::~LJCutCoulKspace()
@@ -716,10 +708,9 @@ void LJCutCoulKspace::ComputeQsqSum()
     thrust::raw_pointer_cast(_device_data->_d_charge.data()),
     thrust::raw_pointer_cast(sq_charge.data()));
 
-  rbmd::Real sum_sq_charge = thrust::reduce(sq_charge.begin(),
+   _sum_sq_charge = thrust::reduce(sq_charge.begin(),
     sq_charge.end(), 0.0f, thrust::plus<rbmd::Real>());
-
-  _q2 = _qqr2e* sum_sq_charge;
+  _sum_sq_charge = _qqr2e* _sum_sq_charge;
 }
 
 rbmd::Real LJCutCoulKspace::ComputeRMS(rbmd::Id kmax,rbmd::Real box_length,rbmd::Real q2)
@@ -738,9 +729,14 @@ void LJCutCoulKspace::coeffs()
   kyvecs.resize(_Kmax3D,0);
   kzvecs.resize(_Kmax3D,0);
   ug.resize(_Kmax3D,0);
+  // std::vector<rbmd::Real> eg_flat(_Kmax3D * 3, 0.0);
+  // std::vector<rbmd::Real> vg_flat(_Kmax3D * 6, 0.0);
 
-  eg.resize(_Kmax3D, std::vector<rbmd::Real>(3, 0.0));
-  vg.resize(_Kmax3D, std::vector<rbmd::Real>(6, 0.0));
+  eg_flat.resize(_Kmax3D * 3, 0.0);
+  vg_flat.resize(_Kmax3D * 6, 0.0);
+
+   _d_eg_flat.resize(_Kmax3D * 3, 0.0);
+   _d_eg_flat.resize(_Kmax3D * 6, 0.0);
 
   auto box =  DataManager::getInstance().getMDData()->_box;
   auto volume = CalculateVolume(*box);
@@ -761,16 +757,16 @@ void LJCutCoulKspace::coeffs()
       kyvecs[kcount] = 0;
       kzvecs[kcount] = 0;
       ug[kcount] = preu*EXP(-0.25*sqk*alpha_inv)/sqk;
-      eg[kcount][0] = 2.0*REAL_DATA(_unitk)[0]*m*ug[kcount];
-      eg[kcount][1] = 0.0;
-      eg[kcount][2] = 0.0;
+      eg_flat[kcount * 3 + 0]= 2.0*REAL_DATA(_unitk)[0]*m*ug[kcount];
+      eg_flat[kcount * 3 + 1]  = 0.0;
+      eg_flat[kcount * 3 + 2]  = 0.0;
       vterm = -2.0*(1.0/sqk + 0.25*alpha_inv);
-      vg[kcount][0] = 1.0 + vterm*(REAL_DATA(_unitk)[0]*m)*(REAL_DATA(_unitk)[0]*m);
-      vg[kcount][1] = 1.0;
-      vg[kcount][2] = 1.0;
-      vg[kcount][3] = 0.0;
-      vg[kcount][4] = 0.0;
-      vg[kcount][5] = 0.0;
+      vg_flat[kcount * 3 + 0] = 1.0 + vterm*(REAL_DATA(_unitk)[0]*m)*(REAL_DATA(_unitk)[0]*m);
+      vg_flat[kcount * 3 + 1] = 1.0;
+      vg_flat[kcount * 3 + 2] = 1.0;
+      vg_flat[kcount * 3 + 3] = 0.0;
+      vg_flat[kcount * 3 + 4] = 0.0;
+      vg_flat[kcount * 3 + 5] = 0.0;
       kcount++;
     }
     sqk = (m*REAL_DATA(_unitk)[1]) * (m*REAL_DATA(_unitk)[1]);
@@ -779,16 +775,16 @@ void LJCutCoulKspace::coeffs()
       kyvecs[kcount] = m;
       kzvecs[kcount] = 0;
       ug[kcount] = preu*EXP(-0.25*sqk*alpha_inv)/sqk;
-      eg[kcount][0] = 0.0;
-      eg[kcount][1] = 2.0*REAL_DATA(_unitk)[1]*m*ug[kcount];
-      eg[kcount][2] = 0.0;
+      eg_flat[kcount * 3 + 0] = 0.0;
+      eg_flat[kcount * 3 + 1] = 2.0*REAL_DATA(_unitk)[1]*m*ug[kcount];
+      eg_flat[kcount * 3 + 2] = 0.0;
       vterm = -2.0*(1.0/sqk + 0.25*alpha_inv);
-      vg[kcount][0] = 1.0;
-      vg[kcount][1] = 1.0 + vterm*(REAL_DATA(_unitk)[1]*m)*(REAL_DATA(_unitk)[1]*m);
-      vg[kcount][2] = 1.0;
-      vg[kcount][3] = 0.0;
-      vg[kcount][4] = 0.0;
-      vg[kcount][5] = 0.0;
+      vg_flat[kcount * 3 + 0] = 1.0;
+      vg_flat[kcount * 3 + 1] = 1.0 + vterm*(REAL_DATA(_unitk)[1]*m)*(REAL_DATA(_unitk)[1]*m);
+      vg_flat[kcount * 3 + 2] = 1.0;
+      vg_flat[kcount * 3 + 3] = 0.0;
+      vg_flat[kcount * 3 + 4] = 0.0;
+      vg_flat[kcount * 3 + 5] = 0.0;
       kcount++;
     }
     sqk = (m*REAL_DATA(_unitk)[2]) * (m*REAL_DATA(_unitk)[2]);
@@ -797,20 +793,20 @@ void LJCutCoulKspace::coeffs()
       kyvecs[kcount] = 0;
       kzvecs[kcount] = m;
       ug[kcount] = preu*EXP(-0.25*sqk*alpha_inv)/sqk;
-      eg[kcount][0] = 0.0;
-      eg[kcount][1] = 0.0;
-      eg[kcount][2] = 2.0*REAL_DATA(_unitk)[2]*m*ug[kcount];
+      eg_flat[kcount * 3 + 0] = 0.0;
+      eg_flat[kcount * 3 + 1]= 0.0;
+      eg_flat[kcount * 3 + 2] = 2.0*REAL_DATA(_unitk)[2]*m*ug[kcount];
       vterm = -2.0*(1.0/sqk + 0.25*alpha_inv);
-      vg[kcount][0] = 1.0;
-      vg[kcount][1] = 1.0;
-      vg[kcount][2] = 1.0 + vterm*(REAL_DATA(_unitk)[2]*m)*(REAL_DATA(_unitk)[2]*m);
-      vg[kcount][3] = 0.0;
-      vg[kcount][4] = 0.0;
-      vg[kcount][5] = 0.0;
+      vg_flat[kcount * 3 + 0] = 1.0;
+      vg_flat[kcount * 3 + 1] = 1.0;
+      vg_flat[kcount * 3 + 2] = 1.0 + vterm*(REAL_DATA(_unitk)[2]*m)*(REAL_DATA(_unitk)[2]*m);
+      vg_flat[kcount * 3 + 3] = 0.0;
+      vg_flat[kcount * 3 + 4] = 0.0;
+      vg_flat[kcount * 3 + 5] = 0.0;
       kcount++;
     }
   }
-
+  std::cout << "kcount11: " << kcount  <<std::endl;
   // 1 = (k,l,0), 2 = (k,-l,0)
 
   for (k = 1; k <= kmax_x; k++) {
@@ -821,31 +817,31 @@ void LJCutCoulKspace::coeffs()
         kyvecs[kcount] = l;
         kzvecs[kcount] = 0;
         ug[kcount] = preu*EXP(-0.25*sqk*alpha_inv)/sqk;
-        eg[kcount][0] = 2.0*REAL_DATA(_unitk)[0]*k*ug[kcount];
-        eg[kcount][1] = 2.0*REAL_DATA(_unitk)[1]*l*ug[kcount];
-        eg[kcount][2] = 0.0;
+        eg_flat[kcount * 3 + 0] = 2.0*REAL_DATA(_unitk)[0]*k*ug[kcount];
+        eg_flat[kcount * 3 + 1]= 2.0*REAL_DATA(_unitk)[1]*l*ug[kcount];
+        eg_flat[kcount * 3 + 2] = 0.0;
         vterm = -2.0*(1.0/sqk + 0.25*alpha_inv);
-        vg[kcount][0] = 1.0 + vterm*(REAL_DATA(_unitk)[0]*k)*(REAL_DATA(_unitk)[0]*k);
-        vg[kcount][1] = 1.0 + vterm*(REAL_DATA(_unitk)[1]*l)*(REAL_DATA(_unitk)[1]*l);
-        vg[kcount][2] = 1.0;
-        vg[kcount][3] = vterm*REAL_DATA(_unitk)[0]*k*REAL_DATA(_unitk)[1]*l;
-        vg[kcount][4] = 0.0;
-        vg[kcount][5] = 0.0;
+        vg_flat[kcount * 3 + 0] = 1.0 + vterm*(REAL_DATA(_unitk)[0]*k)*(REAL_DATA(_unitk)[0]*k);
+        vg_flat[kcount * 3 + 1] = 1.0 + vterm*(REAL_DATA(_unitk)[1]*l)*(REAL_DATA(_unitk)[1]*l);
+        vg_flat[kcount * 3 + 2] = 1.0;
+        vg_flat[kcount * 3 + 3] = vterm*REAL_DATA(_unitk)[0]*k*REAL_DATA(_unitk)[1]*l;
+        vg_flat[kcount * 3 + 4] = 0.0;
+        vg_flat[kcount * 3 + 5] = 0.0;
         kcount++;
 
         kxvecs[kcount] = k;
         kyvecs[kcount] = -l;
         kzvecs[kcount] = 0;
         ug[kcount] = preu*EXP(-0.25*sqk*alpha_inv)/sqk;
-        eg[kcount][0] = 2.0*REAL_DATA(_unitk)[0]*k*ug[kcount];
-        eg[kcount][1] = -2.0*REAL_DATA(_unitk)[1]*l*ug[kcount];
-        eg[kcount][2] = 0.0;
-        vg[kcount][0] = 1.0 + vterm*(REAL_DATA(_unitk)[0]*k)*(REAL_DATA(_unitk)[0]*k);
-        vg[kcount][1] = 1.0 + vterm*(REAL_DATA(_unitk)[1]*l)*(REAL_DATA(_unitk)[1]*l);
-        vg[kcount][2] = 1.0;
-        vg[kcount][3] = -vterm*REAL_DATA(_unitk)[0]*k*REAL_DATA(_unitk)[1]*l;
-        vg[kcount][4] = 0.0;
-        vg[kcount][5] = 0.0;
+        eg_flat[kcount * 3 + 0] = 2.0*REAL_DATA(_unitk)[0]*k*ug[kcount];
+        eg_flat[kcount * 3 + 1]= -2.0*REAL_DATA(_unitk)[1]*l*ug[kcount];
+        eg_flat[kcount * 3 + 2] = 0.0;
+        vg_flat[kcount * 3 + 0] = 1.0 + vterm*(REAL_DATA(_unitk)[0]*k)*(REAL_DATA(_unitk)[0]*k);
+        vg_flat[kcount * 3 + 1] = 1.0 + vterm*(REAL_DATA(_unitk)[1]*l)*(REAL_DATA(_unitk)[1]*l);
+        vg_flat[kcount * 3 + 2] = 1.0;
+        vg_flat[kcount * 3 + 3] = -vterm*REAL_DATA(_unitk)[0]*k*REAL_DATA(_unitk)[1]*l;
+        vg_flat[kcount * 3 + 4] = 0.0;
+        vg_flat[kcount * 3 + 5] = 0.0;
         kcount++;
       }
     }
@@ -861,31 +857,31 @@ void LJCutCoulKspace::coeffs()
         kyvecs[kcount] = l;
         kzvecs[kcount] = m;
         ug[kcount] = preu*EXP(-0.25*sqk*alpha_inv)/sqk;
-        eg[kcount][0] =  0.0;
-        eg[kcount][1] =  2.0*REAL_DATA(_unitk)[1]*l*ug[kcount];
-        eg[kcount][2] =  2.0*REAL_DATA(_unitk)[2]*m*ug[kcount];
+        eg_flat[kcount * 3 + 0] =  0.0;
+        eg_flat[kcount * 3 + 1]=  2.0*REAL_DATA(_unitk)[1]*l*ug[kcount];
+        eg_flat[kcount * 3 + 2] =  2.0*REAL_DATA(_unitk)[2]*m*ug[kcount];
         vterm = -2.0*(1.0/sqk + 0.25*alpha_inv);
-        vg[kcount][0] = 1.0;
-        vg[kcount][1] = 1.0 + vterm*(REAL_DATA(_unitk)[1]*l)*(REAL_DATA(_unitk)[1]*l);
-        vg[kcount][2] = 1.0 + vterm*(REAL_DATA(_unitk)[2]*m)*(REAL_DATA(_unitk)[2]*m);
-        vg[kcount][3] = 0.0;
-        vg[kcount][4] = 0.0;
-        vg[kcount][5] = vterm*REAL_DATA(_unitk)[1]*l*REAL_DATA(_unitk)[2]*m;
+        vg_flat[kcount * 3 + 0] = 1.0;
+        vg_flat[kcount * 3 + 1] = 1.0 + vterm*(REAL_DATA(_unitk)[1]*l)*(REAL_DATA(_unitk)[1]*l);
+        vg_flat[kcount * 3 + 2] = 1.0 + vterm*(REAL_DATA(_unitk)[2]*m)*(REAL_DATA(_unitk)[2]*m);
+        vg_flat[kcount * 3 + 3] = 0.0;
+        vg_flat[kcount * 3 + 4] = 0.0;
+        vg_flat[kcount * 3 + 5] = vterm*REAL_DATA(_unitk)[1]*l*REAL_DATA(_unitk)[2]*m;
         kcount++;
 
         kxvecs[kcount] = 0;
         kyvecs[kcount] = l;
         kzvecs[kcount] = -m;
         ug[kcount] = preu*EXP(-0.25*sqk*alpha_inv)/sqk;
-        eg[kcount][0] =  0.0;
-        eg[kcount][1] =  2.0*REAL_DATA(_unitk)[1]*l*ug[kcount];
-        eg[kcount][2] = -2.0*REAL_DATA(_unitk)[2]*m*ug[kcount];
-        vg[kcount][0] = 1.0;
-        vg[kcount][1] = 1.0 + vterm*(REAL_DATA(_unitk)[1]*l)*(REAL_DATA(_unitk)[1]*l);
-        vg[kcount][2] = 1.0 + vterm*(REAL_DATA(_unitk)[2]*m)*(REAL_DATA(_unitk)[2]*m);
-        vg[kcount][3] = 0.0;
-        vg[kcount][4] = 0.0;
-        vg[kcount][5] = -vterm*REAL_DATA(_unitk)[1]*l*REAL_DATA(_unitk)[2]*m;
+        eg_flat[kcount * 3 + 0] =  0.0;
+        eg_flat[kcount * 3 + 1]=  2.0*REAL_DATA(_unitk)[1]*l*ug[kcount];
+        eg_flat[kcount * 3 + 2] = -2.0*REAL_DATA(_unitk)[2]*m*ug[kcount];
+        vg_flat[kcount * 3 + 0] = 1.0;
+        vg_flat[kcount * 3 + 1] = 1.0 + vterm*(REAL_DATA(_unitk)[1]*l)*(REAL_DATA(_unitk)[1]*l);
+        vg_flat[kcount * 3 + 2] = 1.0 + vterm*(REAL_DATA(_unitk)[2]*m)*(REAL_DATA(_unitk)[2]*m);
+        vg_flat[kcount * 3 + 3] = 0.0;
+        vg_flat[kcount * 3 + 4] = 0.0;
+        vg_flat[kcount * 3 + 5] = -vterm*REAL_DATA(_unitk)[1]*l*REAL_DATA(_unitk)[2]*m;
         kcount++;
       }
     }
@@ -901,36 +897,36 @@ void LJCutCoulKspace::coeffs()
         kyvecs[kcount] = 0;
         kzvecs[kcount] = m;
         ug[kcount] = preu*EXP(-0.25*sqk*alpha_inv)/sqk;
-        eg[kcount][0] =  2.0*REAL_DATA(_unitk)[0]*k*ug[kcount];
-        eg[kcount][1] =  0.0;
-        eg[kcount][2] =  2.0*REAL_DATA(_unitk)[2]*m*ug[kcount];
+        eg_flat[kcount * 3 + 0] =  2.0*REAL_DATA(_unitk)[0]*k*ug[kcount];
+        eg_flat[kcount * 3 + 1]=  0.0;
+        eg_flat[kcount * 3 + 2] =  2.0*REAL_DATA(_unitk)[2]*m*ug[kcount];
         vterm = -2.0*(1.0/sqk + 0.25*alpha_inv);
-        vg[kcount][0] = 1.0 + vterm*(REAL_DATA(_unitk)[0]*k)*(REAL_DATA(_unitk)[0]*k);
-        vg[kcount][1] = 1.0;
-        vg[kcount][2] = 1.0 + vterm*(REAL_DATA(_unitk)[2]*m)*(REAL_DATA(_unitk)[2]*m);
-        vg[kcount][3] = 0.0;
-        vg[kcount][4] = vterm*REAL_DATA(_unitk)[0]*k*REAL_DATA(_unitk)[2]*m;
-        vg[kcount][5] = 0.0;
+        vg_flat[kcount * 3 + 0] = 1.0 + vterm*(REAL_DATA(_unitk)[0]*k)*(REAL_DATA(_unitk)[0]*k);
+        vg_flat[kcount * 3 + 1] = 1.0;
+        vg_flat[kcount * 3 + 2] = 1.0 + vterm*(REAL_DATA(_unitk)[2]*m)*(REAL_DATA(_unitk)[2]*m);
+        vg_flat[kcount * 3 + 3] = 0.0;
+        vg_flat[kcount * 3 + 4] = vterm*REAL_DATA(_unitk)[0]*k*REAL_DATA(_unitk)[2]*m;
+        vg_flat[kcount * 3 + 5] = 0.0;
         kcount++;
 
         kxvecs[kcount] = k;
         kyvecs[kcount] = 0;
         kzvecs[kcount] = -m;
         ug[kcount] = preu*EXP(-0.25*sqk*alpha_inv)/sqk;
-        eg[kcount][0] =  2.0*REAL_DATA(_unitk)[0]*k*ug[kcount];
-        eg[kcount][1] =  0.0;
-        eg[kcount][2] = -2.0*REAL_DATA(_unitk)[2]*m*ug[kcount];
-        vg[kcount][0] = 1.0 + vterm*(REAL_DATA(_unitk)[0]*k)*(REAL_DATA(_unitk)[0]*k);
-        vg[kcount][1] = 1.0;
-        vg[kcount][2] = 1.0 + vterm*(REAL_DATA(_unitk)[2]*m)*(REAL_DATA(_unitk)[2]*m);
-        vg[kcount][3] = 0.0;
-        vg[kcount][4] = -vterm*REAL_DATA(_unitk)[0]*k*REAL_DATA(_unitk)[2]*m;
-        vg[kcount][5] = 0.0;
+        eg_flat[kcount * 3 + 0] =  2.0*REAL_DATA(_unitk)[0]*k*ug[kcount];
+        eg_flat[kcount * 3 + 1]=  0.0;
+        eg_flat[kcount * 3 + 2] = -2.0*REAL_DATA(_unitk)[2]*m*ug[kcount];
+        vg_flat[kcount * 3 + 0] = 1.0 + vterm*(REAL_DATA(_unitk)[0]*k)*(REAL_DATA(_unitk)[0]*k);
+        vg_flat[kcount * 3 + 1] = 1.0;
+        vg_flat[kcount * 3 + 2] = 1.0 + vterm*(REAL_DATA(_unitk)[2]*m)*(REAL_DATA(_unitk)[2]*m);
+        vg_flat[kcount * 3 + 3] = 0.0;
+        vg_flat[kcount * 3 + 4] = -vterm*REAL_DATA(_unitk)[0]*k*REAL_DATA(_unitk)[2]*m;
+        vg_flat[kcount * 3 + 5] = 0.0;
         kcount++;
       }
     }
   }
-
+  std::cout << "kcount22: " << kcount  <<std::endl;
   // 1 = (k,l,m), 2 = (k,-l,m), 3 = (k,l,-m), 4 = (k,-l,-m)
 
   for (k = 1; k <= kmax_x; k++) {
@@ -943,66 +939,74 @@ void LJCutCoulKspace::coeffs()
           kyvecs[kcount] = l;
           kzvecs[kcount] = m;
           ug[kcount] = preu*EXP(-0.25*sqk*alpha_inv)/sqk;
-          eg[kcount][0] = 2.0*REAL_DATA(_unitk)[0]*k*ug[kcount];
-          eg[kcount][1] = 2.0*REAL_DATA(_unitk)[1]*l*ug[kcount];
-          eg[kcount][2] = 2.0*REAL_DATA(_unitk)[2]*m*ug[kcount];
+          eg_flat[kcount * 3 + 0] = 2.0*REAL_DATA(_unitk)[0]*k*ug[kcount];
+          eg_flat[kcount * 3 + 1]= 2.0*REAL_DATA(_unitk)[1]*l*ug[kcount];
+          eg_flat[kcount * 3 + 2] = 2.0*REAL_DATA(_unitk)[2]*m*ug[kcount];
           vterm = -2.0*(1.0/sqk + 0.25*alpha_inv);
-          vg[kcount][0] = 1.0 + vterm*(REAL_DATA(_unitk)[0]*k)*(REAL_DATA(_unitk)[0]*k);
-          vg[kcount][1] = 1.0 + vterm*(REAL_DATA(_unitk)[1]*l)*(REAL_DATA(_unitk)[1]*l);
-          vg[kcount][2] = 1.0 + vterm*(REAL_DATA(_unitk)[2]*m)*(REAL_DATA(_unitk)[2]*m);
-          vg[kcount][3] = vterm*REAL_DATA(_unitk)[0]*k*REAL_DATA(_unitk)[1]*l;
-          vg[kcount][4] = vterm*REAL_DATA(_unitk)[0]*k*REAL_DATA(_unitk)[2]*m;
-          vg[kcount][5] = vterm*REAL_DATA(_unitk)[1]*l*REAL_DATA(_unitk)[2]*m;
+          vg_flat[kcount * 3 + 0] = 1.0 + vterm*(REAL_DATA(_unitk)[0]*k)*(REAL_DATA(_unitk)[0]*k);
+          vg_flat[kcount * 3 + 1] = 1.0 + vterm*(REAL_DATA(_unitk)[1]*l)*(REAL_DATA(_unitk)[1]*l);
+          vg_flat[kcount * 3 + 2] = 1.0 + vterm*(REAL_DATA(_unitk)[2]*m)*(REAL_DATA(_unitk)[2]*m);
+          vg_flat[kcount * 3 + 3] = vterm*REAL_DATA(_unitk)[0]*k*REAL_DATA(_unitk)[1]*l;
+          vg_flat[kcount * 3 + 4] = vterm*REAL_DATA(_unitk)[0]*k*REAL_DATA(_unitk)[2]*m;
+          vg_flat[kcount * 3 + 5] = vterm*REAL_DATA(_unitk)[1]*l*REAL_DATA(_unitk)[2]*m;
           kcount++;
 
           kxvecs[kcount] = k;
           kyvecs[kcount] = -l;
           kzvecs[kcount] = m;
           ug[kcount] = preu*EXP(-0.25*sqk*alpha_inv)/sqk;
-          eg[kcount][0] = 2.0*REAL_DATA(_unitk)[0]*k*ug[kcount];
-          eg[kcount][1] = -2.0*REAL_DATA(_unitk)[1]*l*ug[kcount];
-          eg[kcount][2] = 2.0*REAL_DATA(_unitk)[2]*m*ug[kcount];
-          vg[kcount][0] = 1.0 + vterm*(REAL_DATA(_unitk)[0]*k)*(REAL_DATA(_unitk)[0]*k);
-          vg[kcount][1] = 1.0 + vterm*(REAL_DATA(_unitk)[1]*l)*(REAL_DATA(_unitk)[1]*l);
-          vg[kcount][2] = 1.0 + vterm*(REAL_DATA(_unitk)[2]*m)*(REAL_DATA(_unitk)[2]*m);
-          vg[kcount][3] = -vterm*REAL_DATA(_unitk)[0]*k*REAL_DATA(_unitk)[1]*l;
-          vg[kcount][4] = vterm*REAL_DATA(_unitk)[0]*k*REAL_DATA(_unitk)[2]*m;
-          vg[kcount][5] = -vterm*REAL_DATA(_unitk)[1]*l*REAL_DATA(_unitk)[2]*m;
+          eg_flat[kcount * 3 + 0] = 2.0*REAL_DATA(_unitk)[0]*k*ug[kcount];
+          eg_flat[kcount * 3 + 1]= -2.0*REAL_DATA(_unitk)[1]*l*ug[kcount];
+          eg_flat[kcount * 3 + 2] = 2.0*REAL_DATA(_unitk)[2]*m*ug[kcount];
+          vg_flat[kcount * 3 + 0] = 1.0 + vterm*(REAL_DATA(_unitk)[0]*k)*(REAL_DATA(_unitk)[0]*k);
+          vg_flat[kcount * 3 + 1] = 1.0 + vterm*(REAL_DATA(_unitk)[1]*l)*(REAL_DATA(_unitk)[1]*l);
+          vg_flat[kcount * 3 + 2] = 1.0 + vterm*(REAL_DATA(_unitk)[2]*m)*(REAL_DATA(_unitk)[2]*m);
+          vg_flat[kcount * 3 + 3] = -vterm*REAL_DATA(_unitk)[0]*k*REAL_DATA(_unitk)[1]*l;
+          vg_flat[kcount * 3 + 4] = vterm*REAL_DATA(_unitk)[0]*k*REAL_DATA(_unitk)[2]*m;
+          vg_flat[kcount * 3 + 5] = -vterm*REAL_DATA(_unitk)[1]*l*REAL_DATA(_unitk)[2]*m;
           kcount++;
 
           kxvecs[kcount] = k;
           kyvecs[kcount] = l;
           kzvecs[kcount] = -m;
           ug[kcount] = preu*EXP(-0.25*sqk*alpha_inv)/sqk;
-          eg[kcount][0] = 2.0*REAL_DATA(_unitk)[0]*k*ug[kcount];
-          eg[kcount][1] = 2.0*REAL_DATA(_unitk)[1]*l*ug[kcount];
-          eg[kcount][2] = -2.0*REAL_DATA(_unitk)[2]*m*ug[kcount];
-          vg[kcount][0] = 1.0 + vterm*(REAL_DATA(_unitk)[0]*k)*(REAL_DATA(_unitk)[0]*k);
-          vg[kcount][1] = 1.0 + vterm*(REAL_DATA(_unitk)[1]*l)*(REAL_DATA(_unitk)[1]*l);
-          vg[kcount][2] = 1.0 + vterm*(REAL_DATA(_unitk)[2]*m)*(REAL_DATA(_unitk)[2]*m);
-          vg[kcount][3] = vterm*REAL_DATA(_unitk)[0]*k*REAL_DATA(_unitk)[1]*l;
-          vg[kcount][4] = -vterm*REAL_DATA(_unitk)[0]*k*REAL_DATA(_unitk)[2]*m;
-          vg[kcount][5] = -vterm*REAL_DATA(_unitk)[1]*l*REAL_DATA(_unitk)[2]*m;
+          eg_flat[kcount * 3 + 0] = 2.0*REAL_DATA(_unitk)[0]*k*ug[kcount];
+          eg_flat[kcount * 3 + 1]= 2.0*REAL_DATA(_unitk)[1]*l*ug[kcount];
+          eg_flat[kcount * 3 + 2] = -2.0*REAL_DATA(_unitk)[2]*m*ug[kcount];
+          vg_flat[kcount * 3 + 0] = 1.0 + vterm*(REAL_DATA(_unitk)[0]*k)*(REAL_DATA(_unitk)[0]*k);
+          vg_flat[kcount * 3 + 1] = 1.0 + vterm*(REAL_DATA(_unitk)[1]*l)*(REAL_DATA(_unitk)[1]*l);
+          vg_flat[kcount * 3 + 2] = 1.0 + vterm*(REAL_DATA(_unitk)[2]*m)*(REAL_DATA(_unitk)[2]*m);
+          vg_flat[kcount * 3 + 3] = vterm*REAL_DATA(_unitk)[0]*k*REAL_DATA(_unitk)[1]*l;
+          vg_flat[kcount * 3 + 4] = -vterm*REAL_DATA(_unitk)[0]*k*REAL_DATA(_unitk)[2]*m;
+          vg_flat[kcount * 3 + 5] = -vterm*REAL_DATA(_unitk)[1]*l*REAL_DATA(_unitk)[2]*m;
           kcount++;
 
           kxvecs[kcount] = k;
           kyvecs[kcount] = -l;
           kzvecs[kcount] = -m;
           ug[kcount] = preu*EXP(-0.25*sqk*alpha_inv)/sqk;
-          eg[kcount][0] = 2.0*REAL_DATA(_unitk)[0]*k*ug[kcount];
-          eg[kcount][1] = -2.0*REAL_DATA(_unitk)[1]*l*ug[kcount];
-          eg[kcount][2] = -2.0*REAL_DATA(_unitk)[2]*m*ug[kcount];
-          vg[kcount][0] = 1.0 + vterm*(REAL_DATA(_unitk)[0]*k)*(REAL_DATA(_unitk)[0]*k);
-          vg[kcount][1] = 1.0 + vterm*(REAL_DATA(_unitk)[1]*l)*(REAL_DATA(_unitk)[1]*l);
-          vg[kcount][2] = 1.0 + vterm*(REAL_DATA(_unitk)[2]*m)*(REAL_DATA(_unitk)[2]*m);
-          vg[kcount][3] = -vterm*REAL_DATA(_unitk)[0]*k*REAL_DATA(_unitk)[1]*l;
-          vg[kcount][4] = -vterm*REAL_DATA(_unitk)[0]*k*REAL_DATA(_unitk)[2]*m;
-          vg[kcount][5] = vterm*REAL_DATA(_unitk)[1]*l*REAL_DATA(_unitk)[2]*m;
+          eg_flat[kcount * 3 + 0] = 2.0*REAL_DATA(_unitk)[0]*k*ug[kcount];
+          eg_flat[kcount * 3 + 1]= -2.0*REAL_DATA(_unitk)[1]*l*ug[kcount];
+          eg_flat[kcount * 3 + 2] = -2.0*REAL_DATA(_unitk)[2]*m*ug[kcount];
+          vg_flat[kcount * 3 + 0] = 1.0 + vterm*(REAL_DATA(_unitk)[0]*k)*(REAL_DATA(_unitk)[0]*k);
+          vg_flat[kcount * 3 + 1] = 1.0 + vterm*(REAL_DATA(_unitk)[1]*l)*(REAL_DATA(_unitk)[1]*l);
+          vg_flat[kcount * 3 + 2] = 1.0 + vterm*(REAL_DATA(_unitk)[2]*m)*(REAL_DATA(_unitk)[2]*m);
+          vg_flat[kcount * 3 + 3] = -vterm*REAL_DATA(_unitk)[0]*k*REAL_DATA(_unitk)[1]*l;
+          vg_flat[kcount * 3 + 4] = -vterm*REAL_DATA(_unitk)[0]*k*REAL_DATA(_unitk)[2]*m;
+          vg_flat[kcount * 3 + 5] = vterm*REAL_DATA(_unitk)[1]*l*REAL_DATA(_unitk)[2]*m;
           kcount++;
         }
       }
     }
   }
+  std::cout << "kcount33: " << kcount  <<std::endl;
+  // thrust::copy(eg_flat.begin(),eg_flat.end(),_d_eg_flat.begin());
+  // thrust::copy(vg_flat.begin(),vg_flat.end(),_d_vg_flat.begin());
+
+  MEMCPY(thrust::raw_pointer_cast(_d_eg_flat.data()),eg_flat.data(),
+    _Kmax3D * 3* sizeof(rbmd::Real),H2D);
+  MEMCPY(thrust::raw_pointer_cast(_d_vg_flat.data()),vg_flat.data(),
+    _Kmax3D * 3* sizeof(rbmd::Real),H2D);
 }
 
 void LJCutCoulKspace::SetKspacePara()
@@ -1019,22 +1023,22 @@ void LJCutCoulKspace::SetKspacePara()
   rbmd::Id kmax_z = 1;
   rbmd::Real rms;
 
-  rms = ComputeRMS(kmax_x,box->_length[0],_q2);
+  rms = ComputeRMS(kmax_x,box->_length[0],_sum_sq_charge);
   while (rms > _accuracy) {
     kmax_x++;
-    rms = ComputeRMS(kmax_x,box->_length[0],_q2);
+    rms = ComputeRMS(kmax_x,box->_length[0],_sum_sq_charge);
   }
 
-  rms = ComputeRMS(kmax_y,box->_length[1],_q2);
+  rms = ComputeRMS(kmax_y,box->_length[1],_sum_sq_charge);
   while (rms > _accuracy) {
     kmax_y++;
-    rms = ComputeRMS(kmax_y,box->_length[1],_q2);
+    rms = ComputeRMS(kmax_y,box->_length[1],_sum_sq_charge);
   }
 
-  rms = ComputeRMS(kmax_z,box->_length[2],_q2);
+  rms = ComputeRMS(kmax_z,box->_length[2],_sum_sq_charge);
   while (rms > _accuracy) {
     kmax_z++;
-    rms = ComputeRMS(kmax_z,box->_length[2],_q2);
+    rms = ComputeRMS(kmax_z,box->_length[2],_sum_sq_charge);
   }
 
   _Kmax = MAX(kmax_x,kmax_y);
@@ -1054,15 +1058,13 @@ void LJCutCoulKspace::SetKspacePara()
   _kmax_y_orig = kmax_y;
   _kmax_z_orig = kmax_z;
 
-  auto ggg = 0 ;
-  if(ggg)
-  { kmax_x = _Kmax;
-    kmax_y = _Kmax;
-    kmax_z = _Kmax;
-
-    _kmax_x_orig = kmax_x;
-    _kmax_y_orig = kmax_y;
-    _kmax_z_orig = kmax_z;
+  auto kmax_read_flag = 0 ;
+  rbmd::Id kmax_x_read,kmax_y_read,kmax_z_read;
+  if(kmax_read_flag)
+  {
+    kmax_x = kmax_x_read;
+    kmax_y = kmax_y_read;
+    kmax_z = kmax_z_read;
 
     _Kmax = MAX(kmax_x,kmax_y);
     _Kmax = MAX(_Kmax,kmax_z);
@@ -1077,18 +1079,16 @@ void LJCutCoulKspace::SetKspacePara()
   _gsqmx *= 1.00001;
   coeffs();//
   std::cout << "kcount: " << kcount  <<std::endl;
-  eik_dot_r();
-
 }
 
 
-void LJCutCoulKspace::eik_dot_r()
+void LJCutCoulKspace::ComputeQsf()
 {
   auto num_atoms = *(_structure_info_data->_num_atoms);
   _d_cs.resize(num_atoms * 3 * _Kmax);
   _d_sn.resize(num_atoms * 3 * _Kmax);
-  _d_sfacrl.resize(_Kmax3D);
-  _d_sfacim.resize(_Kmax3D);
+  _d_qfactor_real.resize(_Kmax3D);
+  _d_qfactor_image.resize(_Kmax3D);
 
   op::EikOp<device::DEVICE_GPU>()(
     num_atoms,_gsqmx,_unitk,_kmax_array,
@@ -1098,6 +1098,56 @@ void LJCutCoulKspace::eik_dot_r()
  thrust::raw_pointer_cast(_device_data->_d_charge.data()),
  thrust::raw_pointer_cast(_d_cs.data()),
  thrust::raw_pointer_cast(_d_sn.data()),
- thrust::raw_pointer_cast(_d_sfacrl.data()),
- thrust::raw_pointer_cast(_d_sfacim.data()));
+ thrust::raw_pointer_cast(_d_qfactor_real.data()),
+ thrust::raw_pointer_cast(_d_qfactor_image.data()));
+}
+
+void LJCutCoulKspace::ComputeEwlad_fix()
+{
+  //
+  ComputeQsf();
+
+  auto num_atoms = *(_structure_info_data->_num_atoms);
+  // charge structure factors
+  for (rbmd::Id k = 0; k < kcount; k++)
+  {
+    rbmd::Id kx = kxvecs[k];
+    rbmd::Id ky = kyvecs[k];
+    rbmd::Id kz = kzvecs[k];
+    Int3 kmax_array ={kx,ky,kz};
+    op::EwaldForceFixOp<device::DEVICE_GPU>()(
+      num_atoms,kcount,k,_qqr2e,kmax_array,
+      thrust::raw_pointer_cast(_d_eg_flat.data()),
+      thrust::raw_pointer_cast(_d_cs.data()),
+      thrust::raw_pointer_cast(_d_sn.data()),
+    thrust::raw_pointer_cast(_device_data->_d_charge.data()),
+    thrust::raw_pointer_cast(_d_qfactor_real.data()),
+    thrust::raw_pointer_cast(_d_qfactor_image.data()),
+      thrust::raw_pointer_cast(_device_data->_d_force_kspace_x.data()),
+      thrust::raw_pointer_cast(_device_data->_d_force_kspace_y.data()),
+      thrust::raw_pointer_cast(_device_data->_d_force_kspace_z.data()));
+    }
+
+
+  std::cout << "Ewlad_fix: " << kcount  <<std::endl;
+
+  std::vector<rbmd::Real> h_force_kspace_x(num_atoms);
+  std::vector<rbmd::Real> h_force_kspace_y(num_atoms);
+  std::vector<rbmd::Real> h_force_kspace_z(num_atoms);
+
+  thrust::copy(_device_data->_d_force_kspace_x.begin(),
+    _device_data->_d_force_kspace_x.end(), h_force_kspace_x.begin());
+  thrust::copy(_device_data->_d_force_kspace_y.begin(),
+  _device_data->_d_force_kspace_y.end(), h_force_kspace_y.begin());
+  thrust::copy(_device_data->_d_force_kspace_z.begin(),
+  _device_data->_d_force_kspace_z.end(), h_force_kspace_z.begin());
+
+  std::ofstream output_file("output_force_kspace111.txt");
+  for (size_t i = 0; i < h_force_kspace_x.size(); ++i)
+  {
+    output_file << "i:" << i << " "
+    << h_force_kspace_x[i] << " " << h_force_kspace_y[i]  << " " << h_force_kspace_z[i]
+    << std::endl;
+  }
+  output_file.close();
 }
