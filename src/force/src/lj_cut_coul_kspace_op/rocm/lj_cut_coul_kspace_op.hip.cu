@@ -607,253 +607,233 @@ namespace op {
   }
 
 __global__ void Eik(const rbmd::Id num_atoms,const rbmd::Real gsqmx,
-  Real3 unitk, Int3 kmax_array,const rbmd::Real* px, const rbmd::Real* py,
+  Real3 unitk, const rbmd::Id kmax, Int3 kmax_array,const rbmd::Real* px, const rbmd::Real* py,
   const rbmd::Real* pz,const rbmd::Real* charge,rbmd::Real* cs, rbmd::Real* sn,
   rbmd::Real* sfacrl, rbmd::Real* sfacim)
 {
+    rbmd::Id  offset = kmax;  //
     unsigned int tid1 = blockIdx.x * blockDim.x + threadIdx.x;
-    if (tid1 >= num_atoms) return;
-
-    rbmd::Real cstr1, sstr1, cstr2, sstr2, cstr3, sstr3, cstr4, sstr4;
-    rbmd::Real sqk, clpm, slpm;
-    rbmd::Id n = 0;
-
-    // (k,0,0), (0,l,0), (0,0,m)
-    for (rbmd::Id ic = 0; ic < 3; ic++)
+    if (tid1 < num_atoms)
     {
-        sqk = REAL_DATA(unitk)[ic] * REAL_DATA(unitk)[ic];
-        //printf("sqk : %f  %f\n", sqk,gsqmx);
-        if (sqk <= gsqmx) {
-            cstr1 = 0.0;
-            sstr1 = 0.0;
-            for (int j = 0; j < num_atoms; j++) {
-              //printf("px:  %f\n", px[j]);
-                cs[0 * num_atoms + ic * num_atoms + j] = 1.0;
-                sn[0 * num_atoms + ic * num_atoms + j] = 0.0;
-                cs[1 * num_atoms + ic * num_atoms + j] =
-                  COS(REAL_DATA(unitk)[ic] *
-                  (ic == 0 ? px[j] : (ic == 1 ? py[j] : pz[j])));
-                sn[1 * num_atoms + ic * num_atoms + j] =
-                  SIN(REAL_DATA(unitk)[ic] *
-                  (ic == 0 ? px[j] : (ic == 1 ? py[j] : pz[j])));
-                cs[-1 * num_atoms + ic * num_atoms + j] = cs[1 * num_atoms
-                  + ic * num_atoms + j];
-                sn[-1 * num_atoms + ic * num_atoms + j] = -sn[1 * num_atoms
-                  + ic * num_atoms + j];
-                cstr1 += charge[j] * cs[1 * num_atoms + ic * num_atoms + j];
-                sstr1 += charge[j] * sn[1 * num_atoms + ic * num_atoms + j];
-            }
-            sfacrl[n] = cstr1;
-            sfacim[n++] = sstr1;
-          //printf(" %f  %f\n", sfacrl[n] ,sfacim[n++]);
-        }
-    }
+      rbmd::Real cstr1, sstr1, cstr2, sstr2, cstr3, sstr3, cstr4, sstr4;
+      rbmd::Real sqk, clpm, slpm;
+      rbmd::Id currentIndex = 0;
 
-    for (rbmd::Id m = 2; m <= kmax_array.x; m++) {
-        for (rbmd::Id ic = 0; ic < 3; ic++) {
-            sqk = m * REAL_DATA(unitk)[ic] * m * REAL_DATA(unitk)[ic];
-            if (sqk <= gsqmx) {
-                cstr1 = 0.0;
-                sstr1 = 0.0;
-                for (int j = 0; j < num_atoms; j++) {
-                    cs[m * num_atoms + ic * num_atoms + j] =
-                      cs[(m-1) * num_atoms + ic * num_atoms + j] *
-                        cs[1 * num_atoms + ic * num_atoms + j] -
-                        sn[(m-1) * num_atoms + ic * num_atoms + j] *
-                          sn[1 * num_atoms + ic * num_atoms + j]; //cs
-                    sn[m * num_atoms + ic * num_atoms + j] =
-                      sn[(m-1) * num_atoms + ic * num_atoms + j] *
-                        cs[1 * num_atoms + ic * num_atoms + j] +
-                        cs[(m-1) * num_atoms + ic * num_atoms + j] *
-                          sn[1 * num_atoms + ic * num_atoms + j];//sn
-                    cs[-m * num_atoms + ic * num_atoms + j] =
-                      cs[m * num_atoms + ic * num_atoms + j];//cs
-                    sn[-m * num_atoms + ic * num_atoms + j] =
-                      -sn[m * num_atoms + ic * num_atoms + j];//sn
-                    cstr1 += charge[j] * cs[m * num_atoms + ic * num_atoms + j];
-                    sstr1 += charge[j] * sn[m * num_atoms + ic * num_atoms + j];
-                }
-                sfacrl[n] = cstr1;
-                sfacim[n++] = sstr1;
-            }
-        }
-    }
+      // (k,0,0), (0,l,0), (0,0,m)
+       // m = 1
+      for (rbmd::Id ic = 0; ic < 3; ic++)
+      {
+          sqk = REAL_DATA(unitk)[ic] * REAL_DATA(unitk)[ic];
+          printf("sqk: %f    gsqmx:  %f\n",sqk, gsqmx);
+          if (sqk <= gsqmx)
+          {
+              cstr1 = 0.0;
+              sstr1 = 0.0;
+              cs[0 * (3*num_atoms) + ic * num_atoms + tid1] = 1.0;
+              sn[0 * (3*num_atoms) + ic * num_atoms + tid1] = 0.0;
+              cs[1 * (3*num_atoms) + ic * num_atoms + tid1] =
+                COS(REAL_DATA(unitk)[ic] *
+                (ic == 0 ? px[tid1] : (ic == 1 ? py[tid1] : pz[tid1])));
+              sn[1 * (3*num_atoms) + ic * num_atoms + tid1] =
+                SIN(REAL_DATA(unitk)[ic] *
+                (ic == 0 ? px[tid1] : (ic == 1 ? py[tid1] : pz[tid1])));
+              cs[(-1+ offset) * (3*num_atoms) + ic * num_atoms + tid1] =
+                cs[1 * num_atoms+ ic * num_atoms + tid1];
+              sn[(-1+ offset) * (3*num_atoms) + ic * num_atoms + tid1] =
+                -sn[1 * num_atoms + ic * num_atoms + tid1];
+              cstr1 += charge[tid1] * cs[1 * (3*num_atoms) + ic * num_atoms + tid1];
+              sstr1 += charge[tid1] * sn[1 * (3*num_atoms) + ic * num_atoms + tid1];
 
-    // 1 = (k,l,0), 2 = (k,-l,0)
-    for (rbmd::Id k = 1; k <= kmax_array.x; k++) {
-        for (rbmd::Id l = 1; l <= kmax_array.y; l++) {
-            sqk = (k * REAL_DATA(unitk)[0] * k * REAL_DATA(unitk)[0]) +
-              (l * REAL_DATA(unitk)[1] * l * REAL_DATA(unitk)[1]);
-            if (sqk <= gsqmx) {
-                cstr1 = 0.0;
-                sstr1 = 0.0;
-                cstr2 = 0.0;
-                sstr2 = 0.0;
-                for (int j = 0; j < num_atoms; j++) {
-                    cstr1 += charge[j] * (cs[k * num_atoms + 0 * num_atoms + j] *
-                      cs[l * num_atoms + 1 * num_atoms + j] -
-                      sn[k * num_atoms + 0 * num_atoms + j] * sn[l * num_atoms + 1 * num_atoms + j]);
-                    sstr1 += charge[j] * (sn[k * num_atoms + 0 * num_atoms + j] *
-                      cs[l * num_atoms + 1 * num_atoms + j] +
-                      cs[k * num_atoms + 0 * num_atoms + j] * sn[l * num_atoms + 1 * num_atoms + j]);
-                    cstr2 += charge[j] * (cs[k * num_atoms + 0 * num_atoms + j] *
-                      cs[l * num_atoms + 1 * num_atoms + j] +
-                      sn[k * num_atoms + 0 * num_atoms + j] * sn[l * num_atoms + 1 * num_atoms + j]);
-                    sstr2 += charge[j] * (sn[k * num_atoms + 0 * num_atoms + j] *
-                      cs[l * num_atoms + 1 * num_atoms + j] -
-                      cs[k * num_atoms + 0 * num_atoms + j] * sn[l * num_atoms + 1 * num_atoms + j]);
-                }
-                sfacrl[n] = cstr1;
-                sfacim[n++] = sstr1;
-                sfacrl[n] = cstr2;
-                sfacim[n++] = sstr2;
-            }
-        }
-    }
 
-    // 1 = (0,l,m), 2 = (0,l,-m)
-    for (rbmd::Id l = 1; l <= kmax_array.y; l++) {
-        for (rbmd::Id m = 1; m <= kmax_array.z; m++) {
-            sqk = (l *REAL_DATA(unitk)[1]* l * REAL_DATA(unitk)[1]) +
-                  (m *REAL_DATA(unitk)[2] * m * REAL_DATA(unitk)[2]);
-            if (sqk <= gsqmx) {
-                cstr1 = 0.0;
-                sstr1 = 0.0;
-                cstr2 = 0.0;
-                sstr2 = 0.0;
-                for (int j = 0; j < num_atoms; j++) {
-                    cstr1 += charge[j] * (cs[l * num_atoms + 1 * num_atoms + j] *
-                      cs[m * num_atoms + 2 * num_atoms + j] -
-                      sn[l * num_atoms + 1 * num_atoms + j] * sn[m * num_atoms + 2 * num_atoms + j]);
-                    sstr1 += charge[j] * (sn[l * num_atoms + 1 * num_atoms + j] *
-                      cs[m * num_atoms + 2 * num_atoms + j] +
-                      cs[l * num_atoms + 1 * num_atoms + j] * sn[m * num_atoms + 2 * num_atoms + j]);
-                    cstr2 += charge[j] * (cs[l * num_atoms + 1 * num_atoms + j] *
-                      cs[m * num_atoms + 2 * num_atoms + j] +
-                      sn[l * num_atoms + 1 * num_atoms + j] * sn[m * num_atoms + 2 * num_atoms + j]);
-                    sstr2 += charge[j] * (sn[l * num_atoms + 1 * num_atoms + j] *
-                      cs[m * num_atoms + 2 * num_atoms + j] -
-                      cs[l * num_atoms + 1 * num_atoms + j] * sn[m * num_atoms + 2 * num_atoms + j]);
-                }
-                sfacrl[n] = cstr1;
-                sfacim[n++] = sstr1;
-                sfacrl[n] = cstr2;
-                sfacim[n++] = sstr2;
-            }
-        }
-    }
+              atomicAdd(&sfacrl[currentIndex], cstr1);
+              atomicAdd(&sfacim[currentIndex+1], sstr1);
+          }
+      }
 
-    // 1 = (k,0,m), 2 = (k,0,-m)
-    for (rbmd::Id k = 1; k <= kmax_array.x; k++) {
-        for (rbmd::Id m = 1; m <= kmax_array.z; m++) {
-            sqk = (k * REAL_DATA(unitk)[0]* k * REAL_DATA(unitk)[0]) +
-                   (m * REAL_DATA(unitk)[2] * m * REAL_DATA(unitk)[2]);
-            if (sqk <= gsqmx) {
-                cstr1 = 0.0;
-                sstr1 = 0.0;
-                cstr2 = 0.0;
-                sstr2 = 0.0;
-                for (int j = 0; j < num_atoms; j++) {
-                    cstr1 += charge[j] * (cs[k * num_atoms + 0 * num_atoms + j] *
-                      cs[m * num_atoms + 2 * num_atoms + j] -
-                      sn[k * num_atoms + 0 * num_atoms + j] * sn[m * num_atoms + 2 * num_atoms + j]);
-                    sstr1 += charge[j] * (sn[k * num_atoms + 0 * num_atoms + j] *
-                      cs[m * num_atoms + 2 * num_atoms + j] +
-                      cs[k * num_atoms + 0 * num_atoms + j] * sn[m * num_atoms + 2 * num_atoms + j]);
-                    cstr2 += charge[j] * (cs[k * num_atoms + 0 * num_atoms + j] *
-                      cs[m * num_atoms + 2 * num_atoms + j] +
-                      sn[k * num_atoms + 0 * num_atoms + j] * sn[m * num_atoms + 2 * num_atoms + j]);
-                    sstr2 += charge[j] * (sn[k * num_atoms + 0 * num_atoms + j] *
-                      cs[m * num_atoms + 2 * num_atoms + j] -
-                      cs[k * num_atoms + 0 * num_atoms + j] * sn[m * num_atoms + 2 * num_atoms + j]);
-                }
-                sfacrl[n] = cstr1;
-                sfacim[n++] = sstr1;
-                sfacrl[n] = cstr2;
-                sfacim[n++] = sstr2;
-            }
-        }
-    }
+      //recursive computation for  cs and sn array :   m > 1
+      for (rbmd::Id m = 2; m <= kmax; m++)
+      {
+          for (rbmd::Id ic = 0; ic < 3; ic++)
+          {
+              sqk = m * REAL_DATA(unitk)[ic] * m * REAL_DATA(unitk)[ic];
+              if (sqk <= gsqmx)
+              {
+                  cstr1 = 0.0;
+                  sstr1 = 0.0;
+                      cs[m * (3*num_atoms) + ic * num_atoms + tid1] =
+                        cs[(m-1) * (3*num_atoms) + ic * num_atoms + tid1] *
+                          cs[1 * (3*num_atoms) + ic * num_atoms + tid1] -
+                          sn[(m-1) * (3*num_atoms) + ic * num_atoms + tid1] *
+                            sn[1 * (3*num_atoms) + ic * num_atoms + tid1]; //cs
 
-    // 1 = (k,l,m), 2 = (k,-l,m), 3 = (k,l,-m), 4 = (k,-l,-m)
-    for (rbmd::Id k = 1; k <= kmax_array.x; k++) {
-        for (rbmd::Id l = 1; l <= kmax_array.y; l++) {
-            for (rbmd::Id m = 1; m <= kmax_array.z; m++) {
-                sqk = (k * REAL_DATA(unitk)[0] * k * REAL_DATA(unitk)[0]) +
-                  (l * REAL_DATA(unitk)[1] * l * REAL_DATA(unitk)[1]) +
-                    (m * REAL_DATA(unitk)[2] * m * REAL_DATA(unitk)[2]);
+                      sn[m * (3*num_atoms) + ic * num_atoms + tid1] =
+                        sn[(m-1) * (3*num_atoms) + ic * num_atoms + tid1] *
+                          cs[1 * (3*num_atoms) + ic * num_atoms + tid1] +
+                          cs[(m-1) * (3*num_atoms) + ic * num_atoms + tid1] *
+                            sn[1 * (3*num_atoms) + ic * num_atoms + tid1];//sn
 
-                if (sqk <= gsqmx) {
-                    cstr1 = 0.0;
-                    sstr1 = 0.0;
-                    cstr2 = 0.0;
-                    sstr2 = 0.0;
-                    cstr3 = 0.0;
-                    sstr3 = 0.0;
-                    cstr4 = 0.0;
-                    sstr4 = 0.0;
-                    for (int j = 0; j < num_atoms; j++) {
-                        clpm = cs[l * num_atoms + 1 * num_atoms + j] *
-                          cs[m * num_atoms + 2 * num_atoms + j] -
-                            sn[l * num_atoms + 1 * num_atoms + j] * sn[m * num_atoms + 2 * num_atoms + j];
-                        slpm = sn[l * num_atoms + 1 * num_atoms + j] *
-                          cs[m * num_atoms + 2 * num_atoms + j] +
-                            cs[l * num_atoms + 1 * num_atoms + j] * sn[m * num_atoms + 2 * num_atoms + j];
-                        cstr1 += charge[j] * (cs[k * num_atoms + 0 * num_atoms + j] *
-                          clpm - sn[k * num_atoms + 0 * num_atoms + j] * slpm);
-                        sstr1 += charge[j] * (sn[k * num_atoms + 0 * num_atoms + j] *
-                          clpm + cs[k * num_atoms + 0 * num_atoms + j] * slpm);
+                      cs[(-m + offset) * (3*num_atoms) + ic * num_atoms + tid1] =
+                        cs[m * (3*num_atoms) + ic * num_atoms + tid1];//cs(-x)=cs(x)
+                      sn[(-m + offset) * (3*num_atoms) + ic * num_atoms + tid1] =
+                        -sn[m * (3*num_atoms) + ic * num_atoms + tid1];//sn(-x)=-sn(x)
+                      cstr1 += charge[tid1] * cs[m * (3*num_atoms) + ic * num_atoms + tid1];
+                      sstr1 += charge[tid1] * sn[m * (3*num_atoms) + ic * num_atoms + tid1];
 
-                        clpm = cs[l * num_atoms + 1 * num_atoms + j] *
-                          cs[m * num_atoms + 2 * num_atoms + j] +
-                            sn[l * num_atoms + 1 * num_atoms + j] * sn[m * num_atoms + 2 * num_atoms + j];
-                        slpm = -sn[l * num_atoms + 1 * num_atoms + j] *
-                          cs[m * num_atoms + 2 * num_atoms + j] +
-                            cs[l * num_atoms + 1 * num_atoms + j] * sn[m * num_atoms + 2 * num_atoms + j];
-                        cstr2 += charge[j] * (cs[k * num_atoms + 0 * num_atoms + j] *
-                          clpm - sn[k * num_atoms + 0 * num_atoms + j] * slpm);
-                        sstr2 += charge[j] * (sn[k * num_atoms + 0 * num_atoms + j] *
-                          clpm + cs[k * num_atoms + 0 * num_atoms + j] * slpm);
 
-                        clpm = cs[l * num_atoms + 1 * num_atoms + j] *
-                          cs[m * num_atoms + 2 * num_atoms + j] +
-                            sn[l * num_atoms + 1 * num_atoms + j] * sn[m * num_atoms + 2 * num_atoms + j];
-                        slpm = sn[l * num_atoms + 1 * num_atoms + j] *
-                          cs[m * num_atoms + 2 * num_atoms + j] -
-                            cs[l * num_atoms + 1 * num_atoms + j] * sn[m * num_atoms + 2 * num_atoms + j];
-                        cstr3 += charge[j] * (cs[k * num_atoms + 0 * num_atoms + j] *
-                          clpm - sn[k * num_atoms + 0 * num_atoms + j] * slpm);
-                        sstr3 += charge[j] * (sn[k * num_atoms + 0 * num_atoms + j] *
-                          clpm + cs[k * num_atoms + 0 * num_atoms + j] * slpm);
+                  atomicAdd(&sfacrl[currentIndex], cstr1);
+                  atomicAdd(&sfacim[currentIndex+1], sstr1);
+              }
+          }
+      }
 
-                        clpm = cs[l * num_atoms + 1 * num_atoms + j] *
-                          cs[m * num_atoms + 2 * num_atoms + j] -
-                            sn[l * num_atoms + 1 * num_atoms + j] * sn[m * num_atoms + 2 * num_atoms + j];
-                        slpm = -sn[l * num_atoms + 1 * num_atoms + j] *
-                          cs[m * num_atoms + 2 * num_atoms + j] -
-                            cs[l * num_atoms + 1 * num_atoms + j] * sn[m * num_atoms + 2 * num_atoms + j];
-                        cstr4 += charge[j] * (cs[k * num_atoms + 0 * num_atoms + j] *
-                          clpm - sn[k * num_atoms + 0 * num_atoms + j] * slpm);
-                        sstr4 += charge[j] * (sn[k * num_atoms + 0 * num_atoms + j] *
-                          clpm + cs[k * num_atoms + 0 * num_atoms + j] * slpm);
-                    }
-                    sfacrl[n] = cstr1;
-                    sfacim[n++] = sstr1;
-                    sfacrl[n] = cstr2;
-                    sfacim[n++] = sstr2;
-                    sfacrl[n] = cstr3;
-                    sfacim[n++] = sstr3;
-                    sfacrl[n] = cstr4;
-                    sfacim[n++] = sstr4;
-                }
-            }
-        }
+      // 1 = (k,l,0), 2 = (k,-l,0)
+      for (rbmd::Id k = 1; k <= kmax_array.x; k++) {
+          for (rbmd::Id l = 1; l <= kmax_array.y; l++) {
+              sqk = (k * REAL_DATA(unitk)[0] * k * REAL_DATA(unitk)[0]) +
+                (l * REAL_DATA(unitk)[1] * l * REAL_DATA(unitk)[1]);
+              if (sqk <= gsqmx) {
+                  cstr1 = 0.0;
+                  sstr1 = 0.0;
+                  cstr2 = 0.0;
+                  sstr2 = 0.0;
+                  rbmd::Id k_index_0= k * (3*num_atoms )+ 0 * num_atoms + tid1;
+                  rbmd::Id l_index_1= l * (3*num_atoms )+ 1 * num_atoms + tid1;
+
+                  cstr1 += charge[tid1] * (cs[k_index_0] *cs[l_index_1] -
+                    sn[k_index_0] * sn[l_index_1]);
+                  sstr1 += charge[tid1] * (sn[k_index_0] *cs[l_index_1] +
+                    cs[k_index_0] * sn[l_index_1]);
+                  cstr2 += charge[tid1] * (cs[k_index_0] *cs[l_index_1] +
+                    sn[k_index_0] * sn[l_index_1]);
+                  sstr2 += charge[tid1] * (sn[k_index_0] *cs[l_index_1] -
+                    cs[k_index_0] * sn[l_index_1]);
+
+                  atomicAdd(&sfacrl[currentIndex], cstr1);
+                  atomicAdd(&sfacim[currentIndex+1], sstr1);
+                  atomicAdd(&sfacrl[currentIndex], cstr2);
+                  atomicAdd(&sfacim[currentIndex+1], sstr2);
+              }
+          }
+      }
+
+      // 1 = (0,l,m), 2 = (0,l,-m)
+      for (rbmd::Id l = 1; l <= kmax_array.y; l++) {
+          for (rbmd::Id m = 1; m <= kmax_array.z; m++) {
+              sqk = (l *REAL_DATA(unitk)[1]* l * REAL_DATA(unitk)[1]) +
+                    (m *REAL_DATA(unitk)[2] * m * REAL_DATA(unitk)[2]);
+              if (sqk <= gsqmx) {
+                  cstr1 = 0.0;
+                  sstr1 = 0.0;
+                  cstr2 = 0.0;
+                  sstr2 = 0.0;
+                  rbmd::Id l_index_1= l * (3*num_atoms )+ 1 * num_atoms + tid1;
+                  rbmd::Id m_index_2= m * (3*num_atoms) + 2 * num_atoms + tid1;
+
+                  cstr1 += charge[tid1] * (cs[l_index_1] *cs[m_index_2] -
+                    sn[l_index_1] * sn[m_index_2]);
+                  sstr1 += charge[tid1] * (sn[l_index_1] *cs[m_index_2] +
+                    cs[l_index_1] * sn[m_index_2]);
+                  cstr2 += charge[tid1] * (cs[l_index_1] *cs[m_index_2] +
+                    sn[l_index_1] * sn[m_index_2]);
+                  sstr2 += charge[tid1] * (sn[l_index_1] *cs[m_index_2] -
+                        cs[l_index_1] * sn[m_index_2]);
+
+                  atomicAdd(&sfacrl[currentIndex], cstr1);
+                  atomicAdd(&sfacim[currentIndex+1], sstr1);
+                  atomicAdd(&sfacrl[currentIndex], cstr2);
+                  atomicAdd(&sfacim[currentIndex+1], sstr2);
+              }
+          }
+      }
+
+      // 1 = (k,0,m), 2 = (k,0,-m)
+      for (rbmd::Id k = 1; k <= kmax_array.x; k++) {
+          for (rbmd::Id m = 1; m <= kmax_array.z; m++) {
+              sqk = (k * REAL_DATA(unitk)[0]* k * REAL_DATA(unitk)[0]) +
+                     (m * REAL_DATA(unitk)[2] * m * REAL_DATA(unitk)[2]);
+              if (sqk <= gsqmx) {
+                  cstr1 = 0.0;
+                  sstr1 = 0.0;
+                  cstr2 = 0.0;
+                  sstr2 = 0.0;
+                  rbmd::Id k_index_0= k * (3*num_atoms )+ 0 * num_atoms + tid1;
+                  rbmd::Id m_index_2= m * (3*num_atoms) + 2 * num_atoms + tid1;
+
+                  cstr1 += charge[tid1] * (cs[k_index_0] *cs[m_index_2] -
+                    sn[k_index_0] * sn[m_index_2]);
+                  sstr1 += charge[tid1] * (sn[k_index_0] *cs[m_index_2] +
+                    cs[k_index_0] * sn[m_index_2]);
+                  cstr2 += charge[tid1] * (cs[k_index_0] *cs[m_index_2] +
+                    sn[k_index_0] * sn[m_index_2]);
+                  sstr2 += charge[tid1] * (sn[k_index_0] *cs[m_index_2] -
+                    cs[k_index_0] * sn[m_index_2]);
+
+                  atomicAdd(&sfacrl[currentIndex], cstr1);
+                  atomicAdd(&sfacim[currentIndex+1], sstr1);
+                  atomicAdd(&sfacrl[currentIndex], cstr2);
+                  atomicAdd(&sfacim[currentIndex+1], sstr2);
+              }
+          }
+      }
+
+      // 1 = (k,l,m), 2 = (k,-l,m), 3 = (k,l,-m), 4 = (k,-l,-m)
+      for (rbmd::Id k = 1; k <= kmax_array.x; k++) {
+          for (rbmd::Id l = 1; l <= kmax_array.y; l++) {
+              for (rbmd::Id m = 1; m <= kmax_array.z; m++) {
+                  sqk = (k * REAL_DATA(unitk)[0] * k * REAL_DATA(unitk)[0]) +
+                    (l * REAL_DATA(unitk)[1] * l * REAL_DATA(unitk)[1]) +
+                      (m * REAL_DATA(unitk)[2] * m * REAL_DATA(unitk)[2]);
+
+                  if (sqk <= gsqmx)
+                  {
+                      cstr1 = 0.0;
+                      sstr1 = 0.0;
+                      cstr2 = 0.0;
+                      sstr2 = 0.0;
+                      cstr3 = 0.0;
+                      sstr3 = 0.0;
+                      cstr4 = 0.0;
+                      sstr4 = 0.0;
+                      rbmd::Id k_index_0= k * (3*num_atoms )+ 0 * num_atoms + tid1;
+                      rbmd::Id l_index_1= l * (3*num_atoms )+ 1 * num_atoms + tid1;
+                      rbmd::Id m_index_2= m * (3*num_atoms) + 2 * num_atoms + tid1;
+
+                      clpm = cs[l_index_1] *cs[m_index_2] -sn[l_index_1] * sn[m_index_2];
+                      slpm = sn[l_index_1] *cs[m_index_2] +cs[l_index_1] * sn[m_index_2];
+                      cstr1 += charge[tid1] * (cs[k_index_0] *clpm - sn[k_index_0] * slpm);
+                      sstr1 += charge[tid1] * (sn[k_index_0] *clpm + cs[k_index_0] * slpm);
+                      clpm = cs[l_index_1] *cs[m_index_2] +sn[l_index_1] * sn[m_index_2];
+                      slpm = -sn[l_index_1] *cs[m_index_2] +cs[l_index_1] * sn[m_index_2];
+                      cstr2 += charge[tid1] * (cs[k_index_0] *clpm - sn[k_index_0] * slpm);
+                      sstr2 += charge[tid1] * (sn[k_index_0] *clpm + cs[k_index_0] * slpm);
+
+                      clpm = cs[l_index_1] *cs[m_index_2] +sn[l_index_1] * sn[m_index_2];
+                      slpm = sn[l_index_1] *cs[m_index_2] -cs[l_index_1] * sn[m_index_2];
+                      cstr3 += charge[tid1] * (cs[k_index_0] *clpm - sn[k_index_0] * slpm);
+                      sstr3 += charge[tid1] * (sn[k_index_0] *clpm + cs[k_index_0] * slpm);
+                      clpm = cs[l_index_1] *cs[m_index_2] -sn[l_index_1] * sn[m_index_2];
+                      slpm = -sn[l_index_1] *cs[m_index_2] -cs[l_index_1] * sn[m_index_2];
+                      cstr4 += charge[tid1] * (cs[k_index_0] *clpm - sn[k_index_0] * slpm);
+                      sstr4 += charge[tid1] * (sn[k_index_0] *clpm + cs[k_index_0] * slpm);
+
+                      atomicAdd(&sfacrl[currentIndex], cstr1);
+                      atomicAdd(&sfacim[currentIndex+1], sstr1);
+                      atomicAdd(&sfacrl[currentIndex], cstr2);
+                      atomicAdd(&sfacim[currentIndex+1], sstr2);
+                      atomicAdd(&sfacrl[currentIndex], cstr3);
+                      atomicAdd(&sfacim[currentIndex+1], sstr3);
+                      atomicAdd(&sfacrl[currentIndex], cstr4);
+                      atomicAdd(&sfacim[currentIndex+1], sstr4);
+                  }
+              }
+          }
+      }
     }
 }
 
 
 __global__ void EwaldForceFix(const rbmd::Id num_atoms,const rbmd::Id kcount,
-  const rbmd::Id k_index,const rbmd::Real qqr2e,Int3 kmax_array,
+  const rbmd::Id k_index,const rbmd::Real qqr2e,Int3 kmax_vec3D,
   const rbmd::Real* eg,const rbmd::Real* cs,const rbmd::Real* sn,
   const rbmd::Real* charge,const rbmd::Real* qfactor_real,
   const rbmd::Real* qfactor_image,rbmd::Real* fx, rbmd::Real* fy, rbmd::Real* fz)
@@ -869,27 +849,23 @@ __global__ void EwaldForceFix(const rbmd::Id num_atoms,const rbmd::Id kcount,
       rbmd::Real cos_couple_yz,sin_couple_yz;
       rbmd::Real position_phase_real,position_phase_image;
       rbmd::Real partial;
-      cos_couple_yz = cs[kmax_array.y  * num_atoms + 1 * num_atoms + tid1] *
-        cs[kmax_array.z  * num_atoms + 2 * num_atoms + tid1] -
-          sn[kmax_array.y * num_atoms + 1 * num_atoms + tid1] *
-            sn[kmax_array.z * num_atoms + 2 * num_atoms + tid1];
 
-      sin_couple_yz = sn[kmax_array.y * num_atoms + 1 * num_atoms + tid1] *
-        cs[kmax_array.z * num_atoms + 2 * num_atoms + tid1] +
-                    cs[kmax_array.y * num_atoms + 1 * num_atoms + tid1] *
-                      sn[kmax_array.z  * num_atoms + 2 * num_atoms + tid1];
+      rbmd::Id kx_index_0 = kmax_vec3D.x *  (3*num_atoms) + 0 * num_atoms + tid1;
+      rbmd::Id ky_index_1 = kmax_vec3D.y  * (3*num_atoms) + 1 * num_atoms + tid1;
+      rbmd::Id kz_index_2 = kmax_vec3D.z  * (3*num_atoms) + 2 * num_atoms + tid1;
 
-       position_phase_real = cs[kmax_array.x * num_atoms + 0 * num_atoms + tid1] *cos_couple_yz
-        -sn[kmax_array.x * num_atoms + 0 * num_atoms + tid1] *sin_couple_yz;
-       position_phase_image = sn[kmax_array.x * num_atoms + 0 * num_atoms + tid1] *cos_couple_yz
-        +cs[kmax_array.x * num_atoms + 0 * num_atoms + tid1] * sin_couple_yz;
+      cos_couple_yz = cs[ky_index_1] *cs[kz_index_2] -sn[ky_index_1] *sn[kz_index_2];
+      sin_couple_yz = sn[ky_index_1] *cs[kz_index_2] +cs[ky_index_1] *sn[kz_index_2];
+
+      position_phase_real  = cs[kx_index_0] *cos_couple_yz - sn[kx_index_0] *sin_couple_yz;
+      position_phase_image = sn[kx_index_0] *cos_couple_yz + cs[kx_index_0] * sin_couple_yz;
 
        partial = position_phase_real * qfactor_real[k_index] -
                   position_phase_image * qfactor_image[k_index];
-       sum_fx += partial * eg[kcount * 3 + 0];
-       sum_fy += partial * eg[kcount * 3 + 0];
-       sum_fz += partial * eg[kcount * 3 + 0];
-      printf("force: %f %f  %f\n", sum_fx,sum_fy,sum_fz);
+       sum_fx += partial * eg[k_index * kcount * 3 + 0];
+       sum_fy += partial * eg[k_index * kcount * 3 + 1];
+       sum_fz += partial * eg[k_index * kcount * 3 + 2];
+      //printf("force: %f %f  %f\n", sum_fx,sum_fy,sum_fz);
       fx[tid1] = qqr2e * charge_i *sum_fx;
       fy[tid1] = qqr2e * charge_i *sum_fy;
       fz[tid1] = qqr2e * charge_i *sum_fz;
@@ -1232,28 +1208,28 @@ __global__ void EwaldForceFix(const rbmd::Id num_atoms,const rbmd::Id kcount,
           }
 
   void EikOp<device::DEVICE_GPU>::operator()(
-    const rbmd::Id num_atoms,const rbmd::Real gsqmx,Real3 unitk, Int3 kmax_array,
-    const rbmd::Real* px, const rbmd::Real* py,const rbmd::Real* pz,
-    const rbmd::Real* charge,rbmd::Real* cs, rbmd::Real* sn,
-    rbmd::Real* sfacrl, rbmd::Real* sfacim) {
+  const rbmd::Id num_atoms,const rbmd::Real gsqmx,Real3 unitk,
+  const rbmd::Id kmax,Int3 kmax_array,const rbmd::Real* px,
+  const rbmd::Real* py,const rbmd::Real* pz,const rbmd::Real* charge,
+  rbmd::Real* cs, rbmd::Real* sn,rbmd::Real* sfacrl, rbmd::Real* sfacim) {
       unsigned int blocks_per_grid = (num_atoms + BLOCK_SIZE - 1) / BLOCK_SIZE;
 
       CHECK_KERNEL(Eik <<<blocks_per_grid, BLOCK_SIZE, 0, 0 >>>
-                      (num_atoms, gsqmx, unitk, kmax_array, px, py, pz,
+                      (num_atoms, gsqmx, unitk,kmax, kmax_array, px, py, pz,
                         charge,cs,sn,sfacrl,sfacim));
 
     }
 
   void EwaldForceFixOp<device::DEVICE_GPU>::operator()(
     const rbmd::Id num_atoms,const rbmd::Id kcount,const rbmd::Id k_index,
-    const rbmd::Real qqr2e,Int3 kmax_array,const rbmd::Real* eg,const rbmd::Real* cs,
+    const rbmd::Real qqr2e,Int3 kmax_vec3D,const rbmd::Real* eg,const rbmd::Real* cs,
     const rbmd::Real* sn,const rbmd::Real* charge,const rbmd::Real* qfactor_real,
     const rbmd::Real* qfactor_image,rbmd::Real* fx, rbmd::Real* fy, rbmd::Real* fz)
   {
       unsigned int blocks_per_grid = (num_atoms + BLOCK_SIZE - 1) / BLOCK_SIZE;
 
       CHECK_KERNEL(EwaldForceFix <<<blocks_per_grid, BLOCK_SIZE, 0, 0 >>>
-                      (num_atoms,kcount,k_index,qqr2e, kmax_array,eg,cs,sn,
+                      (num_atoms,kcount,k_index,qqr2e, kmax_vec3D,eg,cs,sn,
                         charge,qfactor_real,qfactor_image,fx,fy,fz));
 
     }

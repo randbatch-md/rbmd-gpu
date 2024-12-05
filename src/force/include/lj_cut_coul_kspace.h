@@ -111,12 +111,14 @@ private:
 
   std::vector<rbmd::Id> kxvecs,kyvecs,kzvecs; //_Kmax3D
   std::vector<rbmd::Real> ug;  //_Kmax3D
+  std::vector<Int3> kmax_vec3D; //_Kmax3D 3
 
   // std::vector<rbmd::Real> eg_flat;
   // std::vector<rbmd::Real> vg_flat;
   thrust::host_vector<rbmd::Real> eg_flat;
   thrust::host_vector<rbmd::Real> vg_flat;
 
+  thrust::device_vector<Int3> _d_kmax_vec3D; //_Kmax3D 3
   thrust::device_vector<rbmd::Real> _d_eg_flat;
   thrust::device_vector<rbmd::Real> _d_vg_flat;
 

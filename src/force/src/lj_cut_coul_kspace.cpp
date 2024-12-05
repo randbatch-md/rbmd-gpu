@@ -728,6 +728,7 @@ void LJCutCoulKspace::coeffs()
   kxvecs.resize(_Kmax3D,0);
   kyvecs.resize(_Kmax3D,0);
   kzvecs.resize(_Kmax3D,0);
+  kmax_vec3D.resize(_Kmax3D);
   ug.resize(_Kmax3D,0);
   // std::vector<rbmd::Real> eg_flat(_Kmax3D * 3, 0.0);
   // std::vector<rbmd::Real> vg_flat(_Kmax3D * 6, 0.0);
@@ -1054,9 +1055,6 @@ void LJCutCoulKspace::SetKspacePara()
   _gsqmx = MAX(gsqxmx,gsqymx);
   _gsqmx = MAX(_gsqmx,gsqzmx);
 
-  _kmax_x_orig = kmax_x;
-  _kmax_y_orig = kmax_y;
-  _kmax_z_orig = kmax_z;
 
   auto kmax_read_flag = 0 ;
   rbmd::Id kmax_x_read,kmax_y_read,kmax_z_read;
@@ -1069,6 +1067,7 @@ void LJCutCoulKspace::SetKspacePara()
     _Kmax = MAX(kmax_x,kmax_y);
     _Kmax = MAX(_Kmax,kmax_z);
     _Kmax3D = 4*_Kmax*_Kmax*_Kmax + 6*_Kmax*_Kmax + 3*_Kmax;
+    _kmax_array = {kmax_x,kmax_y,kmax_z};
 
     rbmd::Real gsqxmx = REAL_DATA(_unitk)[0] *REAL_DATA(_unitk)[0] *kmax_x*kmax_x;
     rbmd::Real gsqymx = REAL_DATA(_unitk)[1] *REAL_DATA(_unitk)[1] *kmax_y*kmax_y;
@@ -1078,20 +1077,20 @@ void LJCutCoulKspace::SetKspacePara()
   }
   _gsqmx *= 1.00001;
   coeffs();//
-  std::cout << "kcount: " << kcount  <<std::endl;
+  std::cout << "gsqmx: " << _gsqmx << " " << "kcount: " << kcount  <<std::endl;
 }
 
 
 void LJCutCoulKspace::ComputeQsf()
 {
   auto num_atoms = *(_structure_info_data->_num_atoms);
-  _d_cs.resize(num_atoms * 3 * _Kmax);
-  _d_sn.resize(num_atoms * 3 * _Kmax);
+  _d_cs.resize(num_atoms * 3 *  (2 * _Kmax + 1));
+  _d_sn.resize(num_atoms * 3 *  (2 * _Kmax + 1));
   _d_qfactor_real.resize(_Kmax3D);
   _d_qfactor_image.resize(_Kmax3D);
 
   op::EikOp<device::DEVICE_GPU>()(
-    num_atoms,_gsqmx,_unitk,_kmax_array,
+    num_atoms,_gsqmx,_unitk,_Kmax,_kmax_array,
     thrust::raw_pointer_cast(_device_data->_d_px.data()),
  thrust::raw_pointer_cast(_device_data->_d_py.data()),
  thrust::raw_pointer_cast(_device_data->_d_pz.data()),
@@ -1109,14 +1108,14 @@ void LJCutCoulKspace::ComputeEwlad_fix()
 
   auto num_atoms = *(_structure_info_data->_num_atoms);
   // charge structure factors
-  for (rbmd::Id k = 0; k < kcount; k++)
+  for (rbmd::Id k_index = 0; k_index < kcount; k_index++)
   {
-    rbmd::Id kx = kxvecs[k];
-    rbmd::Id ky = kyvecs[k];
-    rbmd::Id kz = kzvecs[k];
-    Int3 kmax_array ={kx,ky,kz};
+    rbmd::Id kx = kxvecs[k_index];
+    rbmd::Id ky = kyvecs[k_index];
+    rbmd::Id kz = kzvecs[k_index];
+    Int3 kmax_vec3D ={kx,ky,kz};
     op::EwaldForceFixOp<device::DEVICE_GPU>()(
-      num_atoms,kcount,k,_qqr2e,kmax_array,
+      num_atoms,kcount,k_index,_qqr2e,kmax_vec3D,
       thrust::raw_pointer_cast(_d_eg_flat.data()),
       thrust::raw_pointer_cast(_d_cs.data()),
       thrust::raw_pointer_cast(_d_sn.data()),
