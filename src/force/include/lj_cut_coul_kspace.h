@@ -27,8 +27,12 @@ public:
   rbmd::Real ComputeRMS(rbmd::Id kmax,rbmd::Real box_length,rbmd::Real q2);
   void SetKspacePara();
   void ComputeQsf();//Charge Structure Factor
+  void ComputeQsf_fix();
   void coeffs();
   void ComputeEwlad_fix();
+
+  void ComputeWaveVectors();
+  void ComputeWaveVectors_2( Box box,rbmd::Id Kmax);
 
   void  ComputeChargeStructureFactorEwald(
           Box box,
@@ -110,6 +114,7 @@ private:
   rbmd::Id kcount;
 
   std::vector<rbmd::Id> kxvecs,kyvecs,kzvecs; //_Kmax3D
+  std::vector<rbmd::Id> kxvecs_R,kyvecs_R,kzvecs_R; //_Kmax3D
   std::vector<rbmd::Real> ug;  //_Kmax3D
   std::vector<Int3> kmax_vec3D; //_Kmax3D 3
 
@@ -131,6 +136,10 @@ private:
   thrust::device_vector<rbmd::Real>  _d_qfactor_real,_d_qfactor_real_all;
   thrust::device_vector<rbmd::Real>  _d_qfactor_image,_d_qfactor_image_all;
 
+
+  thrust::host_vector<rbmd::Real> wavevec_indices_host;
+  thrust::device_vector<rbmd::Id>  _d_kxvecs,_d_kyvecs,_d_kzvecs;
+  thrust::device_vector<rbmd::Real>  _d_kxvecs_R,_d_kyvecs_R,_d_kzvecs_R;
 
   rbmd::Id _num_k;
   rbmd::Real* _h_Re_array;

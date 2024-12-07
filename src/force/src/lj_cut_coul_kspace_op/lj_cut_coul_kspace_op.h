@@ -205,6 +205,29 @@ namespace op
     };
 
     template <typename DEVICE>
+    struct EikFixOP
+    {
+      void operator()(
+      const rbmd::Id num_atoms, const rbmd::Id  total_wavevectors,
+      const rbmd::Real gsqmx,Real3 *unitk,
+      const rbmd::Id* kxvecs,const rbmd::Id *kyvecs,const rbmd::Id *kzvecs,
+      const rbmd::Id* atoms_id,const rbmd::Id* atom_id_to_idx,
+      const rbmd::Real* px,const rbmd::Real* py,const rbmd::Real* pz,
+      const rbmd::Real* charge,rbmd::Real *sfacrl, rbmd::Real *sfacim);
+    };
+
+  template <typename DEVICE>
+  struct EikFix3OP
+  {
+      void operator()(
+      const rbmd::Id num_atoms, const rbmd::Id  total_wavevectors,
+      const rbmd::Real* kxvecs,const rbmd::Real* kyvecs,const rbmd::Real* kzvecs,
+      const rbmd::Id* atoms_id,const rbmd::Id* atom_id_to_idx,
+      const rbmd::Real* px,const rbmd::Real* py,const rbmd::Real* pz,
+      const rbmd::Real* charge,rbmd::Real *sfacrl, rbmd::Real *sfacim);
+  };
+
+    template <typename DEVICE>
     struct EwaldForceFixOp
     {
       void operator()(
@@ -412,10 +435,32 @@ namespace op
   {
     void operator()(
     const rbmd::Id num_atoms,const rbmd::Real gsqmx,Real3 unitk,
-    const rbmd::Id kmax,Int3 kmax_array,const rbmd::Real* px,
+    const rbmd::Id kmax,Int3 kmax_array, const rbmd::Real* px,
     const rbmd::Real* py,const rbmd::Real* pz,const rbmd::Real* charge,
     rbmd::Real* cs, rbmd::Real* sn,rbmd::Real* sfacrl, rbmd::Real* sfacim);
   };
+
+  template <>
+  struct EikFixOP<device::DEVICE_GPU>{
+    void operator()(
+    const rbmd::Id num_atoms, const rbmd::Id total_wavevectors,
+    const rbmd::Real gsqmx,Real3 unitk,
+    const rbmd::Id* kxvecs,const rbmd::Id *kyvecs,const rbmd::Id *kzvecs,
+    const rbmd::Id* atoms_id,const rbmd::Id* atom_id_to_idx,
+    const rbmd::Real* px,const rbmd::Real* py,const rbmd::Real* pz,
+    const rbmd::Real* charge,rbmd::Real *sfacrl, rbmd::Real *sfacim);
+  };
+
+  template <>
+  struct EikFix3OP<device::DEVICE_GPU> {
+    void operator()(
+    const rbmd::Id num_atoms, const rbmd::Id  total_wavevectors,
+    const rbmd::Real* kxvecs,const rbmd::Real* kyvecs,const rbmd::Real* kzvecs,
+    const rbmd::Id* atoms_id,const rbmd::Id* atom_id_to_idx,
+    const rbmd::Real* px,const rbmd::Real* py,const rbmd::Real* pz,
+    const rbmd::Real* charge,rbmd::Real *sfacrl, rbmd::Real *sfacim);
+  };
+
 
   template <>
   struct EwaldForceFixOp<device::DEVICE_GPU>

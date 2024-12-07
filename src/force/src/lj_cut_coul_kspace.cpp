@@ -10,6 +10,7 @@
 #include "lj_cut_coul_kspace_op/lj_cut_coul_kspace_op.h"
 #include "../common/RBEPSample.h"
 #include "../common/erf_table.h"
+#include "neighbor_list/include/linked_cell/linked_cell_locator.h"
 #include "neighbor_list/include/neighbor_list_builder/half_neighbor_list_builder.h"
 #include "neighbor_list/include/neighbor_list_builder/full_neighbor_list_builder.h"
 #include "neighbor_list/include/neighbor_list_builder/rbl_full_neighbor_list_builder.h"
@@ -63,10 +64,9 @@ LJCutCoulKspace::LJCutCoulKspace()
   //automatically compute kmax
   SetKspacePara(); //kmax
 
+  _num_k =  (2*_Kmax +1)  * (2*_Kmax +1) * (2*_Kmax +1) - 1;
   ComputeEwlad_fix();
 
-
-  _num_k =  (2*_Kmax +1)  * (2*_Kmax +1) * (2*_Kmax +1) - 1;
   std::cout << "g_ewald: " << _g_ewald  <<", alpha: "<<
     _alpha  << ", num_k: " << _num_k << std::endl;
 
@@ -288,6 +288,7 @@ void LJCutCoulKspace::ComputeChargeStructureFactorEwald(
 {
     //thrust::fill(density_real.begin(), density_real.end(), 0.0f);
     //thrust::fill(density_imag.begin(), density_imag.end(), 0.0f);
+    auto start = std::chrono::high_resolution_clock::now();
     thrust::device_vector<rbmd::Real> density_real_atom;
     thrust::device_vector<rbmd::Real> density_imag_atom;
     density_real_atom.resize(num_atoms);
@@ -335,7 +336,9 @@ void LJCutCoulKspace::ComputeChargeStructureFactorEwald(
             }
         }
     }
-
+  auto end = std::chrono::high_resolution_clock::now();
+  std::chrono::duration<rbmd::Real> duration = end - start;
+  std::cout << "构建传统电荷结构因子耗时" << duration.count() << "秒" << std::endl;
   //energy
 
   //charge self energy//
@@ -365,11 +368,28 @@ void LJCutCoulKspace::ComputeEwlad()
   ComputeChargeStructureFactorEwald(*_box, num_atoms, _Kmax,
     _alpha,_qqr2e, _h_Re_array,_h_Im_array);
 
-
   thrust::device_vector<rbmd::Real> d_real_array(_num_k);
   thrust::device_vector<rbmd::Real> d_imag_array(_num_k);
   thrust::copy(_h_Re_array,_h_Re_array+_num_k,d_real_array.begin());
   thrust::copy(_h_Im_array,_h_Im_array+_num_k,d_imag_array.begin());
+
+  std::vector<rbmd::Real> real_array;
+  std::vector<rbmd::Real> imag_array;
+  real_array.resize(_num_k);
+  imag_array.resize(_num_k);
+
+  MEMCPY(thrust::raw_pointer_cast(real_array.data()),thrust::raw_pointer_cast(d_real_array.data()),
+    _num_k * sizeof(rbmd::Real),D2H);
+  MEMCPY(thrust::raw_pointer_cast(imag_array.data()),thrust::raw_pointer_cast(d_imag_array.data()),
+    _num_k * sizeof(rbmd::Real),D2H);
+
+  std::ofstream output_file("output_real_imag_array.txt");
+  for (size_t i = 0; i < real_array.size(); ++i)
+  {
+    output_file << "i:" << i << " "
+    << real_array[i] << " " << imag_array[i]  << std::endl;
+  }
+  output_file.close();
 
   //EwaldForce//
   op::ComputeEwaldForceOp<device::DEVICE_GPU>()(
@@ -736,9 +756,6 @@ void LJCutCoulKspace::coeffs()
   eg_flat.resize(_Kmax3D * 3, 0.0);
   vg_flat.resize(_Kmax3D * 6, 0.0);
 
-   _d_eg_flat.resize(_Kmax3D * 3, 0.0);
-   _d_eg_flat.resize(_Kmax3D * 6, 0.0);
-
   auto box =  DataManager::getInstance().getMDData()->_box;
   auto volume = CalculateVolume(*box);
   rbmd::Id k,l,m;
@@ -795,7 +812,7 @@ void LJCutCoulKspace::coeffs()
       kzvecs[kcount] = m;
       ug[kcount] = preu*EXP(-0.25*sqk*alpha_inv)/sqk;
       eg_flat[kcount * 3 + 0] = 0.0;
-      eg_flat[kcount * 3 + 1]= 0.0;
+      eg_flat[kcount * 3 + 1] = 0.0;
       eg_flat[kcount * 3 + 2] = 2.0*REAL_DATA(_unitk)[2]*m*ug[kcount];
       vterm = -2.0*(1.0/sqk + 0.25*alpha_inv);
       vg_flat[kcount * 3 + 0] = 1.0;
@@ -1004,6 +1021,19 @@ void LJCutCoulKspace::coeffs()
   // thrust::copy(eg_flat.begin(),eg_flat.end(),_d_eg_flat.begin());
   // thrust::copy(vg_flat.begin(),vg_flat.end(),_d_vg_flat.begin());
 
+
+  _d_kxvecs.resize(_Kmax3D);
+  _d_kyvecs.resize(_Kmax3D);
+  _d_kzvecs.resize(_Kmax3D);
+  MEMCPY(thrust::raw_pointer_cast(_d_kxvecs.data()),kxvecs.data(),
+    _Kmax3D * sizeof(rbmd::Id),H2D);
+  MEMCPY(thrust::raw_pointer_cast(_d_kyvecs.data()),kyvecs.data(),
+  _Kmax3D * sizeof(rbmd::Id),H2D);
+  MEMCPY(thrust::raw_pointer_cast(_d_kzvecs.data()),kzvecs.data(),
+  _Kmax3D * sizeof(rbmd::Id),H2D);
+
+  _d_eg_flat.resize(_Kmax3D * 3, 0.0);
+  _d_vg_flat.resize(_Kmax3D * 6, 0.0);
   MEMCPY(thrust::raw_pointer_cast(_d_eg_flat.data()),eg_flat.data(),
     _Kmax3D * 3* sizeof(rbmd::Real),H2D);
   MEMCPY(thrust::raw_pointer_cast(_d_vg_flat.data()),vg_flat.data(),
@@ -1089,6 +1119,11 @@ void LJCutCoulKspace::ComputeQsf()
   _d_qfactor_real.resize(_Kmax3D);
   _d_qfactor_image.resize(_Kmax3D);
 
+  thrust::fill(_d_qfactor_real.begin(),
+  _d_qfactor_real.end(), 0.0f);
+  thrust::fill(_d_qfactor_image.begin(),
+    _d_qfactor_image.end(), 0.0f);
+
   op::EikOp<device::DEVICE_GPU>()(
     num_atoms,_gsqmx,_unitk,_Kmax,_kmax_array,
     thrust::raw_pointer_cast(_device_data->_d_px.data()),
@@ -1099,54 +1134,406 @@ void LJCutCoulKspace::ComputeQsf()
  thrust::raw_pointer_cast(_d_sn.data()),
  thrust::raw_pointer_cast(_d_qfactor_real.data()),
  thrust::raw_pointer_cast(_d_qfactor_image.data()));
+
+  std::vector<rbmd::Real> qfactor_real(_Kmax3D);
+  std::vector<rbmd::Real> qfactor_imag(_Kmax3D);
+
+
+  thrust::copy(_d_qfactor_real.begin(),
+    _d_qfactor_real.end(), qfactor_real.begin());
+
+  thrust::copy(_d_qfactor_image.begin(),
+  _d_qfactor_image.end(), qfactor_imag.begin());
+
+
+  std::ofstream output_file("output_qfactor.txt");
+  for (size_t i = 0; i < qfactor_real.size(); ++i)
+  {
+    output_file << "i:" << i << " "
+    << qfactor_real[i] << " " << qfactor_imag[i]  << std::endl;
+
+  }
+}
+
+void LJCutCoulKspace::ComputeQsf_fix()
+{
+  auto start = std::chrono::high_resolution_clock::now();
+  _d_qfactor_real.resize(_Kmax3D);
+  _d_qfactor_image.resize(_Kmax3D);
+
+  auto num_atoms = *(_structure_info_data->_num_atoms);
+  auto atom_id_to_idx =
+  LinkedCellLocator::GetInstance().GetLinkedCell()->_atom_id_to_idx;
+  op::EikFixOP<device::DEVICE_GPU>()(
+    num_atoms,kcount,_gsqmx,_unitk,
+    thrust::raw_pointer_cast(_d_kxvecs.data()),
+    thrust::raw_pointer_cast(_d_kyvecs.data()),
+    thrust::raw_pointer_cast(_d_kzvecs.data()),
+    thrust::raw_pointer_cast(_device_data->_d_atoms_id.data()),
+    thrust::raw_pointer_cast(atom_id_to_idx.data()),
+    thrust::raw_pointer_cast(_device_data->_d_px.data()),
+    thrust::raw_pointer_cast(_device_data->_d_py.data()),
+    thrust::raw_pointer_cast(_device_data->_d_pz.data()),
+    thrust::raw_pointer_cast(_device_data->_d_charge.data()),
+    thrust::raw_pointer_cast(_d_qfactor_real.data()),
+    thrust::raw_pointer_cast(_d_qfactor_image.data()));
+
+
+  auto end = std::chrono::high_resolution_clock::now();
+
+  std::chrono::duration<rbmd::Real> duration = end - start;
+  std::cout << "构建qfactor耗时" << duration.count() << "秒" << std::endl;
+
+  std::vector<rbmd::Real> qfactor_real(_Kmax3D);
+  std::vector<rbmd::Real> qfactor_image(_Kmax3D);
+
+  thrust::copy(_d_qfactor_real.begin(),
+    _d_qfactor_real.end(), qfactor_real.begin());
+  thrust::copy(_d_qfactor_image.begin(),
+_d_qfactor_image.end(), qfactor_image.begin());
+
+
+  std::ofstream output_file("output_qfactor.txt");
+  for (size_t i = 0; i < qfactor_real.size(); ++i)
+  {
+    output_file << "i:" << i << " "
+    << qfactor_real[i] << " " << qfactor_image[i]  << std::endl;
+  }
+  output_file.close();
+
+
+}
+
+void LJCutCoulKspace::ComputeWaveVectors()
+{
+ // 首先遍历所有波矢组合，计算满足条件的波矢总数
+    int total_wavevectors = 0;
+
+    // 1. 处理单分量波矢 (k,0,0), (0,l,0), (0,0,m)
+    for(int ic = 0; ic < 3; ic++) {
+        int max_idx;
+        if(ic == 0) max_idx = kmax_x;
+        else if(ic == 1) max_idx = kmax_y;
+        else max_idx = kmax_z;
+
+        for(int m = 1; m <= max_idx; m++) {
+            double sqk = (m * REAL_DATA(_unitk)[ic]) * (m * REAL_DATA(_unitk)[ic]);
+            if(sqk <= _gsqmx) {
+                total_wavevectors += 1; // 每个符合条件的单分量波矢计数一次
+            }
+        }
+    }
+
+    // 2. 处理双分量波矢 (k,l,0), (k,-l,0)
+    for(int k = 1; k <= kmax_x; k++) {
+        for(int l = 1; l <= kmax_y; l++) {
+            double sqk = (k * REAL_DATA(_unitk)[0]) * (k * REAL_DATA(_unitk)[0]) +
+                         (l * REAL_DATA(_unitk)[1]) * (l * REAL_DATA(_unitk)[1]);
+            if(sqk <= _gsqmx) {
+                total_wavevectors += 2; // (k,l,0) 和 (k,-l,0) 各计数一次
+            }
+        }
+    }
+
+    // 3. 处理双分量波矢 (0,l,m), (0,l,-m)
+    for(int l = 1; l <= kmax_y; l++) {
+        for(int m = 1; m <= kmax_z; m++) {
+            double sqk = (l * REAL_DATA(_unitk)[1]) * (l * REAL_DATA(_unitk)[1]) +
+                         (m * REAL_DATA(_unitk)[2]) * (m * REAL_DATA(_unitk)[2]);
+            if(sqk <= _gsqmx) {
+                total_wavevectors += 2; // (0,l,m) 和 (0,l,-m) 各计数一次
+            }
+        }
+    }
+
+    // 4. 处理双分量波矢 (k,0,m), (k,0,-m)
+    for(int k = 1; k <= kmax_x; k++) {
+        for(int m = 1; m <= kmax_z; m++) {
+            double sqk = (k * REAL_DATA(_unitk)[0]) * (k * REAL_DATA(_unitk)[0]) +
+                         (m * REAL_DATA(_unitk)[2]) * (m * REAL_DATA(_unitk)[2]);
+            if(sqk <= _gsqmx) {
+                total_wavevectors += 2; // (k,0,m) 和 (k,0,-m) 各计数一次
+            }
+        }
+    }
+
+    // 5. 处理三分量波矢 (k,l,m), (k,-l,m), (k,l,-m), (k,-l,-m)
+    for(int k = 1; k <= kmax_x; k++) {
+        for(int l = 1; l <= kmax_y; l++) {
+            for(int m = 1; m <= kmax_z; m++) {
+                double sqk = (k * REAL_DATA(_unitk)[0]) * (k * REAL_DATA(_unitk)[0]) +
+                             (l * REAL_DATA(_unitk)[1]) * (l * REAL_DATA(_unitk)[1]) +
+                             (m * REAL_DATA(_unitk)[2]) * (m * REAL_DATA(_unitk)[2]);
+                if(sqk <= _gsqmx) {
+                    total_wavevectors += 4; // 四种组合各计数一次
+                }
+            }
+        }
+    }
+
+
+  ///////
+  wavevec_indices_host.resize(3*total_wavevectors);
+
+  // 第二次遍历，填充 wavevec_indices_host
+    int n = 0;
+
+    // 1. 填充单分量波矢 (k,0,0), (0,l,0), (0,0,m)
+    for(int ic = 0; ic < 3; ic++)
+    {
+        int max_idx;
+        if(ic == 0) max_idx = kmax_x;
+        else if(ic == 1) max_idx = kmax_y;
+        else max_idx = kmax_z;
+
+        for(int m = 1; m <= max_idx; m++) {
+            double sqk = (m * REAL_DATA(_unitk)[ic]) * (m * REAL_DATA(_unitk)[ic]);
+            if(sqk <= _gsqmx) {
+                int k_val = 0, l_val = 0, m_val = 0;
+                if(ic == 0) { k_val = m; l_val = 0; m_val = 0; }
+                else if(ic == 1) { k_val = 0; l_val = m; m_val = 0; }
+                else { k_val = 0; l_val = 0; m_val = m; }
+
+                wavevec_indices_host[3*n + 0] = k_val;
+                wavevec_indices_host[3*n + 1] = l_val;
+                wavevec_indices_host[3*n + 2] = m_val;
+                n++;
+            }
+        }
+    }
+
+    // 2. 填充双分量波矢 (k,l,0), (k,-l,0)
+    for(int k = 1; k <= kmax_x; k++) {
+        for(int l = 1; l <= kmax_y; l++) {
+            double sqk = (k * REAL_DATA(_unitk)[0]) * (k * REAL_DATA(_unitk)[0]) +
+                         (l * REAL_DATA(_unitk)[1]) * (l * REAL_DATA(_unitk)[1]);
+            if(sqk <= _gsqmx) {
+                // (k, l, 0)
+                wavevec_indices_host[3*n + 0] = k;
+                wavevec_indices_host[3*n + 1] = l;
+                wavevec_indices_host[3*n + 2] = 0;
+                n++;
+
+                // (k, -l, 0)
+                wavevec_indices_host[3*n + 0] = k;
+                wavevec_indices_host[3*n + 1] = -l;
+                wavevec_indices_host[3*n + 2] = 0;
+                n++;
+            }
+        }
+    }
+
+    // 3. 填充双分量波矢 (0,l,m), (0,l,-m)
+    for(int l = 1; l <= kmax_y; l++) {
+        for(int m = 1; m <= kmax_z; m++) {
+            double sqk = (l * REAL_DATA(_unitk)[1]) * (l * REAL_DATA(_unitk)[1]) +
+                         (m * REAL_DATA(_unitk)[2]) * (m * REAL_DATA(_unitk)[2]);
+            if(sqk <= _gsqmx) {
+                // (0, l, m)
+                wavevec_indices_host[3*n + 0] = 0;
+                wavevec_indices_host[3*n + 1] = l;
+                wavevec_indices_host[3*n + 2] = m;
+                n++;
+
+                // (0, l, -m)
+                wavevec_indices_host[3*n + 0] = 0;
+                wavevec_indices_host[3*n + 1] = l;
+                wavevec_indices_host[3*n + 2] = -m;
+                n++;
+            }
+        }
+    }
+
+    // 4. 填充双分量波矢 (k,0,m), (k,0,-m)
+    for(int k = 1; k <= kmax_x; k++) {
+        for(int m = 1; m <= kmax_z; m++) {
+            double sqk = (k * REAL_DATA(_unitk)[0]) * (k * REAL_DATA(_unitk)[0]) +
+                         (m * REAL_DATA(_unitk)[2]) * (m * REAL_DATA(_unitk)[2]);
+            if(sqk <= _gsqmx) {
+                // (k, 0, m)
+                wavevec_indices_host[3*n + 0] = k;
+                wavevec_indices_host[3*n + 1] = 0;
+                wavevec_indices_host[3*n + 2] = m;
+                n++;
+
+                // (k, 0, -m)
+                wavevec_indices_host[3*n + 0] = k;
+                wavevec_indices_host[3*n + 1] = 0;
+                wavevec_indices_host[3*n + 2] = -m;
+                n++;
+            }
+        }
+    }
+
+    // 5. 填充三分量波矢 (k,l,m), (k,-l,m), (k,l,-m), (k,-l,-m)
+    for(int k = 1; k <= kmax_x; k++) {
+        for(int l = 1; l <= kmax_y; l++) {
+            for(int m = 1; m <= kmax_z; m++) {
+                double sqk = (k * REAL_DATA(_unitk)[0]) * (k * REAL_DATA(_unitk)[0]) +
+                             (l * REAL_DATA(_unitk)[1]) * (l * REAL_DATA(_unitk)[1]) +
+                             (m * REAL_DATA(_unitk)[2]) * (m * REAL_DATA(_unitk)[2]);
+                if(sqk <= _gsqmx) {
+                    // (k, l, m)
+                    wavevec_indices_host[3*n + 0] = k;
+                    wavevec_indices_host[3*n + 1] = l;
+                    wavevec_indices_host[3*n + 2] = m;
+                    n++;
+
+                    // (k, -l, m)
+                    wavevec_indices_host[3*n + 0] = k;
+                    wavevec_indices_host[3*n + 1] = -l;
+                    wavevec_indices_host[3*n + 2] = m;
+                    n++;
+
+                    // (k, l, -m)
+                    wavevec_indices_host[3*n + 0] = k;
+                    wavevec_indices_host[3*n + 1] = l;
+                    wavevec_indices_host[3*n + 2] = -m;
+                    n++;
+
+                    // (k, -l, -m)
+                    wavevec_indices_host[3*n + 0] = k;
+                    wavevec_indices_host[3*n + 1] = -l;
+                    wavevec_indices_host[3*n + 2] = -m;
+                    n++;
+                }
+            }
+        }
+    }
+
+  // 确认填充的波矢数量与计算的total_wavevectors一致
+  if(n != total_wavevectors) {
+    fprintf(stderr, "Mismatch in wavevector count: counted=%d, filled=%d\n",
+      total_wavevectors, n);
+  }
+  printf("total_wavevectors: %i     n:  %i\n",total_wavevectors,n);
 }
 
 void LJCutCoulKspace::ComputeEwlad_fix()
 {
   //
-  ComputeQsf();
+  //ComputeQsf_fix();
+
+  auto box =  DataManager::getInstance().getMDData()->_box;
+  ComputeWaveVectors_2(*box,_Kmax);
+  //ComputeQsf();
+
+  // auto num_atoms = *(_structure_info_data->_num_atoms);
+  // // charge structure factors
+  // for (rbmd::Id k_index = 0; k_index < kcount; k_index++)
+  // {
+  //   rbmd::Id kx = kxvecs[k_index];
+  //   rbmd::Id ky = kyvecs[k_index];
+  //   rbmd::Id kz = kzvecs[k_index];
+  //   Int3 kmax_vec3D ={kx,ky,kz};
+  //   op::EwaldForceFixOp<device::DEVICE_GPU>()(
+  //     num_atoms,kcount,k_index,_qqr2e,kmax_vec3D,
+  //     thrust::raw_pointer_cast(_d_eg_flat.data()),
+  //     thrust::raw_pointer_cast(_d_cs.data()),
+  //     thrust::raw_pointer_cast(_d_sn.data()),
+  //   thrust::raw_pointer_cast(_device_data->_d_charge.data()),
+  //   thrust::raw_pointer_cast(_d_qfactor_real.data()),
+  //   thrust::raw_pointer_cast(_d_qfactor_image.data()),
+  //     thrust::raw_pointer_cast(_device_data->_d_force_kspace_x.data()),
+  //     thrust::raw_pointer_cast(_device_data->_d_force_kspace_y.data()),
+  //     thrust::raw_pointer_cast(_device_data->_d_force_kspace_z.data()));
+  //   }
+  //
+  //
+
+
+  // std::cout << "Ewlad_fix: " << kcount  <<std::endl;
+  //
+  // std::vector<rbmd::Real> h_force_kspace_x(num_atoms);
+  // std::vector<rbmd::Real> h_force_kspace_y(num_atoms);
+  // std::vector<rbmd::Real> h_force_kspace_z(num_atoms);
+  //
+  // thrust::copy(_device_data->_d_force_kspace_x.begin(),
+  //   _device_data->_d_force_kspace_x.end(), h_force_kspace_x.begin());
+  // thrust::copy(_device_data->_d_force_kspace_y.begin(),
+  // _device_data->_d_force_kspace_y.end(), h_force_kspace_y.begin());
+  // thrust::copy(_device_data->_d_force_kspace_z.begin(),
+  // _device_data->_d_force_kspace_z.end(), h_force_kspace_z.begin());
+  //
+  // std::ofstream output_file("output_force_kspace111.txt");
+  // for (size_t i = 0; i < h_force_kspace_x.size(); ++i)
+  // {
+  //   output_file << "i:" << i << " "
+  //   << h_force_kspace_x[i] << " " << h_force_kspace_y[i]  << " " << h_force_kspace_z[i]
+  //   << std::endl;
+  // }
+  // output_file.close();
+}
+
+void LJCutCoulKspace::ComputeWaveVectors_2( Box box,rbmd::Id Kmax)
+{
+  kxvecs_R.resize(_num_k);
+  kyvecs_R.resize(_num_k);
+  kzvecs_R.resize(_num_k);
+  rbmd::Id count_K = 0;
+  for (rbmd::Id i = -Kmax; i <= Kmax; i++)
+  {
+    for (rbmd::Id j = -Kmax; j <= Kmax; j++)
+    {
+      for (rbmd::Id k = -Kmax; k <= Kmax; k++)
+      {
+        if (!(i == 0 && j == 0 && k == 0))
+        {
+          kxvecs_R[count_K]= 2 * M_PI * i /  box._length[0];
+          kyvecs_R[count_K]= 2 * M_PI * j /  box._length[1];
+          kzvecs_R[count_K]= 2 * M_PI * k /  box._length[2];
+          count_K++;
+        }
+      }
+    }
+  }
+
+  _d_kxvecs_R.resize(_num_k);
+  _d_kyvecs_R.resize(_num_k);
+  _d_kzvecs_R.resize(_num_k);
+  thrust::copy(kxvecs_R.begin(),kxvecs_R.end(), _d_kxvecs_R.begin());
+  thrust::copy(kyvecs_R.begin(),kyvecs_R.end(), _d_kyvecs_R.begin());
+  thrust::copy(kzvecs_R.begin(),kzvecs_R.end(), _d_kzvecs_R.begin());
+
+
+  auto start = std::chrono::high_resolution_clock::now();
+  _d_qfactor_real.resize(_num_k);
+  _d_qfactor_image.resize(_num_k);
 
   auto num_atoms = *(_structure_info_data->_num_atoms);
-  // charge structure factors
-  for (rbmd::Id k_index = 0; k_index < kcount; k_index++)
-  {
-    rbmd::Id kx = kxvecs[k_index];
-    rbmd::Id ky = kyvecs[k_index];
-    rbmd::Id kz = kzvecs[k_index];
-    Int3 kmax_vec3D ={kx,ky,kz};
-    op::EwaldForceFixOp<device::DEVICE_GPU>()(
-      num_atoms,kcount,k_index,_qqr2e,kmax_vec3D,
-      thrust::raw_pointer_cast(_d_eg_flat.data()),
-      thrust::raw_pointer_cast(_d_cs.data()),
-      thrust::raw_pointer_cast(_d_sn.data()),
+  auto atom_id_to_idx =
+  LinkedCellLocator::GetInstance().GetLinkedCell()->_atom_id_to_idx;
+  op::EikFix3OP<device::DEVICE_GPU>()(
+    num_atoms,_num_k,
+    thrust::raw_pointer_cast(_d_kxvecs_R.data()),
+    thrust::raw_pointer_cast(_d_kyvecs_R.data()),
+    thrust::raw_pointer_cast(_d_kzvecs_R.data()),
+    thrust::raw_pointer_cast(_device_data->_d_atoms_id.data()),
+    thrust::raw_pointer_cast(atom_id_to_idx.data()),
+    thrust::raw_pointer_cast(_device_data->_d_px.data()),
+    thrust::raw_pointer_cast(_device_data->_d_py.data()),
+    thrust::raw_pointer_cast(_device_data->_d_pz.data()),
     thrust::raw_pointer_cast(_device_data->_d_charge.data()),
     thrust::raw_pointer_cast(_d_qfactor_real.data()),
-    thrust::raw_pointer_cast(_d_qfactor_image.data()),
-      thrust::raw_pointer_cast(_device_data->_d_force_kspace_x.data()),
-      thrust::raw_pointer_cast(_device_data->_d_force_kspace_y.data()),
-      thrust::raw_pointer_cast(_device_data->_d_force_kspace_z.data()));
-    }
+    thrust::raw_pointer_cast(_d_qfactor_image.data()));
+  auto end = std::chrono::high_resolution_clock::now();
+  std::chrono::duration<rbmd::Real> duration = end - start;
+  std::cout << "构建优化 qactor耗时" << duration.count() << "秒" << std::endl;
+
+  std::vector<rbmd::Real> qfactor_real(_num_k);
+  std::vector<rbmd::Real> qfactor_image(_num_k);
+
+  thrust::copy(_d_qfactor_real.begin(),
+    _d_qfactor_real.end(), qfactor_real.begin());
+  thrust::copy(_d_qfactor_image.begin(),
+_d_qfactor_image.end(), qfactor_image.begin());
 
 
-  std::cout << "Ewlad_fix: " << kcount  <<std::endl;
-
-  std::vector<rbmd::Real> h_force_kspace_x(num_atoms);
-  std::vector<rbmd::Real> h_force_kspace_y(num_atoms);
-  std::vector<rbmd::Real> h_force_kspace_z(num_atoms);
-
-  thrust::copy(_device_data->_d_force_kspace_x.begin(),
-    _device_data->_d_force_kspace_x.end(), h_force_kspace_x.begin());
-  thrust::copy(_device_data->_d_force_kspace_y.begin(),
-  _device_data->_d_force_kspace_y.end(), h_force_kspace_y.begin());
-  thrust::copy(_device_data->_d_force_kspace_z.begin(),
-  _device_data->_d_force_kspace_z.end(), h_force_kspace_z.begin());
-
-  std::ofstream output_file("output_force_kspace111.txt");
-  for (size_t i = 0; i < h_force_kspace_x.size(); ++i)
+  std::ofstream output_file("output_qfactor.txt");
+  for (size_t i = 0; i < qfactor_real.size(); ++i)
   {
     output_file << "i:" << i << " "
-    << h_force_kspace_x[i] << " " << h_force_kspace_y[i]  << " " << h_force_kspace_z[i]
-    << std::endl;
+    << qfactor_real[i] << " " << qfactor_image[i]  << std::endl;
   }
   output_file.close();
 }

@@ -606,8 +606,162 @@ namespace op {
     }
   }
 
+
+__global__ void EikFix2(
+    const rbmd::Id num_atoms, const rbmd::Id total_wavevectors,
+    const rbmd::Real gsqmx, Real3 unitk,
+    const rbmd::Id* kxvecs, const rbmd::Id *kyvecs, const rbmd::Id *kzvecs,
+    const rbmd::Id* atoms_id, const rbmd::Id* atom_id_to_idx,
+    const rbmd::Real* px, const rbmd::Real* py, const rbmd::Real* pz,
+    const rbmd::Real* charge, rbmd::Real *sfacrl, rbmd::Real *sfacim) {
+    int wave_idx = blockIdx.x;
+    if (wave_idx >= total_wavevectors) return;
+    //if(wave_idx == 0 ) {
+      // 获取当前波矢的(k, l, m)
+      rbmd::Id k = kxvecs[wave_idx];
+      rbmd::Id l = kyvecs[wave_idx];
+      rbmd::Id m = kzvecs[wave_idx];
+
+      // 计算sqk
+      rbmd::Real sqk = (k * REAL_DATA(unitk)[0]) * (k * REAL_DATA(unitk)[0]) +
+                       (l * REAL_DATA(unitk)[1]) * (l * REAL_DATA(unitk)[1]) +
+                       (m * REAL_DATA(unitk)[2]) * (m * REAL_DATA(unitk)[2]);
+
+      if (sqk > gsqmx) return;
+
+      // 使用共享内存进行归约
+      extern __shared__ rbmd::Real shared_mem[];
+      rbmd::Real* s_cstr = shared_mem;
+      rbmd::Real* s_sstr = &shared_mem[blockDim.x];
+
+      int tid = threadIdx.x;
+      rbmd::Real local_cstr = 0.0;
+      rbmd::Real local_sstr = 0.0;
+
+      // 计算每个线程需要处理的原子范围
+      int chunk_size = (num_atoms + blockDim.x - 1) / blockDim.x;  // 每个线程处理的原子数
+      int start_idx = tid * chunk_size;
+      int end_idx = min((tid + 1) * chunk_size, num_atoms);
+
+      for (int i = start_idx; i < end_idx; i++) {
+        rbmd::Id atom_id = atoms_id[i];
+        rbmd::Id idx = atom_id_to_idx[atom_id];
+        //printf("test_i--- %i   %i\n",atom_id,idx);
+
+        rbmd::Real xi = px[atom_id];
+        rbmd::Real yi = py[atom_id];
+        rbmd::Real zi = pz[atom_id];
+        printf("test_p---  %i  %f  %f   %f\n",atom_id,xi,yi,zi);
+        rbmd::Real dot = k * xi + l * yi + m * zi;
+
+        rbmd::Real c = COS(dot);
+        rbmd::Real s = SIN(dot);
+
+        local_cstr += charge[i] * c;
+        local_sstr += charge[i] * s;
+      }
+
+      // 将每个线程的部分和存入共享内存
+      s_cstr[tid] = local_cstr;
+      s_sstr[tid] = local_sstr;
+      __syncthreads();
+
+      // 归约求和
+      for (unsigned int s = blockDim.x / 2; s > 0; s >>= 1) {
+        if (tid < s) {
+          s_cstr[tid] += s_cstr[tid + s];
+          s_sstr[tid] += s_sstr[tid + s];
+        }
+        __syncthreads();
+      }
+    //printf("test_p---  %f  %f\n",s_cstr[tid], s_sstr[tid]);
+
+      // 线程0写回结果
+      if (tid == 0) {
+        atomicAdd(&sfacrl[wave_idx], s_cstr[0]);
+        atomicAdd(&sfacim[wave_idx], s_sstr[0]);
+      }
+    //}
+
+}
+
+__global__ void EikFix3(
+    const rbmd::Id num_atoms, const rbmd::Id total_wavevectors,
+    const rbmd::Real* kxvecs, const rbmd::Real *kyvecs, const rbmd::Real *kzvecs,
+    const rbmd::Id* atoms_id, const rbmd::Id* atom_id_to_idx,
+    const rbmd::Real* px, const rbmd::Real* py, const rbmd::Real* pz,
+    const rbmd::Real* charge, rbmd::Real *sfacrl, rbmd::Real *sfacim) {
+    int wave_idx = blockIdx.x;
+    if (wave_idx >= total_wavevectors) return;
+    //if(wave_idx == 0 ) {
+      // 获取当前波矢的(k, l, m)
+      rbmd::Real k = kxvecs[wave_idx];
+      rbmd::Real l = kyvecs[wave_idx];
+      rbmd::Real m = kzvecs[wave_idx];
+      //printf("test_p---  %i  %f  %f   %f\n",wave_idx,k,l,m);
+
+      // 使用共享内存进行归约
+      extern __shared__ rbmd::Real shared_mem[];
+      rbmd::Real* s_cstr = shared_mem;
+      rbmd::Real* s_sstr = &shared_mem[blockDim.x];
+
+      int tid = threadIdx.x;
+      rbmd::Real local_cstr = 0.0;
+      rbmd::Real local_sstr = 0.0;
+
+      // 计算每个线程需要处理的原子范围
+      int chunk_size = (num_atoms + blockDim.x - 1) / blockDim.x;  // 每个线程处理的原子数
+      int start_idx = tid * chunk_size;
+      int end_idx = min((tid + 1) * chunk_size, num_atoms);
+
+      for (int i = start_idx; i < end_idx; i++) {
+        rbmd::Id atom_id = atoms_id[i];
+        rbmd::Id idx = atom_id_to_idx[atom_id];
+        //printf("test_i--- %i   %i\n",atom_id,idx);
+
+        rbmd::Real xi = px[atom_id];
+        rbmd::Real yi = py[atom_id];
+        rbmd::Real zi = pz[atom_id];
+        //printf("test_p---  %i  %f  %f   %f\n",atom_id,xi,yi,zi);
+        //printf("test_charge---  %i   %f\n",atom_id,charge[atom_id]);
+        rbmd::Real dot = k * xi + l * yi + m * zi;
+
+        rbmd::Real c = COS(dot);
+        rbmd::Real s = SIN(dot);
+
+        local_cstr += charge[atom_id] * c;
+        local_sstr += charge[atom_id] * s;
+
+      }
+
+      // 将每个线程的部分和存入共享内存
+      s_cstr[tid] = local_cstr;
+      s_sstr[tid] = local_sstr;
+      __syncthreads();
+
+      // 归约求和
+      for (unsigned int s = blockDim.x / 2; s > 0; s >>= 1) {
+        if (tid < s) {
+          s_cstr[tid] += s_cstr[tid + s];
+          s_sstr[tid] += s_sstr[tid + s];
+        }
+        __syncthreads();
+      }
+     //printf("test_p---  %f  %f\n",s_cstr[tid], s_sstr[tid]);
+
+      // 线程0写回结果
+      if (tid == 0) {
+        atomicAdd(&sfacrl[wave_idx], s_cstr[0]);
+        atomicAdd(&sfacim[wave_idx], s_sstr[0]);
+      }
+    //}
+
+}
+
+
 __global__ void Eik(const rbmd::Id num_atoms,const rbmd::Real gsqmx,
-  Real3 unitk, const rbmd::Id kmax, Int3 kmax_array,const rbmd::Real* px, const rbmd::Real* py,
+  Real3 unitk, const rbmd::Id kmax, Int3 kmax_array,
+  const rbmd::Real* px, const rbmd::Real* py,
   const rbmd::Real* pz,const rbmd::Real* charge,rbmd::Real* cs, rbmd::Real* sn,
   rbmd::Real* sfacrl, rbmd::Real* sfacim)
 {
@@ -624,7 +778,7 @@ __global__ void Eik(const rbmd::Id num_atoms,const rbmd::Real gsqmx,
       for (rbmd::Id ic = 0; ic < 3; ic++)
       {
           sqk = REAL_DATA(unitk)[ic] * REAL_DATA(unitk)[ic];
-          printf("sqk: %f    gsqmx:  %f\n",sqk, gsqmx);
+          //printf("sqk: %f    gsqmx:  %f\n",sqk, gsqmx);
           if (sqk <= gsqmx)
           {
               cstr1 = 0.0;
@@ -643,7 +797,7 @@ __global__ void Eik(const rbmd::Id num_atoms,const rbmd::Real gsqmx,
                 -sn[1 * num_atoms + ic * num_atoms + tid1];
               cstr1 += charge[tid1] * cs[1 * (3*num_atoms) + ic * num_atoms + tid1];
               sstr1 += charge[tid1] * sn[1 * (3*num_atoms) + ic * num_atoms + tid1];
-
+            printf("cstr1: %f    sstr1:  %f\n",cstr1, sstr1);
 
               atomicAdd(&sfacrl[currentIndex], cstr1);
               atomicAdd(&sfacim[currentIndex+1], sstr1);
@@ -678,7 +832,7 @@ __global__ void Eik(const rbmd::Id num_atoms,const rbmd::Real gsqmx,
                         -sn[m * (3*num_atoms) + ic * num_atoms + tid1];//sn(-x)=-sn(x)
                       cstr1 += charge[tid1] * cs[m * (3*num_atoms) + ic * num_atoms + tid1];
                       sstr1 += charge[tid1] * sn[m * (3*num_atoms) + ic * num_atoms + tid1];
-
+                  printf("cstr11: %f    sstr11:  %f\n",cstr1, sstr1);
 
                   atomicAdd(&sfacrl[currentIndex], cstr1);
                   atomicAdd(&sfacim[currentIndex+1], sstr1);
@@ -707,7 +861,7 @@ __global__ void Eik(const rbmd::Id num_atoms,const rbmd::Real gsqmx,
                     sn[k_index_0] * sn[l_index_1]);
                   sstr2 += charge[tid1] * (sn[k_index_0] *cs[l_index_1] -
                     cs[k_index_0] * sn[l_index_1]);
-
+                printf("cstr22: %f  %f %f  %f\n",cstr1, sstr1,cstr2,sstr2);
                   atomicAdd(&sfacrl[currentIndex], cstr1);
                   atomicAdd(&sfacim[currentIndex+1], sstr1);
                   atomicAdd(&sfacrl[currentIndex], cstr2);
@@ -737,7 +891,7 @@ __global__ void Eik(const rbmd::Id num_atoms,const rbmd::Real gsqmx,
                     sn[l_index_1] * sn[m_index_2]);
                   sstr2 += charge[tid1] * (sn[l_index_1] *cs[m_index_2] -
                         cs[l_index_1] * sn[m_index_2]);
-
+                printf("cstr33: %f  %f %f  %f\n",cstr1, sstr1,cstr2,sstr2);
                   atomicAdd(&sfacrl[currentIndex], cstr1);
                   atomicAdd(&sfacim[currentIndex+1], sstr1);
                   atomicAdd(&sfacrl[currentIndex], cstr2);
@@ -767,7 +921,7 @@ __global__ void Eik(const rbmd::Id num_atoms,const rbmd::Real gsqmx,
                     sn[k_index_0] * sn[m_index_2]);
                   sstr2 += charge[tid1] * (sn[k_index_0] *cs[m_index_2] -
                     cs[k_index_0] * sn[m_index_2]);
-
+                printf("cstr44: %f  %f %f  %f\n",cstr1, sstr1,cstr2,sstr2);
                   atomicAdd(&sfacrl[currentIndex], cstr1);
                   atomicAdd(&sfacim[currentIndex+1], sstr1);
                   atomicAdd(&sfacrl[currentIndex], cstr2);
@@ -815,7 +969,8 @@ __global__ void Eik(const rbmd::Id num_atoms,const rbmd::Real gsqmx,
                       slpm = -sn[l_index_1] *cs[m_index_2] -cs[l_index_1] * sn[m_index_2];
                       cstr4 += charge[tid1] * (cs[k_index_0] *clpm - sn[k_index_0] * slpm);
                       sstr4 += charge[tid1] * (sn[k_index_0] *clpm + cs[k_index_0] * slpm);
-
+                    printf("cstr55fd %f  %f %f %f %f %f %f  %f\n",cstr1, sstr1,cstr2,sstr2,
+                      cstr3,sstr3,cstr4,sstr4);
                       atomicAdd(&sfacrl[currentIndex], cstr1);
                       atomicAdd(&sfacim[currentIndex+1], sstr1);
                       atomicAdd(&sfacrl[currentIndex], cstr2);
@@ -850,7 +1005,7 @@ __global__ void EwaldForceFix(const rbmd::Id num_atoms,const rbmd::Id kcount,
       rbmd::Real position_phase_real,position_phase_image;
       rbmd::Real partial;
 
-      rbmd::Id kx_index_0 = kmax_vec3D.x *  (3*num_atoms) + 0 * num_atoms + tid1;
+      rbmd::Id kx_index_0 = kmax_vec3D.x  * (3*num_atoms) + 0 * num_atoms + tid1;
       rbmd::Id ky_index_1 = kmax_vec3D.y  * (3*num_atoms) + 1 * num_atoms + tid1;
       rbmd::Id kz_index_2 = kmax_vec3D.z  * (3*num_atoms) + 2 * num_atoms + tid1;
 
@@ -1215,10 +1370,45 @@ __global__ void EwaldForceFix(const rbmd::Id num_atoms,const rbmd::Id kcount,
       unsigned int blocks_per_grid = (num_atoms + BLOCK_SIZE - 1) / BLOCK_SIZE;
 
       CHECK_KERNEL(Eik <<<blocks_per_grid, BLOCK_SIZE, 0, 0 >>>
-                      (num_atoms, gsqmx, unitk,kmax, kmax_array, px, py, pz,
+                      (num_atoms, gsqmx, unitk,kmax, kmax_array,px, py, pz,
                         charge,cs,sn,sfacrl,sfacim));
 
     }
+
+  void EikFixOP<device::DEVICE_GPU>::operator()(
+    const rbmd::Id num_atoms, const rbmd::Id  total_wavevectors,
+    const rbmd::Real gsqmx,Real3 unitk,
+    const rbmd::Id* kxvecs,const rbmd::Id *kyvecs,const rbmd::Id *kzvecs,
+    const rbmd::Id* atoms_id,const rbmd::Id* atom_id_to_idx,
+    const rbmd::Real* px,const rbmd::Real* py,const rbmd::Real* pz,
+    const rbmd::Real* charge,rbmd::Real *sfacrl, rbmd::Real *sfacim)
+   {
+    int threads_per_block = 256;
+    int blocks = total_wavevectors; // 每个波矢一个块
+    size_t shared_mem_size = 2 * threads_per_block * sizeof(rbmd::Real); // 实部和虚部
+
+    EikFix2<<<blocks, threads_per_block, shared_mem_size>>>(
+        num_atoms,total_wavevectors,gsqmx,unitk, kxvecs,
+        kyvecs,kzvecs,atoms_id,atom_id_to_idx,px,py,pz,charge,sfacrl, sfacim);
+
+    }
+
+void EikFix3OP<device::DEVICE_GPU>::operator()(
+  const rbmd::Id num_atoms, const rbmd::Id  total_wavevectors,
+  const rbmd::Real* kxvecs,const rbmd::Real* kyvecs,const rbmd::Real* kzvecs,
+  const rbmd::Id* atoms_id,const rbmd::Id* atom_id_to_idx,
+  const rbmd::Real* px,const rbmd::Real* py,const rbmd::Real* pz,
+  const rbmd::Real* charge,rbmd::Real *sfacrl, rbmd::Real *sfacim)
+  {
+    int threads_per_block = 256;
+    int blocks = total_wavevectors; // 每个波矢一个块
+    size_t shared_mem_size = 2 * threads_per_block * sizeof(rbmd::Real); // 实部和虚部
+
+    EikFix3<<<blocks, threads_per_block, shared_mem_size>>>(
+        num_atoms,total_wavevectors, kxvecs,
+        kyvecs,kzvecs,atoms_id,atom_id_to_idx,px,py,pz,charge,sfacrl, sfacim);
+
+  }
 
   void EwaldForceFixOp<device::DEVICE_GPU>::operator()(
     const rbmd::Id num_atoms,const rbmd::Id kcount,const rbmd::Id k_index,
