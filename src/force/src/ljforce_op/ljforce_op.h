@@ -448,10 +448,9 @@ namespace op
          const rbmd::Id num_atoms,
          const rbmd::Real qqr2e,
          const rbmd::Id* atoms_id,
-         const rbmd::Id* atom_id_to_idx,
-         const rbmd::Id*  atoms_vec,
-         const rbmd::Id*  atoms_offset,
-         const rbmd::Id*  atom_count,
+         const rbmd::Id* start_id,
+         const rbmd::Id* end_id,
+         const rbmd::Id* id_verletlist,
          const rbmd::Id*  special_ids,
          const rbmd::Real*  special_weights,
          const rbmd::Id*  special_offset,
@@ -465,6 +464,23 @@ namespace op
          rbmd::Real* fz,
          rbmd::Real* total_especial_coul);
      };
+
+    template <typename DEVICE>
+    struct ComputeSpecialCoulRBLForceOp
+    {
+      void  operator()(
+        Box* box,const rbmd::Id num_atoms,const rbmd::Real rs,
+        const rbmd::Real rc,const rbmd::Id neighbor_sample_num,
+        const rbmd::Id pice_num,const rbmd::Real qqr2e,
+        const rbmd::Id* atoms_id,const rbmd::Id* start_id,
+        const rbmd::Id* end_id,const rbmd::Id* id_verletlist,
+        const rbmd::Id* id_random_neighbor,const rbmd::Id* random_neighbor_num,
+        const rbmd::Id*  special_ids,const rbmd::Real*  special_weights,
+        const rbmd::Id*  special_offset,const rbmd::Id*  special_count,
+        const rbmd::Real* charge,const rbmd::Real* px,
+        const rbmd::Real* py,const rbmd::Real* pz,rbmd::Real* fx,rbmd::Real* fy,
+        rbmd::Real* fz);
+    };
 
       template <typename DEVICE>
       struct AddForceOp
@@ -856,10 +872,9 @@ namespace op
           const rbmd::Id num_atoms,
           const rbmd::Real qqr2e,
           const rbmd::Id* atoms_id,
-          const rbmd::Id* atom_id_to_idx,
-          const rbmd::Id*  atoms_vec,
-          const rbmd::Id*  atoms_offset,
-          const rbmd::Id*  atom_count,
+          const rbmd::Id* start_id,
+          const rbmd::Id* end_id,
+          const rbmd::Id* id_verletlist,
           const rbmd::Id*  special_ids,
           const rbmd::Real*  special_weights,
           const rbmd::Id*  special_offset,
@@ -873,6 +888,24 @@ namespace op
           rbmd::Real* fz,
           rbmd::Real* total_especial_coul);
     };
+
+  template <>
+  struct ComputeSpecialCoulRBLForceOp<device::DEVICE_GPU>
+  {
+    void  operator()(
+      Box* box,const rbmd::Id num_atoms,const rbmd::Real rs,
+      const rbmd::Real rc,const rbmd::Id neighbor_sample_num,
+      const rbmd::Id pice_num,const rbmd::Real qqr2e,
+      const rbmd::Id* atoms_id,const rbmd::Id* start_id,
+      const rbmd::Id* end_id,const rbmd::Id* id_verletlist,
+      const rbmd::Id* id_random_neighbor,const rbmd::Id* random_neighbor_num,
+      const rbmd::Id*  special_ids,const rbmd::Real*  special_weights,
+      const rbmd::Id*  special_offset,const rbmd::Id*  special_count,
+      const rbmd::Real* charge,const rbmd::Real* px,
+      const rbmd::Real* py,const rbmd::Real* pz,rbmd::Real* fx,rbmd::Real* fy,
+      rbmd::Real* fz);
+  };
+
 
 
 

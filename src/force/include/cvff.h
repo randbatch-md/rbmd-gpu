@@ -113,6 +113,5 @@ private:
   thrust::device_vector<rbmd::Id>  _psample_key;
   thrust::device_vector<rbmd::Real> _rhok_real_redue;
   thrust::device_vector<rbmd::Real> _rhok_image_redue;
-
 };
 
