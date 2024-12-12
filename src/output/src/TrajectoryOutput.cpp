@@ -64,8 +64,9 @@ void TrajectoryOutput::Execute() {
       spdlog::info("ITEM: ATOMS id type x y z");
 
       for (auto i = 0; i < atom_id_to_idx.size(); ++i) {
-        spdlog::info("{} {} {} {} {}", i + 1, h_atoms_type[i] + 1, h_px[atom_id_to_idx[i]],
-                     h_py[atom_id_to_idx[i]], h_pz[atom_id_to_idx[i]]);
+        spdlog::info("{} {} {} {} {}", i + 1,
+          h_atoms_type[atom_id_to_idx[i]] + 1, h_px[atom_id_to_idx[i]],
+          h_py[atom_id_to_idx[i]], h_pz[atom_id_to_idx[i]]);
       }
     } catch (const std::exception& e) {
       throw std::runtime_error("TrajectoryOutput is error ");

@@ -99,7 +99,8 @@ void LJCutCoulKspaceForce::ComputeLJRBL()
     auto end = std::chrono::high_resolution_clock::now();
 
     std::chrono::duration<rbmd::Real> duration = end - start;
-    std::cout << "构建RBL邻居列表耗时" << duration.count() << "秒" << std::endl;
+    std::cout << "当前步： "<< test_current_step << " "<<"构建RBL邻居列表耗时"
+      << duration.count() << "秒" << std::endl;
 
     // compute force
     const auto r_core =
@@ -150,7 +151,7 @@ void LJCutCoulKspaceForce::ComputeLJRBL()
                         thrust::raw_pointer_cast(_device_data->_d_force_ljcoul_z.data()));
 
     //energy
-    ComputeLJCoulEnergy();
+    //ComputeLJCoulEnergy();
 }
 
 void LJCutCoulKspaceForce::ComputeLJVerlet()
@@ -413,23 +414,23 @@ void LJCutCoulKspaceForce::ComputeChargeStructureFactorRBE(
     rhok_image_atom.begin(),psamplekey_out.begin(), rhok_image_redue.begin(),
     thrust::equal_to<rbmd::Id>(),thrust::plus<rbmd::Real>());
 
-  //energy
-
-  //charge self energy//
-  ComputeSelfEnergy(alpha,qqr2e,_ave_self_energy);
-
-  //kspace energy
-  ComputeKspaceEnergy(_device_data->_d_box, num_atoms, Kmax,
-      alpha, qqr2e ,_ave_ekspace);
-  _ave_ekspace = _ave_ekspace +_ave_self_energy;
-
-    //out
-   std::cout << "test_current_step:" << test_current_step <<  " ,"
-   << "ave_energy_rbe:" << _ave_ekspace << std::endl;
-
-  std::ofstream outfile("ave_rbe.txt", std::ios::app);
-  outfile << test_current_step << " "<< _ave_ekspace << std::endl;
-  outfile.close();
+  // //energy
+  //
+  // //charge self energy//
+  // ComputeSelfEnergy(alpha,qqr2e,_ave_self_energy);
+  //
+  // //kspace energy
+  // ComputeKspaceEnergy(_device_data->_d_box, num_atoms, Kmax,
+  //     alpha, qqr2e ,_ave_ekspace);
+  // _ave_ekspace = _ave_ekspace +_ave_self_energy;
+  //
+  //   //out
+  //  std::cout << "test_current_step:" << test_current_step <<  " ,"
+  //  << "ave_energy_rbe:" << _ave_ekspace << std::endl;
+  //
+  // std::ofstream outfile("ave_rbe.txt", std::ios::app);
+  // outfile << test_current_step << " "<< _ave_ekspace << std::endl;
+  // outfile.close();
 }
 
 void LJCutCoulKspaceForce::ComputeRBE()

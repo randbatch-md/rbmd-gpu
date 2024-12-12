@@ -138,6 +138,48 @@ namespace op
 		}
 	}
 
+__device__
+        void CoulCutForce_fix(
+                rbmd::Real cut_off,
+                rbmd::Real alpha,
+                rbmd::Real qqr2e,
+                rbmd::Real charge_i,
+                rbmd::Real charge_j,
+                rbmd::Real px12,
+                rbmd::Real py12,
+                rbmd::Real pz12,
+                rbmd::Real& force_coul_factor,
+                rbmd::Real& energy_coul_factor,
+                rbmd::Real& force_coul,
+                rbmd::Real& energy_coul)
+        {
+          const rbmd::Real dis_2 = px12 * px12 + py12 * py12 + pz12 * pz12;
+          const rbmd::Real dis = SQRT(dis_2);
+          const rbmd::Real dis_3 = POW(dis,3.0);
+          const rbmd::Real cut_off_2 = cut_off * cut_off;
+
+          if (dis_2 < cut_off_2 && dis_2 > EPSILON)
+          {
+            rbmd::Real erfcx = SQRT(alpha) * dis;
+            rbmd::Real expx = -alpha * dis_2;
+            rbmd::Real gnear_value = (1.0 - ERF(erfcx)) / dis_2 +
+                    2 * SQRT(alpha) * EXP(expx) / (SQRT(M_PI) * dis);
+
+            force_coul_factor = - qqr2e * charge_i * charge_j / dis_3;
+            force_coul = - qqr2e * charge_i * charge_j * gnear_value / dis;
+
+            energy_coul_factor  = 0.5 * qqr2e * charge_i * charge_j / dis;
+            energy_coul = qqr2e * (0.5 * charge_i * charge_j * (1.0 - ERF(SQRT(alpha) * dis)) / dis);
+          }
+          else
+          {
+            force_coul_factor = 0.0;
+            force_coul  = 0.0;
+            energy_coul_factor = 0.0;
+            energy_coul = 0.0;
+          }
+        }
+
         __device__
         void CoulCutForce_erf(
                 rbmd::Real cut_off,
@@ -190,11 +232,40 @@ namespace op
 	    rbmd::Real expx = -alpha * dis_2;
 	    rbmd::Real gnear_value = (1.0 - ERF(erfcx)) / dis_2 +
                     2 * SQRT(alpha) * EXP(expx) / (SQRT(M_PI) * dis);
-
 	    force_coul = qqr2e * (-charge_i * charge_j * gnear_value / dis);
 	  }
 	  else force_coul = 0.0;
 	}
+
+        __device__
+        void CoulCutForce_rs_fix(
+          rbmd::Real rs,
+          rbmd::Real alpha,
+          rbmd::Real qqr2e,
+          rbmd::Real charge_i,
+          rbmd::Real charge_j,
+          rbmd::Real px12,
+          rbmd::Real py12,
+          rbmd::Real pz12,
+          rbmd::Real& coul_force_factor,
+          rbmd::Real& force_coul)
+          {
+            const rbmd::Real dis_2 = px12 * px12 + py12 * py12 + pz12 * pz12;
+            const rbmd::Real dis = SQRT(dis_2);
+            const rbmd::Real dis_3 = POW(dis,3.0);
+            const rbmd::Real rs_2 = rs * rs;
+
+            if (dis_2 < rs_2 && dis_2 > EPSILON)
+            {
+              rbmd::Real erfcx = SQRT(alpha) * dis;
+              rbmd::Real expx = -alpha * dis_2;
+              rbmd::Real gnear_value = (1.0 - ERF(erfcx)) / dis_2 +
+                      2 * SQRT(alpha) * EXP(expx) / (SQRT(M_PI) * dis);
+              coul_force_factor = - qqr2e * charge_i * charge_j / dis_3;
+              force_coul = - qqr2e * charge_i * charge_j * gnear_value / dis ;
+            }
+            else force_coul = 0.0;
+          }
 
 __device__
 void CoulCutForce_rs_erf(
@@ -250,6 +321,41 @@ void CoulCutForce_rcs(
 	  }
 	  else force_coul = 0.0;
 	}
+
+__device__
+void CoulCutForce_rcs_fix(
+        rbmd::Real rc,
+        rbmd::Real rs,
+        rbmd::Id  pice_num,
+        rbmd::Real alpha,
+        rbmd::Real qqr2e,
+        rbmd::Real charge_i,
+        rbmd::Real charge_j,
+        rbmd::Real px12,
+        rbmd::Real py12,
+        rbmd::Real pz12,
+        rbmd::Real& coul_force_factor,
+        rbmd::Real& force_coul)
+        {
+          const rbmd::Real dis_2 = px12 * px12 + py12 * py12 + pz12 * pz12;
+          const rbmd::Real dis = SQRT(dis_2);
+          const rbmd::Real dis_3 = POW(dis,3.0);
+          const rbmd::Real rc_2 = rc * rc;
+          const rbmd::Real rs_2 = rs * rs;
+
+          if (dis_2 < rc_2 && dis_2 > rs_2)
+          {
+            rbmd::Real erfcx = SQRT(alpha) * dis;
+            rbmd::Real expx = -alpha * dis_2;
+            rbmd::Real gnear_value = (1.0 - ERF(erfcx)) / dis_2 +
+                    2 * SQRT(alpha) * EXP(expx) / (SQRT(M_PI) * dis);
+            coul_force_factor = - qqr2e * charge_i * charge_j / dis_3;
+            force_coul = -pice_num* qqr2e * charge_i * charge_j *
+              gnear_value / dis ;
+          }
+          else force_coul = 0.0;
+
+        }
 
 __device__
 void CoulCutForce_rcs_erf(
@@ -965,8 +1071,8 @@ void CoulCutForce_rcs_erf(
 	      rbmd::Id index_table_pij = erf_table->Extract(dis);
 	      rbmd::Real  table_pij = erf_table->TableGnearValue(dis,index_table_pij);
 
-              rbmd::Real force_lj, force_coul, force_pair;
-              rbmd::Real energy_lj, energy_coul;
+              rbmd::Real force_lj, force_coul, force_pair,force_coul_factor;
+              rbmd::Real energy_lj, energy_coul,energy_coul_factor;
               //lj cut
               lj126(cut_off, px12, py12, pz12, eps_ij, sigma_ij,
                 force_lj, energy_lj);
@@ -984,8 +1090,13 @@ void CoulCutForce_rcs_erf(
 	       }
 
                //Coul cut
-               CoulCutForce(cut_off, alpha, qqr2e,charge_i,
-                 charge_j, px12, py12, pz12, force_coul, energy_coul);
+               // CoulCutForce(cut_off, alpha, qqr2e,charge_i,
+               //   charge_j, px12, py12, pz12, force_coul, energy_coul);
+              CoulCutForce_fix(cut_off, alpha, qqr2e, charge_i, charge_j,
+                px12, py12, pz12, force_coul_factor,energy_coul_factor,
+                force_coul, energy_coul);
+              force_coul = force_coul-(1-weight)*force_coul_factor;
+              energy_coul = energy_coul-(1-weight)*energy_coul_factor;
 
               //sum force of special_lj_cut  and coul
                force_pair = weight * force_lj + force_coul;
@@ -1169,8 +1280,8 @@ void CoulCutForce_rcs_erf(
 	      rbmd::Id index_table_pij = erf_table->Extract(dis);
 	      rbmd::Real table_pij = erf_table->TableGnearValue(dis,index_table_pij);
 
-              rbmd::Real force_lj, force_coul, force_pair;
-	      rbmd::Real energy_lj, energy_coul;
+              rbmd::Real force_lj, force_coul, force_pair,force_coul_factor;
+	      rbmd::Real energy_lj, energy_coul,energy_coul_factor;
 
 	      //lj cut
 	      lj126(cut_off, px12, py12, pz12, eps_ij, sigma_ij,
@@ -1188,8 +1299,13 @@ void CoulCutForce_rcs_erf(
               energy_lj  = weight * energy_lj;
 
 	      //Coul cut
-	      CoulCutForce(cut_off, alpha, qqr2e, charge_i, charge_j,
-	        px12, py12, pz12, force_coul, energy_coul);
+	      // CoulCutForce(cut_off, alpha, qqr2e, charge_i, charge_j,
+	      //   px12, py12, pz12, force_coul, energy_coul);
+              CoulCutForce_fix(cut_off, alpha, qqr2e, charge_i, charge_j,
+                px12, py12, pz12, force_coul_factor,energy_coul_factor,
+                force_coul,energy_coul);
+              energy_coul = energy_coul- (1-weight)*energy_coul_factor;
+
 	      sum_elj += energy_lj;
 	      sum_ecoul += energy_coul;
             }
@@ -1393,8 +1509,6 @@ void CoulCutForce_rcs_erf(
           unsigned int tid1 = blockIdx.x * blockDim.x + threadIdx.x;
           if (tid1 < num_atoms)
           {
-            // if(tid1 == 0)
-            // {
 	    rbmd::Id  atom_id1 = atoms_id[tid1];
             rbmd::Id  num_components = special_offset[atom_id1];
 	    rbmd::Id typei = atoms_type[tid1];
@@ -1430,7 +1544,7 @@ void CoulCutForce_rcs_erf(
 	      rbmd::Real  table_pij = erf_table->TableGnearValue(dis,index_table_pij);
 
 	      //compute the force_rs
-	      rbmd::Real force_lj_rs, force_coul_rs;
+	      rbmd::Real force_lj_rs, force_coul_rs,force_coul_factor_rs;
 	      rbmd::Real fs_ij;
 	      lj126_rs(rs, px12, py12, pz12, eps_ij, sigma_ij,
 		     force_lj_rs);
@@ -1447,8 +1561,12 @@ void CoulCutForce_rcs_erf(
 	      }
 	      force_lj_rs = weight * force_lj_rs;
 
-	      CoulCutForce_rs(rs, alpha, qqr2e,charge_i, charge_j,
-	        px12, py12, pz12, force_coul_rs);
+	      // CoulCutForce_rs(rs, alpha, qqr2e,charge_i, charge_j,
+	      //   px12, py12, pz12, force_coul_rs);
+
+	      CoulCutForce_rs_fix(rs,alpha,qqr2e,charge_i,charge_j,
+	        px12, py12, pz12, force_coul_factor_rs,force_coul_rs);
+	      force_coul_rs = force_coul_rs - (1-weight)*force_coul_factor_rs;
 
 	      fs_ij = force_lj_rs + force_coul_rs;
 	      sum_fsx += fs_ij * px12;
@@ -1484,7 +1602,7 @@ void CoulCutForce_rcs_erf(
               rbmd::Real  table_pij = erf_table->TableGnearValue(dis,index_table_pij);
 
               //compute the force_rcs
-              rbmd::Real force_lj_rcs, force_coul_rcs;
+              rbmd::Real force_lj_rcs, force_coul_rcs,force_coul_factor_rcs;
               rbmd::Real fcs_ij;
               lj126_rcs(rc, rs, pice_num, px12, py12, pz12,
 		    eps_ij, sigma_ij, force_lj_rcs);
@@ -1501,8 +1619,12 @@ void CoulCutForce_rcs_erf(
               }
               force_lj_rcs = weight * force_lj_rcs;
 
-              CoulCutForce_rcs(rc,rs, pice_num, alpha, qqr2e,
-	         charge_i, charge_j, px12, py12, pz12, force_coul_rcs);
+          //     CoulCutForce_rcs(rc,rs, pice_num, alpha, qqr2e,
+	         // charge_i, charge_j, px12, py12, pz12, force_coul_rcs);
+              CoulCutForce_rcs_fix(rc,rs, pice_num, alpha, qqr2e,
+                 charge_i, charge_j, px12, py12, pz12, force_coul_factor_rcs,
+                 force_coul_rcs);
+              force_coul_rcs = force_coul_rcs - (1-weight)*force_coul_factor_rcs;
 
               fcs_ij = force_lj_rcs + force_coul_rcs;
               sum_fcsx += fcs_ij * px12;
@@ -1517,7 +1639,6 @@ void CoulCutForce_rcs_erf(
             fx[tid1] = sum_fx;
             fy[tid1] = sum_fy;
             fz[tid1] = sum_fz;
-            //}
           }
 	}
 
@@ -1940,7 +2061,7 @@ void CoulCutForce_rcs_erf(
 	       if (dis_2 < rs_2 && dis_2 > EPSILON) {
 	         rbmd::Real dis_ij3 = POW(dis_ij, 3.0);
 	         force_component_rs = -qqr2e * charge_i * charge_j / dis_ij3;
-	       }
+	      }
 	       rbmd::Real weight = 1.0;
 	       for (rbmd::Id k = 0; k < special_count[atom_id1]; ++k)
 	       {

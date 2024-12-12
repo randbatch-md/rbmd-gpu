@@ -55,7 +55,8 @@ void LJForce::ComputeLJRBL()
     auto end = std::chrono::high_resolution_clock::now();
 
     std::chrono::duration<rbmd::Real> duration = end - start;
-    std::cout << "构建RBL邻居列表耗时" << duration.count() << "秒" << std::endl;
+    std::cout << "当前步： "<< test_current_step << " "<<"构建RBL邻居列表耗时"
+      << duration.count() << "秒" << std::endl;
 
     // compute force
     const auto r_core =
@@ -104,7 +105,7 @@ void LJForce::ComputeLJRBL()
                         thrust::raw_pointer_cast(_device_data->_d_fz.data()));
 
     //energy
-    ComputeLJEnergy();
+    //ComputeLJEnergy();
 }
 
 void LJForce::ComputeLJVerlet()
