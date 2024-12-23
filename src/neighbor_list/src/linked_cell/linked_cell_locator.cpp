@@ -30,8 +30,6 @@ std::shared_ptr<LinkedCell> LinkedCellLocator::GetLinkedCell() {
                   << std::endl;
         exit(0);
       }
-      _linked_cell->_cell_count_within_cutoff = static_cast<rbmd::Id>(
-          std::ceil(static_cast<double>(_linked_cell->_cutoff / _r_core)));
     }
     _linked_cell->Build(DataManager::getInstance().getMDData()->_h_box.get());
     _linked_cell->InitializeCells();
