@@ -63,17 +63,20 @@ __global__ void ComputeSpecialLJCutCoulForce(
       rbmd::Real x2 = px[tid2];
       rbmd::Real y2 = py[tid2];
       rbmd::Real z2 = pz[tid2];
-      rbmd::Real x12 = x1 - x2;
-      rbmd::Real y12 = y1 - y2;
-      rbmd::Real z12 = z1 - z2;
+      rbmd::Real x12 = x2 - x1;
+      rbmd::Real y12 = y2 - y1;
+      rbmd::Real z12 = z2 - z1;
+      // rbmd::Real x12 = x1 - x2;
+      // rbmd::Real y12 = y1 - y2;
+      // rbmd::Real z12 = z1 - z2;
       MinImageDistance(box, x12, y12, z12);
       // erf value
       rbmd::Real dis = SQRT(x12 * x12 + y12 * y12 + z12 * z12);
       rbmd::Id index_table_pij = Extract(dis);
       rbmd::Real table_pij = TableGnearValue(erf_table,dis, index_table_pij);
 
-      rbmd::Real force_lj, force_coul, force_pair;
-      rbmd::Real energy_lj, energy_coul;
+      rbmd::Real force_lj, force_coul, force_pair,force_coul_factor;
+      rbmd::Real energy_lj, energy_coul,energy_coul_factor;
       // lj cut
       lj126(cut_off, x12, y12, z12, eps_ij, sigma_ij, force_lj, energy_lj);
 
@@ -88,23 +91,27 @@ __global__ void ComputeSpecialLJCutCoulForce(
       }
 
       // Coul cut
-      CoulCutForce(cut_off, alpha, qqr2e, charge_i, charge_j,
-                       x12, y12, z12, force_coul, energy_coul);
+      CoulCutForce_fix(cut_off, alpha, qqr2e, charge_i, charge_j,
+      x12, y12, z12, force_coul_factor,energy_coul_factor,
+      force_coul, energy_coul);
+      force_coul = force_coul-(1-weight)*force_coul_factor;
+      energy_coul = energy_coul-(1-weight)*energy_coul_factor;
 
-      // sum force of special_lj_cut  and coul
+      // sum force of special_lj_cut  and coul_cut
       force_pair = weight * force_lj + force_coul;
       sum_fx += force_pair * x12;
       sum_fy += force_pair * y12;
       sum_fz += force_pair * z12;
-      // sum energy  of special_lj_cut  and coul
+      // sum energy  of special_lj_cut  and coul_cut
       sum_elj += weight * energy_lj;
       sum_ecoul += energy_coul;
 
       //rbmd::Real local_virial[6];
       rbmd::Real local_virial_xx,local_virial_yy,local_virial_zz,
-  local_virial_xy,local_virial_xz,local_virial_yz;
-      ComputeVirial_fix(x12, y12, z12,force_pair,local_virial_xx,local_virial_yy,
-    local_virial_zz,local_virial_xy,local_virial_xz,local_virial_yz);
+        local_virial_xy,local_virial_xz,local_virial_yz;
+      ComputeVirial_fix(x12, y12, z12,force_pair,
+        local_virial_xx,local_virial_yy,local_virial_zz,
+        local_virial_xy,local_virial_xz,local_virial_yz);
 
       //
       sum_virial[0] +=local_virial_xx;
@@ -196,7 +203,7 @@ __global__ void ComputeSpecialLJCutCoulRBLForce(
       rbmd::Real table_pij = TableGnearValue(erf_table,dis, index_table_pij);
 
       // compute the force_rs
-      rbmd::Real force_lj_rs, force_coul_rs;
+      rbmd::Real force_lj_rs, force_coul_rs,force_coul_factor_rs;
       rbmd::Real fs_ij;
       lj126_rs(rs, px12, py12, pz12, eps_ij, sigma_ij, force_lj_rs);
 
@@ -210,8 +217,9 @@ __global__ void ComputeSpecialLJCutCoulRBLForce(
       }
       force_lj_rs = weight * force_lj_rs;
 
-      CoulCutForce_rs_erf(rs, alpha, qqr2e, table_pij, charge_i, charge_j, px12,
-                          py12, pz12, force_coul_rs);
+      CoulCutForce_rs_fix(rs,alpha,qqr2e,charge_i,charge_j,
+        px12, py12, pz12, force_coul_factor_rs,force_coul_rs);
+      force_coul_rs = force_coul_rs - (1-weight)*force_coul_factor_rs;
 
       fs_ij = force_lj_rs + force_coul_rs;
       sum_fsx += fs_ij * px12;
@@ -246,7 +254,7 @@ __global__ void ComputeSpecialLJCutCoulRBLForce(
       rbmd::Real table_pij = TableGnearValue(erf_table,dis, index_table_pij);
 
       // compute the force_rcs
-      rbmd::Real force_lj_rcs, force_coul_rcs;
+      rbmd::Real force_lj_rcs, force_coul_rcs,force_coul_factor_rcs;
       rbmd::Real fcs_ij;
       lj126_rcs(rc, rs, pice_num, px12, py12, pz12, eps_ij, sigma_ij,
                 force_lj_rcs);
@@ -261,8 +269,10 @@ __global__ void ComputeSpecialLJCutCoulRBLForce(
       }
       force_lj_rcs = weight * force_lj_rcs;
 
-      CoulCutForce_rcs_erf(rc, rs, pice_num, alpha, qqr2e, table_pij, charge_i,
-                           charge_j, px12, py12, pz12, force_coul_rcs);
+      CoulCutForce_rcs_fix(rc,rs, pice_num, alpha, qqr2e,
+      charge_i, charge_j, px12, py12, pz12, force_coul_factor_rcs,
+    force_coul_rcs);
+      force_coul_rcs = force_coul_rcs - (1-weight)*force_coul_factor_rcs;
 
       fcs_ij = force_lj_rcs + force_coul_rcs;
       sum_fcsx += fcs_ij * px12;
@@ -342,8 +352,8 @@ __global__ void ComputeSpecialLJCutCoulEnergy(
       rbmd::Id index_table_pij = Extract(dis);
       rbmd::Real table_pij = TableGnearValue(erf_table,dis, index_table_pij);
 
-      rbmd::Real force_lj, force_coul, force_pair;
-      rbmd::Real energy_lj, energy_coul;
+      rbmd::Real force_lj, force_coul, force_pair,force_coul_factor;
+      rbmd::Real energy_lj, energy_coul,energy_coul_factor;
 
       // lj cut
       lj126(cut_off, px12, py12, pz12, eps_ij, sigma_ij, force_lj, energy_lj);
@@ -355,12 +365,22 @@ __global__ void ComputeSpecialLJCutCoulEnergy(
           weight = special_weights[num_components + k];
         }
       }
-      force_pair = weight * force_lj + force_coul;
+      force_lj = weight * force_lj;
       energy_lj = weight * energy_lj;
 
       // Coul cut
-      CoulCutForce_erf(cut_off, alpha, qqr2e, table_pij, charge_i, charge_j,
-                       px12, py12, pz12, force_coul, energy_coul);
+      // CoulCutForce_erf(cut_off, alpha, qqr2e, table_pij, charge_i, charge_j,
+      //                  px12, py12, pz12, force_coul, energy_coul);
+      CoulCutForce_fix(cut_off, alpha, qqr2e, charge_i, charge_j,
+        px12, py12, pz12, force_coul_factor,energy_coul_factor,
+      force_coul,energy_coul);
+      force_coul = force_coul-(1-weight)*force_coul_factor;
+      energy_coul = energy_coul- (1-weight)*energy_coul_factor;
+
+      //sum force of special_lj_cut  and coul
+      force_pair = force_lj + force_coul;
+
+      //sum energy  of special_lj_cut  and coul
       sum_elj += energy_lj;
       sum_ecoul += energy_coul;
 
@@ -395,112 +415,6 @@ __global__ void ComputeSpecialLJCutCoulEnergy(
   if (threadIdx.x == 0) {
     atomicAdd(total_evdwl, block_sum_elj);
     atomicAdd(total_ecoul, block_sum_ecoul);
-  }
-}
-
-//SpecialCoul
-  __global__ void ComputeSpecialCoulForce(
-     Box box, const rbmd::Id num_atoms, const rbmd::Real qqr2e,
-    const rbmd::Id* atoms_id, const rbmd::Id* atom_id_to_idx,
-    const rbmd::Id* atoms_vec, const rbmd::Id* atoms_offset,
-    const rbmd::Id* atom_count, const rbmd::Id* special_ids,
-    const rbmd::Real* special_weights, const rbmd::Id* special_offset,
-    const rbmd::Id* special_count, const rbmd::Real* charge,
-    const rbmd::Real* px, const rbmd::Real* py, const rbmd::Real* pz,
-    rbmd::Real* fx, rbmd::Real* fy, rbmd::Real* fz,rbmd::Real* flat_virial,
-    rbmd::Real* total_especial_coul) {
-  __shared__ typename BLOCKREDUCE<rbmd::Real, BLOCK_SIZE>::TempStorage
-      temp_storage;
-
-  rbmd::Real sum_fx = 0.0;
-  rbmd::Real sum_fy = 0.0;
-  rbmd::Real sum_fz = 0.0;
-  rbmd::Real sum_energy_special_coul = 0.0;
-  //virial init
-  rbmd::Real sum_virial[6];
-  for (int i = 0; i < 6; ++i)
-  {
-    sum_virial[i] = 0.0;
-  }
-
-  unsigned int tid1 = blockIdx.x * blockDim.x + threadIdx.x;
-  if (tid1 < num_atoms) {
-    rbmd::Id atom_id1 = atoms_id[tid1];
-    rbmd::Id id1 = atom_id_to_idx[atom_id1];  // idx
-    if (atom_count[atom_id1] < 3) {
-      sum_fx = sum_fx = sum_fx = 0.0;
-      sum_energy_special_coul = 0.0;
-    } else {
-      rbmd::Real charge_i = charge[id1];
-      rbmd::Real x1 = px[id1];
-      rbmd::Real y1 = py[id1];
-      rbmd::Real z1 = pz[id1];
-      rbmd::Id num_offset = atoms_offset[atom_id1];
-      rbmd::Id num_components = special_offset[atom_id1];
-      // printf("atom_id1 %i num_offset %i\n",atom_id1 ,num_offset);
-      for (rbmd::Id j = 0; j < atom_count[atom_id1]; ++j) {
-        rbmd::Id atom_id2 = atoms_vec[num_offset + j];
-        rbmd::Id id2 = atom_id_to_idx[atom_id2];  // idx
-        if (atom_id1 == atom_id2) continue;
-
-        rbmd::Real charge_j = charge[id2];
-        rbmd::Real x2 = px[id2];
-        rbmd::Real y2 = py[id2];
-        rbmd::Real z2 = pz[id2];
-
-        rbmd::Real x12 = x1 - x2;
-        rbmd::Real y12 = y1 - y2;
-        rbmd::Real z12 = z1 - z2;
-        MinImageDistance(box, x12, y12, z12);
-
-        rbmd::Real dis_ij = SQRT(x12 * x12 + y12 * y12 + z12 * z12);
-        rbmd::Real dis_ij3 = POW(dis_ij, 3.0);
-        rbmd::Real force_component = -qqr2e * charge_i * charge_j / dis_ij3; //+
-        rbmd::Real energy_atom = 0.5 * qqr2e * charge_i * charge_j / dis_ij;
-
-        rbmd::Real weight = 1.0;
-        for (rbmd::Id k = 0; k < special_count[atom_id1]; ++k) {
-          rbmd::Id special_id = special_ids[num_components + k];
-          if (special_id == atom_id2) {
-            weight = special_weights[num_components + k];
-          }
-        }
-        sum_fx += (1.0 - weight) * force_component * x12;
-        sum_fy += (1.0 - weight) * force_component * y12;
-        sum_fz += (1.0 - weight) * force_component * z12;
-        sum_energy_special_coul += (1.0 - weight) * energy_atom;
-
-        rbmd::Real force_component_single = (1.0 - weight) * force_component;
-        rbmd::Real local_virial_xx,local_virial_yy,local_virial_zz,
-  local_virial_xy,local_virial_xz,local_virial_yz;
-        ComputeVirial_fix(x12,y12,z12,force_component_single,local_virial_xx,
-          local_virial_yy,local_virial_zz,local_virial_xy,local_virial_xz,
-          local_virial_yz);
-
-        //
-        sum_virial[0] +=local_virial_xx;
-        sum_virial[1] +=local_virial_yy;
-        sum_virial[2] +=local_virial_zz;
-        sum_virial[3] +=local_virial_xy;
-        sum_virial[4] +=local_virial_xz;
-        sum_virial[5] +=local_virial_yz;
-      }
-    }
-
-    fx[id1] = sum_fx;
-    fy[id1] = sum_fy;
-    fz[id1] = sum_fz;
-    //
-    for(int i =0;i<6;++i) {
-      flat_virial[  i * num_atoms + tid1] = sum_virial[i];
-    }
-  }
-
-  rbmd::Real block_sum_especial_coul =
-      BLOCKREDUCE<rbmd::Real, BLOCK_SIZE>(temp_storage)
-          .Sum(sum_energy_special_coul);
-  if (threadIdx.x == 0) {
-    atomicAdd(total_especial_coul, block_sum_especial_coul);
   }
 }
 
@@ -1182,7 +1096,7 @@ __global__ void ComputeBondForce(
   }
 
 ////////////////////////////////////////
-//verlet-list:  force  of special lJ_cut and coul
+//verlet-list:  force  of special lJ_cut and coul_cut
   void SpecialLJCutCoulForceOp<device::DEVICE_GPU>::operator()(
        Box box, ERFTable* erf_table, const rbmd::Real cut_off,
       const rbmd::Id num_atoms, const rbmd::Real alpha, const rbmd::Real qqr2e,
@@ -1204,7 +1118,7 @@ __global__ void ComputeBondForce(
             fx, fy, fz, flat_virial,total_evdwl, total_ecoul));
   }
 
-//RBL:  force  of special lJ_cut and coul
+//RBL:  force  of special lJ_cut and coul_cut
   void SpecialLJCutCoulRBLForceOp<device::DEVICE_GPU>::operator()(
        Box box, ERFTable* erf_table, const rbmd::Real rs, const rbmd::Real rc,
       const rbmd::Id num_atoms, const rbmd::Id neighbor_sample_num,
@@ -1228,7 +1142,7 @@ __global__ void ComputeBondForce(
             fx, fy, fz));
   }
 
-  //verlet-list:  Energy of special lJ_cut and coul
+  //verlet-list:  Energy of special lJ_cut and coul_cut
   void SpeciaLJCutCoulEnergyOp<device::DEVICE_GPU>::operator()(
      Box box, ERFTable* erf_table, const rbmd::Real cut_off,
     const rbmd::Id num_atoms, const rbmd::Real alpha, const rbmd::Real qqr2e,
@@ -1248,25 +1162,6 @@ __global__ void ComputeBondForce(
             atoms_id, sigma, eps, start_id, end_id, id_verletlist, special_ids,
             special_weights, special_offset, special_count, charge, px, py, pz,
             flat_virial,total_evdwl, total_ecoul));
-  }
-
-  //  force of special coul
-  void ComputeSpecialCoulForceOp<device::DEVICE_GPU>::operator()(
-       Box box, const rbmd::Id num_atoms, const rbmd::Real qqr2e,
-      const rbmd::Id* atoms_id, const rbmd::Id* atom_id_to_idx,
-      const rbmd::Id* atoms_vec, const rbmd::Id* atoms_offset,
-      const rbmd::Id* atom_count, const rbmd::Id* special_ids,
-      const rbmd::Real* special_weights, const rbmd::Id* special_offset,
-      const rbmd::Id* special_count, const rbmd::Real* charge,
-      const rbmd::Real* px, const rbmd::Real* py, const rbmd::Real* pz,
-      rbmd::Real* fx, rbmd::Real* fy, rbmd::Real* fz,rbmd::Real* flat_virial,
-      rbmd::Real* total_especial_coul) {
-    unsigned int blocks_per_grid = (num_atoms + BLOCK_SIZE - 1) / BLOCK_SIZE;
-
-    CHECK_KERNEL(ComputeSpecialCoulForce<<<blocks_per_grid, BLOCK_SIZE, 0, 0>>>(
-        box, num_atoms, qqr2e, atoms_id, atom_id_to_idx, atoms_vec, atoms_offset,
-        atom_count, special_ids, special_weights, special_offset, special_count,
-        charge, px, py, pz, fx, fy, fz, flat_virial,total_especial_coul));
   }
 
   // force of bond

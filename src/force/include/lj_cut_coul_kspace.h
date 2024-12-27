@@ -37,7 +37,7 @@ public:
   void  ComputeChargeStructureFactorEwald(
           Box box,
           rbmd::Id num_atoms,
-          rbmd::Id Kmax,
+          Int3 Kmax_array,
           rbmd::Real alpha,
           rbmd::Real qqr2e,
           rbmd::Real* value_Re_array,
@@ -49,7 +49,7 @@ public:
   void ComputeChargeStructureFactorRBE(
          Box box,
          rbmd::Id num_atoms,
-         rbmd::Id Kmax,
+         Int3 Kmax_array,
          rbmd::Real alpha,
          rbmd::Id RBE_P,
          rbmd::Real qqr2e,
@@ -68,7 +68,7 @@ public:
   void ComputeKspaceEnergy(
         Box box,
         rbmd::Id _num_atoms,
-        rbmd::Id Kmax,
+        Int3 Kmax_array,
         rbmd::Real alpha,
         rbmd::Real qqr2e,
         rbmd::Real& ave_ekspace);   //Ewald  Energy

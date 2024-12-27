@@ -25,16 +25,8 @@ LJCutCoulKspace::LJCutCoulKspace()
   _rbl_neighbor_list_builder = std::make_shared<RblFullNeighborListBuilder>();
   _neighbor_list_builder = std::make_shared<FullNeighborListBuilder>();
 
-//   _Kmax = DataManager::getInstance().getConfigData()->Get<rbmd::Id>(
-// "kmax", "hyper_parameters", "coulomb");
-
-  _cut_off = DataManager::getInstance().getConfigData()->Get
- <rbmd::Real>("cut_off", "hyper_parameters", "neighbor");
   auto unit = DataManager::getInstance().getConfigData()->Get
 <std::string>("unit", "init_configuration", "read_data");
-  _accuracy = DataManager::getInstance().getConfigData()->Get<rbmd::Real>(
-"accuracy", "hyper_parameters", "coulomb");
-
   UNIT unit_factor = unit_factor_map[unit];
   switch (unit_factor) {
     case UNIT::LJ:
@@ -49,26 +41,40 @@ LJCutCoulKspace::LJCutCoulKspace()
       break;
   }
 
-  auto box =  DataManager::getInstance().getMDData()->_box;
-  auto volue = CalculateVolume(*box);
-  auto num_atoms = *(_structure_info_data->_num_atoms);
-  //  sum q_sq
-  ComputeQsqSum(); //q2
+  _cut_off = DataManager::getInstance().getConfigData()->Get
+<rbmd::Real>("cut_off", "hyper_parameters", "neighbor");
 
-  //compute g_ewald
-  _g_ewald = _accuracy*SQRT(num_atoms*_cut_off*volue) / (2.0*_sum_sq_charge);
-  if (_g_ewald >= 1.0) _g_ewald = (1.35 - 0.15*LOG(_accuracy))/_cut_off;
-  else _g_ewald = SQRT(-LOG(_g_ewald)) / _cut_off;
-  _alpha = _g_ewald*_g_ewald;
+//   _accuracy = DataManager::getInstance().getConfigData()->Get<rbmd::Real>(
+// "accuracy", "hyper_parameters", "coulomb");
+//   auto box =  DataManager::getInstance().getMDData()->_box;
+//   auto volue = CalculateVolume(*box);
+//   auto num_atoms = *(_structure_info_data->_num_atoms);
+//   //  sum q_sq
+//   ComputeQsqSum(); //q2
+//
+//   //compute g_ewald
+//   _g_ewald = _accuracy*SQRT(num_atoms*_cut_off*volue) / (2.0*_sum_sq_charge);
+//   if (_g_ewald >= 1.0) _g_ewald = (1.35 - 0.15*LOG(_accuracy))/_cut_off;
+//   else _g_ewald = SQRT(-LOG(_g_ewald)) / _cut_off;
+//   _alpha = _g_ewald*_g_ewald;
+//
+//   //automatically compute kmax
+//   SetKspacePara(); //kmax
+//   //ComputeEwlad_fix();
+//
+//   std::cout << "g_ewald: " << _g_ewald  <<", alpha: "<<
+//     _alpha  << ", num_k: " << _num_k << std::endl;
 
-  //automatically compute kmax
-  SetKspacePara(); //kmax
+  _alpha = DataManager::getInstance().getConfigData()->Get<rbmd::Real>(
+"alpha", "hyper_parameters", "coulomb");
+  auto Kmax =DataManager::getInstance().getConfigData()->
+    GetArray<rbmd::Id>("kmax", "hyper_parameters", "coulomb");
+  _kmax_array.x = Kmax[0];
+  _kmax_array.y = Kmax[1];
+  _kmax_array.z = Kmax[2];
 
-  _num_k =  (2*_Kmax +1)  * (2*_Kmax +1) * (2*_Kmax +1) - 1;
-  ComputeEwlad_fix();
-
-  std::cout << "g_ewald: " << _g_ewald  <<", alpha: "<<
-    _alpha  << ", num_k: " << _num_k << std::endl;
+  _num_k =  (2*_kmax_array.x +1)  * (2*_kmax_array.y +1)
+            * (2*_kmax_array.z +1) - 1;
 
   _h_Re_array = static_cast<rbmd::Real*>(malloc(_num_k * sizeof(rbmd::Real)));
   _h_Im_array = static_cast<rbmd::Real*>(malloc(_num_k * sizeof(rbmd::Real)));
@@ -83,18 +89,11 @@ LJCutCoulKspace::~LJCutCoulKspace()
 
 void LJCutCoulKspace::Init()
 {
-
-   // _cut_off = DataManager::getInstance().getConfigData()->Get
-   //  <rbmd::Real>("cut_off", "hyper_parameters", "neighbor");
    _neighbor_type = DataManager::getInstance().getConfigData()->Get
       <std::string>("type", "hyper_parameters", "neighbor");
 
    _coulomb_type =DataManager::getInstance().getConfigData()->Get<std::string>(
         "type", "hyper_parameters", "coulomb");
-  //   _alpha = DataManager::getInstance().getConfigData()->Get<rbmd::Real>(
-  // "alpha", "hyper_parameters", "coulomb");
-
-
 
   if("RBE" == _coulomb_type) {
     _RBE_P = DataManager::getInstance().getConfigData()->Get<rbmd::Id>(
@@ -280,7 +279,7 @@ void LJCutCoulKspace::SumForces()
 void LJCutCoulKspace::ComputeChargeStructureFactorEwald(
     Box box,
     rbmd::Id num_atoms,
-    rbmd::Id Kmax,
+    Int3 kmax_array,
     rbmd::Real alpha,
     rbmd::Real qqr2e,
     rbmd::Real* value_Re_array,
@@ -296,11 +295,11 @@ void LJCutCoulKspace::ComputeChargeStructureFactorEwald(
 
     rbmd::Real total_energy_kspace= 0;
     rbmd::Id index = 0;
-    for (rbmd::Id i = -Kmax; i <= Kmax; i++)
+    for (rbmd::Id i = -REAL_DATA(kmax_array)[0]; i <= REAL_DATA(kmax_array)[0]; i++)
     {
-        for (rbmd::Id j = -Kmax; j <= Kmax; j++)
+        for (rbmd::Id j = -REAL_DATA(kmax_array)[1]; j <= REAL_DATA(kmax_array)[1]; j++)
         {
-            for (rbmd::Id k = -Kmax; k <= Kmax; k++)
+            for (rbmd::Id k = -REAL_DATA(kmax_array)[2]; k <= REAL_DATA(kmax_array)[2]; k++)
             {
                 if (!(i == 0 && j == 0 && k == 0))
                 {
@@ -365,7 +364,7 @@ void LJCutCoulKspace::ComputeEwlad()
   memset(_h_Im_array, 0, _num_k * sizeof(rbmd::Real));
 
   //compute charge structure factor
-  ComputeChargeStructureFactorEwald(*_box, num_atoms, _Kmax,
+  ComputeChargeStructureFactorEwald(*_box, num_atoms, _kmax_array,
     _alpha,_qqr2e, _h_Re_array,_h_Im_array);
 
   thrust::device_vector<rbmd::Real> d_real_array(_num_k);
@@ -393,7 +392,7 @@ void LJCutCoulKspace::ComputeEwlad()
 
   //EwaldForce//
   op::ComputeEwaldForceOp<device::DEVICE_GPU>()(
-        *_box,num_atoms, _Kmax, _alpha,_qqr2e,
+        *_box,num_atoms, _kmax_array, _alpha,_qqr2e,
         thrust::raw_pointer_cast(d_real_array.data()),
           thrust::raw_pointer_cast(d_imag_array.data()),
         thrust::raw_pointer_cast(_device_data->_d_charge.data()),
@@ -465,7 +464,7 @@ void LJCutCoulKspace::GetPsampleKey()
 void LJCutCoulKspace::ComputeChargeStructureFactorRBE(
    Box box,
    rbmd::Id num_atoms,
-   rbmd::Id Kmax,
+   Int3 kmax_array,
    rbmd::Real alpha,
    rbmd::Id RBE_P,
    rbmd::Real qqr2e,
@@ -512,7 +511,7 @@ void LJCutCoulKspace::ComputeChargeStructureFactorRBE(
   ComputeSelfEnergy(alpha,qqr2e,_ave_self_energy);
 
   //kspace energy
-  ComputeKspaceEnergy(box, num_atoms, Kmax,
+  ComputeKspaceEnergy(box, num_atoms, kmax_array,
       alpha, qqr2e ,_ave_ekspace);
   _ave_ekspace = _ave_ekspace +_ave_self_energy;
 
@@ -528,7 +527,7 @@ void LJCutCoulKspace::ComputeRBE()
   auto num_atoms = *(_structure_info_data->_num_atoms);
   _rhok_real_redue.resize(_RBE_P);
   _rhok_image_redue.resize(_RBE_P);
-  ComputeChargeStructureFactorRBE(*_box, num_atoms, _Kmax,
+  ComputeChargeStructureFactorRBE(*_box, num_atoms, _kmax_array,
       _alpha,_RBE_P,_qqr2e,_rhok_real_redue,_rhok_image_redue);
 
    //RBE Force
@@ -650,7 +649,7 @@ void LJCutCoulKspace::ComputeSelfEnergy(
 void LJCutCoulKspace::ComputeKspaceEnergy(
     Box box,
     rbmd::Id num_atoms,
-    rbmd::Id Kmax,
+    Int3 kmax_array,
     rbmd::Real alpha,
     rbmd::Real qqr2e,
     rbmd::Real&  ave_ekspace)
@@ -661,11 +660,11 @@ void LJCutCoulKspace::ComputeKspaceEnergy(
     density_imag_atom.resize(num_atoms);
 
     rbmd::Real total_energy_ewald = 0;
-    for (rbmd::Id i = -Kmax; i <= Kmax; i++)
+    for (rbmd::Id i = -REAL_DATA(kmax_array)[0]; i <= REAL_DATA(kmax_array)[0]; i++)
     {
-        for (rbmd::Id j = -Kmax; j <= Kmax; j++)
+        for (rbmd::Id j = -REAL_DATA(kmax_array)[1]; j <= REAL_DATA(kmax_array)[1]; j++)
         {
-            for (rbmd::Id k = -Kmax; k <= Kmax; k++)
+            for (rbmd::Id k = -REAL_DATA(kmax_array)[2]; k <= REAL_DATA(kmax_array)[2]; k++)
             {
                 if (!(i == 0 && j == 0 && k == 0))
                 {
@@ -1106,7 +1105,7 @@ void LJCutCoulKspace::SetKspacePara()
     _gsqmx = MAX(_gsqmx,gsqzmx);
   }
   _gsqmx *= 1.00001;
-  coeffs();//
+  //coeffs();//
   std::cout << "gsqmx: " << _gsqmx << " " << "kcount: " << kcount  <<std::endl;
 }
 

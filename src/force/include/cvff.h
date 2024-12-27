@@ -22,10 +22,15 @@ public:
   void ComputeKspaceForce();
   void SumForces();
 
+  //
+  void ComputeQsqSum();
+  rbmd::Real ComputeRMS(rbmd::Id kmax,rbmd::Real box_length,rbmd::Real q2);
+  void SetKspacePara();
+
   void  ComputeChargeStructureFactorEwald(
           Box box,
           rbmd::Id num_atoms,
-          rbmd::Id Kmax,
+          Int3 Kmax_array,
           rbmd::Real alpha,
           rbmd::Real qqr2e,
           rbmd::Real* value_Re_array,
@@ -37,7 +42,7 @@ public:
   void ComputeChargeStructureFactorRBE(
          Box box,
          rbmd::Id num_atoms,
-         rbmd::Id Kmax,
+         Int3 Kmax_array,
          rbmd::Real alpha,
          rbmd::Id RBE_P,
          rbmd::Real qqr2e,
@@ -56,12 +61,10 @@ public:
   void ComputeKspaceEnergy(
         Box box,
         rbmd::Id _num_atoms,
-        rbmd::Id Kmax,
+        Int3 Kmax_array,
         rbmd::Real alpha,
         rbmd::Real qqr2e,
         rbmd::Real& ave_ekspace);   //Ewald  Energy
-
-  void ComputeSpecialCoulForce();
 
   void ComputeBondForce(); //Harmonic
   void ComputeAngleForce(); //Harmonic
@@ -98,14 +101,25 @@ private:
   rbmd::Real _corr_value_z = 0;
 
   //EWALD
+  rbmd::Real _accuracy;
+  rbmd::Real _g_ewald;
+  rbmd::Real _alpha;
+  rbmd::Real _sum_sq_charge;
   rbmd::Real* _h_Re_array;
   rbmd::Real* _h_Im_array;
+
+  rbmd::Id _Kmax;
+  rbmd::Id _Kmax3D;
+  rbmd::Id kmax_x, kmax_y, kmax_z;
+  Int3 _kmax_array;
+  Real3 _unitk;
+  rbmd::Real _gsqmx;
+  rbmd::Id _kmax_x_orig, _kmax_y_orig, _kmax_z_orig;
+  rbmd::Id kcount;
 
   //RBE
   std::string _coulomb_type;
   rbmd::Id _RBE_P;
-  rbmd::Real _alpha;
-  rbmd::Id _Kmax;
   rbmd::Real _qqr2e;
   rbmd::Id _num_k;
   thrust::device_vector<rbmd::Real>  _P_Sample_x;

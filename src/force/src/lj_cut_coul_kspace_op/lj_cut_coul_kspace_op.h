@@ -104,7 +104,7 @@ namespace op
 		void operator()(
 			 Box box,
 			const rbmd::Id num_atoms,
-			const rbmd::Id  Kmax,
+			const Int3  Kmax,
 			const rbmd::Real alpha,
 			const rbmd::Real qqr2e,
 			const rbmd::Real* real_array,
@@ -339,7 +339,7 @@ namespace op
 		void operator()(
 			 Box box,
 			const rbmd::Id num_atoms,
-			const rbmd::Id  Kmax,
+			const Int3  Kmax,
 			const rbmd::Real alpha,
 			const rbmd::Real qqr2e,
 			const rbmd::Real* real_array,

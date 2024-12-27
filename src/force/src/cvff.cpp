@@ -27,25 +27,8 @@ CVFF::CVFF()
   _rbl_neighbor_list_builder = std::make_shared<RblFullNeighborListBuilder>();
   _neighbor_list_builder = std::make_shared<FullNeighborListBuilder>();
 
-  _Kmax = DataManager::getInstance().getConfigData()->Get<rbmd::Id>(
-"kmax", "hyper_parameters", "coulomb");
-  _num_k =  (2*_Kmax +1)  * (2*_Kmax +1) * (2*_Kmax +1) - 1;
-  _h_Re_array = static_cast<rbmd::Real*>(malloc(_num_k * sizeof(rbmd::Real)));
-  _h_Im_array = static_cast<rbmd::Real*>(malloc(_num_k * sizeof(rbmd::Real)));
-
-  std::remove("thermo_local.txt");
-}
-
-CVFF::~CVFF()
-{
-  free(_h_Re_array);
-  free(_h_Im_array);
-}
-
-void CVFF::Init()
-{
   auto unit = DataManager::getInstance().getConfigData()->Get
-    <std::string>("unit", "init_configuration", "read_data");
+  <std::string>("unit", "init_configuration", "read_data");
   UNIT unit_factor = unit_factor_map[unit];
 
   switch (unit_factor) {
@@ -61,15 +44,59 @@ void CVFF::Init()
       break;
   }
 
-   _cut_off = DataManager::getInstance().getConfigData()->Get
-    <rbmd::Real>("cut_off", "hyper_parameters", "neighbor");
-   _neighbor_type = DataManager::getInstance().getConfigData()->Get
-      <std::string>("type", "hyper_parameters", "neighbor");
+  _cut_off = DataManager::getInstance().getConfigData()->Get
+ <rbmd::Real>("cut_off", "hyper_parameters", "neighbor");
+
+//   _accuracy = DataManager::getInstance().getConfigData()->Get<rbmd::Real>(
+// "accuracy", "hyper_parameters", "coulomb");
+//
+//   auto box =  DataManager::getInstance().getMDData()->_box;
+//   auto volue = CalculateVolume(*box);
+//   auto num_atoms = *(_structure_info_data->_num_atoms);
+//   //  sum q_sq
+//   ComputeQsqSum(); //q2
+//
+//   //compute g_ewald
+//   _g_ewald = _accuracy*SQRT(num_atoms*_cut_off*volue) / (2.0*_sum_sq_charge);
+//   if (_g_ewald >= 1.0) _g_ewald = (1.35 - 0.15*LOG(_accuracy))/_cut_off;
+//   else _g_ewald = SQRT(-LOG(_g_ewald)) / _cut_off;
+//   _alpha = _g_ewald*_g_ewald;
+//
+//   //automatically compute kmax
+//   SetKspacePara(); //kmax
+//   std::cout <<"g_ewald: " << _g_ewald << ", alpha: "<< _alpha
+//     << ", Kmax: " << _kmax_array.x << " " << _kmax_array.y << " "
+//     << _kmax_array.z << std::endl;
+
+    _alpha = DataManager::getInstance().getConfigData()->Get<rbmd::Real>(
+  "alpha", "hyper_parameters", "coulomb");
+  auto Kmax =DataManager::getInstance().getConfigData()->
+    GetArray<rbmd::Id>("kmax", "hyper_parameters", "coulomb");
+  _kmax_array.x = Kmax[0];
+  _kmax_array.y = Kmax[1];
+  _kmax_array.z = Kmax[2];
+
+  _num_k =  (2*_kmax_array.x +1)  * (2*_kmax_array.y +1)
+            * (2*_kmax_array.z +1) - 1;
+  _h_Re_array = static_cast<rbmd::Real*>(malloc(_num_k * sizeof(rbmd::Real)));
+  _h_Im_array = static_cast<rbmd::Real*>(malloc(_num_k * sizeof(rbmd::Real)));
+
+  std::remove("thermo_local.txt");
+}
+
+CVFF::~CVFF()
+{
+  free(_h_Re_array);
+  free(_h_Im_array);
+}
+
+void CVFF::Init()
+{
+  _neighbor_type = DataManager::getInstance().getConfigData()->Get
+     <std::string>("type", "hyper_parameters", "neighbor");
 
    _coulomb_type =DataManager::getInstance().getConfigData()->Get<std::string>(
         "type", "hyper_parameters", "coulomb");
-    _alpha = DataManager::getInstance().getConfigData()->Get<rbmd::Real>(
-  "alpha", "hyper_parameters", "coulomb");
 
   if("RBE" == _coulomb_type) {
     _RBE_P = DataManager::getInstance().getConfigData()->Get<rbmd::Id>(
@@ -80,7 +107,6 @@ void CVFF::Init()
 
 void CVFF::Execute() {
   ComputeLJCutCoulForce();
-  ComputeSpecialCoulForce();
   ComputeKspaceForce();
 
   ComputeBondForce();
@@ -236,35 +262,8 @@ void CVFF::ComputeLJVerlet()
 
 
   std::cout << "test_current_step:" << test_current_step <<  " ,"
-  << "average_energy_vdwl:" << _ave_evdwl << " " << "average_coul_energy_old:" <<
+  << "average_energy_vdwl:" << _ave_evdwl << " " << "average_coul_energy:" <<
     _ave_ecoul  << std::endl;
-
-  // //out
-  // std::ofstream outfile("ave_energy_lj.txt", std::ios::app);
-  // outfile << test_current_step << " " << _ave_evdwl << std::endl;
-  // outfile.close();
-
-
-    // //out
-    // std::vector<rbmd::Real> h_force_ljcoul_x(num_atoms);
-    // std::vector<rbmd::Real> h_force_ljcoul_y(num_atoms);
-    // std::vector<rbmd::Real> h_force_ljcoul_z(num_atoms);
-    // thrust::copy(_device_data->_d_force_ljcoul_x.begin(),
-    //   _device_data->_d_force_ljcoul_x.end(), h_force_ljcoul_x.begin());
-    // thrust::copy(_device_data->_d_force_ljcoul_y.begin(),
-    // _device_data->_d_force_ljcoul_y.end(), h_force_ljcoul_y.begin());
-    //
-    // thrust::copy(_device_data->_d_force_ljcoul_z.begin(),
-    // _device_data->_d_force_ljcoul_z.end(), h_force_ljcoul_z.begin());
-    //
-    // thrust::host_vector<rbmd::Real> h_atoms_id = _device_data->_d_atoms_id;
-    // std::ofstream output_file("output_force_special_lj_verlet.txt");
-    // for (size_t i = 0; i < h_force_ljcoul_x.size(); ++i)
-    // {
-    //   output_file << h_atoms_id[i] << " " << h_force_ljcoul_x[i] << " "<<h_force_ljcoul_y[i] <<" "
-    //   << h_force_ljcoul_z[i] << std::endl;
-    // }
-    // output_file.close();
 
   //sum virial on host
   std::vector<rbmd::Real> h_flat_virial_lj(num_atoms * 6);
@@ -280,86 +279,15 @@ void CVFF::ComputeLJVerlet()
     }
   }
 
-  std::ofstream output_file3("output_virial_lj.txt");
-  for (size_t i = 0; i < virial_lj.size(); ++i)
-  {
-    output_file3 << i << " " <<virial_lj[i]  << std::endl;
-  }
-  output_file3.close();
+  // std::ofstream output_file3("output_virial_lj.txt");
+  // for (size_t i = 0; i < virial_lj.size(); ++i)
+  // {
+  //   output_file3 << i << " " <<virial_lj[i]  << std::endl;
+  // }
+  // output_file3.close();
 
   thrust::copy(virial_lj.begin(),
     virial_lj.end(), _device_data->_d_virial_lj.begin());
-
-}
-
-void CVFF::ComputeSpecialCoulForce()
-{
-  auto start = std::chrono::high_resolution_clock::now();
-
-  auto _atom_id_to_idx =
-    LinkedCellLocator::GetInstance().GetLinkedCell()->_atom_id_to_idx;
-
-  thrust::device_vector<rbmd::Real> d_total_especial_coul(1, 0.0);
-  //
-  auto num_atoms = *(_structure_info_data->_num_atoms);
-  op::ComputeSpecialCoulForceOp<device::DEVICE_GPU>()(
-    *_box,num_atoms,_qqr2e,
-  thrust::raw_pointer_cast(_device_data->_d_atoms_id.data()),
-  thrust::raw_pointer_cast(_atom_id_to_idx.data()),
-    thrust::raw_pointer_cast(_device_data->_d_atoms_vec.data()),
-    thrust::raw_pointer_cast(_device_data->_d_atoms_offset.data()),
-    thrust::raw_pointer_cast(_device_data->_d_atoms_count.data()),
-    thrust::raw_pointer_cast(_device_data->_d_special_ids.data()),
-    thrust::raw_pointer_cast(_device_data->_d_special_weights.data()),
-    thrust::raw_pointer_cast(_device_data->_d_special_offsets.data()),
-    thrust::raw_pointer_cast(_device_data->_d_special_count.data()),
-    thrust::raw_pointer_cast(_device_data->_d_charge.data()),
-    thrust::raw_pointer_cast(_device_data->_d_px.data()),
-    thrust::raw_pointer_cast(_device_data->_d_py.data()),
-    thrust::raw_pointer_cast(_device_data->_d_pz.data()),
-    thrust::raw_pointer_cast(_device_data->_d_force_specialcoul_x.data()),
-    thrust::raw_pointer_cast(_device_data->_d_force_specialcoul_y.data()),
-    thrust::raw_pointer_cast(_device_data->_d_force_specialcoul_z.data()),
-    thrust::raw_pointer_cast(_device_data->_d_flat_virial_specialcoul.data()),
-    thrust::raw_pointer_cast(d_total_especial_coul.data()));
-
-  auto end = std::chrono::high_resolution_clock::now();
-  std::chrono::duration<rbmd::Real> duration = end - start;
-  std::cout << "计算 special_coul 力耗时" << duration.count() << "秒" << std::endl;
-
-  // 从设备端拷贝数据到主机端
-  thrust::host_vector<rbmd::Real> h_total_especial_coul(d_total_especial_coul);
-  _ave_especial_coul = h_total_especial_coul[0]/num_atoms;
-  _ave_ecoul = _ave_ecoul -  _ave_especial_coul;
-
-  // 打印累加后的总能量
-  std::cout << "test_current_step:" << test_current_step <<  " ,"<<
-    "average_energy_specialcoul:" << _ave_especial_coul << " ,"
-  <<"average_energy_ecoul:" << _ave_ecoul << std::endl;
-
-  //sum virial on host
-  std::vector<rbmd::Real> h_flat_virial_specialcoul(num_atoms * 6);
-  thrust::copy(_device_data->_d_flat_virial_specialcoul.begin(),
-    _device_data->_d_flat_virial_specialcoul.end(), h_flat_virial_specialcoul.begin());
-
-  std::vector<rbmd::Real> virial_specialcoul(6);
-  virial_specialcoul =  {0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
-
-  for(int atom = 0; atom < num_atoms; ++atom){
-    for(int i = 0; i < 6; ++i){
-      virial_specialcoul[i] += h_flat_virial_specialcoul[atom * 6 + i];
-    }
-  }
-
-  std::ofstream output_file3("output_virial_specialcoul.txt");
-  for (size_t i = 0; i < virial_specialcoul.size(); ++i)
-  {
-    output_file3 << i << " " <<virial_specialcoul[i]  << std::endl;
-  }
-  output_file3.close();
-
-  thrust::copy(virial_specialcoul.begin(),
-    virial_specialcoul.end(), _device_data->_d_virial_specialcoul.begin());
 
 }
 
@@ -378,25 +306,25 @@ void CVFF::ComputeKspaceForce()
 void CVFF::SumForces()
 {
   TransformForces(_device_data->_d_fx,_device_data->_d_force_ljcoul_x,
-                  _device_data->_d_force_specialcoul_x,_device_data->_d_force_kspace_x,
-                  _device_data->_d_force_bond_x,_device_data->_d_force_angle_x,
-                  _device_data->_d_force_dihedral_x,_device_data->_d_force_improper_x);
+    _device_data->_d_force_kspace_x,_device_data->_d_force_bond_x,
+    _device_data->_d_force_angle_x,_device_data->_d_force_dihedral_x,
+    _device_data->_d_force_improper_x);
 
   TransformForces(_device_data->_d_fy,_device_data->_d_force_ljcoul_y,
-                _device_data->_d_force_specialcoul_y,_device_data->_d_force_kspace_y,
-                _device_data->_d_force_bond_y,_device_data->_d_force_angle_y,
-                _device_data->_d_force_dihedral_y,_device_data->_d_force_improper_y);
+    _device_data->_d_force_kspace_y,_device_data->_d_force_bond_y,
+    _device_data->_d_force_angle_y,_device_data->_d_force_dihedral_y,
+    _device_data->_d_force_improper_y);
 
   TransformForces(_device_data->_d_fz,_device_data->_d_force_ljcoul_z,
-                _device_data->_d_force_specialcoul_z,_device_data->_d_force_kspace_z,
-                _device_data->_d_force_bond_z,_device_data->_d_force_angle_z,
-                _device_data->_d_force_dihedral_z,_device_data->_d_force_improper_z);
+    _device_data->_d_force_kspace_z,_device_data->_d_force_bond_z,
+    _device_data->_d_force_angle_z,_device_data->_d_force_dihedral_z,
+    _device_data->_d_force_improper_z);
 }
 
 void CVFF::ComputeChargeStructureFactorEwald(
     Box box,
     rbmd::Id num_atoms,
-    rbmd::Id Kmax,
+    Int3 Kmax_array,
     rbmd::Real alpha,
     rbmd::Real qqr2e,
     rbmd::Real* value_Re_array,
@@ -411,11 +339,11 @@ void CVFF::ComputeChargeStructureFactorEwald(
 
     rbmd::Real total_energy_kspace= 0;
     rbmd::Id index = 0;
-    for (rbmd::Id i = -Kmax; i <= Kmax; i++)
+    for (rbmd::Id i = -REAL_DATA(Kmax_array)[0]; i <= REAL_DATA(Kmax_array)[0]; i++)
     {
-        for (rbmd::Id j = -Kmax; j <= Kmax; j++)
+        for (rbmd::Id j = -REAL_DATA(Kmax_array)[1]; j <= REAL_DATA(Kmax_array)[1]; j++)
         {
-            for (rbmd::Id k = -Kmax; k <= Kmax; k++)
+            for (rbmd::Id k = -REAL_DATA(Kmax_array)[2]; k <= REAL_DATA(Kmax_array)[2]; k++)
             {
                 if (!(i == 0 && j == 0 && k == 0))
                 {
@@ -466,10 +394,6 @@ void CVFF::ComputeChargeStructureFactorEwald(
   //out
    std::cout << "test_current_step:" << test_current_step <<  " ,"
    << "average_energy_ewald:" << _ave_ekspace << std::endl;
-
-  std::ofstream outfile("ave_energy_ewald.txt", std::ios::app);
-  outfile << test_current_step << " "<< _ave_ekspace << std::endl;
-  outfile.close();
 }
 
 void CVFF::ComputeEwlad()
@@ -481,7 +405,7 @@ void CVFF::ComputeEwlad()
   memset(_h_Re_array, 0, _num_k * sizeof(rbmd::Real));
   memset(_h_Im_array, 0, _num_k * sizeof(rbmd::Real));
 
-  ComputeChargeStructureFactorEwald(*_box, num_atoms, _Kmax,
+  ComputeChargeStructureFactorEwald(*_box, num_atoms, _kmax_array,
     _alpha,_qqr2e, _h_Re_array, _h_Im_array);
 
   thrust::device_vector<rbmd::Real> d_real_array(_num_k);
@@ -491,7 +415,7 @@ void CVFF::ComputeEwlad()
 
   //EwaldForce//
     op::ComputeEwaldForceOp<device::DEVICE_GPU>()(
-        *_box,num_atoms, _Kmax, _alpha,_qqr2e,
+        *_box,num_atoms, _kmax_array, _alpha,_qqr2e,
         thrust::raw_pointer_cast(d_real_array.data()),
         thrust::raw_pointer_cast(d_imag_array.data()),
         thrust::raw_pointer_cast(_device_data->_d_charge.data()),
@@ -522,12 +446,12 @@ void CVFF::ComputeEwlad()
     }
   }
 
-  std::ofstream output_file3("output_virial_kspace.txt");
-  for (size_t i = 0; i < virial_kspace.size(); ++i)
-  {
-    output_file3 << i << " " <<virial_kspace[i]  << std::endl;
-  }
-  output_file3.close();
+  // std::ofstream output_file3("output_virial_kspace.txt");
+  // for (size_t i = 0; i < virial_kspace.size(); ++i)
+  // {
+  //   output_file3 << i << " " <<virial_kspace[i]  << std::endl;
+  // }
+  // output_file3.close();
 
   thrust::copy(virial_kspace.begin(),
     virial_kspace.end(), _device_data->_d_virial_kspace.begin());
@@ -567,7 +491,7 @@ void CVFF::GetPsampleKey()
 void CVFF::ComputeChargeStructureFactorRBE(
    Box box,
    rbmd::Id num_atoms,
-   rbmd::Id Kmax,
+   Int3 kmax_array,
    rbmd::Real alpha,
    rbmd::Id RBE_P,
    rbmd::Real qqr2e,
@@ -613,17 +537,13 @@ void CVFF::ComputeChargeStructureFactorRBE(
   //charge self energy//
   ComputeSelfEnergy(alpha,qqr2e,_ave_self_energy);
   //kspace energy
-  ComputeKspaceEnergy(box, num_atoms, Kmax,
+  ComputeKspaceEnergy(box, num_atoms, kmax_array,
       alpha, qqr2e ,_ave_ekspace);
   _ave_ekspace = _ave_ekspace +_ave_self_energy;
 
     //out
    std::cout << "test_current_step:" << test_current_step <<  " ,"
    << "average_energy_rbe:" << _ave_ekspace << std::endl;
-
-  std::ofstream outfile("ave_energy_rbe.txt", std::ios::app);
-  outfile << test_current_step << " "<< _ave_ekspace << std::endl;
-  outfile.close();
 }
 
 void CVFF::ComputeRBE()
@@ -634,7 +554,7 @@ void CVFF::ComputeRBE()
   _rhok_real_redue.resize(_RBE_P);
   _rhok_image_redue.resize(_RBE_P);
 
-  ComputeChargeStructureFactorRBE(*_box, num_atoms, _Kmax,
+  ComputeChargeStructureFactorRBE(*_box, num_atoms, _kmax_array,
       _alpha,_RBE_P,_qqr2e,_rhok_real_redue,_rhok_image_redue);
 
    //RBE Force
@@ -672,12 +592,12 @@ void CVFF::ComputeRBE()
     }
   }
 
-  std::ofstream output_file3("output_virial_kspace.txt");
-  for (size_t i = 0; i < virial_kspace.size(); ++i)
-  {
-    output_file3 << i << " " <<virial_kspace[i]  << std::endl;
-  }
-  output_file3.close();
+  // std::ofstream output_file3("output_virial_kspace.txt");
+  // for (size_t i = 0; i < virial_kspace.size(); ++i)
+  // {
+  //   output_file3 << i << " " <<virial_kspace[i]  << std::endl;
+  // }
+  // output_file3.close();
 
   thrust::copy(virial_kspace.begin(),
     virial_kspace.end(), _device_data->_d_virial_kspace.begin());
@@ -728,12 +648,8 @@ void CVFF::ComputeLJCoulEnergy()
   _ave_ecoul = h_total_ecoul[0]/num_atoms;
 
   std::cout << "test_current_step:" << test_current_step <<  " ,"
-  << "average_energy_vdwl:" << _ave_evdwl  << std::endl;
-
-  //out
-  std::ofstream outfile("ave_energy_specia_lj_rbl.txt", std::ios::app);
-  outfile << test_current_step << " " << _ave_evdwl << std::endl;
-  outfile.close();
+  << "average_energy_vdwl:" << _ave_evdwl << " " << "average_coul_energy:" <<
+    _ave_ecoul  << std::endl;
 
   //sum virial on host
   std::vector<rbmd::Real> h_flat_virial_lj(num_atoms * 6);
@@ -748,12 +664,12 @@ void CVFF::ComputeLJCoulEnergy()
       virial_lj[i] += h_flat_virial_lj[atom * 6 + i];
     }
   }
-  std::ofstream output_file3("output_virial_lj.txt");
-  for (size_t i = 0; i < virial_lj.size(); ++i)
-  {
-    output_file3 << i << " " <<virial_lj[i]  << std::endl;
-  }
-  output_file3.close();
+  // std::ofstream output_file3("output_virial_lj.txt");
+  // for (size_t i = 0; i < virial_lj.size(); ++i)
+  // {
+  //   output_file3 << i << " " <<virial_lj[i]  << std::endl;
+  // }
+  // output_file3.close();
 
   thrust::copy(virial_lj.begin(),
     virial_lj.end(), _device_data->_d_virial_lj.begin());
@@ -784,7 +700,7 @@ void CVFF::ComputeSelfEnergy(
 void CVFF::ComputeKspaceEnergy(
     Box box,
     rbmd::Id num_atoms,
-    rbmd::Id Kmax,
+    Int3 kmax_array,
     rbmd::Real alpha,
     rbmd::Real qqr2e,
     rbmd::Real&  ave_ekspace)
@@ -795,11 +711,11 @@ void CVFF::ComputeKspaceEnergy(
     density_imag_atom.resize(num_atoms);
 
     rbmd::Real total_energy_ewald = 0;
-    for (rbmd::Id i = -Kmax; i <= Kmax; i++)
+    for (rbmd::Id i = -REAL_DATA(kmax_array)[0]; i <= REAL_DATA(kmax_array)[0]; i++)
     {
-        for (rbmd::Id j = -Kmax; j <= Kmax; j++)
+        for (rbmd::Id j = -REAL_DATA(kmax_array)[1]; j <= REAL_DATA(kmax_array)[1]; j++)
         {
-            for (rbmd::Id k = -Kmax; k <= Kmax; k++)
+            for (rbmd::Id k = -REAL_DATA(kmax_array)[2]; k <= REAL_DATA(kmax_array)[2]; k++)
             {
                 if (!(i == 0 && j == 0 && k == 0))
                 {
@@ -889,12 +805,12 @@ void CVFF::ComputeBondForce()
       virial_bond[j] += h_flat_virial_bond[j * num_atoms + i];
     }
   }
-  std::ofstream output_file3("output_virial_bond.txt");
-  for (size_t i = 0; i < virial_bond.size(); ++i)
-  {
-    output_file3 << i << " " <<virial_bond[i]  << std::endl;
-  }
-  output_file3.close();
+  // std::ofstream output_file3("output_virial_bond.txt");
+  // for (size_t i = 0; i < virial_bond.size(); ++i)
+  // {
+  //   output_file3 << i << " " <<virial_bond[i]  << std::endl;
+  // }
+  // output_file3.close();
 
   thrust::copy(virial_bond.begin(),
     virial_bond.end(), _device_data->_d_virial_bond.begin());
@@ -958,12 +874,12 @@ void CVFF::ComputeAngleForce()
       virial_angle[j] += h_flat_virial_angle[j * num_atoms + i];
     }
   }
-  std::ofstream output_file3("output_virial_angle.txt");
-  for (size_t i = 0; i < virial_angle.size(); ++i)
-  {
-    output_file3 << i << " " <<virial_angle[i]  << std::endl;
-  }
-  output_file3.close();
+  // std::ofstream output_file3("output_virial_angle.txt");
+  // for (size_t i = 0; i < virial_angle.size(); ++i)
+  // {
+  //   output_file3 << i << " " <<virial_angle[i]  << std::endl;
+  // }
+  // output_file3.close();
 
   thrust::copy(virial_angle.begin(),
     virial_angle.end(), _device_data->_d_virial_angle.begin());
@@ -1030,12 +946,12 @@ void CVFF::ComputeDihedralForce()
       virial_dihedral[j] += h_flat_virial_dihedral[j* num_atoms + i];
     }
   }
-  std::ofstream output_file3("output_virial_dihedral.txt");
-  for (size_t i = 0; i < virial_dihedral.size(); ++i)
-  {
-    output_file3 << i << " " <<virial_dihedral[i]  << std::endl;
-  }
-  output_file3.close();
+  // std::ofstream output_file3("output_virial_dihedral.txt");
+  // for (size_t i = 0; i < virial_dihedral.size(); ++i)
+  // {
+  //   output_file3 << i << " " <<virial_dihedral[i]  << std::endl;
+  // }
+  // output_file3.close();
 
   thrust::copy(virial_dihedral.begin(),
     virial_dihedral.end(), _device_data->_d_virial_dihedral.begin());
@@ -1079,6 +995,96 @@ void CVFF::EvaluatePotentialenergy()
   outfile.close();
 }
 
+void CVFF::ComputeQsqSum()
+{
+  auto num_atoms = *(_structure_info_data->_num_atoms);
+  thrust::device_vector<rbmd::Real> sq_charge;
+  sq_charge.resize(num_atoms);
+  op::SqchargeOp<device::DEVICE_GPU>()(num_atoms,
+    thrust::raw_pointer_cast(_device_data->_d_charge.data()),
+    thrust::raw_pointer_cast(sq_charge.data()));
 
+  _sum_sq_charge = thrust::reduce(sq_charge.begin(),
+   sq_charge.end(), 0.0f, thrust::plus<rbmd::Real>());
+  _sum_sq_charge = _qqr2e* _sum_sq_charge;
+}
+
+rbmd::Real CVFF::ComputeRMS(rbmd::Id kmax,rbmd::Real box_length,rbmd::Real q2)
+{
+  auto num_atoms = *(_structure_info_data->_num_atoms);
+  rbmd::Real rms = 2.0*q2*_g_ewald/box_length *
+    SQRT(1.0/(M_PI*kmax*num_atoms)) *
+    EXP(-M_PI*M_PI*kmax*kmax/(_g_ewald*_g_ewald*box_length*box_length));
+
+  return rms;
+}
+
+void CVFF::SetKspacePara()
+{
+  auto box =  DataManager::getInstance().getMDData()->_box;
+
+  REAL_DATA(_unitk)[0] = 2.0*M_PI/box->_length[0];
+  REAL_DATA(_unitk)[1] = 2.0*M_PI/box->_length[1];
+  REAL_DATA(_unitk)[2] = 2.0*M_PI/box->_length[2];
+  auto num_atoms = *(_structure_info_data->_num_atoms);
+
+  rbmd::Id kmax_x = 1;
+  rbmd::Id kmax_y = 1;
+  rbmd::Id kmax_z = 1;
+  rbmd::Real rms;
+
+  rms = ComputeRMS(kmax_x,box->_length[0],_sum_sq_charge);
+  while (rms > _accuracy) {
+    kmax_x++;
+    rms = ComputeRMS(kmax_x,box->_length[0],_sum_sq_charge);
+  }
+
+  rms = ComputeRMS(kmax_y,box->_length[1],_sum_sq_charge);
+  while (rms > _accuracy) {
+    kmax_y++;
+    rms = ComputeRMS(kmax_y,box->_length[1],_sum_sq_charge);
+  }
+
+  rms = ComputeRMS(kmax_z,box->_length[2],_sum_sq_charge);
+  while (rms > _accuracy) {
+    kmax_z++;
+    rms = ComputeRMS(kmax_z,box->_length[2],_sum_sq_charge);
+  }
+
+  _Kmax = MAX(kmax_x,kmax_y);
+  _Kmax = MAX(_Kmax,kmax_z);
+  _Kmax3D = 4*_Kmax*_Kmax*_Kmax + 6*_Kmax*_Kmax + 3*_Kmax;
+  _kmax_array = {kmax_x,kmax_y,kmax_z};
+
+  rbmd::Real gsqxmx = REAL_DATA(_unitk)[0] *REAL_DATA(_unitk)[0] *kmax_x*kmax_x;
+  rbmd::Real gsqymx = REAL_DATA(_unitk)[1] *REAL_DATA(_unitk)[1] *kmax_y*kmax_y;
+  rbmd::Real gsqzmx = REAL_DATA(_unitk)[2] *REAL_DATA(_unitk)[2] *kmax_z*kmax_z;
+  _gsqmx = MAX(gsqxmx,gsqymx);
+  _gsqmx = MAX(_gsqmx,gsqzmx);
+
+
+  auto kmax_read_flag = 0 ;
+  rbmd::Id kmax_x_read,kmax_y_read,kmax_z_read;
+  if(kmax_read_flag)
+  {
+    kmax_x = kmax_x_read;
+    kmax_y = kmax_y_read;
+    kmax_z = kmax_z_read;
+
+    _Kmax = MAX(kmax_x,kmax_y);
+    _Kmax = MAX(_Kmax,kmax_z);
+    _Kmax3D = 4*_Kmax*_Kmax*_Kmax + 6*_Kmax*_Kmax + 3*_Kmax;
+    _kmax_array = {kmax_x,kmax_y,kmax_z};
+
+    rbmd::Real gsqxmx = REAL_DATA(_unitk)[0] *REAL_DATA(_unitk)[0] *kmax_x*kmax_x;
+    rbmd::Real gsqymx = REAL_DATA(_unitk)[1] *REAL_DATA(_unitk)[1] *kmax_y*kmax_y;
+    rbmd::Real gsqzmx = REAL_DATA(_unitk)[2] *REAL_DATA(_unitk)[2] *kmax_z*kmax_z;
+    _gsqmx = MAX(gsqxmx,gsqymx);
+    _gsqmx = MAX(_gsqmx,gsqzmx);
+  }
+  _gsqmx *= 1.00001;
+
+  //std::cout << "gsqmx: " << _gsqmx << " " << "kcount: " << kcount  <<std::endl;
+}
 
 

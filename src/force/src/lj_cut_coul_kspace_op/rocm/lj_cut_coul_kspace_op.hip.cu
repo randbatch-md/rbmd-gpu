@@ -7,26 +7,44 @@ namespace op {
 
   //---------device---------//
   // CoulForce
-  inline __device__ void CoulCutForce(rbmd::Real cut_off, rbmd::Real alpha,
-                               rbmd::Real qqr2e, rbmd::Real charge_i,
-                               rbmd::Real charge_j, rbmd::Real px12,
-                               rbmd::Real py12, rbmd::Real pz12,
-                               rbmd::Real& force_coul, rbmd::Real& energy_coul) {
+  inline __device__ void CoulCutForce_fix(
+                rbmd::Real cut_off,
+                rbmd::Real alpha,
+                rbmd::Real qqr2e,
+                rbmd::Real charge_i,
+                rbmd::Real charge_j,
+                rbmd::Real px12,
+                rbmd::Real py12,
+                rbmd::Real pz12,
+                rbmd::Real& force_coul_factor,
+                rbmd::Real& energy_coul_factor,
+                rbmd::Real& force_coul,
+                rbmd::Real& energy_coul)
+  {
     const rbmd::Real dis_2 = px12 * px12 + py12 * py12 + pz12 * pz12;
     const rbmd::Real dis = SQRT(dis_2);
+    const rbmd::Real dis_3 = POW(dis,3.0);
     const rbmd::Real cut_off_2 = cut_off * cut_off;
 
-    if (dis_2 < cut_off_2 && dis_2 > EPSILON) {
+    if (dis_2 < cut_off_2 && dis_2 > EPSILON)
+    //if (dis_2 < cut_off_2)
+    {
       rbmd::Real erfcx = SQRT(alpha) * dis;
       rbmd::Real expx = -alpha * dis_2;
       rbmd::Real gnear_value = (1.0 - ERF(erfcx)) / dis_2 +
-                               2 * SQRT(alpha) * EXP(expx) / (SQRT(M_PI) * dis);
+              2 * SQRT(alpha) * EXP(expx) / (SQRT(M_PI) * dis);
 
-      force_coul = qqr2e * (charge_i * charge_j * gnear_value / dis);//+
-      energy_coul = qqr2e * (0.5 * charge_i * charge_j *
-                             (1.0 - ERF(SQRT(alpha) * dis)) / dis);
-    } else {
-      force_coul = 0.0;
+      force_coul_factor =  -qqr2e * charge_i * charge_j / dis_3;//+
+      force_coul =  -qqr2e * charge_i * charge_j * gnear_value / dis;//+
+
+      energy_coul_factor  = 0.5 * qqr2e * charge_i * charge_j / dis;
+      energy_coul = qqr2e * (0.5 * charge_i * charge_j * (1.0 - ERF(SQRT(alpha) * dis)) / dis);
+    }
+    else
+    {
+      force_coul_factor = 0.0;
+      force_coul  = 0.0;
+      energy_coul_factor = 0.0;
       energy_coul = 0.0;
     }
   }
@@ -51,24 +69,33 @@ namespace op {
     }
   }
 
-  inline __device__ void CoulCutForce_rs(rbmd::Real rs, rbmd::Real alpha,
-                                  rbmd::Real qqr2e, rbmd::Real charge_i,
-                                  rbmd::Real charge_j, rbmd::Real px12,
-                                  rbmd::Real py12, rbmd::Real pz12,
-                                  rbmd::Real& force_coul) {
+  inline __device__ void CoulCutForce_rs_fix(
+  rbmd::Real rs,
+  rbmd::Real alpha,
+  rbmd::Real qqr2e,
+  rbmd::Real charge_i,
+  rbmd::Real charge_j,
+  rbmd::Real px12,
+  rbmd::Real py12,
+  rbmd::Real pz12,
+  rbmd::Real& coul_force_factor,
+  rbmd::Real& force_coul)
+  {
     const rbmd::Real dis_2 = px12 * px12 + py12 * py12 + pz12 * pz12;
     const rbmd::Real dis = SQRT(dis_2);
+    const rbmd::Real dis_3 = POW(dis,3.0);
     const rbmd::Real rs_2 = rs * rs;
 
-    if (dis_2 < rs_2 && dis_2 > EPSILON) {
+    if (dis_2 < rs_2 && dis_2 > EPSILON)
+    {
       rbmd::Real erfcx = SQRT(alpha) * dis;
       rbmd::Real expx = -alpha * dis_2;
       rbmd::Real gnear_value = (1.0 - ERF(erfcx)) / dis_2 +
-                               2 * SQRT(alpha) * EXP(expx) / (SQRT(M_PI) * dis);
-
-      force_coul = qqr2e * (-charge_i * charge_j * gnear_value / dis);
-    } else
-      force_coul = 0.0;
+              2 * SQRT(alpha) * EXP(expx) / (SQRT(M_PI) * dis);
+      coul_force_factor = - qqr2e * charge_i * charge_j / dis_3;
+      force_coul = - qqr2e * charge_i * charge_j * gnear_value / dis ;
+    }
+    else force_coul = 0.0;
   }
 
   inline __device__ void CoulCutForce_rs_erf(rbmd::Real rs, rbmd::Real alpha,
@@ -86,26 +113,38 @@ namespace op {
       force_coul = 0.0;
   }
 
-  inline __device__ void CoulCutForce_rcs(rbmd::Real rc, rbmd::Real rs,
-                                   rbmd::Id pice_num, rbmd::Real alpha,
-                                   rbmd::Real qqr2e, rbmd::Real charge_i,
-                                   rbmd::Real charge_j, rbmd::Real px12,
-                                   rbmd::Real py12, rbmd::Real pz12,
-                                   rbmd::Real& force_coul) {
+  inline __device__ void CoulCutForce_rcs_fix(
+        rbmd::Real rc,
+        rbmd::Real rs,
+        rbmd::Id  pice_num,
+        rbmd::Real alpha,
+        rbmd::Real qqr2e,
+        rbmd::Real charge_i,
+        rbmd::Real charge_j,
+        rbmd::Real px12,
+        rbmd::Real py12,
+        rbmd::Real pz12,
+        rbmd::Real& coul_force_factor,
+        rbmd::Real& force_coul)
+  {
     const rbmd::Real dis_2 = px12 * px12 + py12 * py12 + pz12 * pz12;
     const rbmd::Real dis = SQRT(dis_2);
+    const rbmd::Real dis_3 = POW(dis,3.0);
     const rbmd::Real rc_2 = rc * rc;
     const rbmd::Real rs_2 = rs * rs;
 
-    if (dis_2 < rc_2 && dis_2 > rs_2) {
+    if (dis_2 < rc_2 && dis_2 > rs_2)
+    {
       rbmd::Real erfcx = SQRT(alpha) * dis;
       rbmd::Real expx = -alpha * dis_2;
       rbmd::Real gnear_value = (1.0 - ERF(erfcx)) / dis_2 +
-                               2 * SQRT(alpha) * EXP(expx) / (SQRT(M_PI) * dis);
+              2 * SQRT(alpha) * EXP(expx) / (SQRT(M_PI) * dis);
+      coul_force_factor = - qqr2e * charge_i * charge_j / dis_3;
+      force_coul = -pice_num* qqr2e * charge_i * charge_j *
+        gnear_value / dis ;
+    }
+    else force_coul = 0.0;
 
-      force_coul = pice_num * qqr2e * (-charge_i * charge_j * gnear_value / dis);
-    } else
-      force_coul = 0.0;
   }
 
   inline __device__ void CoulCutForce_rcs_erf(rbmd::Real rc, rbmd::Real rs,
@@ -149,8 +188,8 @@ namespace op {
     rbmd::Real factor_c = COS(dot_product) * rhok_imag_i;
     rbmd::Real factor_d = SIN(dot_product) * rhok_real_i;
 
-    force_ewald =
-        factor_a / (volume * range_K_2) * factor_b * (factor_c + factor_d);
+     force_ewald =
+         factor_a / (volume * range_K_2) * factor_b * (factor_c + factor_d);
     force_ewald *= qqr2e;
     force_ewald_x = force_ewald * K.x;
     force_ewald_y = force_ewald * K.y;
@@ -206,11 +245,11 @@ namespace op {
   }
 
   template <typename Func>
-  __device__ void ExecuteOnKmax(const rbmd::Id& k_maxconst, Func& function) {
+  __device__ void ExecuteOnKmax(const Int3& k_maxconst, Func& function) {
     rbmd::Id indexEwald = 0;
-    for (rbmd::Id i = -k_maxconst; i <= k_maxconst; i++) {
-      for (rbmd::Id j = -k_maxconst; j <= k_maxconst; j++) {
-        for (rbmd::Id k = -k_maxconst; k <= k_maxconst; k++) {
+    for (rbmd::Id i = -REAL_DATA(k_maxconst)[0]; i <= REAL_DATA(k_maxconst)[0]; i++) {
+      for (rbmd::Id j = -REAL_DATA(k_maxconst)[1]; j <= REAL_DATA(k_maxconst)[1]; j++) {
+        for (rbmd::Id k = -REAL_DATA(k_maxconst)[2]; k <= REAL_DATA(k_maxconst)[2]; k++) {
           if(!(i == 0 && j == 0 && k == 0)){
             int3 M = make_Int3(i, j, k);
             function(M, indexEwald);
@@ -641,7 +680,7 @@ __global__ void EikFix2(
       // 计算每个线程需要处理的原子范围
       int chunk_size = (num_atoms + blockDim.x - 1) / blockDim.x;  // 每个线程处理的原子数
       int start_idx = tid * chunk_size;
-      int end_idx = min((tid + 1) * chunk_size, num_atoms);
+      int end_idx = MIN((tid + 1) * chunk_size, num_atoms);
 
       for (int i = start_idx; i < end_idx; i++) {
         rbmd::Id atom_id = atoms_id[i];
@@ -712,7 +751,7 @@ __global__ void EikFix3(
       // 计算每个线程需要处理的原子范围
       int chunk_size = (num_atoms + blockDim.x - 1) / blockDim.x;  // 每个线程处理的原子数
       int start_idx = tid * chunk_size;
-      int end_idx = min((tid + 1) * chunk_size, num_atoms);
+      int end_idx = MIN((tid + 1) * chunk_size, num_atoms);
 
       for (int i = start_idx; i < end_idx; i++) {
         rbmd::Id atom_id = atoms_id[i];
@@ -1030,7 +1069,7 @@ __global__ void EwaldForceFix(const rbmd::Id num_atoms,const rbmd::Id kcount,
 
   // EwaldForce
   __global__ void ComputeEwaldForce(
-       Box box, const rbmd::Id num_atoms, const rbmd::Id Kmax,
+       Box box, const rbmd::Id num_atoms, const Int3 Kmax,
       const rbmd::Real alpha, const rbmd::Real qqr2e,
       const rbmd::Real* real_array, const rbmd::Real* imag_array,
       const rbmd::Real* charge, const rbmd::Real* px, const rbmd::Real* py,
@@ -1168,7 +1207,7 @@ __global__ void EwaldForceFix(const rbmd::Id num_atoms,const rbmd::Id kcount,
         sum_fz += force_rbe_z;
 
         //compute ewald_virial
-        force_rbe_single = -0.5*force_rbe_single;
+        //force_rbe_single = -0.5*force_rbe_single;
         Real3 K;
         K.x = 2.0 * M_PI * M.x / box._length[0];
         K.y = 2.0 * M_PI * M.y / box._length[1];
@@ -1285,7 +1324,7 @@ __global__ void EwaldForceFix(const rbmd::Id num_atoms,const rbmd::Id kcount,
 
   // EwaldForce
   void ComputeEwaldForceOp<device::DEVICE_GPU>::operator()(
-       Box box, const rbmd::Id num_atoms, const rbmd::Id Kmax,
+       Box box, const rbmd::Id num_atoms, const Int3 Kmax,
       const rbmd::Real alpha, const rbmd::Real qqr2e,
       const rbmd::Real* real_array, const rbmd::Real* imag_array,
       const rbmd::Real* charge, const rbmd::Real* px, const rbmd::Real* py,
