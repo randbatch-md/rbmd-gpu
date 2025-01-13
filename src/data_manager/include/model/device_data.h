@@ -147,15 +147,19 @@ class DeviceData {
   thrust::device_vector<rbmd::Real> _d_flat_virial_specialcoul;
   thrust::device_vector<rbmd::Real> _d_flat_virial_kspace;
 
-  thrust::device_vector<rbmd::Real> _d_flat_virial_bond;
-  thrust::device_vector<rbmd::Real> _d_flat_virial_angle;
-  thrust::device_vector<rbmd::Real> _d_flat_virial_dihedral;
-  thrust::device_vector<rbmd::Real> _d_flat_virial_improper;
+  //thrust::device_vector<rbmd::Real> _d_flat_virial_bond;
+  //thrust::device_vector<rbmd::Real> _d_flat_virial_angle;
+  //thrust::device_vector<rbmd::Real> _d_flat_virial_dihedral;
+  //thrust::device_vector<rbmd::Real> _d_flat_virial_improper;
 
   thrust::device_vector<rbmd::Real> _d_flat_virial_bond_atom;
+  thrust::device_vector<rbmd::Real> _d_flat_virial_bond_list;
   thrust::device_vector<rbmd::Real> _d_flat_virial_angle_atom;
+  thrust::device_vector<rbmd::Real> _d_flat_virial_angle_list;
   thrust::device_vector<rbmd::Real> _d_flat_virial_dihedral_atom;
+  thrust::device_vector<rbmd::Real> _d_flat_virial_dihedral_list;
 
+  thrust::device_vector<rbmd::Real> _d_flat_virial_improper_list;
   //total virial
   thrust::device_vector<rbmd::Real> _d_virial;
   thrust::device_vector<rbmd::Real> _d_virial_lj;

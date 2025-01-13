@@ -26,8 +26,8 @@ namespace op {
     const rbmd::Real dis_3 = POW(dis,3.0);
     const rbmd::Real cut_off_2 = cut_off * cut_off;
 
-    if (dis_2 < cut_off_2 && dis_2 > EPSILON)
-    //if (dis_2 < cut_off_2)
+    //if (dis_2 < cut_off_2 && dis_2 > EPSILON)
+    if (dis_2 < cut_off_2)
     {
       rbmd::Real erfcx = SQRT(alpha) * dis;
       rbmd::Real expx = -alpha * dis_2;
@@ -48,6 +48,61 @@ namespace op {
       energy_coul = 0.0;
     }
   }
+
+inline __device__ void LJ126CoulCutForce_fix(
+              rbmd::Real cut_off,
+              rbmd::Real eps_ij, rbmd::Real sigma_ij,
+              rbmd::Real alpha,
+              rbmd::Real qqr2e,
+              rbmd::Real charge_i,
+              rbmd::Real charge_j,
+              rbmd::Real px12,
+              rbmd::Real py12,
+              rbmd::Real pz12,
+              rbmd::Real& force_lj,
+              rbmd::Real& energy_lj,
+              rbmd::Real& force_coul_factor,
+              rbmd::Real& energy_coul_factor,
+              rbmd::Real& force_coul,
+              rbmd::Real& energy_coul)
+  {
+    const rbmd::Real dis_2 = px12 * px12 + py12 * py12 + pz12 * pz12;
+    const rbmd::Real dis = SQRT(dis_2);
+    const rbmd::Real dis_3 = POW(dis,3.0);
+    const rbmd::Real cut_off_2 = cut_off * cut_off;
+
+    //if (dis_2 < cut_off_2 && dis_2 > EPSILON)
+    if (dis_2 < cut_off_2)
+    {
+      rbmd::Real sigmaij_6 = POW(sigma_ij, 6.0);
+      rbmd::Real dis_6 = POW(dis_2, 3.0);
+      rbmd::Real sigmaij_dis_6 = sigmaij_6 / dis_6;
+      force_lj = -24 * eps_ij * ((2 * sigmaij_dis_6 - 1) * sigmaij_dis_6) / dis_2;//+
+      energy_lj =
+          0.5 * (4 * eps_ij * (sigmaij_6 / dis_6 - 1) * sigmaij_dis_6);
+      //
+      rbmd::Real erfcx = SQRT(alpha) * dis;
+      rbmd::Real expx = -alpha * dis_2;
+      rbmd::Real gnear_value = (1.0 - ERF(erfcx)) / dis_2 +
+              2 * SQRT(alpha) * EXP(expx) / (SQRT(M_PI) * dis);
+
+      force_coul_factor =  -qqr2e * charge_i * charge_j / dis_3;//+
+      force_coul =  -qqr2e * charge_i * charge_j * gnear_value / dis;//+
+
+      energy_coul_factor  = 0.5 * qqr2e * charge_i * charge_j / dis;
+      energy_coul = qqr2e * (0.5 * charge_i * charge_j * (1.0 - ERF(SQRT(alpha) * dis)) / dis);
+    }
+    else
+    {
+      force_lj = 0.0;
+      energy_lj= 0.0;
+      force_coul_factor = 0.0;
+      force_coul  = 0.0;
+      energy_coul_factor = 0.0;
+      energy_coul = 0.0;
+    }
+  }
+
 
   inline __device__ void CoulCutForce_erf(rbmd::Real cut_off, rbmd::Real alpha,
                                    rbmd::Real qqr2e, rbmd::Real table_pij,

@@ -137,10 +137,10 @@ bool MemoryScheduler::asyncMemoryH2D() {
   _device_data->_d_flat_virial_specialcoul.resize(6*num_atoms);
   _device_data->_d_flat_virial_kspace.resize(6*num_atoms);
 
-  _device_data->_d_flat_virial_bond.resize(6*num_bonds);
-  _device_data->_d_flat_virial_angle.resize(6*num_angles);
-  _device_data->_d_flat_virial_dihedral.resize(6*num_dihedrals);
-  _device_data->_d_flat_virial_dihedral.resize(6*num_impropers);
+  _device_data->_d_flat_virial_bond_list.resize(6*num_bonds);
+  _device_data->_d_flat_virial_angle_list.resize(6*num_angles);
+  _device_data->_d_flat_virial_dihedral_list.resize(6*num_dihedrals);
+  _device_data->_d_flat_virial_improper_list.resize(6*num_impropers);
 
   _device_data->_d_flat_virial_bond_atom.resize(6*num_atoms);
   _device_data->_d_flat_virial_angle_atom.resize(6*num_atoms);

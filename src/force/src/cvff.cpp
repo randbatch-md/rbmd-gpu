@@ -275,7 +275,7 @@ void CVFF::ComputeLJVerlet()
 
   for(int atom = 0; atom < num_atoms; ++atom){
     for(int i = 0; i < 6; ++i){
-      virial_lj[i] += h_flat_virial_lj[atom * 6 + i];
+      virial_lj[i] += h_flat_virial_lj[i * 6 + atom];
     }
   }
 
@@ -442,7 +442,7 @@ void CVFF::ComputeEwlad()
 
   for(int atom = 0; atom < num_atoms; ++atom){
     for(int i = 0; i < 6; ++i){
-      virial_kspace[i] += h_flat_virial_kspace[atom * 6 + i];
+      virial_kspace[i] += h_flat_virial_kspace[i * 6 + atom];
     }
   }
 
@@ -535,10 +535,10 @@ void CVFF::ComputeChargeStructureFactorRBE(
   //energy
 
   //charge self energy//
-  ComputeSelfEnergy(alpha,qqr2e,_ave_self_energy);
+  //ComputeSelfEnergy(alpha,qqr2e,_ave_self_energy);
   //kspace energy
-  ComputeKspaceEnergy(box, num_atoms, kmax_array,
-      alpha, qqr2e ,_ave_ekspace);
+  //ComputeKspaceEnergy(box, num_atoms, kmax_array,
+      //alpha, qqr2e ,_ave_ekspace);
   _ave_ekspace = _ave_ekspace +_ave_self_energy;
 
     //out
@@ -588,7 +588,7 @@ void CVFF::ComputeRBE()
 
   for(int atom = 0; atom < num_atoms; ++atom){
     for(int i = 0; i < 6; ++i){
-      virial_kspace[i] += h_flat_virial_kspace[atom * 6 + i];
+      virial_kspace[i] += h_flat_virial_kspace[i * 6 + num_atoms];
     }
   }
 
@@ -783,6 +783,7 @@ void CVFF::ComputeBondForce()
     thrust::raw_pointer_cast(_device_data->_d_force_bond_y.data()),
     thrust::raw_pointer_cast(_device_data->_d_force_bond_z.data()),
     thrust::raw_pointer_cast(_device_data->_d_flat_virial_bond_atom.data()),
+    thrust::raw_pointer_cast(_device_data->_d_flat_virial_bond_list.data()),
     thrust::raw_pointer_cast(d_total_ebond.data()));
 
   // D2H
@@ -793,28 +794,43 @@ void CVFF::ComputeBondForce()
   << "average_energy_bond:" << _ave_ebond  << std::endl;
 
   // sum virial on host
-  std::vector<rbmd::Real> h_flat_virial_bond(num_atoms * 6);
-  thrust::copy(_device_data->_d_flat_virial_bond_atom.begin(),
-    _device_data->_d_flat_virial_bond_atom.end(), h_flat_virial_bond.begin());
-
-  std::vector<rbmd::Real> virial_bond(6);
-  virial_bond =  {0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
-
-  for(int i = 0; i < num_atoms; ++i){
-    for(int j = 0; j < 6; ++j){
-      virial_bond[j] += h_flat_virial_bond[j * num_atoms + i];
-    }
-  }
-  // std::ofstream output_file3("output_virial_bond.txt");
-  // for (size_t i = 0; i < virial_bond.size(); ++i)
-  // {
-  //   output_file3 << i << " " <<virial_bond[i]  << std::endl;
+  // std::vector<rbmd::Real> h_flat_virial_bond(num_atoms * 6);
+  // thrust::copy(_device_data->_d_flat_virial_bond_atom.begin(),
+  //   _device_data->_d_flat_virial_bond_atom.end(), h_flat_virial_bond.begin());
+  //
+  // std::vector<rbmd::Real> virial_bond(6);
+  // virial_bond =  {0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
+  //
+  // for(int i = 0; i < num_atoms; ++i){
+  //   for(int j = 0; j < 6; ++j){
+  //     virial_bond[j] += h_flat_virial_bond[j * num_atoms + i];
+  //   }
   // }
-  // output_file3.close();
+  // // std::ofstream output_file3("output_virial_bond.txt");
+  // // for (size_t i = 0; i < virial_bond.size(); ++i)
+  // // {
+  // //   output_file3 << i << " " <<virial_bond[i]  << std::endl;
+  // // }
+  // // output_file3.close();
+  //
+  // thrust::copy(virial_bond.begin(),
+  //   virial_bond.end(), _device_data->_d_virial_bond.begin());
 
-  thrust::copy(virial_bond.begin(),
-    virial_bond.end(), _device_data->_d_virial_bond.begin());
+  //globle
+   std::vector<rbmd::Real> h_flat_virial_bond_list(num_bonds * 6);
+   thrust::copy(_device_data->_d_flat_virial_bond_list.begin(),
+     _device_data->_d_flat_virial_bond_list.end(), h_flat_virial_bond_list.begin());
 
+   std::vector<rbmd::Real> virial_bond_list(6);
+   virial_bond_list =  {0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
+
+   for(int i = 0; i < num_bonds; ++i){
+     for(int j = 0; j < 6; ++j){
+       virial_bond_list[j] += h_flat_virial_bond_list[j * num_bonds + i];
+     }
+   }
+  thrust::copy(virial_bond_list.begin(),
+  virial_bond_list.end(), _device_data->_d_virial_bond.begin());
 }
 
 void CVFF::ComputeAngleForce()
@@ -852,6 +868,7 @@ void CVFF::ComputeAngleForce()
     thrust::raw_pointer_cast(_device_data->_d_force_angle_y.data()),
     thrust::raw_pointer_cast(_device_data->_d_force_angle_z.data()),
     thrust::raw_pointer_cast(_device_data->_d_flat_virial_angle_atom.data()),
+    thrust::raw_pointer_cast(_device_data->_d_flat_virial_angle_list.data()),
     thrust::raw_pointer_cast(d_total_eangle.data()));
 
   // D2H
@@ -862,27 +879,43 @@ void CVFF::ComputeAngleForce()
     "average_energy_angle:" << _ave_eangle << std::endl;
 
   //sum virial on host
-  std::vector<rbmd::Real> h_flat_virial_angle(num_atoms * 6);
-  thrust::copy(_device_data->_d_flat_virial_angle_atom.begin(),
-    _device_data->_d_flat_virial_angle_atom.end(), h_flat_virial_angle.begin());
+  // std::vector<rbmd::Real> h_flat_virial_angle(num_atoms * 6);
+  // thrust::copy(_device_data->_d_flat_virial_angle_atom.begin(),
+  //   _device_data->_d_flat_virial_angle_atom.end(), h_flat_virial_angle.begin());
+  //
+  // std::vector<rbmd::Real> virial_angle(6);
+  // virial_angle =  {0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
+  //
+  // for(int i = 0; i < num_atoms; ++i){
+  //   for(int j = 0; j < 6; ++j){
+  //     virial_angle[j] += h_flat_virial_angle[j * num_atoms + i];
+  //   }
+  // }
+  // // std::ofstream output_file3("output_virial_angle.txt");
+  // // for (size_t i = 0; i < virial_angle.size(); ++i)
+  // // {
+  // //   output_file3 << i << " " <<virial_angle[i]  << std::endl;
+  // // }
+  // // output_file3.close();
+  //
+  // thrust::copy(virial_angle.begin(),
+  //   virial_angle.end(), _device_data->_d_virial_angle.begin());
 
-  std::vector<rbmd::Real> virial_angle(6);
-  virial_angle =  {0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
+  //globle
+  std::vector<rbmd::Real> h_flat_virial_angle_list(num_angles * 6);
+  thrust::copy(_device_data->_d_flat_virial_angle_list.begin(),
+    _device_data->_d_flat_virial_angle_list.end(), h_flat_virial_angle_list.begin());
 
-  for(int i = 0; i < num_atoms; ++i){
+  std::vector<rbmd::Real> virial_angle_list(6);
+  virial_angle_list =  {0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
+
+  for(int i = 0; i < num_angles; ++i){
     for(int j = 0; j < 6; ++j){
-      virial_angle[j] += h_flat_virial_angle[j * num_atoms + i];
+      virial_angle_list[j] += h_flat_virial_angle_list[j * num_angles + i];
     }
   }
-  // std::ofstream output_file3("output_virial_angle.txt");
-  // for (size_t i = 0; i < virial_angle.size(); ++i)
-  // {
-  //   output_file3 << i << " " <<virial_angle[i]  << std::endl;
-  // }
-  // output_file3.close();
-
-  thrust::copy(virial_angle.begin(),
-    virial_angle.end(), _device_data->_d_virial_angle.begin());
+  thrust::copy(virial_angle_list.begin(),
+  virial_angle_list.end(), _device_data->_d_virial_angle.begin());
 
 }
 
@@ -924,6 +957,7 @@ void CVFF::ComputeDihedralForce()
     thrust::raw_pointer_cast(_device_data->_d_force_dihedral_y.data()),
     thrust::raw_pointer_cast(_device_data->_d_force_dihedral_z.data()),
     thrust::raw_pointer_cast(_device_data->_d_flat_virial_dihedral_atom.data()),
+    thrust::raw_pointer_cast(_device_data->_d_flat_virial_dihedral_list.data()),
     thrust::raw_pointer_cast(d_total_edihedral.data()));
 
   // D2H

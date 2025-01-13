@@ -21,8 +21,8 @@ namespace op {
     const rbmd::Real dis_2 = px12 * px12 + py12 * py12 + pz12 * pz12;
     const rbmd::Real cut_off_2 = cut_off * cut_off;
 
-    if (dis_2 < cut_off_2 && dis_2 > EPSILON){
-    //if (dis_2 < cut_off_2) {
+    //if (dis_2 < cut_off_2 && dis_2 > EPSILON){
+    if (dis_2 < cut_off_2) {
       rbmd::Real sigmaij_6 = POW(sigma_ij, 6.0);
       rbmd::Real dis_6 = POW(dis_2, 3.0);
       rbmd::Real sigmaij_dis_6 = sigmaij_6 / dis_6;

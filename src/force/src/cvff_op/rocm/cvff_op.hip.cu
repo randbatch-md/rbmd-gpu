@@ -91,8 +91,13 @@ __global__ void ComputeSpecialLJCutCoulForce(
       }
 
       // Coul cut
-      CoulCutForce_fix(cut_off, alpha, qqr2e, charge_i, charge_j,
-      x12, y12, z12, force_coul_factor,energy_coul_factor,
+      //  LJ126CoulCutForce_fix(cut_off,eps_ij, sigma_ij, alpha, qqr2e,
+      //    charge_i, charge_j,x12, y12, z12, force_lj, energy_lj,
+      // force_coul_factor,energy_coul_factor,force_coul, energy_coul);
+
+
+       CoulCutForce_fix(cut_off, alpha, qqr2e, charge_i, charge_j,
+       x12, y12, z12, force_coul_factor,energy_coul_factor,
       force_coul, energy_coul);
       force_coul = force_coul-(1-weight)*force_coul_factor;
       energy_coul = energy_coul-(1-weight)*energy_coul_factor;
@@ -109,7 +114,7 @@ __global__ void ComputeSpecialLJCutCoulForce(
       //rbmd::Real local_virial[6];
       rbmd::Real local_virial_xx,local_virial_yy,local_virial_zz,
         local_virial_xy,local_virial_xz,local_virial_yz;
-      ComputeVirial_fix(x12, y12, z12,force_pair,
+      ComputeVirial(x12, y12, z12,force_pair,
         local_virial_xx,local_virial_yy,local_virial_zz,
         local_virial_xy,local_virial_xz,local_virial_yz);
 
@@ -426,7 +431,7 @@ __global__ void ComputeBondForce(
     const rbmd::Id* bond_type, const rbmd::Id* bondlisti,
     const rbmd::Id* bondlistj, const rbmd::Real* px, const rbmd::Real* py,
     const rbmd::Real* pz, rbmd::Real* fx, rbmd::Real* fy, rbmd::Real* fz,
-    rbmd::Real* flat_virial,rbmd::Real* energy_bond) {
+    rbmd::Real* flat_virial,rbmd::Real* global_virial,rbmd::Real* energy_bond) {
   __shared__ typename BLOCKREDUCE<rbmd::Real, BLOCK_SIZE>::TempStorage
       temp_storage;
   rbmd::Real local_energy_bond = 0;
@@ -477,13 +482,28 @@ __global__ void ComputeBondForce(
     atomicAdd(&fy[bondjj], -fy_ij);
     atomicAdd(&fz[bondjj], -fz_ij);
 
+    rbmd::Real global_virial_temp[6];
+    global_virial_temp[0]  = x12 *x12 *forcebondij;
+    global_virial_temp[1]  = y12 *y12 *forcebondij;
+    global_virial_temp[2]  = z12 *z12 *forcebondij;
+    global_virial_temp[3]  = x12 *y12 *forcebondij;
+    global_virial_temp[4]  = x12 *z12 *forcebondij;
+    global_virial_temp[5]  = y12 *z12 *forcebondij;
+
+    global_virial[0 * num_bonds +  tid1]= global_virial_temp[0];
+    global_virial[1 * num_bonds +  tid1]= global_virial_temp[1];
+    global_virial[2 * num_bonds +  tid1]= global_virial_temp[2];
+    global_virial[3 * num_bonds +  tid1]= global_virial_temp[3];
+    global_virial[4 * num_bonds +  tid1]= global_virial_temp[4];
+    global_virial[5 * num_bonds +  tid1]= global_virial_temp[5];
+
     rbmd::Real local_virial[6];
-    local_virial[0]  = 0.5 *x12 *x12 *forcebondij; //double counting
-    local_virial[1]  = 0.5 *y12 *y12 *forcebondij;
-    local_virial[2]  = 0.5 *z12 *z12 *forcebondij;
-    local_virial[3]  = 0.5 *x12 *y12 *forcebondij;
-    local_virial[4]  = 0.5 *x12 *z12 *forcebondij;
-    local_virial[5]  = 0.5 *y12 *z12 *forcebondij;
+    local_virial[0]  = 0.5 *global_virial_temp[0]; //double counting
+    local_virial[1]  = 0.5 *global_virial_temp[1];
+    local_virial[2]  = 0.5 *global_virial_temp[2];
+    local_virial[3]  = 0.5 *global_virial_temp[3];
+    local_virial[4]  = 0.5 *global_virial_temp[4];
+    local_virial[5]  = 0.5 *global_virial_temp[5];
 
     // for (int i = 0; i < 6; i++)
     //   sum_virial[i] += local_virial[i];
@@ -525,7 +545,7 @@ __global__ void ComputeBondForce(
       const rbmd::Id* anglelisti, const rbmd::Id* anglelistj,
       const rbmd::Id* anglelistk, const rbmd::Real* px, const rbmd::Real* py,
       const rbmd::Real* pz, rbmd::Real* fx, rbmd::Real* fy, rbmd::Real* fz,
-      rbmd::Real* flat_virial,rbmd::Real* energy_angle) {
+      rbmd::Real* flat_virial,rbmd::Real* global_virial,rbmd::Real* energy_angle) {
     __shared__ typename BLOCKREDUCE<rbmd::Real, BLOCK_SIZE>::TempStorage
         temp_storage;
     rbmd::Real local_energy_angle = 0;
@@ -627,13 +647,28 @@ __global__ void ComputeBondForce(
       atomicAdd(&fz[angleljj], force_anglej_z);
 
       //virial
+      rbmd::Real global_virial_temp[6];
+      global_virial_temp[0]  = (x12 * force_anglei_x + x23 * force_anglek_x);
+      global_virial_temp[1]  = (y12 * force_anglei_y + y23 * force_anglek_y);
+      global_virial_temp[2]  = (z12 * force_anglei_z + z23 * force_anglek_z);
+      global_virial_temp[3]  = (x12 * force_anglei_x + x23 * force_anglek_y);
+      global_virial_temp[4]  = (x12 * force_anglei_z + x23 * force_anglek_z);
+      global_virial_temp[5]  = (y12 * force_anglei_z + y23 * force_anglek_z);
+      global_virial[0+num_anglels + tid1] = global_virial_temp[0];
+      global_virial[1+num_anglels + tid1] = global_virial_temp[1];
+      global_virial[2+num_anglels + tid1] = global_virial_temp[2];
+      global_virial[3+num_anglels + tid1] = global_virial_temp[3];
+      global_virial[4+num_anglels + tid1] = global_virial_temp[4];
+      global_virial[5+num_anglels + tid1] = global_virial_temp[5];
+
       rbmd::Real local_virial[6];
-      local_virial[0]  =  0.3333333333*(x12 * force_anglei_x + x23 * force_anglek_x);
-      local_virial[1]  =  0.3333333333*(y12 * force_anglei_y + y23 * force_anglek_y);
-      local_virial[2]  =  0.3333333333*(z12 * force_anglei_z + z23 * force_anglek_z);
-      local_virial[3]  =  0.3333333333*(x12 * force_anglei_x + x23 * force_anglek_y);
-      local_virial[4]  =  0.3333333333*(x12 * force_anglei_z + x23 * force_anglek_z);
-      local_virial[5]  =  0.3333333333*(y12 * force_anglei_z + y23 * force_anglek_z);
+      local_virial[0]  =  0.3333333333*global_virial_temp[0];
+      local_virial[1]  =  0.3333333333*global_virial_temp[1];
+      local_virial[2]  =  0.3333333333*global_virial_temp[2];
+      local_virial[3]  =  0.3333333333*global_virial_temp[3];
+      local_virial[4]  =  0.3333333333*global_virial_temp[4];
+      local_virial[5]  =  0.3333333333*global_virial_temp[5];
+
       // for (int i = 0; i < 6; i++)
       //   sum_virial[i] += local_virial[i];
 
@@ -687,7 +722,7 @@ __global__ void ComputeBondForce(
       const rbmd::Id* dihedrallistk, const rbmd::Id* dihedrallistw,
       const rbmd::Real* px, const rbmd::Real* py, const rbmd::Real* pz,
       rbmd::Real* fx, rbmd::Real* fy, rbmd::Real* fz,rbmd::Real* flat_virial,
-      rbmd::Real* energy_dihedral) {
+      rbmd::Real* global_virial,rbmd::Real* energy_dihedral) {
     __shared__ typename BLOCKREDUCE<rbmd::Real, BLOCK_SIZE>::TempStorage
         temp_storage;
     rbmd::Real local_energy_dihedral = 0;
@@ -863,25 +898,39 @@ __global__ void ComputeBondForce(
       // fy[dihedralww] += force_dihedralw_y;
       // fz[dihedralww] += force_dihedralw_z;
 
+      rbmd::Real  global_virial_temp[6];
+      global_virial_temp[0] = (x12 * force_dihedrali_x + x23 * force_dihedralk_x +
+      (x34 + x23) * force_dihedralw_x);
 
-      rbmd::Real local_virial[6];
-      local_virial[0] = 0.25* (x12 * force_dihedrali_x + x23 * force_dihedralk_x +
-          (x34 + x23) * force_dihedralw_x);
-
-      local_virial[1] = 0.25* (y12 * force_dihedrali_y + y23 * force_dihedralk_y +
+      global_virial_temp[1] =  (y12 * force_dihedrali_y + y23 * force_dihedralk_y +
          (y34 + y23) * force_dihedralw_y);
 
-      local_virial[2] = 0.25* (z12 * force_dihedrali_z + z23 * force_dihedralk_z +
+      global_virial_temp[2] = (z12 * force_dihedrali_z + z23 * force_dihedralk_z +
          (z34 + z23) * force_dihedralw_z);
 
-      local_virial[3] = 0.25* (x12 * force_dihedrali_y + x23 * force_dihedralk_y +
+      global_virial_temp[3] = (x12 * force_dihedrali_y + x23 * force_dihedralk_y +
          (x34 + x23) * force_dihedralw_y);
 
-      local_virial[4] = 0.25* (x12* force_dihedrali_z + x23 * force_dihedralk_z +
+      global_virial_temp[4] = (x12* force_dihedrali_z + x23 * force_dihedralk_z +
          (x34 + x23) * force_dihedralw_z);
 
-      local_virial[5] =  0.25* (y12 * force_dihedrali_z + y23 * force_dihedralk_z +
+      global_virial_temp[5] = (y12 * force_dihedrali_z + y23 * force_dihedralk_z +
          (y34 + y23) * force_dihedralw_z);
+
+      global_virial[0 * num_dihedrals + tid1] = global_virial_temp[0];
+      global_virial[1 * num_dihedrals + tid1] = global_virial_temp[1];
+      global_virial[2 * num_dihedrals + tid1] = global_virial_temp[2];
+      global_virial[3 * num_dihedrals + tid1] = global_virial_temp[3];
+      global_virial[4 * num_dihedrals + tid1] = global_virial_temp[4];
+      global_virial[5 * num_dihedrals + tid1] = global_virial_temp[5];
+
+      rbmd::Real local_virial[6];
+      local_virial[0] = 0.25* global_virial_temp[0];
+      local_virial[1] = 0.25* global_virial_temp[1];
+      local_virial[2] = 0.25* global_virial_temp[2];
+      local_virial[3] = 0.25* global_virial_temp[3];
+      local_virial[4] = 0.25* global_virial_temp[4];
+      local_virial[5] = 0.25* global_virial_temp[5];
 
       // // 将每个 dihedral 的 virial 分量加到相应的原子
       atomicAdd(&flat_virial[0 * num_atoms + dihedralii], local_virial[0]);
@@ -1172,13 +1221,13 @@ __global__ void ComputeBondForce(
        const rbmd::Id* bondlisti,const rbmd::Id* bondlistj,
        const rbmd::Real* px, const rbmd::Real* py,const rbmd::Real* pz,
        rbmd::Real* fx, rbmd::Real* fy, rbmd::Real* fz,
-       rbmd::Real* flat_virial, rbmd::Real* energy_bond) {
+       rbmd::Real* flat_virial, rbmd::Real* global_virial,rbmd::Real* energy_bond) {
     unsigned int blocks_per_grid = (num_bonds + BLOCK_SIZE - 1) / BLOCK_SIZE;
 
     CHECK_KERNEL(ComputeBondForce<<<blocks_per_grid, BLOCK_SIZE, 0, 0>>>(
         box, num_atoms,num_bonds, atom_id_to_idx, bond_coeffs_k, bond_coeffs_equilibrium,
         bond_type, bondlisti, bondlistj, px, py, pz, fx, fy, fz,flat_virial,
-        energy_bond));
+        global_virial,energy_bond));
   }
 
 // force of angle
@@ -1190,13 +1239,13 @@ __global__ void ComputeBondForce(
       const rbmd::Id* anglelisti, const rbmd::Id* anglelistj,
       const rbmd::Id* anglelistk, const rbmd::Real* px, const rbmd::Real* py,
       const rbmd::Real* pz, rbmd::Real* fx, rbmd::Real* fy, rbmd::Real* fz,
-      rbmd::Real* flat_virial,rbmd::Real* energy_angle) {
+      rbmd::Real* flat_virial,rbmd::Real* global_virial, rbmd::Real* energy_angle) {
     unsigned int blocks_per_grid = (num_anglels + BLOCK_SIZE - 1) / BLOCK_SIZE;
 
     CHECK_KERNEL(ComputeAngleForce<<<blocks_per_grid, BLOCK_SIZE, 0, 0>>>(
         box, num_atoms,num_anglels, _atom_id_to_idx, anglel_coeffs_k,
         anglel_coeffs_equilibrium, anglel_type, anglelisti, anglelistj,
-        anglelistk, px, py, pz, fx, fy, fz, flat_virial,energy_angle));
+        anglelistk, px, py, pz, fx, fy, fz, flat_virial,global_virial,energy_angle));
   }
 
 
@@ -1210,14 +1259,14 @@ __global__ void ComputeBondForce(
       const rbmd::Id* dihedrallistk, const rbmd::Id* dihedrallistw,
       const rbmd::Real* px, const rbmd::Real* py, const rbmd::Real* pz,
       rbmd::Real* fx, rbmd::Real* fy, rbmd::Real* fz,rbmd::Real* flat_virial,
-      rbmd::Real* energy_dihedral) {
+      rbmd::Real* global_virial,rbmd::Real* energy_dihedral) {
     unsigned int blocks_per_grid = (num_dihedrals + BLOCK_SIZE - 1) / BLOCK_SIZE;
 
     CHECK_KERNEL(ComputeDihedralForce<<<blocks_per_grid, BLOCK_SIZE, 0, 0>>>(
         box, num_atoms,num_dihedrals, atom_id_to_idx, dihedral_coeffs_k,
         dihedral_coeffs_sign, dihedral_coeffs_multiplicity, dihedral_type,
         dihedrallisti, dihedrallistj, dihedrallistk, dihedrallistw, px, py, pz,
-        fx, fy, fz, flat_virial,energy_dihedral));
+        fx, fy, fz, flat_virial,global_virial,energy_dihedral));
   }
 
   // force of improper

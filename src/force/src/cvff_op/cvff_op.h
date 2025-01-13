@@ -145,6 +145,7 @@ namespace op {
          rbmd::Real* fy,
          rbmd::Real* fz,
          rbmd::Real* flat_virial,
+         rbmd::Real* global_virial,
          rbmd::Real* energy_bond);
      };
 
@@ -169,6 +170,7 @@ namespace op {
        rbmd::Real* fy,
        rbmd::Real* fz,
        rbmd::Real* flat_virial,
+       rbmd::Real* global_virial,
        rbmd::Real* energy_angle);
      };
 
@@ -195,6 +197,7 @@ namespace op {
        rbmd::Real* fy,
        rbmd::Real* fz,
        rbmd::Real* flat_virial,
+       rbmd::Real* global_virial,
        rbmd::Real* energy_dihedral);
      };
 
@@ -368,6 +371,7 @@ namespace op {
       rbmd::Real* fy,
       rbmd::Real* fz,
       rbmd::Real* flat_virial,
+      rbmd::Real* global_virial,
       rbmd::Real* energy_bond);
   };
 
@@ -393,6 +397,7 @@ namespace op {
     rbmd::Real* fy,
     rbmd::Real* fz,
     rbmd::Real* flat_virial,
+    rbmd::Real* global_virial,
     rbmd::Real* energy_angle);
   };
 
@@ -419,6 +424,7 @@ namespace op {
       rbmd::Real* fy,
       rbmd::Real* fz,
       rbmd::Real* flat_virial,
+      rbmd::Real* global_virial,
       rbmd::Real* energy_dihedral);
   };
 
