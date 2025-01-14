@@ -275,7 +275,7 @@ void CVFF::ComputeLJVerlet()
 
   for(int atom = 0; atom < num_atoms; ++atom){
     for(int i = 0; i < 6; ++i){
-      virial_lj[i] += h_flat_virial_lj[i * 6 + atom];
+      virial_lj[i] += h_flat_virial_lj[i * num_atoms + atom];
     }
   }
 
@@ -442,7 +442,7 @@ void CVFF::ComputeEwlad()
 
   for(int atom = 0; atom < num_atoms; ++atom){
     for(int i = 0; i < 6; ++i){
-      virial_kspace[i] += h_flat_virial_kspace[i * 6 + atom];
+      virial_kspace[i] += h_flat_virial_kspace[i * num_atoms + atom];
     }
   }
 
@@ -661,7 +661,7 @@ void CVFF::ComputeLJCoulEnergy()
 
   for(int atom = 0; atom < num_atoms; ++atom){
     for(int i = 0; i < 6; ++i){
-      virial_lj[i] += h_flat_virial_lj[atom * 6 + i];
+      virial_lj[i] += h_flat_virial_lj[i * num_atoms + atom];
     }
   }
   // std::ofstream output_file3("output_virial_lj.txt");
