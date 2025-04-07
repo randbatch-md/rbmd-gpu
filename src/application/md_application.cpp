@@ -50,15 +50,28 @@ int MDApplication::Execute() {
   //	//log
   //	return -1;
   // }
+  size_t free_byte, total_byte;
+
+  // 获取初始可用显存和总显存
+  MEMGETINFO(&free_byte, &total_byte);
+  // 记录分配前的可用显存
+  size_t before_allocation = free_byte;
   ReadMDData();
   _simulate_pipeline = std::make_shared<NVTensemble>();
   _output = std::make_shared<TrajectoryOutput>();
   _simulate = std::make_shared<Simulate>(_simulate_pipeline,_output);
   
   _simulate->Init();
+  MEMGETINFO(&free_byte, &total_byte);
+  // 计算实际分配的显存大小
+  size_t allocated_memory_before = before_allocation - free_byte;
 
   _simulate->Execute();
-
+  MEMGETINFO(&free_byte, &total_byte);
+  // 计算实际分配的显存大小
+  size_t allocated_memory_after = before_allocation - free_byte;
+  size_t max_allocated = MAX(allocated_memory_before,allocated_memory_after);
+  printf("Maximum memory usage: %.2f MB (%.2f GB)\n", static_cast<double>(max_allocated)/ (1024.0 * 1024.0),static_cast<double>(max_allocated)/ (1024.0 * 1024.0 * 1024.0));
   DataManager::getInstance().unloadDeviceData();
   return 0;
 }

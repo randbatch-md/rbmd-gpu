@@ -159,6 +159,7 @@ typedef int3 Int3;
     #define SHUFFLEINDEX cub::ShuffleIndex
     #define BLOCKREDUCE cub::BlockReduce
     #define DEVICESYNC cudaDeviceSynchronize
+    #define MEMGETINFO cudaMemGetInfo
 #elif defined (__ROCM)
     #define MALLOC hipMalloc
     #define MALLOCHOST hipHostMalloc
@@ -181,6 +182,7 @@ typedef int3 Int3;
     #define SHUFFLEINDEX hipcub::ShuffleIndex
     #define BLOCKREDUCE hipcub::BlockReduce
     #define DEVICESYNC hipDeviceSynchronize
+    #define MEMGETINFO hipMemGetInfo
 #endif
 
 
