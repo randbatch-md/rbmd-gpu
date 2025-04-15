@@ -35,6 +35,10 @@ class DataManager {
         _device_data(std::make_shared<DeviceData>())
         //, _memory_scheduler(std::make_shared<MemoryScheduler>())
         {
+            std::cout << "输出看看" << std::endl;
+            std::cout << _config_data->Get<std::string>("atom_style", "init_configuration", "read_data") << std::endl;
+            std::cout << "输出看看" << std::endl;
+
             _md_data = std::make_shared<MDData>(_config_data->Get<std::string>("atom_style", "init_configuration", "read_data"), _config_data->Get<std::string>("type", "hyper_parameters", "force_field"));
         };  // �����ʼ����_config_data ԭ����DataManager() = default;
 

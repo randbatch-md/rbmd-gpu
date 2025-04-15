@@ -1,11 +1,14 @@
 #pragma once
-#include <fstream>
 #include <cmath>
-#include "../common/object.h"
-#include "json/reader.h"
-#include "json/value.h"
+#include <fstream>
+#include <iostream>
+#include <stdexcept>
+#include <string>
 #include <vector>
-#include "common/types.h"
+
+#include "../common/object.h"
+#include "../common/types.h"
+#include "common/json.hpp"
 
 class ConfigData : public Object {
  public:
@@ -35,10 +38,10 @@ class ConfigData : public Object {
    */
   template <typename T, typename... Args>
   T Get(std::string key, Args&&... args) {
-    Json::Value json_node = _json_node;
+    nlohmann::ordered_json json_node = _json_node;
 
     auto getNode = [this, &json_node](const auto& arg) {
-      if (json_node[arg].isObject()) {
+      if (json_node.contains(arg) && json_node[arg].is_object()) {
         json_node = json_node[arg];
       } else {
         //_console->error("{} is not a object!", arg);
@@ -49,8 +52,8 @@ class ConfigData : public Object {
     (getNode(std::forward<Args>(args)), ...);
 
     try {
-      if (json_node.isMember(key)) {
-        return json_node[key].as<T>();
+      if (json_node.contains(key)) {
+        return json_node[key].get<T>();
       } else {
         throw std::runtime_error("no key named: " + key);
       }
@@ -63,38 +66,36 @@ class ConfigData : public Object {
 
   template <typename T, typename... Args>
   std::vector<T> GetArray(std::string key, Args&&... args) {
-      Json::Value json_node = _json_node;
+    nlohmann::ordered_json json_node = _json_node;
 
-      auto getNode = [this, &json_node](const auto& arg) {
-          if (json_node[arg].isObject()) {
-              json_node = json_node[arg];
-          }
-          else {
-              //_console->error("{} is not a object!", arg);
-              return;
-          }
-      };
+    auto getNode = [this, &json_node](const auto& arg) {
+      if (json_node.contains(arg) && json_node[arg].is_object()) {
+        json_node = json_node[arg];
+      } else {
+        //_console->error("{} is not a object!", arg);
+        return;
+      }
+    };
 
-      (getNode(std::forward<Args>(args)), ...);
-      std::cout << "Checking key: " << key << " in node: " << json_node.toStyledString() << std::endl;
-      if (json_node.isMember(key)) {
-          Json::Value value = json_node[key];
-          if (value.isArray()) {
-              std::vector<T> result;
-              for (const auto& item : value) {
-                  result.push_back(item.as<T>());  // 将数组元素转换为 T 类型
-              }
-              return result;
-          }
-          else {
-              throw std::runtime_error(key + " is not an array");
-          }
+    (getNode(std::forward<Args>(args)), ...);
+    std::cout << "Checking key: " << key << " in node: " << json_node.dump(4)
+              << std::endl;
+
+    if (json_node.contains(key)) {
+      nlohmann::ordered_json value = json_node[key];
+      if (value.is_array()) {
+        std::vector<T> result;
+        for (const auto& item : value) {
+          result.push_back(item.get<T>());  // 将数组元素转换为 T 类型
+        }
+        return result;
+      } else {
+        throw std::runtime_error(key + " is not an array");
       }
-      else {
-          throw std::runtime_error("no key named: " + key);
-      }
+    } else {
+      throw std::runtime_error("no key named: " + key);
+    }
   }
-
 
   /**
    * @brief get json node
@@ -102,7 +103,7 @@ class ConfigData : public Object {
    * @return json node
    */
   auto& GetJsonNode(const std::string& key) {
-    if (!_json_node[key].isObject()) {
+    if (!_json_node.contains(key) || !_json_node[key].is_object()) {
       //_console->warn("Can not find key: {}", key);
     }
 
@@ -114,7 +115,7 @@ class ConfigData : public Object {
    * @param key node name
    * @return true or false
    */
-  bool HasNode(const std::string& key) { return _json_node.isMember(key); }
+  bool HasNode(const std::string& key) { return _json_node.contains(key); }
 
  private:
   /**
@@ -139,16 +140,21 @@ class ConfigData : public Object {
         return;
       }
 
-      Json::CharReaderBuilder readerBuilder;
-      Json::parseFromStream(readerBuilder, filestream, &_json_node, nullptr);
-
-      /// close file
+      // 读取整个文件内容
+      std::string json_str((std::istreambuf_iterator<char>(filestream)),
+                           std::istreambuf_iterator<char>());
       filestream.close();
-    } catch (const std::exception&) {
-      //_console->error("Error parsing JSON");
-    }
-  }
 
- private:
-  Json::Value _json_node;
+      // 解析JSON，允许注释
+      // 最后一个参数true表示允许解析包含注释的JSON
+      _json_node = nlohmann::json::parse(json_str, nullptr, false, true);
+    } catch (const nlohmann::json::parse_error& e) {
+      //_console->error("Error parsing JSON: {}", e.what());
+    } catch (const std::exception& e) {
+      //_console->error("Error parsing JSON: {}", e.what());
+      }
+    }
+
+private:
+    nlohmann::ordered_json _json_node;
 };

@@ -31,7 +31,6 @@ foreach(tool_path ${tools_path})
 endforeach()
 
 find_package(PkgConfig REQUIRED)
-pkg_check_modules(JSONCPP REQUIRED jsoncpp IMPORTED_TARGET GLOBAL)
 pkg_check_modules(SPDLOG REQUIRED spdlog IMPORTED_TARGET GLOBAL)
 
 
@@ -46,9 +45,9 @@ elseif(USE_CUDA)
 	set(INCLUDE_DIRS ${CMAKE_CUDA_TOOLKIT_INCLUDE_DIRECTORIES})
 endif()
 
-set(inclue_files "../data_manager/include" ${include_dirs} ${TOOLS_INCLUDE_PATH} ${INCLUDE_DIRS} ${SPDLOG_INCLUDE_DIRS} ${JSONCPP_INCLUDE_DIRS})
-set(link_dirs ${LIBRARY_DIR} ${TOOLS_LINK_PATH} ${LINK_DIRS}  ${SPDLOG_LIBRARY_DIRS} ${JSONCPP_LIBRARY_DIRS})
-set(depend_names ${LINK_NAME} PkgConfig::JSONCPP PkgConfig::SPDLOG)
+set(inclue_files "../data_manager/include" ${include_dirs} ${TOOLS_INCLUDE_PATH} ${INCLUDE_DIRS} ${SPDLOG_INCLUDE_DIRS} )
+set(link_dirs ${LIBRARY_DIR} ${TOOLS_LINK_PATH} ${LINK_DIRS}  ${SPDLOG_LIBRARY_DIRS} )
+set(depend_names ${LINK_NAME}  PkgConfig::SPDLOG)
 
 cpp_library(
 name ${PROJECT_NAME}
