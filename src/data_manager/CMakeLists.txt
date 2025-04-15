@@ -26,7 +26,7 @@ list(REMOVE_DUPLICATES include_dirs)
 
 
 
-# Á´½ÓÕÒµ½µÄËùÓÐ¾²Ì¬¿âµ½¿ÉÖ´ÐÐÎÄ¼þ
+# ï¿½ï¿½ï¿½ï¿½ï¿½Òµï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ð¾ï¿½Ì¬ï¿½âµ½ï¿½ï¿½Ö´ï¿½ï¿½ï¿½Ä¼ï¿½
 file(GLOB tools_path ${CMAKE_CURRENT_LIST_DIR}/../../tools/*.tar.gz)
 
 foreach(tool_path ${tools_path})
@@ -38,7 +38,6 @@ foreach(tool_path ${tools_path})
 endforeach()
 
 find_package(PkgConfig REQUIRED)
-pkg_check_modules(JSONCPP REQUIRED jsoncpp IMPORTED_TARGET GLOBAL)
 pkg_check_modules(SPDLOG REQUIRED spdlog IMPORTED_TARGET GLOBAL)
 #pkg_check_modules(CXXOPTS REQUIRED cxxopts IMPORTED_TARGET GLOBAL)
 
@@ -51,9 +50,9 @@ elseif(USE_CUDA)
 	set(THRUST_INCLUDE_DIRS ${CMAKE_CUDA_TOOLKIT_INCLUDE_DIRECTORIES})
 endif()
 
-set(include_dir ${include_dirs} ${TOOLS_INCLUDE_PATH} ${THRUST_INCLUDE_DIRS} ${SPDLOG_INCLUDE_DIRS} ${JSONCPP_INCLUDE_DIRS} "../common")  # ${jsoncpp_INCLUDE_DIRS}
-set(link_dir  ${TOOLS_LINK_PATH} ${rocthrust_LIBRARIES} ${SPDLOG_LIBRARY_DIRS} ${JSONCPP_LIBRARY_DIRS})  # ${jsoncpp_LIBRARIES}
-set(depends_name ${THRUST_LINK_NAME} PkgConfig::JSONCPP PkgConfig::SPDLOG)
+set(include_dir ${include_dirs} ${TOOLS_INCLUDE_PATH} ${THRUST_INCLUDE_DIRS} ${SPDLOG_INCLUDE_DIRS}  "../common")  # ${jsoncpp_INCLUDE_DIRS}
+set(link_dir  ${TOOLS_LINK_PATH} ${rocthrust_LIBRARIES} ${SPDLOG_LIBRARY_DIRS} )  # ${jsoncpp_LIBRARIES}
+set(depends_name ${THRUST_LINK_NAME}  PkgConfig::SPDLOG)
 
 cpp_library(
 name ${PROJECT_NAME}

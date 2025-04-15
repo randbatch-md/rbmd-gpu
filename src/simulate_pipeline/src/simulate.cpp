@@ -23,7 +23,7 @@ void Simulate::Init()
 
 int Simulate::Execute() {
   while (KeepGoing()) {
-    _output->Execute();
+    //_output->Execute();
     _current_step++;
     _current_time += _time_step;
     test_current_step = _current_step;

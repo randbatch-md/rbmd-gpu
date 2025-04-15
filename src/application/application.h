@@ -39,7 +39,7 @@ class Application : public Object {
   std::shared_ptr<Ensemble> _simulate_pipeline;
   std::shared_ptr<Output> _output;
 
-  std::vector<Json::Value> _simulate_nodes;
+  std::vector<nlohmann::json> _simulate_nodes;
 
   std::shared_ptr<ConfigData> _config_data;
 
