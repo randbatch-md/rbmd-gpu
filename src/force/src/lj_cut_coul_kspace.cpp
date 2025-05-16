@@ -228,13 +228,13 @@ void LJCutCoulKspace::ComputeLJVerlet()
   // 从设备端拷贝数据到主机端
   thrust::host_vector<rbmd::Real> h_total_evdwl(d_total_evdwl);
   thrust::host_vector<rbmd::Real> h_total_ecoul(d_total_ecoul);
-  _ave_evdwl = h_total_evdwl[0]/num_atoms;
-  _ave_ecoul = h_total_ecoul[0]/num_atoms;
+  _e_vdwl = h_total_evdwl[0]/num_atoms;
+  _e_coul = h_total_ecoul[0]/num_atoms;
 
   std::cout << "test_current_step:" << test_current_step <<  " ,"
-  << "average_vdwl_energy:" << _ave_evdwl << " ," <<  "average_coul_energy:" << _ave_ecoul << std::endl;
+  << "average_vdwl_energy:" << _e_vdwl << " ," <<  "average_coul_energy:" << _e_coul << std::endl;
 
-  //sum virial on host
+  //sum virial_lj on host
   std::vector<rbmd::Real> h_flat_virial_lj(num_atoms * 6);
   thrust::copy(_device_data->_d_flat_virial_lj.begin(),
     _device_data->_d_flat_virial_lj.end(), h_flat_virial_lj.begin());
@@ -244,7 +244,7 @@ void LJCutCoulKspace::ComputeLJVerlet()
 
   for(int atom = 0; atom < num_atoms; ++atom){
     for(int i = 0; i < 6; ++i){
-      virial_lj[i] += h_flat_virial_lj[atom * 6 + i];
+      virial_lj[i] += h_flat_virial_lj[ i* num_atoms + atom];
     }
   }
 
@@ -341,18 +341,18 @@ void LJCutCoulKspace::ComputeChargeStructureFactorEwald(
   //energy
 
   //charge self energy//
-  ComputeSelfEnergy(alpha,qqr2e,_ave_self_energy);
+  ComputeSelfEnergy(alpha,qqr2e,_e_self_energy);
 
   //compute Kspace energy//
   rbmd::Real volume = box._length[0] * box._length[1]*box._length[2];
   total_energy_kspace = qqr2e * (2 * M_PI / volume) * total_energy_kspace;
-  _ave_ekspace = total_energy_kspace / num_atoms;
+  _e_kspace = total_energy_kspace / num_atoms;
 
-  _ave_ekspace = _ave_ekspace + _ave_self_energy;
+  _e_kspace = _e_kspace + _e_self_energy;
 
   //out
    std::cout << "test_current_step:" << test_current_step <<  " ,"
-   << "ave_energy_ewald:" << _ave_ekspace << std::endl;
+   << "ave_energy_ewald:" << _e_kspace << std::endl;
 
 }
 
@@ -382,13 +382,13 @@ void LJCutCoulKspace::ComputeEwlad()
   MEMCPY(thrust::raw_pointer_cast(imag_array.data()),thrust::raw_pointer_cast(d_imag_array.data()),
     _num_k * sizeof(rbmd::Real),D2H);
 
-  std::ofstream output_file("output_real_imag_array.txt");
-  for (size_t i = 0; i < real_array.size(); ++i)
-  {
-    output_file << "i:" << i << " "
-    << real_array[i] << " " << imag_array[i]  << std::endl;
-  }
-  output_file.close();
+  // std::ofstream output_file("output_real_imag_array.txt");
+  // for (size_t i = 0; i < real_array.size(); ++i)
+  // {
+  //   output_file << "i:" << i << " "
+  //   << real_array[i] << " " << imag_array[i]  << std::endl;
+  // }
+  // output_file.close();
 
   //EwaldForce//
   op::ComputeEwaldForceOp<device::DEVICE_GPU>()(
@@ -404,7 +404,7 @@ void LJCutCoulKspace::ComputeEwlad()
         thrust::raw_pointer_cast(_device_data->_d_force_kspace_z.data()),
         thrust::raw_pointer_cast(_device_data->_d_flat_virial_kspace.data()));
 
-  // 主机端累加virial
+  //sum virial_kspace on host
   std::vector<rbmd::Real> h_flat_virial_kspace(num_atoms * 6);
   thrust::copy(_device_data->_d_flat_virial_kspace.begin(),
     _device_data->_d_flat_virial_kspace.end(), h_flat_virial_kspace.begin());
@@ -414,7 +414,7 @@ void LJCutCoulKspace::ComputeEwlad()
 
   for(int atom = 0; atom < num_atoms; ++atom){
     for(int i = 0; i < 6; ++i){
-      virial_kspace[i] += h_flat_virial_kspace[atom * 6 + i];
+      virial_kspace[i] += h_flat_virial_kspace[i* num_atoms + atom ];
     }
   }
   thrust::copy(virial_kspace.begin(),
@@ -508,16 +508,16 @@ void LJCutCoulKspace::ComputeChargeStructureFactorRBE(
   //energy
 
   //charge self energy//
-  ComputeSelfEnergy(alpha,qqr2e,_ave_self_energy);
+  ComputeSelfEnergy(alpha,qqr2e,_e_self_energy);
 
   //kspace energy
   ComputeKspaceEnergy(box, num_atoms, kmax_array,
-      alpha, qqr2e ,_ave_ekspace);
-  _ave_ekspace = _ave_ekspace +_ave_self_energy;
+      alpha, qqr2e ,_e_kspace);
+  _e_kspace = _e_kspace +_e_self_energy;
 
     //out
    std::cout << "test_current_step:" << test_current_step <<  " ,"
-   << "ave_energy_rbe:" << _ave_ekspace << std::endl;
+   << "ave_energy_rbe:" << _e_kspace << std::endl;
 
 }
 
@@ -547,7 +547,7 @@ void LJCutCoulKspace::ComputeRBE()
         thrust::raw_pointer_cast(_device_data->_d_force_kspace_z.data()),
         thrust::raw_pointer_cast(_device_data->_d_flat_virial_kspace.data()));
 
-  //sum virial on host
+  //sum virial_kspace on host
   std::vector<rbmd::Real> h_flat_virial_kspace(num_atoms * 6);
   thrust::copy(_device_data->_d_flat_virial_kspace.begin(),
     _device_data->_d_flat_virial_kspace.end(), h_flat_virial_kspace.begin());
@@ -557,7 +557,7 @@ void LJCutCoulKspace::ComputeRBE()
 
   for(int atom = 0; atom < num_atoms; ++atom){
     for(int i = 0; i < 6; ++i){
-      virial_kspace[i] += h_flat_virial_kspace[atom * 6 + i];
+      virial_kspace[i] += h_flat_virial_kspace[i* num_atoms + atom ];
     }
   }
 
@@ -600,13 +600,13 @@ void LJCutCoulKspace::ComputeLJCoulEnergy()
   // 从设备端拷贝数据到主机端
   thrust::host_vector<rbmd::Real> h_total_evdwl(_d_total_evdwl);
   thrust::host_vector<rbmd::Real> h_total_ecoul(_d_total_ecoul);
-  _ave_evdwl = h_total_evdwl[0]/num_atoms;
-  _ave_ecoul = h_total_ecoul[0]/num_atoms;
+  _e_vdwl = h_total_evdwl[0]/num_atoms;
+  _e_coul = h_total_ecoul[0]/num_atoms;
 
   std::cout << "test_current_step:" << test_current_step <<  " ,"
-  << "average_vdwl_energy:" << _ave_evdwl << " ," <<  "average_coul_energy:" << _ave_ecoul << std::endl;
+  << "average_vdwl_energy:" << _e_vdwl << " ," <<  "average_coul_energy:" << _e_coul << std::endl;
 
-  //sum virial on host
+  //sum virial_lj on host
   std::vector<rbmd::Real> h_flat_virial_lj(num_atoms * 6);
   thrust::copy(_device_data->_d_flat_virial_lj.begin(),
     _device_data->_d_flat_virial_lj.end(), h_flat_virial_lj.begin());
@@ -616,7 +616,7 @@ void LJCutCoulKspace::ComputeLJCoulEnergy()
 
   for(int atom = 0; atom < num_atoms; ++atom){
     for(int i = 0; i < 6; ++i){
-      virial_lj[i] += h_flat_virial_lj[atom * 6 + i];
+      virial_lj[i] += h_flat_virial_lj[i * num_atoms + atom ]; //Struct of Arrays
     }
   }
 
@@ -702,19 +702,19 @@ void LJCutCoulKspace::ComputeKspaceEnergy(
 
 void LJCutCoulKspace::EvaluatePotentialenergy()
 {
-  _ave_pe_rbl = _ave_evdwl_rbl + _ave_ecoul_rbl +_ave_ekspace;
+  _e_pe_rbl = _e_vdwl_rbl + _e_coul_rbl +_e_kspace;
   //test_ave_pe_rbl = _ave_pe_rbl;
 
-  _ave_pe = _ave_evdwl+ _ave_ecoul +_ave_ekspace;
+  _e_pe = _e_vdwl+ _e_coul +_e_kspace;
   //test_ave_pe = _ave_pe;
 
   //out
   std::ofstream outfile("thermo_local.txt", std::ios::app);
   if (outfile.tellp() == 0) {
-    outfile << "step _ave_evdwl _ave_ecoul _ave_ekspace _ave_pe" << std::endl;
+    outfile << "step e_vdwl e_coul e_kspace e_pe" << std::endl;
   }
-  outfile << test_current_step << " " << _ave_evdwl  << " "<< _ave_ecoul <<" "
-  << _ave_ekspace  << " " << _ave_pe<< std::endl;
+  outfile << test_current_step << " " << _e_vdwl  << " "<< _e_coul <<" "
+  << _e_kspace  << " " << _e_pe<< std::endl;
   outfile.close();
 }
 

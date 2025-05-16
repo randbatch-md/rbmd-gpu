@@ -38,6 +38,8 @@ void TrajectoryOutput::Execute()
     {
         try
         {
+            auto atom_id_to_idx =
+              LinkedCellLocator::GetInstance().GetLinkedCell()->_atom_id_to_idx;
             std::vector<rbmd::Real> h_px(_num_atoms);
             std::vector<rbmd::Real> h_py(_num_atoms);
             std::vector<rbmd::Real> h_pz(_num_atoms);
@@ -61,7 +63,9 @@ void TrajectoryOutput::Execute()
 
             for (auto i = 0; i < _num_atoms; ++i)
             {
-                spdlog::info("{} {} {} {} {}", i + 1, h_atoms_type[i] + 1, h_px[i], h_py[i], h_pz[i]);
+                spdlog::info("{} {} {} {} {}", i + 1, h_atoms_type[atom_id_to_idx[i]] + 1,
+                  h_px[atom_id_to_idx[i]], h_py[atom_id_to_idx[i]],
+                  h_pz[atom_id_to_idx[i]]);
             }
         }
         catch (const std::exception& e)

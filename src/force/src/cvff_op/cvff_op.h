@@ -206,6 +206,7 @@ namespace op {
     {
       void operator()(
          Box box,
+         const rbmd::Id num_atoms,
         const rbmd::Id num_impropers,
         const rbmd::Id* atom_id_to_idx,
         const rbmd::Real* improper_coeffs_k,
@@ -433,6 +434,7 @@ namespace op {
   {
     void operator()(
        Box box,
+       const rbmd::Id num_atoms,
       const rbmd::Id num_impropers,
       const rbmd::Id* atom_id_to_idx,
       const rbmd::Real* improper_coeffs_k,

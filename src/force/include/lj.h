@@ -24,12 +24,12 @@ class LJ : public Force {
   std::shared_ptr<NeighborList> _list;
 
   //energy
-  rbmd::Real _ave_evdwl= 0.0;
-  rbmd::Real _ave_pe = 0;
-  rbmd::Real _ave_pe_init = 0;
+  rbmd::Real _e_vdwl= 0.0;
+  rbmd::Real _e_pe = 0;
+  rbmd::Real _e_pe_init = 0;
 
-  rbmd::Real _ave_evdwl_rbl= 0.0;
-  rbmd::Real _ave_pe_rbl = 0;
+  rbmd::Real _e_vdwl_rbl= 0.0;
+  rbmd::Real _e_pe_rbl = 0;
 
   rbmd::Real virial[6];
 

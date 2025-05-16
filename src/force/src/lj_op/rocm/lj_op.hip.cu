@@ -179,7 +179,7 @@ inline __device__ void ComputeVirial_fix(rbmd::Real px12, rbmd::Real py12,
       fz[tid1] = sum_fz;
       //
       for(int i =0;i<6;++i) {
-        flat_virial[ tid1 * 6 + i ] = sum_virial[i];
+        flat_virial[  i * num_atoms + tid1 ] = sum_virial[i];
       }
 
     rbmd::Real block_sum =
@@ -397,7 +397,7 @@ inline __device__ void ComputeVirial_fix(rbmd::Real px12, rbmd::Real py12,
       }
       //
       for(int i =0;i<6;++i) {
-        flat_virial[ tid1 * 6 + i ] = sum_virial[i];
+        flat_virial[ i * num_atoms +  tid1] = sum_virial[i];
       }
     }
 

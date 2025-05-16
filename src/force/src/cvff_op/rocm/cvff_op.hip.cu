@@ -393,7 +393,7 @@ __global__ void ComputeSpecialLJCutCoulEnergy(
       //rbmd::Real local_virial[6];
       rbmd::Real local_virial_xx,local_virial_yy,local_virial_zz,
   local_virial_xy,local_virial_xz,local_virial_yz;
-      ComputeVirial_fix(px12, py12, pz12,force_pair,local_virial_xx,local_virial_yy,
+      ComputeVirial(px12, py12, pz12,force_pair,local_virial_xx,local_virial_yy,
     local_virial_zz,local_virial_xy,local_virial_xz,local_virial_yz);
 
       //
@@ -407,7 +407,7 @@ __global__ void ComputeSpecialLJCutCoulEnergy(
 
     //
     for(int i =0;i<6;++i) {
-      flat_virial[ tid1 * 6 + i ] = sum_virial[i];
+      flat_virial[  i* num_atoms + tid1 ] = sum_virial[i];
     }
   }
   rbmd::Real block_sum_elj =
@@ -435,11 +435,6 @@ __global__ void ComputeBondForce(
   __shared__ typename BLOCKREDUCE<rbmd::Real, BLOCK_SIZE>::TempStorage
       temp_storage;
   rbmd::Real local_energy_bond = 0;
-  // initialize the virial to 0
-  rbmd::Real sum_virial[6];
-  for (int i = 0; i < 6; i++) {
-    sum_virial[i] = 0.0;
-  }
 
   unsigned int tid1 = blockIdx.x * blockDim.x + threadIdx.x;
   if (tid1 < num_bonds) {
@@ -505,9 +500,6 @@ __global__ void ComputeBondForce(
     local_virial[4]  = 0.5 *global_virial_temp[4];
     local_virial[5]  = 0.5 *global_virial_temp[5];
 
-    // for (int i = 0; i < 6; i++)
-    //   sum_virial[i] += local_virial[i];
-
     // 将每个 bond 的 virial 分量加到相应的原子
     atomicAdd(&flat_virial[0 * num_atoms + bondii], local_virial[0]);
     atomicAdd(&flat_virial[1 * num_atoms + bondii], local_virial[1]);
@@ -522,10 +514,6 @@ __global__ void ComputeBondForce(
     atomicAdd(&flat_virial[3 * num_atoms + bondjj], local_virial[3]);
     atomicAdd(&flat_virial[4 * num_atoms + bondjj], local_virial[4]);
     atomicAdd(&flat_virial[5 * num_atoms + bondjj], local_virial[5]);
-    //
-    // for(int i =0;i<6;++i) {
-    //   flat_virial[  i * num_atoms + tid1 ] = local_virial[i];
-    // }
   }
   rbmd::Real block_sum =
       BLOCKREDUCE<rbmd::Real, BLOCK_SIZE>(temp_storage)
@@ -549,12 +537,6 @@ __global__ void ComputeBondForce(
     __shared__ typename BLOCKREDUCE<rbmd::Real, BLOCK_SIZE>::TempStorage
         temp_storage;
     rbmd::Real local_energy_angle = 0;
-
-    // initialize the virial to 0
-    rbmd::Real sum_virial[6];
-    for (int i = 0; i < 6; i++) {
-      sum_virial[i] = 0.0;
-    }
 
     unsigned int tid1 = blockIdx.x * blockDim.x + threadIdx.x;
     if (tid1 < num_anglels) {
@@ -622,18 +604,6 @@ __global__ void ComputeBondForce(
       force_anglej_y = -(force_anglei_y + force_anglek_y);
       force_anglej_z = -(force_anglei_z + force_anglek_z);
 
-      // fx[anglelii] = force_anglei_x;
-      // fy[anglelii] = force_anglei_y;
-      // fz[anglelii] = force_anglei_z;
-      //
-      // fx[anglelkk] = force_anglek_x;
-      // fy[anglelkk] = force_anglek_y;
-      // fz[anglelkk] = force_anglek_z;
-      //
-      // fx[angleljj] = force_anglej_x;
-      // fy[angleljj] = force_anglej_y;
-      // fz[angleljj] = force_anglej_z;
-
       atomicAdd(&fx[anglelii], force_anglei_x);
       atomicAdd(&fy[anglelii], force_anglei_y);
       atomicAdd(&fz[anglelii], force_anglei_z);
@@ -651,7 +621,7 @@ __global__ void ComputeBondForce(
       global_virial_temp[0]  = (x12 * force_anglei_x + x23 * force_anglek_x);
       global_virial_temp[1]  = (y12 * force_anglei_y + y23 * force_anglek_y);
       global_virial_temp[2]  = (z12 * force_anglei_z + z23 * force_anglek_z);
-      global_virial_temp[3]  = (x12 * force_anglei_x + x23 * force_anglek_y);
+      global_virial_temp[3]  = (x12 * force_anglei_y + x23 * force_anglek_y);
       global_virial_temp[4]  = (x12 * force_anglei_z + x23 * force_anglek_z);
       global_virial_temp[5]  = (y12 * force_anglei_z + y23 * force_anglek_z);
       global_virial[0+num_anglels + tid1] = global_virial_temp[0];
@@ -668,15 +638,6 @@ __global__ void ComputeBondForce(
       local_virial[3]  =  0.3333333333*global_virial_temp[3];
       local_virial[4]  =  0.3333333333*global_virial_temp[4];
       local_virial[5]  =  0.3333333333*global_virial_temp[5];
-
-      // for (int i = 0; i < 6; i++)
-      //   sum_virial[i] += local_virial[i];
-
-      //
-      // for(int i =0;i<6;++i) {
-      //
-      //   flat_virial[ i * num_atoms + tid1 ] = sum_virial[i];
-      // }
 
       // 将每个 angle 的 virial 分量加到相应的原子
       //Column-Major Order : j * M + i
@@ -882,21 +843,6 @@ __global__ void ComputeBondForce(
       atomicAdd(&fx[dihedralkk], force_dihedralk_x);
       atomicAdd(&fy[dihedralkk], force_dihedralk_y);
       atomicAdd(&fz[dihedralkk], force_dihedralk_z);
-      // fx[dihedralii] += force_dihedrali_x;  // i atom force
-      // fy[dihedralii] += force_dihedrali_y;
-      // fz[dihedralii] += force_dihedrali_z;
-      //
-      // fx[dihedraljj] += force_dihedralj_x;  // j atom force
-      // fy[dihedraljj] += force_dihedralj_y;
-      // fz[dihedraljj] += force_dihedralj_z;
-      //
-      // fx[dihedralkk] += force_dihedralk_x;  // k atom force
-      // fy[dihedralkk] += force_dihedralk_y;
-      // fz[dihedralkk] += force_dihedralk_z;
-      //
-      // fx[dihedralww] += force_dihedralw_x;  // w atom force
-      // fy[dihedralww] += force_dihedralw_y;
-      // fz[dihedralww] += force_dihedralw_z;
 
       rbmd::Real  global_virial_temp[6];
       global_virial_temp[0] = (x12 * force_dihedrali_x + x23 * force_dihedralk_x +
@@ -960,11 +906,6 @@ __global__ void ComputeBondForce(
       atomicAdd(&flat_virial[3 * num_atoms + dihedralww], local_virial[3]);
       atomicAdd(&flat_virial[4 * num_atoms + dihedralww], local_virial[4]);
       atomicAdd(&flat_virial[5 * num_atoms + dihedralww], local_virial[5]);
-      // //
-      // for(int i =0;i<6;++i) {
-      //   flat_virial[ tid1 * 6 + i ] = local_virial[i];
-      // }
-
     }
     rbmd::Real block_sum =
         BLOCKREDUCE<rbmd::Real, BLOCK_SIZE>(temp_storage)
@@ -977,12 +918,13 @@ __global__ void ComputeBondForce(
 
   //Imprope
   __global__ void ComputeImproperForce(
-    Box box,const rbmd::Id num_impropers,const rbmd::Id* atom_id_to_idx,
-    const rbmd::Real* improper_coeffs_k,const rbmd::Real* improper_coeffs_chi,
-    const rbmd::Id* improper_type,const rbmd::Id* improperlisti,
-    const rbmd::Id* improperlistj,const rbmd::Id* improperlistk,
-    const rbmd::Id* improperlistw,const rbmd::Real* px,const rbmd::Real* py,
-    const rbmd::Real* pz,rbmd::Real* fx,rbmd::Real* fy,rbmd::Real* fz,
+    Box box,const rbmd::Id num_atoms,const rbmd::Id num_impropers,
+    const rbmd::Id* atom_id_to_idx,const rbmd::Real* improper_coeffs_k,
+    const rbmd::Real* improper_coeffs_chi,const rbmd::Id* improper_type,
+    const rbmd::Id* improperlisti,const rbmd::Id* improperlistj,
+    const rbmd::Id* improperlistk,const rbmd::Id* improperlistw,
+    const rbmd::Real* px,const rbmd::Real* py,const rbmd::Real* pz,
+    rbmd::Real* fx,rbmd::Real* fy,rbmd::Real* fz,
     rbmd::Real* flat_virial,rbmd::Real* energy_improper) {
     __shared__ typename BLOCKREDUCE<rbmd::Real, BLOCK_SIZE>::TempStorage
         temp_storage;
@@ -1110,30 +1052,62 @@ __global__ void ComputeBondForce(
       atomicAdd(&fy[improperkk], force_improperk_y);
       atomicAdd(&fz[improperkk], force_improperk_z);
 
-      rbmd::Real local_virial[6];
-      local_virial[0] = (x12 * force_improperi_x + x23 * force_improperk_x +
+      //
+      rbmd::Real global_virial_temp[6];
+      global_virial_temp[0] = (x12 * force_improperi_x + x23 * force_improperk_x +
           (x34 + x23) * force_improperw_x);
 
-      local_virial[1] = (y12 * force_improperi_y+ y23 * force_improperk_y +
+      global_virial_temp[1] = (y12 * force_improperi_y+ y23 * force_improperk_y +
          (y34 + y23) * force_improperw_y);
 
-      local_virial[2] = (z12 * force_improperi_z + z23 * force_improperk_z +
+      global_virial_temp[2] = (z12 * force_improperi_z + z23 * force_improperk_z +
          (z34 + z23) * force_improperw_z);
 
-      local_virial[3] = (x12 * force_improperi_y + x23 * force_improperk_y +
+      global_virial_temp[3] = (x12 * force_improperi_y + x23 * force_improperk_y +
          (x34 + x23) * force_improperw_y);
 
-      local_virial[4] = (x12* force_improperi_z + x23 * force_improperk_z +
+      global_virial_temp[4] = (x12* force_improperi_z + x23 * force_improperk_z +
          (x34 + x23) * force_improperw_z);
 
-      local_virial[5] =  (y12 * force_improperi_z + y23 * force_improperk_z +
+      global_virial_temp[5] =  (y12 * force_improperi_z + y23 * force_improperk_z +
          (y34 + y23) * force_improperw_z);
 
-      //
-      for(int i =0;i<6;++i) {
-        flat_virial[ tid1 * 6 + i ] = local_virial[i];
-      }
+      rbmd::Real local_virial[6];
+      local_virial[0] = 0.25* global_virial_temp[0];
+      local_virial[1] = 0.25* global_virial_temp[1];
+      local_virial[2] = 0.25* global_virial_temp[2];
+      local_virial[3] = 0.25* global_virial_temp[3];
+      local_virial[4] = 0.25* global_virial_temp[4];
+      local_virial[5] = 0.25* global_virial_temp[5];
 
+      // // 将每个 improper 的 virial 分量加到相应的原子
+      atomicAdd(&flat_virial[0 * num_atoms + improperii], local_virial[0]);
+      atomicAdd(&flat_virial[1 * num_atoms + improperii], local_virial[1]);
+      atomicAdd(&flat_virial[2 * num_atoms + improperii], local_virial[2]);
+      atomicAdd(&flat_virial[3 * num_atoms + improperii], local_virial[3]);
+      atomicAdd(&flat_virial[4 * num_atoms + improperii], local_virial[4]);
+      atomicAdd(&flat_virial[5 * num_atoms + improperii], local_virial[5]);
+
+      atomicAdd(&flat_virial[0 * num_atoms + improperjj], local_virial[0]);
+      atomicAdd(&flat_virial[1 * num_atoms + improperjj], local_virial[1]);
+      atomicAdd(&flat_virial[2 * num_atoms + improperjj], local_virial[2]);
+      atomicAdd(&flat_virial[3 * num_atoms + improperjj], local_virial[3]);
+      atomicAdd(&flat_virial[4 * num_atoms + improperjj], local_virial[4]);
+      atomicAdd(&flat_virial[5 * num_atoms + improperjj], local_virial[5]);
+
+      atomicAdd(&flat_virial[0 * num_atoms + improperkk], local_virial[0]);
+      atomicAdd(&flat_virial[1 * num_atoms + improperkk], local_virial[1]);
+      atomicAdd(&flat_virial[2 * num_atoms + improperkk], local_virial[2]);
+      atomicAdd(&flat_virial[3 * num_atoms + improperkk], local_virial[3]);
+      atomicAdd(&flat_virial[4 * num_atoms + improperkk], local_virial[4]);
+      atomicAdd(&flat_virial[5 * num_atoms + improperkk], local_virial[5]);
+
+      atomicAdd(&flat_virial[0 * num_atoms + improperww], local_virial[0]);
+      atomicAdd(&flat_virial[1 * num_atoms + improperww], local_virial[1]);
+      atomicAdd(&flat_virial[2 * num_atoms + improperww], local_virial[2]);
+      atomicAdd(&flat_virial[3 * num_atoms + improperww], local_virial[3]);
+      atomicAdd(&flat_virial[4 * num_atoms + improperww], local_virial[4]);
+      atomicAdd(&flat_virial[5 * num_atoms + improperww], local_virial[5]);
     }
     rbmd::Real block_sum =
         BLOCKREDUCE<rbmd::Real, BLOCK_SIZE>(temp_storage)
@@ -1271,17 +1245,18 @@ __global__ void ComputeBondForce(
 
   // force of improper
   void ComputeImproperForceOp<device::DEVICE_GPU>::operator()(
-    Box box,const rbmd::Id num_impropers,const rbmd::Id* atom_id_to_idx,
-    const rbmd::Real* improper_coeffs_k,const rbmd::Real* improper_coeffs_chi,
-    const rbmd::Id* improper_type,const rbmd::Id* improperlisti,
-    const rbmd::Id* improperlistj,const rbmd::Id* improperlistk,
-    const rbmd::Id* improperlistw,const rbmd::Real* px,const rbmd::Real* py,
-    const rbmd::Real* pz,rbmd::Real* fx,rbmd::Real* fy,rbmd::Real* fz,
+    Box box,const rbmd::Id num_atoms,const rbmd::Id num_impropers,
+    const rbmd::Id* atom_id_to_idx,const rbmd::Real* improper_coeffs_k,
+    const rbmd::Real* improper_coeffs_chi,const rbmd::Id* improper_type,
+    const rbmd::Id* improperlisti,const rbmd::Id* improperlistj,
+    const rbmd::Id* improperlistk,const rbmd::Id* improperlistw,
+    const rbmd::Real* px,const rbmd::Real* py,const rbmd::Real* pz,
+    rbmd::Real* fx,rbmd::Real* fy,rbmd::Real* fz,
     rbmd::Real* flat_virial,rbmd::Real* energy_improper) {
       unsigned int blocks_per_grid = (num_impropers + BLOCK_SIZE - 1) / BLOCK_SIZE;
 
       CHECK_KERNEL(ComputeImproperForce<<<blocks_per_grid, BLOCK_SIZE, 0, 0>>>(
-          box, num_impropers, atom_id_to_idx, improper_coeffs_k,
+          box,num_atoms,num_impropers, atom_id_to_idx, improper_coeffs_k,
           improper_coeffs_chi, improper_type,improperlisti, improperlistj,
           improperlistk, improperlistw, px, py, pz,fx, fy, fz,
           flat_virial,energy_improper));

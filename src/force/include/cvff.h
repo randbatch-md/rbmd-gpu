@@ -16,7 +16,7 @@ public:
   void EvaluatePotentialenergy() override;
 
   void ComputeLJCutCoulForce();
-  void ComputeLJVerlet() ;
+  void ComputeLJVerlet();
   void ComputeLJRBL();
 
   void ComputeKspaceForce();
@@ -78,19 +78,20 @@ private:
   std::shared_ptr<NeighborList> _list;
 
   //energy
-  rbmd::Real _ave_evdwl = 0;
-  rbmd::Real _ave_ecoul = 0;
-  rbmd::Real _ave_especial_coul = 0;
-  rbmd::Real _ave_self_energy = 0;
-  rbmd::Real _ave_ekspace = 0;
-  rbmd::Real _ave_ebond = 0;
-  rbmd::Real _ave_eangle = 0;
-  rbmd::Real _ave_edihedral = 0;
-  rbmd::Real _ave_pe = 0;
+  rbmd::Real _e_vdwl = 0;
+  rbmd::Real _e_coul = 0;
+  rbmd::Real _e_special_coul = 0;
+  rbmd::Real _e_self_energy = 0;
+  rbmd::Real _e_kspace = 0;
+  rbmd::Real _e_bond = 0;
+  rbmd::Real _e_angle = 0;
+  rbmd::Real _e_dihedral = 0;
+  rbmd::Real _e_improper = 0;
+  rbmd::Real _e_pe = 0;
 
-  rbmd::Real _ave_evdwl_rbl = 0;
-  rbmd::Real _ave_ecoul_rbl = 0;
-  rbmd::Real _ave_pe_rbl = 0;
+  rbmd::Real _e_vdwl_rbl = 0;
+  rbmd::Real _e_coul_rbl = 0;
+  rbmd::Real _e_pe_rbl = 0;
 
   //RBL
   std::string _neighbor_type;

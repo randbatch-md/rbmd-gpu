@@ -8,8 +8,8 @@
 #include "unit_factor.h"
 #include "data_manager.h"
 
-extern rbmd::Real test_ave_pe_rbl;
-extern rbmd::Real test_ave_pe_init;
+extern rbmd::Real test_e_pe_rbl;
+extern rbmd::Real test_e_pe_init;
 extern rbmd::Id test_current_step;
 EnergyStableSchemeController::EnergyStableSchemeController()  :
   _device_data(DataManager::getInstance().getDeviceData()),
@@ -99,11 +99,11 @@ void EnergyStableSchemeController::UpdataVelocity() {
   }
 
   // Hamiltonian = U_init + kinetic_energy_init;
-  rbmd::Real  U_init = test_ave_pe_init;
+  rbmd::Real  U_init = test_e_pe_init;
   rbmd::Real  H_init = U_init + kinetic_energy_init;
 
   //Hamiltonian approximate = U_approximate + kinetic_energy
-  rbmd::Real  U_approximate = test_ave_pe_rbl;
+  rbmd::Real  U_approximate = test_e_pe_rbl;
   rbmd::Real  H_approximate= U_approximate + kinetic_energy ;
 
   //Rescale  Velocity

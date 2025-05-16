@@ -80,15 +80,15 @@ private:
   std::shared_ptr<NeighborList> _list;
 
   //energy
-  rbmd::Real _ave_evdwl= 0.0;
-  rbmd::Real _ave_ecoul= 0.0;
-  rbmd::Real _ave_self_energy= 0.0;
-  rbmd::Real _ave_ekspace= 0.0;
-  rbmd::Real _ave_pe = 0;
+  rbmd::Real _e_vdwl= 0.0;
+  rbmd::Real _e_coul= 0.0;
+  rbmd::Real _e_self_energy= 0.0;
+  rbmd::Real _e_kspace= 0.0;
+  rbmd::Real _e_pe = 0;
 
-  rbmd::Real _ave_evdwl_rbl = 0;
-  rbmd::Real _ave_ecoul_rbl = 0;
-  rbmd::Real _ave_pe_rbl = 0;
+  rbmd::Real _e_vdwl_rbl = 0;
+  rbmd::Real _e_coul_rbl = 0;
+  rbmd::Real _e_pe_rbl = 0;
 
   //RBL
   std::string _neighbor_type;

@@ -13,8 +13,8 @@
 // #include <hipcub/hipcub.hpp>
 // #include <hipcub/backend/rocprim/block/block_reduce.hpp>
 extern int test_current_step;
-rbmd::Real test_ave_pe_rbl;
-rbmd::Real test_ave_pe_init;
+rbmd::Real test_e_pe_rbl;
+rbmd::Real test_e_pe_init;
 LJ::LJ() {
   _rbl_neighbor_list_builder = std::make_shared<RblFullNeighborListBuilder>();
   _neighbor_list_builder = std::make_shared<FullNeighborListBuilder>();
@@ -143,13 +143,13 @@ void LJ::ComputeLJVerlet()
 
   // 从设备端拷贝数据到主机端
   thrust::host_vector<rbmd::Real> h_total_evdwl(d_total_evdwl);
-  _ave_evdwl = h_total_evdwl[0] / num_atoms;
+  _e_vdwl = h_total_evdwl[0] / num_atoms;
 
   std::cout << "test_current_step:" << test_current_step << " "
-            << "average_vdwl_energy:" << _ave_evdwl << std::endl;
+            << "average_vdwl_energy:" << _e_vdwl << std::endl;
   std::cout << "out of force execute" << std::endl;
 
-  //sum virial on host
+  //sum virial_lj on host
   std::vector<rbmd::Real> h_total_virial(num_atoms * 6);
   thrust::copy(_device_data->_d_flat_virial.begin(),
     _device_data->_d_flat_virial.end(), h_total_virial.begin());
@@ -159,7 +159,7 @@ void LJ::ComputeLJVerlet()
 
   for(int atom = 0; atom < num_atoms; ++atom){
     for(int i = 0; i < 6; ++i){
-      virial[i] += h_total_virial[atom * 6 + i];
+      virial[i] += h_total_virial[ i * num_atoms + atom];
     }
   }
 
@@ -191,12 +191,12 @@ void LJ::ComputeLJEnergy()
 
   // 从设备端拷贝数据到主机端
   thrust::host_vector<rbmd::Real> h_total_evdwl(d_total_evdwl);
-  _ave_evdwl = h_total_evdwl[0] / num_atoms;
+  _e_vdwl = h_total_evdwl[0] / num_atoms;
 
   std::cout << "test_current_step:" << test_current_step << " "
-            << "average_vdwl_energy:" << _ave_evdwl << std::endl;
+            << "average_vdwl_energy:" << _e_vdwl << std::endl;
 
-  //sum virial on host
+  //sum virial_lj on host
   std::vector<rbmd::Real> h_total_virial(num_atoms * 6);
   thrust::copy(_device_data->_d_flat_virial.begin(),
     _device_data->_d_flat_virial.end(), h_total_virial.begin());
@@ -206,7 +206,7 @@ void LJ::ComputeLJEnergy()
 
   for(int atom = 0; atom < num_atoms; ++atom){
     for(int i = 0; i < 6; ++i){
-      virial[i] += h_total_virial[atom * 6 + i];
+      virial[i] += h_total_virial[ i * num_atoms + atom];
     }
   }
 
@@ -218,23 +218,23 @@ void LJ::ComputeLJEnergy()
 
 void LJ::EvaluatePotentialenergy()
 {
-  _ave_pe_rbl = _ave_evdwl_rbl;
-  test_ave_pe_rbl = _ave_pe_rbl;
+  _e_pe_rbl = _e_vdwl_rbl;
+  test_e_pe_rbl = _e_pe_rbl;
 
 
   if(1 == test_current_step)
   {
-    _ave_pe_init = _ave_evdwl;
-    test_ave_pe_init = _ave_pe_init;
+    _e_pe_init = _e_vdwl;
+    test_e_pe_init = _e_pe_init;
   }
-  _ave_pe = _ave_evdwl;
+  _e_pe = _e_vdwl;
 
   //out
   std::ofstream outfile("thermo_local.txt", std::ios::app);
   if (outfile.tellp() == 0) {
-    outfile << "step _ave_pe_rbl  _ave_pe" << std::endl;
+    outfile << "step e_vdwl  e_pe" << std::endl;
   }
-  outfile << test_current_step << " " << _ave_pe_rbl  << " "<< _ave_pe << std::endl;
+  outfile << test_current_step << " " << _e_vdwl  << " "<< _e_pe << std::endl;
   outfile.close();
 }
 

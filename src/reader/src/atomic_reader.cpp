@@ -517,10 +517,11 @@ void AtomicReader::SetSpecialBonds()
     std::vector<rbmd::Id> special_offsets;
     auto& ids_atoms = _md_data._structure_data->_h_atoms_id;
     auto& info = _md_data._structure_info_data;
+
     for (int i =0;i< *(info->_num_atoms);i++)
     {
         auto atoms_id = ids_atoms[i];
-        //没有成键的部分
+        //non-bond
         if (_special_map.find(atoms_id) == _special_map.end())
         {
             special_weights.push_back(1.0);
@@ -529,21 +530,21 @@ void AtomicReader::SetSpecialBonds()
             continue;
         }
 
-        //成键的部分
+        //bond
         rbmd::Id offset = 0;
         auto link_0 = _special_map.equal_range(atoms_id);
         for (auto it0 = link_0.first; it0 != link_0.second; ++it0)
         {
-            //一级连接
+            //1-2 weight
             int key_1 = it0->second;
-            special_weights.push_back(special_bonds[0]);
+            special_weights.push_back(special_bonds[0]); // 1-2 weight
             special_ids.push_back(key_1);
             offset++;
 
             if (_special_map.find(key_1) == _special_map.end())
                 continue;
 
-            //二级链接
+            // 1-3 weight
             auto link_1 = _special_map.equal_range(key_1);
             for (auto it1 = link_1.first; it1 != link_1.second; ++it1)
             {
@@ -551,14 +552,15 @@ void AtomicReader::SetSpecialBonds()
                 if (atoms_id == key_2)
                     continue;
 
-                special_weights.push_back(special_bonds[1]);
+                rbmd::Real weight_1_3 = special_bonds[1];
+                special_weights.push_back(weight_1_3); // 1-3 weight
                 special_ids.push_back(key_2);
                 offset++;
 
                 if (_special_map.find(key_2) == _special_map.end())
                     continue;
 
-                //三级连接
+                //1-4 weight
                 auto link_2 = _special_map.equal_range(key_2);
                 for (auto it2 = link_2.first; it2 != link_2.second; ++it2)
                 {
@@ -566,7 +568,8 @@ void AtomicReader::SetSpecialBonds()
                     if (key_1 == key_3)
                         continue;
 
-                    special_weights.push_back(special_bonds[2]);
+                    rbmd::Real weight_1_4 = special_bonds[2];
+                    special_weights.push_back(weight_1_4 ); // 1-4 weight
                     special_ids.push_back(key_3);
                     offset++;
                 }
@@ -585,9 +588,9 @@ void AtomicReader::SetSpecialBonds()
     memcpy(ids, special_ids.data(), special_ids.size() * sizeof(rbmd::Id));
     memcpy(special_offset_count, special_offsets.data(), special_offsets.size() * sizeof(rbmd::Id));
 
-    //cpu上运行 前缀和
+    //cpu:  sum  prefix
     std::vector<rbmd::Id> cumulative_offsets;
-    cumulative_offsets.push_back(0); // 初始偏移量为0
+    cumulative_offsets.push_back(0); //
 
     for (size_t i = 0; i < special_offsets.size(); ++i)
     {

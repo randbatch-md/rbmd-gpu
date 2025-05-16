@@ -124,6 +124,30 @@ inline __device__ void LJ126CoulCutForce_fix(
     }
   }
 
+inline __device__ void CoulCutForce(rbmd::Real cut_off, rbmd::Real alpha,
+                                  rbmd::Real qqr2e,
+                                  rbmd::Real charge_i, rbmd::Real charge_j,
+                                  rbmd::Real px12, rbmd::Real py12,
+                                  rbmd::Real pz12, rbmd::Real& force_coul,
+                                  rbmd::Real& energy_coul) {
+    const rbmd::Real dis_2 = px12 * px12 + py12 * py12 + pz12 * pz12;
+    const rbmd::Real dis = SQRT(dis_2);
+    const rbmd::Real cut_off_2 = cut_off * cut_off;
+
+    if (dis_2 < cut_off_2) {
+      rbmd::Real erfcx = SQRT(alpha) * dis;
+      rbmd::Real expx = -alpha * dis_2;
+      rbmd::Real gnear_value = (1.0 - ERF(erfcx)) / dis_2 +
+              2 * SQRT(alpha) * EXP(expx) / (SQRT(M_PI) * dis);
+      force_coul = - qqr2e * charge_i * charge_j * gnear_value / dis ;
+      energy_coul = qqr2e * (0.5 * charge_i * charge_j *
+                       (1.0 - ERF(SQRT(alpha) * dis)) / dis);
+    } else {
+      force_coul = 0.0;
+      energy_coul = 0.0;
+    }
+  }
+
   inline __device__ void CoulCutForce_rs_fix(
   rbmd::Real rs,
   rbmd::Real alpha,
@@ -379,7 +403,7 @@ inline __device__ void LJ126CoulCutForce_fix(
         lj126(cut_off, px12, py12, pz12, eps_ij, sigma_ij, force_lj, energy_lj);
 
         // Coul cut
-        CoulCutForce_erf(cut_off, alpha, qqr2e, table_pij,charge_i, charge_j,
+        CoulCutForce(cut_off, alpha, qqr2e,charge_i, charge_j,
                          px12, py12, pz12, force_coul, energy_coul);
 
         force_pair = force_lj + force_coul;
@@ -406,7 +430,7 @@ inline __device__ void LJ126CoulCutForce_fix(
       fz[tid1] = sum_fz;
       //
       for(int i =0;i<6;++i) {
-        flat_virial[ tid1 * 6 + i ] = sum_virial[i];
+        flat_virial[ i * num_atoms + tid1 ] = sum_virial[i];
       }
     }
 
@@ -504,7 +528,7 @@ inline __device__ void LJ126CoulCutForce_fix(
       }
       //
       for(int i =0;i<6;++i) {
-        flat_virial[ tid1 * 6 + i ] = sum_virial[i];
+        flat_virial[ i * num_atoms + tid1 ] = sum_virial[i];
       }
     }
     rbmd::Real block_sum_elj =
@@ -1160,9 +1184,8 @@ __global__ void EwaldForceFix(const rbmd::Id num_atoms,const rbmd::Id kcount,
         sum_fy += force_Ewald_y;
         sum_fz += force_Ewald_z;
 
-        //compute ewald_virial
+        //compute virial_ewald
         //force_Ewald_single = -0.5*force_Ewald_single;
-        //force_Ewald_single = 0.5*force_Ewald_single;
         Real3 K;
         K.x = 2.0 * M_PI * M.x / box._length[0];
         K.y = 2.0 * M_PI * M.y / box._length[1];
@@ -1261,8 +1284,7 @@ __global__ void EwaldForceFix(const rbmd::Id num_atoms,const rbmd::Id kcount,
         sum_fy += force_rbe_y;
         sum_fz += force_rbe_z;
 
-        //compute ewald_virial
-        //force_rbe_single = -0.5*force_rbe_single;
+        //compute virial_rbe
         Real3 K;
         K.x = 2.0 * M_PI * M.x / box._length[0];
         K.y = 2.0 * M_PI * M.y / box._length[1];
@@ -1292,7 +1314,7 @@ __global__ void EwaldForceFix(const rbmd::Id num_atoms,const rbmd::Id kcount,
         sum_virial[i] = sum_virial[i] * sum_gauss / p_number;
       }
       for(int i =0;i<6;++i) {
-        flat_virial[ tid1 * 6 + i ] = sum_virial[i];
+        flat_virial[  i* num_atoms + tid1] = sum_virial[i];
       }
     }
   }
