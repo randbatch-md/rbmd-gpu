@@ -158,7 +158,7 @@ bool MemoryScheduler::asyncMemoryH2D() {
   /// copy other
   _device_data->_d_atoms_id.resize(num_atoms);
   _device_data->_d_atoms_type.resize(num_atoms);
-  _device_data->_d_molecular_id.resize(num_atoms);
+  //_device_data->_d_molecular_id.resize(num_atoms);
   thrust::copy(h_atoms_id, h_atoms_id + num_atoms,
                _device_data->_d_atoms_id.begin());
   thrust::copy(h_atoms_type, h_atoms_type + num_atoms,

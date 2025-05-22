@@ -128,7 +128,11 @@ int MDApplication::ReadMDData() {
   // }
   std::shared_ptr<BaseReader> reader;
   std::shared_ptr<MDData> md_data = DataManager::getInstance().getMDData();
-  reader = std::make_shared<AtomicReader>("rbmd.data", *md_data);
+
+  auto config_data = DataManager::getInstance().getConfigData();
+  std::string file_path = config_data->Get<std::string>("file", "init_configuration", "read_data");
+  reader = std::make_shared<AtomicReader>(file_path, *md_data);
+  //reader = std::make_shared<AtomicReader>("rbmd.data", *md_data);
   reader->Execute();
 
   std::shared_ptr<MemoryScheduler> memory_scheduler;

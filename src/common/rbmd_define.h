@@ -79,8 +79,7 @@ typedef double2 Real2;
     #endif
 typedef float3 Real3;
 typedef float2 Real2;
-typedef int3 Id3;
-typedef int2 Id2;
+
 #define make_Real3 make_float3
 #define make_Real2 make_float2
 #define POW powf
@@ -103,6 +102,13 @@ typedef int2 Id2;
 typedef longlong3 Int3;
 #define make_Int3 make_longlong3
 #else
+  #if defined(__ROCM)
+    #define INT_DATA(vec) (vec.data)
+  #elif defined(__CUDA)
+    #define INT_DATA(vec) (const_cast<int*>(reinterpret_cast<const int*>(&vec)))
+  #endif
+
+typedef int3 Id3;
 typedef int3 Int3;
 #define make_Int3 make_int3
 #endif

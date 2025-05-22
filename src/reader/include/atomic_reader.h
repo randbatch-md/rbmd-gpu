@@ -19,6 +19,7 @@ class AtomicReader : public StructureReder {
   int ReadBond(const rbmd::Id& atoms_num);
   int ReadAngle(const rbmd::Id& atoms_num);
   int ReadDihedrals(const rbmd::Id& atoms_num);
+  void SetSpecialBonds_fix();
   void SetSpecialBonds();
   void MolecularMapInsert(const rbmd::Id& key, const rbmd::Id& value);
   void AtomsMapInsert(const rbmd::Id& key, const rbmd::Id& value);
@@ -29,4 +30,16 @@ class AtomicReader : public StructureReder {
   std::map<rbmd::Id, std::vector<rbmd::Id>> _molecular_map;
   std::map<rbmd::Id, std::vector<rbmd::Id>> _atoms_map;
   std::map<rbmd::Id, rbmd::Id> _atom_to_molecular_map;
+
+  //
+  std::pair<rbmd::Id, rbmd::Id> ordered_pair(rbmd::Id a, rbmd::Id b) {
+    return (a < b) ? std::make_pair(a, b) : std::make_pair(b, a);
+  }
+
+  //  unordered_set
+  struct PairHash {
+    size_t operator()(const std::pair<rbmd::Id, rbmd::Id>& p) const {
+      return std::hash<rbmd::Id>()(p.first) ^ std::hash<rbmd::Id>()(p.second);
+    }
+  };
 };

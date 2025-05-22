@@ -16,6 +16,7 @@ public:
   void EvaluatePotentialenergy() override;
 
   void ComputeLJCutCoulForce();
+  void ComputeSpecialCoulForce();
   void ComputeLJVerlet();
   void ComputeLJRBL();
 

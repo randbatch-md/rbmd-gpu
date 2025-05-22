@@ -95,9 +95,8 @@ __global__ void ComputeSpecialLJCutCoulForce(
       //    charge_i, charge_j,x12, y12, z12, force_lj, energy_lj,
       // force_coul_factor,energy_coul_factor,force_coul, energy_coul);
 
-
-       CoulCutForce_fix(cut_off, alpha, qqr2e, charge_i, charge_j,
-       x12, y12, z12, force_coul_factor,energy_coul_factor,
+      CoulCutForce_fix(cut_off, alpha, qqr2e, charge_i, charge_j,
+    x12, y12, z12, force_coul_factor,energy_coul_factor,
       force_coul, energy_coul);
       force_coul = force_coul-(1-weight)*force_coul_factor;
       energy_coul = energy_coul-(1-weight)*energy_coul_factor;
@@ -736,7 +735,7 @@ __global__ void ComputeBondForce(
       rbmd::Real az = x12 * y23m - y12 * x23m;
       rbmd::Real bx = y34 * z23m - z34 * y23m;
       rbmd::Real by = z34 * x23m - x34 * z23m;
-      rbmd::Real bz = x34 * y23m - z34 * x23m;
+      rbmd::Real bz = x34 * y23m - y34 * x23m; //fix :y34
       rbmd::Real rasq = ax * ax + ay * ay + az * az;
       rbmd::Real rbsq = bx * bx + by * by + bz * bz;
       rbmd::Real rgsq = x23m * x23m + y23m * y23m + z23m * z23m;

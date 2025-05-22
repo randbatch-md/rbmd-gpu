@@ -244,7 +244,7 @@ inline __device__ void CoulCutForce(rbmd::Real cut_off, rbmd::Real alpha,
   }
 
   // EwaldForce
-  __device__ void EwaldForce( Box box, const rbmd::Real alpha, const int3 M,
+  __device__ void EwaldForce( Box box, const rbmd::Real alpha, const Int3 M,
                              const rbmd::Real qqr2e, const rbmd::Real rhok_real_i,
                              const rbmd::Real rhok_imag_i,
                              const rbmd::Real charge, const rbmd::Real px,
@@ -326,11 +326,11 @@ inline __device__ void CoulCutForce(rbmd::Real cut_off, rbmd::Real alpha,
   template <typename Func>
   __device__ void ExecuteOnKmax(const Int3& k_maxconst, Func& function) {
     rbmd::Id indexEwald = 0;
-    for (rbmd::Id i = -REAL_DATA(k_maxconst)[0]; i <= REAL_DATA(k_maxconst)[0]; i++) {
-      for (rbmd::Id j = -REAL_DATA(k_maxconst)[1]; j <= REAL_DATA(k_maxconst)[1]; j++) {
-        for (rbmd::Id k = -REAL_DATA(k_maxconst)[2]; k <= REAL_DATA(k_maxconst)[2]; k++) {
+    for (rbmd::Id i = -INT_DATA(k_maxconst)[0]; i <= INT_DATA(k_maxconst)[0]; i++) {
+      for (rbmd::Id j = -INT_DATA(k_maxconst)[1]; j <= INT_DATA(k_maxconst)[1]; j++) {
+        for (rbmd::Id k = -INT_DATA(k_maxconst)[2]; k <= INT_DATA(k_maxconst)[2]; k++) {
           if(!(i == 0 && j == 0 && k == 0)){
-            int3 M = make_Int3(i, j, k);
+            Int3 M = make_Int3(i, j, k); //fix
             function(M, indexEwald);
             indexEwald++;
           }
@@ -1171,7 +1171,7 @@ __global__ void EwaldForceFix(const rbmd::Id num_atoms,const rbmd::Id kcount,
       rbmd::Real p_z = pz[tid1];
       rbmd::Real charge_i = charge[tid1];
 
-      auto function = [&](const int3& M, const rbmd::Id& indexEwald) {
+      auto function = [&](const Int3& M, const rbmd::Id& indexEwald) {
         const rbmd::Real rhok_real_i = real_array[indexEwald];
         const rbmd::Real rhok_imag_i = imag_array[indexEwald];
 

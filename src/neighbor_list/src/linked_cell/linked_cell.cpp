@@ -116,7 +116,7 @@ void LinkedCell::SortAtomsByCellKey() {
       _device_data->_d_px.begin(), _device_data->_d_py.begin(),
       _device_data->_d_pz.begin(), _device_data->_d_vx.begin(),
       _device_data->_d_vy.begin(), _device_data->_d_vz.begin(),
-      _device_data->_d_charge.begin()));
+      _device_data->_d_charge.begin(), _device_data->_d_molecular_id.begin()));
 
   // 一次性排序所有数据
   thrust::stable_sort_by_key(_per_atom_cell_id.begin(), _per_atom_cell_id.end(),

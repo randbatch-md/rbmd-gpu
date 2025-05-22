@@ -1,13 +1,13 @@
 #include "../include/atomic_reader.h"
 
-#include "rbmd_define.h"
-
 #include <sstream>
 #include <string>
+#include <unordered_set>
 
 #include "../Utilities/string_util.h"
 #include "data_manager.h"
 #include "model/md_data.h"
+#include "rbmd_define.h"
 
 AtomicReader::AtomicReader(const std::string& filePath, MDData& data)
     : StructureReder(filePath, data) {}
@@ -39,6 +39,7 @@ int AtomicReader::ReadData() {
         }
       }
     }
+    //SetSpecialBonds_fix();
 
   } catch (const std::exception& e) {
     // log
@@ -278,9 +279,9 @@ void AtomicReader::SetMolecularGroup()
     std::vector<rbmd::Id> countVector;
     for (const std::vector<rbmd::Id>& innerVector : atoms_gro)
     {
-        //��ƽ��
+        //flattening
         atoms_vec_gro.insert(atoms_vec_gro.end(), innerVector.begin(), innerVector.end());
-        //��������
+        //countVector
         countVector.push_back(innerVector.size());
     }
     auto& full_structure_data = _md_data._structure_data;
@@ -378,6 +379,10 @@ int AtomicReader::ReadBond(const rbmd::Id& num_bonds) {
                     //special
                     _special_map.insert(std::make_pair(bond_id1, bond_id2));
                     _special_map.insert(std::make_pair(bond_id2, bond_id1));
+
+                      // record 1-2 connections (有序对，避免重复)
+                      auto pair = ordered_pair(bond_id1, bond_id2);
+                      data->special_pairs_12.push_back(pair);
                 }
                 _line_start = &_mapped_memory[_locate];
             }
@@ -432,6 +437,9 @@ int AtomicReader::ReadAngle(const rbmd::Id& num_angles)
                     angle_id_vec[angle_id_value - 1].z = angle_id2_value - 1;
 
                     ++num;
+                  // record 1-3 connections (first and last atoms)
+                  auto pair = ordered_pair(angle_id0_value - 1, angle_id2_value - 1);
+                  data->special_pairs_13.push_back(pair);
                     //std::cout << angle_type_value << " " << angle_id0_value << " " << angle_id1_value  << " "  << angle_id2_value << std::endl;
 
                 }
@@ -485,6 +493,10 @@ int AtomicReader::ReadDihedrals(const rbmd::Id& num_dihedrals)
                     dihedral_id2[dihedral_id_value - 1] = dihedral_id2_value - 1;
                     dihedral_id3[dihedral_id_value - 1] = dihedral_id3_value - 1;
                     ++num;
+
+                  // record 1-4 connections (first and last atoms)
+                  auto pair = ordered_pair(dihedral_id0_value - 1, dihedral_id3_value - 1);
+                  data->special_pairs_14.push_back(pair);
                    // std::cout << dihedral_type_value << " " <<dihedral_id0_value << " " << dihedral_id1_value << " " << dihedral_id2_value << " " << dihedral_id3_value<< std::endl;
                 }
                 _line_start = &_mapped_memory[_locate];
@@ -602,4 +614,132 @@ void AtomicReader::SetSpecialBonds()
     data->_num_special_ids = special_ids.size();
     data->_num_special_offset_count = special_offsets.size();
     data->_num_special_offsets =cumulative_offsets.size() ;
+}
+
+void AtomicReader::SetSpecialBonds_fix() {
+    auto* data = dynamic_cast<FullStructureData*>(_md_data._structure_data.get());
+    auto& weights = data->_h_special_weights;
+    auto& ids = data->_h_special_ids;
+    auto& offsets = data->_h_special_offsets;
+    auto& offset_count = data->_h_special_offset_count;
+
+    //
+    auto special_bonds = DataManager::getInstance().getConfigData()->
+        GetArray<rbmd::Real>("special_bonds", "hyper_parameters", "extend");
+    rbmd::Real w1 = special_bonds[0]; // 1-2 weight
+    rbmd::Real w2 = special_bonds[1]; // 1-3 weight
+    rbmd::Real w3 = special_bonds[2]; // 1-4 weight
+
+    // Initialize
+    rbmd::Id num_atoms = *(_md_data._structure_info_data->_num_atoms);
+    std::vector<std::vector<rbmd::Id>> atom_neighbors(num_atoms);   //
+    std::vector<std::vector<rbmd::Real>> atom_weights(num_atoms);    //
+    std::unordered_set<std::pair<rbmd::Id, rbmd::Id>, PairHash> excluded_pairs;
+
+    // Step 1: do  1-2  (highest priority)
+    for (const auto& pair : data->special_pairs_12) {
+        auto ordered = ordered_pair(pair.first, pair.second);
+        if (excluded_pairs.insert(ordered).second) { // 确保唯一性
+            // Symmetric processing: Neighbors of atoms i and j are added to each other
+            atom_neighbors[pair.first].push_back(pair.second);
+            atom_weights[pair.first].push_back(w1);
+            atom_neighbors[pair.second].push_back(pair.first);
+            atom_weights[pair.second].push_back(w1);
+        }
+    }
+
+    // Step 2: do 1-3 （exclude 1-2 pairs）
+    for (const auto& pair : data->special_pairs_13) {
+        auto ordered = ordered_pair(pair.first, pair.second);
+        if (excluded_pairs.find(ordered) == excluded_pairs.end()) {
+            excluded_pairs.insert(ordered);
+            atom_neighbors[pair.first].push_back(pair.second);
+            atom_weights[pair.first].push_back(w2);
+            atom_neighbors[pair.second].push_back(pair.first);
+            atom_weights[pair.second].push_back(w2);
+        }
+    }
+
+    // Step 3: do 1-4 （exclude 1-2 pairs and 1-3 pairs）
+    for (const auto& pair : data->special_pairs_14) {
+        auto ordered = ordered_pair(pair.first, pair.second);
+        if (excluded_pairs.find(ordered) == excluded_pairs.end()) {
+            atom_neighbors[pair.first].push_back(pair.second);
+            atom_weights[pair.first].push_back(w3);
+            atom_neighbors[pair.second].push_back(pair.first);
+            atom_weights[pair.second].push_back(w3);
+        }
+    }
+
+    // Step 4: calculate the total number of connections
+    rbmd::Id total_pairs = 0;
+    std::vector<rbmd::Id> offset_counts(num_atoms, 0);
+    for (rbmd::Id i = 0; i < num_atoms; ++i) {
+        offset_counts[i] = atom_neighbors[i].size();
+        total_pairs += offset_counts[i];
+    }
+
+    CHECK_RUNTIME(MALLOCHOST(&weights, total_pairs * sizeof(rbmd::Real)));
+    CHECK_RUNTIME(MALLOCHOST(&ids, total_pairs * sizeof(rbmd::Id)));
+    CHECK_RUNTIME(MALLOCHOST(&offsets, (num_atoms + 1) * sizeof(rbmd::Id)));
+    CHECK_RUNTIME(MALLOCHOST(&offset_count, num_atoms * sizeof(rbmd::Id)));
+
+    // Step 5: populate  weights and ids
+    rbmd::Id idx = 0;
+    for (rbmd::Id i = 0; i < num_atoms; ++i) {
+        for (rbmd::Id j = 0; j < atom_neighbors[i].size(); ++j) {
+            weights[idx] = atom_weights[i][j];
+            ids[idx] = atom_neighbors[i][j];
+            ++idx;
+        }
+    }
+
+    // Step 6: compute  offsets and  offset_count（前缀和）
+    offsets[0] = 0;
+    for (rbmd::Id i = 0; i < num_atoms; ++i) {
+        offset_count[i] = offset_counts[i];
+        offsets[i + 1] = offsets[i] + offset_counts[i];
+    }
+
+    // update
+    data->_num_special_weights = total_pairs;
+    data->_num_special_ids = total_pairs;
+    data->_num_special_offsets = num_atoms + 1;
+    data->_num_special_offset_count = num_atoms;
+
+  // 1. 输出 weights 到 weights.txt
+  std::ofstream weights_file("weights.txt");
+  if (weights_file.is_open()) {
+    for (rbmd::Id i = 0; i < data->_num_special_weights; ++i) {
+      weights_file << i  << " " <<data->_h_special_weights[i] << "\n";
+    }
+    weights_file.close();
+  }
+
+  // 2. 输出 ids 到 ids.txt
+  std::ofstream ids_file("ids.txt");
+  if (ids_file.is_open()) {
+    for (rbmd::Id i = 0; i < data->_num_special_ids; ++i) {
+      ids_file << i  << " " << data->_h_special_ids[i] << "\n";
+    }
+    ids_file.close();
+  }
+
+  // 3. 输出 offset_count 到 offset_count.txt
+  std::ofstream offset_count_file("offset_count.txt");
+  if (offset_count_file.is_open()) {
+    for (rbmd::Id i = 0; i < num_atoms; ++i) {
+      offset_count_file << i  << " " << data->_h_special_offset_count[i] << "\n";
+    }
+    offset_count_file.close();
+  }
+
+  // 4. 输出 offsets 到 offsets.txt
+  std::ofstream offsets_file("offsets.txt");
+  if (offsets_file.is_open()) {
+    for (rbmd::Id i = 0; i <= num_atoms; ++i) { // 注意: offsets 长度为 num_atoms + 1
+      offsets_file << i  << " " << data->_h_special_offsets[i] << "\n";
+    }
+    offsets_file.close();
+  }
 }

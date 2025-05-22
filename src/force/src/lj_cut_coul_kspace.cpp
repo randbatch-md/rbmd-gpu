@@ -295,11 +295,11 @@ void LJCutCoulKspace::ComputeChargeStructureFactorEwald(
 
     rbmd::Real total_energy_kspace= 0;
     rbmd::Id index = 0;
-    for (rbmd::Id i = -REAL_DATA(kmax_array)[0]; i <= REAL_DATA(kmax_array)[0]; i++)
+    for (rbmd::Id i = -INT_DATA(kmax_array)[0]; i <= INT_DATA(kmax_array)[0]; i++)
     {
-        for (rbmd::Id j = -REAL_DATA(kmax_array)[1]; j <= REAL_DATA(kmax_array)[1]; j++)
+        for (rbmd::Id j = -INT_DATA(kmax_array)[1]; j <= INT_DATA(kmax_array)[1]; j++)
         {
-            for (rbmd::Id k = -REAL_DATA(kmax_array)[2]; k <= REAL_DATA(kmax_array)[2]; k++)
+            for (rbmd::Id k = -INT_DATA(kmax_array)[2]; k <= INT_DATA(kmax_array)[2]; k++)
             {
                 if (!(i == 0 && j == 0 && k == 0))
                 {
@@ -381,14 +381,6 @@ void LJCutCoulKspace::ComputeEwlad()
     _num_k * sizeof(rbmd::Real),D2H);
   MEMCPY(thrust::raw_pointer_cast(imag_array.data()),thrust::raw_pointer_cast(d_imag_array.data()),
     _num_k * sizeof(rbmd::Real),D2H);
-
-  // std::ofstream output_file("output_real_imag_array.txt");
-  // for (size_t i = 0; i < real_array.size(); ++i)
-  // {
-  //   output_file << "i:" << i << " "
-  //   << real_array[i] << " " << imag_array[i]  << std::endl;
-  // }
-  // output_file.close();
 
   //EwaldForce//
   op::ComputeEwaldForceOp<device::DEVICE_GPU>()(
@@ -660,11 +652,11 @@ void LJCutCoulKspace::ComputeKspaceEnergy(
     density_imag_atom.resize(num_atoms);
 
     rbmd::Real total_energy_ewald = 0;
-    for (rbmd::Id i = -REAL_DATA(kmax_array)[0]; i <= REAL_DATA(kmax_array)[0]; i++)
+    for (rbmd::Id i = -INT_DATA(kmax_array)[0]; i <= INT_DATA(kmax_array)[0]; i++)
     {
-        for (rbmd::Id j = -REAL_DATA(kmax_array)[1]; j <= REAL_DATA(kmax_array)[1]; j++)
+        for (rbmd::Id j = -INT_DATA(kmax_array)[1]; j <= INT_DATA(kmax_array)[1]; j++)
         {
-            for (rbmd::Id k = -REAL_DATA(kmax_array)[2]; k <= REAL_DATA(kmax_array)[2]; k++)
+            for (rbmd::Id k = -INT_DATA(kmax_array)[2]; k <= INT_DATA(kmax_array)[2]; k++)
             {
                 if (!(i == 0 && j == 0 && k == 0))
                 {

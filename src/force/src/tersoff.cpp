@@ -462,6 +462,4 @@ void TerSoff::SetupParams()
     }
   }
 
-
-
 }

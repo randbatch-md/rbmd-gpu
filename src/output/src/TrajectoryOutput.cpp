@@ -40,10 +40,19 @@ void TrajectoryOutput::Execute()
         {
             auto atom_id_to_idx =
               LinkedCellLocator::GetInstance().GetLinkedCell()->_atom_id_to_idx;
+            //xyz
             std::vector<rbmd::Real> h_px(_num_atoms);
             std::vector<rbmd::Real> h_py(_num_atoms);
             std::vector<rbmd::Real> h_pz(_num_atoms);
             std::vector<rbmd::Real> h_atoms_type(_num_atoms);
+            //vx vy vz
+            thrust::host_vector<rbmd::Real> h_vx(_device_data->_d_vx);
+            thrust::host_vector<rbmd::Real> h_vy(_device_data->_d_vy);
+            thrust::host_vector<rbmd::Real> h_vz(_device_data->_d_vz);
+
+            //charge
+            thrust::host_vector<rbmd::Real> h_charge(_device_data->_d_charge);
+
             auto box =  DataManager::getInstance().getMDData()->_box;
 
             thrust::copy(_device_data->_d_px.begin(), _device_data->_d_px.end(), h_px.begin());
@@ -59,13 +68,15 @@ void TrajectoryOutput::Execute()
             spdlog::info("{} {}", box->_coord_min[0], box->_coord_max[0]);
             spdlog::info("{} {}", box->_coord_min[1], box->_coord_max[1]);
             spdlog::info("{} {}", box->_coord_min[2], box->_coord_max[2]);
-            spdlog::info("ITEM: ATOMS id type x y z");
+            spdlog::info("ITEM: ATOMS id type q x y z vx vy vz");
 
             for (auto i = 0; i < _num_atoms; ++i)
             {
-                spdlog::info("{} {} {} {} {}", i + 1, h_atoms_type[atom_id_to_idx[i]] + 1,
-                  h_px[atom_id_to_idx[i]], h_py[atom_id_to_idx[i]],
-                  h_pz[atom_id_to_idx[i]]);
+                auto idx = atom_id_to_idx[i];
+                spdlog::info("{} {} {} {} {} {} {} {} {}" ,
+                  i + 1, h_atoms_type[idx] + 1, h_charge[idx],
+                  h_px[idx], h_py[idx],h_pz[idx],
+                  h_vx[idx],h_vy[idx],h_vz[idx]);
             }
         }
         catch (const std::exception& e)
