@@ -175,6 +175,11 @@ void NoseHooverController::ComputeTemperature(){
   CHECK_RUNTIME(MEMCPY(&_temp_sum, _d_temp_contrib, sizeof(rbmd::Real), D2H));
 
   _temperature = 0.5 * _temp_sum / (_tdof * _kB / 2.0);
+
+  if (std::isnan(_temperature)) {
+    std::cerr << "Error: Temperature is infinite. Exiting..." << std::endl;
+    exit(EXIT_FAILURE);
+  }
   // std::cout << "temperature= " << _temperature << std::endl;
 }
 
@@ -470,12 +475,17 @@ void NoseHooverController::FinalIntegrate()
   << std::endl;
 
   //out
+  auto interval = DataManager::getInstance().getConfigData()->Get<rbmd::Id>(
+"interval", "outputs", "thermo_out");
+
   std::ofstream outfile("temperature.txt", std::ios::app);
   if (outfile.tellp() == 0) {
     outfile << "step temperature pressure" << std::endl;
   }
-  outfile << test_current_step << " " << _temperature  << " "<< _pressure
-    << std::endl;
+  if (test_current_step % interval == 0) {
+    outfile << test_current_step << " " << _temperature  << " "<< _pressure
+  << std::endl;
+  }
   outfile.close();
 }
 

@@ -8,7 +8,7 @@
 
 namespace op{
 const rbmd::Real SMALL = 0.001;
-
+const rbmd::Real SMALLER = 0.00001;
 //verlet-list : SpecialLJCutCoul
 __global__ void ComputeSpecialLJCutCoulForce(
      Box box, ERFTable* erf_table, const rbmd::Real cut_off,
@@ -915,8 +915,257 @@ __global__ void ComputeBondForce(
     }
   }
 
+  __global__ void ComputeDihedralOPLSForce(
+       Box box, const rbmd::Id num_atoms,const rbmd::Id num_dihedrals,
+       const rbmd::Id* atom_id_to_idx,const rbmd::Real* dihedral_coeffs_k1,
+       const rbmd::Real* dihedral_coeffs_k2,const rbmd::Real* dihedral_coeffs_k3,
+      const rbmd::Real* dihedral_coeffs_k4, const rbmd::Id* dihedral_type,
+      const rbmd::Id* dihedrallisti, const rbmd::Id* dihedrallistj,
+      const rbmd::Id* dihedrallistk, const rbmd::Id* dihedrallistw,
+      const rbmd::Real* px, const rbmd::Real* py, const rbmd::Real* pz,
+      rbmd::Real* fx, rbmd::Real* fy, rbmd::Real* fz,rbmd::Real* flat_virial,
+      rbmd::Real* global_virial,rbmd::Real* energy_dihedral) {
+    __shared__ typename BLOCKREDUCE<rbmd::Real, BLOCK_SIZE>::TempStorage
+        temp_storage;
+    rbmd::Real local_energy_dihedral = 0;
+
+    unsigned int tid1 = blockIdx.x * blockDim.x + threadIdx.x;
+    if (tid1 < num_dihedrals) {
+      rbmd::Id dihedrali = dihedrallisti[tid1];
+      rbmd::Id dihedralj = dihedrallistj[tid1];
+      rbmd::Id dihedralk = dihedrallistk[tid1];
+      rbmd::Id dihedralw = dihedrallistw[tid1];
+
+      rbmd::Id dihedralii = atom_id_to_idx[dihedrali];
+      rbmd::Id dihedraljj = atom_id_to_idx[dihedralj];
+      rbmd::Id dihedralkk = atom_id_to_idx[dihedralk];
+      rbmd::Id dihedralww = atom_id_to_idx[dihedralw];
+
+      rbmd::Id dihedraltype = dihedral_type[tid1];
+
+      rbmd::Real k1 = dihedral_coeffs_k1[dihedraltype];
+      rbmd::Real k2 = dihedral_coeffs_k2[dihedraltype];
+      rbmd::Real k3 = dihedral_coeffs_k3[dihedraltype];
+      rbmd::Real k4 = dihedral_coeffs_k4[dihedraltype];
+      rbmd::Real x12 = px[dihedralii] - px[dihedraljj];  // i j =vb1
+      rbmd::Real y12 = py[dihedralii] - py[dihedraljj];
+      rbmd::Real z12 = pz[dihedralii] - pz[dihedraljj];
+      MinImageDistance(box, x12, y12, z12);
+
+      rbmd::Real x23 = px[dihedralkk] - px[dihedraljj];  //  k j=vb2
+      rbmd::Real y23 = py[dihedralkk] - py[dihedraljj];
+      rbmd::Real z23 = pz[dihedralkk] - pz[dihedraljj];
+      MinImageDistance(box, x23, y23, z23);
+
+      rbmd::Real x23m = -x23;  // =vb2m
+      rbmd::Real y23m = -y23;
+      rbmd::Real z23m = -z23;
+
+      rbmd::Real x34 = px[dihedralww] - px[dihedralkk];  // w k   =vb3
+      rbmd::Real y34 = py[dihedralww] - py[dihedralkk];
+      rbmd::Real z34 = pz[dihedralww] - pz[dihedralkk];
+      MinImageDistance(box, x34, y34, z34);
+
+      // c0 calculation
+      rbmd::Real sb1,sb2,sb3,rb1,rb3,c0,b1mag2, b1mag, b2mag2;
+      rbmd::Real b2mag, b3mag2, b3mag, ctmp, r12c1, c1mag, r12c2;
+      rbmd::Real c2mag, sc1, sc2, s1, s12, c, p, pd, a, a11, a22;
+      rbmd::Real  a33, a12, a13, a23, sx2, sy2, sz2;
+      rbmd::Real  s2, cx, cy, cz, cmag, dx, phi, si, siinv, sin2;
+
+      sb1 = 1.0 / (x12 * x12 + y12 * y12 + z12 * z12);
+      sb2 = 1.0 / (x23 * x23 + y23 * y23 + z23 * z23);
+      sb3 = 1.0 / (x34 * x34 + y34 * y34 + z34 * z34);
+
+      rb1 = SQRT(sb1);
+      rb3 = SQRT(sb3);
+
+      c0 = (x12 * x34 + y12 * y34 + z12 * z34) * rb1 * rb3;
+
+      // 1st and 2nd angle
+
+      b1mag2 = x12 * x12 + y12 * y12 + z12 * z12;
+      b1mag = SQRT(b1mag2);
+      b2mag2 = x23 * x23 + y23 * y23 + z23 * z23;
+      b2mag = SQRT(b2mag2);
+      b3mag2 = x34 * x34 + y34 * y34 + z34 * z34;
+      b3mag = SQRT(b3mag2);
+
+      ctmp = x12 * x23 + y12 * y23 + z12 * z23;
+      r12c1 = 1.0 / (b1mag * b2mag);
+      c1mag = ctmp * r12c1;
+
+      ctmp = x23m * x34 + y23m * y34 + z23m * z34;
+      r12c2 = 1.0 / (b2mag * b3mag);
+      c2mag = ctmp * r12c2;
+
+      // cos and sin of 2 angles and final c
+
+      sin2 = MAX(1.0 - c1mag * c1mag, 0.0);
+      sc1 = SQRT(sin2);
+      if (sc1 < SMALL) sc1 = SMALL;
+      sc1 = 1.0 / sc1;
+
+      sin2 = MAX(1.0 - c2mag * c2mag, 0.0);
+      sc2 = SQRT(sin2);
+      if (sc2 < SMALL) sc2 = SMALL;
+      sc2 = 1.0 / sc2;
+
+      s1 = sc1 * sc1;
+      s2 = sc2 * sc2;
+      s12 = sc1 * sc2;
+      c = (c0 + c1mag * c2mag) * s12;
+
+      cx = y12 * z23 - z12 * y23;
+      cy = z12 * x23 - x12 * z23;
+      cz = x12 * y23 - y12 * x23;
+      cmag = SQRT(cx * cx + cy * cy + cz * cz);
+      dx = (cx * x34 + cy * y34 + cz * z34) / cmag / b3mag;
+      // error check
+
+      if (c > 1.0) c = 1.0;
+      if (c < -1.0) c = -1.0;
+
+
+      phi = ACOS(c);
+      if (dx < 0.0) phi *= -1.0;
+      si = SIN(phi);
+      if (fabs(si) < SMALLER) si = SMALLER;
+      siinv = 1.0 / si;
+
+      p = k1 * (1.0 + c) + k2 * (1.0 - COS(2.0 * phi)) +
+          k3 * (1.0 + COS(3.0 * phi)) + k4 * (1.0 - COS(4.0 * phi));
+      pd = k1 - 2.0 * k2* SIN(2.0 * phi) * siinv +
+          3.0 * k3 * SIN(3.0 * phi) * siinv - 4.0 * k4 * SIN(4.0 * phi) * siinv;
+
+      local_energy_dihedral = p;
+
+      a = pd;
+      c = c * a;
+      s12 = s12 * a;
+      a11 = c * sb1 * s1;
+      a22 = -sb2 * (2.0 * c0 * s12 - c * (s1 + s2));
+      a33 = c * sb3 * s2;
+      a12 = -r12c1 * (c1mag * c * s1 + c2mag * s12);
+      a13 = -rb1 * rb3 * s12;
+      a23 = r12c2 * (c2mag * c * s2 + c1mag * s12);
+
+      sx2 = a12 * x12 + a22 * x23 + a23 * x34;
+      sy2 = a12 * y12 + a22 * y23 + a23 * y34;
+      sz2 = a12 * z12 + a22 * z23 + a23 * z34;
+
+      // force
+      rbmd::Real force_dihedrali_x, force_dihedrali_y, force_dihedrali_z;
+      rbmd::Real force_dihedralj_x, force_dihedralj_y, force_dihedralj_z;
+      rbmd::Real force_dihedralk_x, force_dihedralk_y, force_dihedralk_z;
+      rbmd::Real force_dihedralw_x, force_dihedralw_y, force_dihedralw_z;
+
+      force_dihedrali_x = a11 * x12 + a12 * x23 + a13 * x34;
+      force_dihedrali_y = a11 * y12 + a12 * y23 + a13 * y34;
+      force_dihedrali_z = a11 * z12 + a12 * z23 + a13 * z34;
+
+      force_dihedralj_x = -sx2 - force_dihedrali_x;
+      force_dihedralj_y = -sy2 - force_dihedrali_y;
+      force_dihedralj_z = -sz2 - force_dihedrali_z;
+
+      force_dihedralw_x = a13 * x12 + a23 * x23 + a33 * x34;
+      force_dihedralw_y = a13 * y12 + a23 * y23 + a33 * y34;
+      force_dihedralw_z = a13 * z12 + a23 * z23 + a33 * z34;
+
+      force_dihedralk_x = sx2 - force_dihedralw_x;
+      force_dihedralk_y = sy2 - force_dihedralw_y;
+      force_dihedralk_z = sz2 - force_dihedralw_z;
+
+      atomicAdd(&fx[dihedralii], force_dihedrali_x);
+      atomicAdd(&fy[dihedralii], force_dihedrali_y);
+      atomicAdd(&fz[dihedralii], force_dihedrali_z);
+
+      atomicAdd(&fx[dihedraljj], force_dihedralj_x);
+      atomicAdd(&fy[dihedraljj], force_dihedralj_y);
+      atomicAdd(&fz[dihedraljj], force_dihedralj_z);
+
+      atomicAdd(&fx[dihedralww], force_dihedralw_x);
+      atomicAdd(&fy[dihedralww], force_dihedralw_y);
+      atomicAdd(&fz[dihedralww], force_dihedralw_z);
+
+      atomicAdd(&fx[dihedralkk], force_dihedralk_x);
+      atomicAdd(&fy[dihedralkk], force_dihedralk_y);
+      atomicAdd(&fz[dihedralkk], force_dihedralk_z);
+
+      rbmd::Real  global_virial_temp[6];
+      global_virial_temp[0] = (x12 * force_dihedrali_x + x23 * force_dihedralk_x +
+      (x34 + x23) * force_dihedralw_x);
+
+      global_virial_temp[1] =  (y12 * force_dihedrali_y + y23 * force_dihedralk_y +
+         (y34 + y23) * force_dihedralw_y);
+
+      global_virial_temp[2] = (z12 * force_dihedrali_z + z23 * force_dihedralk_z +
+         (z34 + z23) * force_dihedralw_z);
+
+      global_virial_temp[3] = (x12 * force_dihedrali_y + x23 * force_dihedralk_y +
+         (x34 + x23) * force_dihedralw_y);
+
+      global_virial_temp[4] = (x12* force_dihedrali_z + x23 * force_dihedralk_z +
+         (x34 + x23) * force_dihedralw_z);
+
+      global_virial_temp[5] = (y12 * force_dihedrali_z + y23 * force_dihedralk_z +
+         (y34 + y23) * force_dihedralw_z);
+
+      global_virial[0 * num_dihedrals + tid1] = global_virial_temp[0];
+      global_virial[1 * num_dihedrals + tid1] = global_virial_temp[1];
+      global_virial[2 * num_dihedrals + tid1] = global_virial_temp[2];
+      global_virial[3 * num_dihedrals + tid1] = global_virial_temp[3];
+      global_virial[4 * num_dihedrals + tid1] = global_virial_temp[4];
+      global_virial[5 * num_dihedrals + tid1] = global_virial_temp[5];
+
+      rbmd::Real local_virial[6];
+      local_virial[0] = 0.25* global_virial_temp[0];
+      local_virial[1] = 0.25* global_virial_temp[1];
+      local_virial[2] = 0.25* global_virial_temp[2];
+      local_virial[3] = 0.25* global_virial_temp[3];
+      local_virial[4] = 0.25* global_virial_temp[4];
+      local_virial[5] = 0.25* global_virial_temp[5];
+
+      // // 将每个 dihedral 的 virial 分量加到相应的原子
+      atomicAdd(&flat_virial[0 * num_atoms + dihedralii], local_virial[0]);
+      atomicAdd(&flat_virial[1 * num_atoms + dihedralii], local_virial[1]);
+      atomicAdd(&flat_virial[2 * num_atoms + dihedralii], local_virial[2]);
+      atomicAdd(&flat_virial[3 * num_atoms + dihedralii], local_virial[3]);
+      atomicAdd(&flat_virial[4 * num_atoms + dihedralii], local_virial[4]);
+      atomicAdd(&flat_virial[5 * num_atoms + dihedralii], local_virial[5]);
+
+      atomicAdd(&flat_virial[0 * num_atoms + dihedraljj], local_virial[0]);
+      atomicAdd(&flat_virial[1 * num_atoms + dihedraljj], local_virial[1]);
+      atomicAdd(&flat_virial[2 * num_atoms + dihedraljj], local_virial[2]);
+      atomicAdd(&flat_virial[3 * num_atoms + dihedraljj], local_virial[3]);
+      atomicAdd(&flat_virial[4 * num_atoms + dihedraljj], local_virial[4]);
+      atomicAdd(&flat_virial[5 * num_atoms + dihedraljj], local_virial[5]);
+
+      atomicAdd(&flat_virial[0 * num_atoms + dihedralkk], local_virial[0]);
+      atomicAdd(&flat_virial[1 * num_atoms + dihedralkk], local_virial[1]);
+      atomicAdd(&flat_virial[2 * num_atoms + dihedralkk], local_virial[2]);
+      atomicAdd(&flat_virial[3 * num_atoms + dihedralkk], local_virial[3]);
+      atomicAdd(&flat_virial[4 * num_atoms + dihedralkk], local_virial[4]);
+      atomicAdd(&flat_virial[5 * num_atoms + dihedralkk], local_virial[5]);
+
+      atomicAdd(&flat_virial[0 * num_atoms + dihedralww], local_virial[0]);
+      atomicAdd(&flat_virial[1 * num_atoms + dihedralww], local_virial[1]);
+      atomicAdd(&flat_virial[2 * num_atoms + dihedralww], local_virial[2]);
+      atomicAdd(&flat_virial[3 * num_atoms + dihedralww], local_virial[3]);
+      atomicAdd(&flat_virial[4 * num_atoms + dihedralww], local_virial[4]);
+      atomicAdd(&flat_virial[5 * num_atoms + dihedralww], local_virial[5]);
+    }
+    rbmd::Real block_sum =
+        BLOCKREDUCE<rbmd::Real, BLOCK_SIZE>(temp_storage)
+            .Sum(local_energy_dihedral);
+
+    if (threadIdx.x == 0) {
+      atomicAdd(energy_dihedral, block_sum);
+    }
+  }
+
   //Imprope
-  __global__ void ComputeImproperForce(
+  __global__ void ComputeImproperHarmonicForce(
     Box box,const rbmd::Id num_atoms,const rbmd::Id num_impropers,
     const rbmd::Id* atom_id_to_idx,const rbmd::Real* improper_coeffs_k,
     const rbmd::Real* improper_coeffs_chi,const rbmd::Id* improper_type,
@@ -1242,8 +1491,27 @@ __global__ void ComputeBondForce(
         fx, fy, fz, flat_virial,global_virial,energy_dihedral));
   }
 
+  void ComputeDihedralOPLSForceOp<device::DEVICE_GPU>::operator()(
+       Box box,const rbmd::Id num_atoms,const rbmd::Id num_dihedrals,
+       const rbmd::Id* atom_id_to_idx,const rbmd::Real* dihedral_coeffs_k1,
+      const rbmd::Real* dihedral_coeffs_k2,const rbmd::Real* dihedral_coeffs_k3,
+       const rbmd::Real* dihedral_coeffs_k4, const rbmd::Id* dihedral_type,
+       const rbmd::Id* dihedrallisti, const rbmd::Id* dihedrallistj,
+      const rbmd::Id* dihedrallistk, const rbmd::Id* dihedrallistw,
+      const rbmd::Real* px, const rbmd::Real* py, const rbmd::Real* pz,
+      rbmd::Real* fx, rbmd::Real* fy, rbmd::Real* fz,rbmd::Real* flat_virial,
+      rbmd::Real* global_virial,rbmd::Real* energy_dihedral) {
+    unsigned int blocks_per_grid = (num_dihedrals + BLOCK_SIZE - 1) / BLOCK_SIZE;
+
+    CHECK_KERNEL(ComputeDihedralOPLSForce<<<blocks_per_grid, BLOCK_SIZE, 0, 0>>>(
+        box, num_atoms,num_dihedrals, atom_id_to_idx, dihedral_coeffs_k1,
+        dihedral_coeffs_k2, dihedral_coeffs_k3, dihedral_coeffs_k4,dihedral_type,
+        dihedrallisti, dihedrallistj, dihedrallistk, dihedrallistw, px, py, pz,
+        fx, fy, fz, flat_virial,global_virial,energy_dihedral));
+  }
+
   // force of improper
-  void ComputeImproperForceOp<device::DEVICE_GPU>::operator()(
+  void ComputeImproperHarmonicForceOp<device::DEVICE_GPU>::operator()(
     Box box,const rbmd::Id num_atoms,const rbmd::Id num_impropers,
     const rbmd::Id* atom_id_to_idx,const rbmd::Real* improper_coeffs_k,
     const rbmd::Real* improper_coeffs_chi,const rbmd::Id* improper_type,
@@ -1254,7 +1522,7 @@ __global__ void ComputeBondForce(
     rbmd::Real* flat_virial,rbmd::Real* energy_improper) {
       unsigned int blocks_per_grid = (num_impropers + BLOCK_SIZE - 1) / BLOCK_SIZE;
 
-      CHECK_KERNEL(ComputeImproperForce<<<blocks_per_grid, BLOCK_SIZE, 0, 0>>>(
+      CHECK_KERNEL(ComputeImproperHarmonicForce<<<blocks_per_grid, BLOCK_SIZE, 0, 0>>>(
           box,num_atoms,num_impropers, atom_id_to_idx, improper_coeffs_k,
           improper_coeffs_chi, improper_type,improperlisti, improperlistj,
           improperlistk, improperlistw, px, py, pz,fx, fy, fz,

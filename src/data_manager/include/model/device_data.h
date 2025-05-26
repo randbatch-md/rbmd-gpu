@@ -66,6 +66,13 @@ class DeviceData {
   thrust::device_vector<rbmd::Id> _d_dihedral_id2;
   thrust::device_vector<rbmd::Id> _d_dihedral_id3;
 
+  /// dihedral
+  thrust::device_vector<rbmd::Id> _d_improper_type;
+  thrust::device_vector<rbmd::Id> _d_improper_id0;
+  thrust::device_vector<rbmd::Id> _d_improper_id1;
+  thrust::device_vector<rbmd::Id> _d_improper_id2;
+  thrust::device_vector<rbmd::Id> _d_improper_id3;
+
   /// Processing data
   // thrust::device_vector<rbmd::Id> _d_special_source_array;
   // thrust::device_vector<rbmd::Id> _d_special_offsets_array;
@@ -93,6 +100,18 @@ class DeviceData {
   thrust::device_vector<rbmd::Real> _d_dihedral_coeffs_k;
   thrust::device_vector<rbmd::Id> _d_dihedral_coeffs_sign;
   thrust::device_vector<rbmd::Id> _d_dihedral_coeffs_multiplicity;
+
+  thrust::device_vector<rbmd::Real> _d_dihedral_coeffs_k1;
+  thrust::device_vector<rbmd::Real> _d_dihedral_coeffs_k2;
+  thrust::device_vector<rbmd::Real> _d_dihedral_coeffs_k3;
+  thrust::device_vector<rbmd::Real> _d_dihedral_coeffs_k4;
+
+  /// imprope
+  thrust::device_vector<rbmd::Real> _d_improper_coeffs_k;
+  thrust::device_vector<rbmd::Real> _d_improper_coeffs_chi;
+
+  thrust::device_vector<rbmd::Id> _d_improper_coeffs_d;
+  thrust::device_vector<rbmd::Id> _d_improper_coeffs_n;
 
   /// F(ρ) on host
   thrust::device_vector<rbmd::Real> _d_frho;
@@ -158,7 +177,7 @@ class DeviceData {
   thrust::device_vector<rbmd::Real> _d_flat_virial_angle_list;
   thrust::device_vector<rbmd::Real> _d_flat_virial_dihedral_atom;
   thrust::device_vector<rbmd::Real> _d_flat_virial_dihedral_list;
-
+  thrust::device_vector<rbmd::Real> _d_flat_virial_improper_atom;
   thrust::device_vector<rbmd::Real> _d_flat_virial_improper_list;
   //total virial
   thrust::device_vector<rbmd::Real> _d_virial;

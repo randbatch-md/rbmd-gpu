@@ -55,6 +55,13 @@ class FullStructureData : public BasicStructureData {
   rbmd::Id* _h_dihedral_id3;
    std::vector<std::pair<rbmd::Id, rbmd::Id>>  special_pairs_14;
 
+  /// improper
+  rbmd::Id* _h_improper_type;
+  rbmd::Id* _h_improper_id0;
+  rbmd::Id* _h_improper_id1;
+  rbmd::Id* _h_improper_id2;
+  rbmd::Id* _h_improper_id3;
+
   //rbmd::Id* _h_special_source_array;
   //rbmd::Id* _h_special_offsets_array;
 };

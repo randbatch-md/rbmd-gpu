@@ -48,6 +48,7 @@ int StructureReder::ReadHeader() {
     CHECK_RUNTIME(MALLOCHOST(&(info->_num_bounds_type), sizeof(rbmd::Id)));
     CHECK_RUNTIME(MALLOCHOST(&(info->_num_angles_type), sizeof(rbmd::Id)));
     CHECK_RUNTIME(MALLOCHOST(&(info->_num_dihedrals_type), sizeof(rbmd::Id)));
+    CHECK_RUNTIME(MALLOCHOST(&(info->_num_impropers_type), sizeof(rbmd::Id)));
     CHECK_RUNTIME(MALLOCHOST(&(info->_range), sizeof(rbmd::Range)));
     auto& box = _md_data._box;
     rbmd::Real coord_min[3];
@@ -86,6 +87,9 @@ int StructureReder::ReadHeader() {
           else if (line.find("dihedral types") != std::string::npos) {
               iss >> *(info->_num_dihedrals_type);
               //std::cout << *(info->_num_angles_type) << " angle types" << std::endl;
+          } else if (line.find("improper types") != std::string::npos) {
+            iss >> *(info->_num_impropers_type);
+            // std::cout << *(info->_num_impropers_type) << " improper types" << std::endl;
           } else if (line.find("xlo xhi") != std::string::npos) {
             iss >> coord_min[0] >> coord_max[0];
             // std::cout << coord_min[0] << " " << coord_max[0] << "xlo xhi" <<
@@ -145,6 +149,8 @@ int StructureReder::ReadForceField() {
             // std::cout << "Angle Coeffs" << std::endl;
           } else if (line.find("Dihedral Coeffs") != std::string::npos) {
             ReadDihedralsCoeffs(*(info->_num_dihedrals_type));
+          } else if (line.find("Improper Coeffs") != std::string::npos) {
+            ReadImproperCoeffs(*(info->_num_impropers_type));
           } else if (line.find("group") != std::string::npos) {
             break;
           } else if (line.find("Atoms") != std::string::npos) {
@@ -388,7 +394,11 @@ int StructureReder::ReadAngleCoeffs(const rbmd::Id& numAngleTypes)
 
 int StructureReder::ReadDihedralsCoeffs(const rbmd::Id& numDihedralsTypes)
 {
-    try {
+  auto dihedral_type = DataManager::getInstance().getConfigData()->Get
+    <std::string>("dihedral_type", "hyper_parameters", "force_field");
+
+  if (dihedral_type == "Harmonic") {
+        try {
         auto force_filed = std::dynamic_pointer_cast<CVFFForceFieldData>(_md_data._force_field_data);
         auto& dihedral_coeffs_k = force_filed->_h_dihedral_coeffs_k;
         auto& dihedral_coeffs_sign = force_filed->_h_dihedral_coeffs_sign;
@@ -424,7 +434,132 @@ int StructureReder::ReadDihedralsCoeffs(const rbmd::Id& numDihedralsTypes)
         // log
         return -1;
     }
+  }
+  else if (dihedral_type == "OPLS") {
+    try {
+        auto force_filed = std::dynamic_pointer_cast<CVFFForceFieldData>(_md_data._force_field_data);
+        auto& dihedral_coeffs_k1 = force_filed->_h_dihedral_coeffs_k1;
+        auto& dihedral_coeffs_k2 = force_filed->_h_dihedral_coeffs_k2;
+        auto& dihedral_coeffs_k3 = force_filed->_h_dihedral_coeffs_k3;
+        auto& dihedral_coeffs_k4 = force_filed->_h_dihedral_coeffs_k4;
+        CHECK_RUNTIME(MALLOCHOST(&dihedral_coeffs_k1, numDihedralsTypes * sizeof(rbmd::Real)));
+        CHECK_RUNTIME(MALLOCHOST(&dihedral_coeffs_k2, numDihedralsTypes * sizeof(rbmd::Real)));
+        CHECK_RUNTIME(MALLOCHOST(&dihedral_coeffs_k3, numDihedralsTypes * sizeof(rbmd::Real)));
+        CHECK_RUNTIME(MALLOCHOST(&dihedral_coeffs_k4, numDihedralsTypes * sizeof(rbmd::Real)));
+        rbmd::Id dihedral_type;
+        rbmd::Real dihedral_coeffs_k1_value;
+        rbmd::Real dihedral_coeffs_k2_value;
+        rbmd::Real dihedral_coeffs_k3_value;
+        rbmd::Real dihedral_coeffs_k4_value;
 
-    return 0;
+        _line_start = &_mapped_memory[_locate];
+        for (auto num = 0; _locate < _file_size && num < numDihedralsTypes; ++_locate)
+        {
+            if (_mapped_memory[_locate] == '\n')
+            {
+                auto line = std::string(_line_start, &_mapped_memory[_locate]); std::istringstream iss(line);
+                if (rbmd::IsLegalLine(line))
+                {
+                    iss >> dihedral_type >> dihedral_coeffs_k1_value >> dihedral_coeffs_k2_value >> dihedral_coeffs_k3_value >> dihedral_coeffs_k4_value;
+                    dihedral_coeffs_k1[dihedral_type - 1] = dihedral_coeffs_k1_value;
+                    dihedral_coeffs_k2[dihedral_type - 1] = dihedral_coeffs_k2_value;
+                    dihedral_coeffs_k3[dihedral_type - 1] = dihedral_coeffs_k3_value;
+                    dihedral_coeffs_k4[dihedral_type - 1] = dihedral_coeffs_k4_value;
+                    //std::cout << dihedral_type << " " << dihedral_coeffs_k_value << " " << dihedral_coeffs_sign_value << " " << dihedral_coeffs_multiplicity_value << std::endl;
+                    ++num;
+                }
+                _line_start = &_mapped_memory[_locate];
+            }
+        }
+    }
+    catch (const std::exception& e) {
+        // log
+        return -1;
+    }
+  }
+
+  return 0;
 }
 
+int StructureReder::ReadImproperCoeffs(const rbmd::Id& numImproperTypes)
+{
+  auto improper_type = DataManager::getInstance().getConfigData()->Get
+    <std::string>("improper_type", "hyper_parameters", "force_field");
+
+  if (improper_type == "Harmonic") {
+        try {
+        auto force_filed = std::dynamic_pointer_cast<CVFFForceFieldData>(_md_data._force_field_data);
+        auto& improper_coeffs_k = force_filed->_h_improper_coeffs_k;
+        auto& improper_coeffs_degree = force_filed->_h_improper_coeffs_degree;
+
+        CHECK_RUNTIME(MALLOCHOST(&improper_coeffs_k, numImproperTypes * sizeof(rbmd::Real)));
+        CHECK_RUNTIME(MALLOCHOST(&improper_coeffs_degree, numImproperTypes * sizeof(rbmd::Real)));
+
+        rbmd::Id improper_type;
+        rbmd::Real improper_coeffs_k_value;
+        rbmd::Real improper_coeffs_degree_value;
+
+        _line_start = &_mapped_memory[_locate];
+        for (auto num = 0; _locate < _file_size && num < numImproperTypes; ++_locate)
+        {
+            if (_mapped_memory[_locate] == '\n')
+            {
+                auto line = std::string(_line_start, &_mapped_memory[_locate]); std::istringstream iss(line);
+                if (rbmd::IsLegalLine(line))
+                {
+                    iss >> improper_type >> improper_coeffs_k_value >> improper_coeffs_degree_value;
+                    improper_coeffs_k[improper_type - 1] = improper_coeffs_k_value;
+                    improper_coeffs_degree[improper_type - 1] = improper_coeffs_degree_value;
+                    //std::cout << improper_type << " " << improper_coeffs_k_value << " " <<improper_coeffs_degree_value << std::endl;
+                    ++num;
+                }
+                _line_start = &_mapped_memory[_locate];
+            }
+        }
+    }
+    catch (const std::exception& e) {
+        // log
+        return -1;
+    }
+  }
+  else if (improper_type == "CVFF") {
+    try {
+        auto force_filed = std::dynamic_pointer_cast<CVFFForceFieldData>(_md_data._force_field_data);
+        auto& improper_coeffs_k = force_filed->_h_improper_coeffs_k;
+        auto& improper_coeffs_d = force_filed->_h_improper_coeffs_d;
+        auto& improper_coeffs_n = force_filed->_h_improper_coeffs_n;
+        CHECK_RUNTIME(MALLOCHOST(&improper_coeffs_k, numImproperTypes * sizeof(rbmd::Real)));
+        CHECK_RUNTIME(MALLOCHOST(&improper_coeffs_d, numImproperTypes * sizeof(rbmd::Id)));
+        CHECK_RUNTIME(MALLOCHOST(&improper_coeffs_n, numImproperTypes * sizeof(rbmd::Id)));
+        rbmd::Id improper_type;
+        rbmd::Real improper_coeffs_k_value;
+        rbmd::Id improper_coeffs_d_value;
+        rbmd::Id improper_coeffs_n_value;
+
+        _line_start = &_mapped_memory[_locate];
+        for (auto num = 0; _locate < _file_size && num < numImproperTypes; ++_locate)
+        {
+            if (_mapped_memory[_locate] == '\n')
+            {
+                auto line = std::string(_line_start, &_mapped_memory[_locate]); std::istringstream iss(line);
+                if (rbmd::IsLegalLine(line))
+                {
+                    iss >> improper_type >> improper_coeffs_k_value >> improper_coeffs_d_value >> improper_coeffs_n_value;
+                    improper_coeffs_k[improper_type - 1] = improper_coeffs_k_value;
+                    improper_coeffs_d[improper_type - 1] = improper_coeffs_d_value;
+                    improper_coeffs_n[improper_type - 1] = improper_coeffs_n_value;
+                    //std::cout << improper_type << " " << improper_coeffs_k_value << " " << improper_coeffs_d_value << " " << improper_coeffs_n_value << std::endl;
+                    ++num;
+                }
+                _line_start = &_mapped_memory[_locate];
+            }
+        }
+    }
+    catch (const std::exception& e) {
+        // log
+        return -1;
+    }
+  }
+
+  return 0;
+}

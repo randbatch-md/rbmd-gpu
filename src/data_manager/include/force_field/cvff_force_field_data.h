@@ -28,4 +28,16 @@ class CVFFForceFieldData : public ForceFieldData {
   rbmd::Real* _h_dihedral_coeffs_k;
   rbmd::Real* _h_dihedral_coeffs_sign;
   rbmd::Real* _h_dihedral_coeffs_multiplicity;
+
+  rbmd::Real* _h_dihedral_coeffs_k1;
+  rbmd::Real* _h_dihedral_coeffs_k2;
+  rbmd::Real* _h_dihedral_coeffs_k3;
+  rbmd::Real* _h_dihedral_coeffs_k4;
+
+  //improper
+  rbmd::Real* _h_improper_coeffs_k;
+  rbmd::Real* _h_improper_coeffs_degree;
+
+  rbmd::Id* _h_improper_coeffs_d;
+  rbmd::Id* _h_improper_coeffs_n;
 };

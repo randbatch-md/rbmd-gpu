@@ -16,6 +16,7 @@ class StructureInfoData {
   rbmd::Id* _num_bounds_type;
   rbmd::Id* _num_angles_type;
   rbmd::Id* _num_dihedrals_type;
+  rbmd::Id* _num_impropers_type;
 
   rbmd::Range* _range;
 };

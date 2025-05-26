@@ -80,7 +80,6 @@ CVFF::CVFF()
             * (2*_kmax_array.z +1) - 1;
   _h_Re_array = static_cast<rbmd::Real*>(malloc(_num_k * sizeof(rbmd::Real)));
   _h_Im_array = static_cast<rbmd::Real*>(malloc(_num_k * sizeof(rbmd::Real)));
-
   std::remove("thermo_local.txt");
 }
 
@@ -517,18 +516,18 @@ void CVFF::ComputeChargeStructureFactorRBE(
     rhok_image_atom.begin(),psamplekey_out.begin(), rhok_image_redue.begin(),
     thrust::equal_to<rbmd::Id>(),thrust::plus<rbmd::Real>());
 
-  //energy
-
-  //charge self energy//
-  ComputeSelfEnergy(alpha,qqr2e,_e_self_energy);
-
-  //kspace energy
-  ComputeKspaceEnergy(box, num_atoms, kmax_array,
-       alpha, qqr2e ,_e_kspace);
-  _e_kspace = _e_kspace +_e_self_energy;
-
-  std::cout << "test_current_step:" << test_current_step <<  " ,"
-  << "average_energy_rbe:" << _e_kspace << std::endl;
+  // //energy
+  //
+  // //charge self energy//
+  // ComputeSelfEnergy(alpha,qqr2e,_e_self_energy);
+  //
+  // //kspace energy
+  // ComputeKspaceEnergy(box, num_atoms, kmax_array,
+  //      alpha, qqr2e ,_e_kspace);
+  // _e_kspace = _e_kspace +_e_self_energy;
+  //
+  // std::cout << "test_current_step:" << test_current_step <<  " ,"
+  // << "average_energy_rbe:" << _e_kspace << std::endl;
 }
 
 void CVFF::ComputeRBE()
@@ -865,7 +864,19 @@ void CVFF::ComputeAngleForce()
 
 void CVFF::ComputeDihedralForce()
 {
-  auto start = std::chrono::high_resolution_clock::now();
+  auto dihedral_type = DataManager::getInstance().getConfigData()->Get
+  <std::string>("dihedral_type", "hyper_parameters", "force_field");
+
+  if (dihedral_type == "Harmonic") {
+    DihedralHarmonic();
+  }
+  else if (dihedral_type == "OPLS") {
+    DihedralOPLS();
+  }
+}
+
+void CVFF::DihedralHarmonic() {
+   auto start = std::chrono::high_resolution_clock::now();
   thrust::fill(_device_data->_d_force_dihedral_x.begin(),
     _device_data->_d_force_dihedral_x.end(), 0.0f);
   thrust::fill(_device_data->_d_force_dihedral_y.begin(),
@@ -914,7 +925,7 @@ void CVFF::ComputeDihedralForce()
   _e_dihedral = h_total_edihedral[0]/num_dihedrals;
 
   std::cout << "test_current_step:" << test_current_step <<  " ,"
-   << "average_energy-dihedral:" << _e_dihedral << std::endl;
+   << "average_energy_dihedral:" << _e_dihedral << std::endl;
 
   //sum virial_dihedral on host
   std::vector<rbmd::Real> h_flat_virial_dihedral_atom(num_atoms * 6);
@@ -932,10 +943,96 @@ void CVFF::ComputeDihedralForce()
 
   thrust::copy(virial_dihedral.begin(),
   virial_dihedral.end(), _device_data->_d_virial_dihedral.begin());
+
+}
+
+void CVFF::DihedralOPLS() {
+   auto start = std::chrono::high_resolution_clock::now();
+  thrust::fill(_device_data->_d_force_dihedral_x.begin(),
+    _device_data->_d_force_dihedral_x.end(), 0.0f);
+  thrust::fill(_device_data->_d_force_dihedral_y.begin(),
+    _device_data->_d_force_dihedral_y.end(), 0.0f);
+  thrust::fill(_device_data->_d_force_dihedral_z.begin(),
+    _device_data->_d_force_dihedral_z.end(), 0.0f);
+
+  thrust::fill(_device_data->_d_flat_virial_dihedral_atom.begin(),
+  _device_data->_d_flat_virial_dihedral_atom.end(), 0.0f);
+
+  //thrust::device_vector<int4> dihedral_list;
+  auto atom_id_to_idx =
+    LinkedCellLocator::GetInstance().GetLinkedCell()->_atom_id_to_idx;
+
+  thrust::device_vector<rbmd::Real> d_total_edihedral(1, 0.0);
+
+  auto num_atoms = *(_structure_info_data->_num_atoms);
+  auto num_dihedrals = *(_structure_info_data->_num_dihedrals);
+  op::ComputeDihedralOPLSForceOp<device::DEVICE_GPU>()(
+    *_box,num_atoms,num_dihedrals,
+    thrust::raw_pointer_cast(atom_id_to_idx.data()),
+    thrust::raw_pointer_cast(_device_data->_d_dihedral_coeffs_k1.data()),
+    thrust::raw_pointer_cast(_device_data->_d_dihedral_coeffs_k2.data()),
+    thrust::raw_pointer_cast(_device_data->_d_dihedral_coeffs_k3.data()),
+    thrust::raw_pointer_cast(_device_data->_d_dihedral_coeffs_k4.data()),
+    thrust::raw_pointer_cast(_device_data->_d_dihedral_type.data()),
+    thrust::raw_pointer_cast(_device_data->_d_dihedral_id0.data()),
+    thrust::raw_pointer_cast(_device_data->_d_dihedral_id1.data()),
+    thrust::raw_pointer_cast(_device_data->_d_dihedral_id2.data()),
+    thrust::raw_pointer_cast(_device_data->_d_dihedral_id3.data()),
+    thrust::raw_pointer_cast(_device_data->_d_px.data()),
+    thrust::raw_pointer_cast(_device_data->_d_py.data()),
+    thrust::raw_pointer_cast(_device_data->_d_pz.data()),
+    thrust::raw_pointer_cast(_device_data->_d_force_dihedral_x.data()),
+    thrust::raw_pointer_cast(_device_data->_d_force_dihedral_y.data()),
+    thrust::raw_pointer_cast(_device_data->_d_force_dihedral_z.data()),
+    thrust::raw_pointer_cast(_device_data->_d_flat_virial_dihedral_atom.data()),
+    thrust::raw_pointer_cast(_device_data->_d_flat_virial_dihedral_list.data()),
+    thrust::raw_pointer_cast(d_total_edihedral.data()));
+
+  auto end = std::chrono::high_resolution_clock::now();
+  std::chrono::duration<rbmd::Real> duration = end - start;
+  std::cout << "计算dihedral耗时" << duration.count() << "秒" << std::endl;
+
+  // D2H
+  thrust::host_vector<rbmd::Real> h_total_edihedral(d_total_edihedral);
+  _e_dihedral = h_total_edihedral[0]/num_dihedrals;
+
+  std::cout << "test_current_step:" << test_current_step <<  " ,"
+   << "average_energy_dihedral:" << _e_dihedral << std::endl;
+
+  //sum virial_dihedral on host
+  std::vector<rbmd::Real> h_flat_virial_dihedral_atom(num_atoms * 6);
+  thrust::copy(_device_data->_d_flat_virial_dihedral_atom.begin(),
+    _device_data->_d_flat_virial_dihedral_atom.end(), h_flat_virial_dihedral_atom.begin());
+
+  std::vector<rbmd::Real> virial_dihedral(6);
+  virial_dihedral =  {0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
+
+  for(int atom = 0; atom < num_atoms; ++atom){
+    for(int j = 0; j < 6; ++j){
+      virial_dihedral[j] += h_flat_virial_dihedral_atom[j * num_atoms + atom];
+    }
+  }
+
+  thrust::copy(virial_dihedral.begin(),
+  virial_dihedral.end(), _device_data->_d_virial_dihedral.begin());
+
 }
 
 void CVFF::ComputeImproperForce()
 {
+  auto improper_type = DataManager::getInstance().getConfigData()->Get
+<std::string>("dihedral_type", "hyper_parameters", "force_field");
+
+  if (improper_type == "Harmonic") {
+    ImproperHarmonic();
+  }
+  else if (improper_type == "OPLS") {
+    ImproperCVFF();
+  }
+}
+
+void CVFF::ImproperHarmonic() {
+  auto start = std::chrono::high_resolution_clock::now();
   thrust::fill(_device_data->_d_force_improper_x.begin(),
     _device_data->_d_force_improper_x.end(), 0.0f);
   thrust::fill(_device_data->_d_force_improper_y.begin(),
@@ -946,10 +1043,42 @@ void CVFF::ComputeImproperForce()
   auto atom_id_to_idx =
     LinkedCellLocator::GetInstance().GetLinkedCell()->_atom_id_to_idx;
 
-  thrust::device_vector<rbmd::Real> d_total_improper(1, 0.0);
+  thrust::device_vector<rbmd::Real> d_total_eimproper(1, 0.0);
 
-  auto num_impropers = *(_structure_info_data->_num_impropers);
+  auto num_atoms = *(_structure_info_data->_num_atoms);
+  auto num_impropers = *(_structure_info_data->_num_dihedrals);
+  op::ComputeImproperHarmonicForceOp<device::DEVICE_GPU>()(
+    *_box,num_atoms,num_impropers,
+    thrust::raw_pointer_cast(atom_id_to_idx.data()),
+    thrust::raw_pointer_cast(_device_data->_d_improper_coeffs_k.data()),
+    thrust::raw_pointer_cast(_device_data->_d_improper_coeffs_chi.data()),
+    thrust::raw_pointer_cast(_device_data->_d_improper_type.data()),
+    thrust::raw_pointer_cast(_device_data->_d_improper_id0.data()),
+    thrust::raw_pointer_cast(_device_data->_d_improper_id1.data()),
+    thrust::raw_pointer_cast(_device_data->_d_improper_id2.data()),
+    thrust::raw_pointer_cast(_device_data->_d_improper_id3.data()),
+    thrust::raw_pointer_cast(_device_data->_d_px.data()),
+    thrust::raw_pointer_cast(_device_data->_d_py.data()),
+    thrust::raw_pointer_cast(_device_data->_d_pz.data()),
+    thrust::raw_pointer_cast(_device_data->_d_force_improper_x.data()),
+    thrust::raw_pointer_cast(_device_data->_d_force_improper_y.data()),
+    thrust::raw_pointer_cast(_device_data->_d_force_improper_z.data()),
+    thrust::raw_pointer_cast(_device_data->_d_flat_virial_improper_atom.data()),
+    thrust::raw_pointer_cast(d_total_eimproper.data()));
+
+  auto end = std::chrono::high_resolution_clock::now();
+  std::chrono::duration<rbmd::Real> duration = end - start;
+  std::cout << "计算improper耗时" << duration.count() << "秒" << std::endl;
+
+  // D2H
+  thrust::host_vector<rbmd::Real> h_total_eimproper(d_total_eimproper);
+  _e_improper = h_total_eimproper[0]/num_impropers;
+
+  std::cout << "test_current_step:" << test_current_step <<  " ,"
+   << "average_energy_improper:" << _e_improper << std::endl;
 }
+
+void CVFF::ImproperCVFF() {}
 
 void CVFF::EvaluatePotentialenergy()
 {
@@ -960,14 +1089,19 @@ void CVFF::EvaluatePotentialenergy()
               _e_bond +_e_angle +_e_dihedral+_e_improper;
 
   //out
+  auto interval = DataManager::getInstance().getConfigData()->Get<rbmd::Id>(
+"interval", "outputs", "thermo_out");
+
   std::ofstream outfile("thermo_local.txt", std::ios::app);
   if (outfile.tellp() == 0) {
     outfile << "step  e_vdwl  e_coul  e_kspace  e_bond "
             << "e_angle  e_dihedral e_improper e_pe" << std::endl;
   }
-  outfile << test_current_step << " " << _e_vdwl << " " << _e_coul << " "
-          << _e_kspace << " " << _e_bond << " " << _e_angle << " "
-          << _e_dihedral << " " << _e_improper << " " <<  _e_pe << std::endl;
+  if (test_current_step % interval == 0) {
+    outfile << test_current_step << " " << _e_vdwl << " " << _e_coul << " "
+        << _e_kspace << " " << _e_bond << " " << _e_angle << " "
+        << _e_dihedral << " " << _e_improper << " " <<  _e_pe << std::endl;
+  }
   outfile.close();
 }
 

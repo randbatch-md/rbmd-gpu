@@ -21,6 +21,7 @@ class StructureReder : public MmapReader {
   int ReadBondCoeffs(const rbmd::Id& numBondTypes);
   int ReadAngleCoeffs(const rbmd::Id& numAngleTypes);
   int ReadDihedralsCoeffs(const rbmd::Id& numDihedralsTypes);
+  int ReadImproperCoeffs(const rbmd::Id& numImproperTypes);
   // int ReadGroup();
 
  protected:

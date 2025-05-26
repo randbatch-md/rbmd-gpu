@@ -1,0 +1,92 @@
+﻿{
+  "init_configuration": {
+
+    "read_data": {
+      "file": "mix_c_v0.data",
+      "unit": "REAL", 
+      "atom_style": "full",   //支持atomic，charge,full
+      "velocity_type": "GAUSS"
+    }
+
+    //"inbuild": {
+    //  "dims": [ 10, 10, 10 ],
+    //  "x_range": [ 0.0, 10 ],
+    //  "y_range": [ 0.0, 10 ],
+    //  "z_range": [ 0.0, 10 ],
+    //  "velocity_type": "GAUSS",
+    //  "unit": "LJ"
+    //}
+  },
+
+  "hyper_parameters": {
+    "force_field": {
+      "type": "CVFF",
+	   //"potential_file": "/path/to/"
+	  "bond_type": "Harmonic",
+	  "angle_type": "Harmonic",
+	  "dihedral_type": "Harmonic",
+	  "improper_type": "Harmonic"
+    },
+
+    "neighbor": {
+      "type": "VERLETLIST", //RBL,VERLETLIST
+      "cut_off": 12,
+      "r_core": 6,
+      "neighbor_sample_num": 100
+    },
+
+    "coulomb": {
+      "type": "RBE", //  RBE,EWALD
+      "coulomb_sample_num": 2000,
+      "alpha": 0.033,
+      "kmax": [ 18 ,34 ,22]
+    },
+
+    "extend": {
+      //"fix_shake": null,
+      "special_bonds": [ 0, 0, 0 ]
+    }
+  },
+
+  "execution": {
+    "ensemble": "NVT", 					// "NVE","NVT" ,"NPT"
+    "temperature":[ 298.0, 298.0, 100 ],    //50 =100* dt;
+    "pressure": [ 1.0, 1.0, 1000 ], 
+    "temp_ctrl_type": "NOSE_HOOVER",       //BERENDSEN ,NOSE_HOOVER  
+    "press_ctrl_type": "NOSE_HOOVER",  	 //BERENDSEN ,NOSE_HOOVER
+    "timestep": 1.0,
+    "num_steps": 1000000
+  },
+
+  "outputs": {
+
+    "thermo_out": { 
+      "interval": 100
+    },
+
+    "rdf_out": {
+      "interval": 10,
+      "radius": 10,
+      "dr": 0.1,
+      "statistics_rdf_steps": 1000,
+      "atoms_pair": [[ 0, 0 ]]
+    },
+    
+    "msd_out": {
+      "interval": 10,
+      "start_step": 0,
+      "end_step": 10000
+    },
+    
+    "vacf_out": {
+      "interval": 10,
+      "start_step": 0,
+      "end_step": 10000
+    },
+    
+    "trajectory_out": {
+      "interval": 1000
+    }
+
+  }
+}

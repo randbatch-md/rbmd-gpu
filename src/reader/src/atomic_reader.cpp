@@ -33,6 +33,10 @@ int AtomicReader::ReadData() {
         } else if (line.find("Dihedrals") != std::string::npos) {
           //std::cout << "Dihedrals" << std::endl;
           ReadDihedrals(*(_md_data._structure_info_data->_num_dihedrals));
+        } else if (line.find("Dihedrals") != std::string::npos) {
+          //std::cout << "Dihedrals" << std::endl;
+          ReadImpropers(*(_md_data._structure_info_data->_num_impropers));
+          //std::cout << "Impropers" << std::endl;
         } else if (line.find("Velocities") != std::string::npos) {
           // std::cout << "Velocities" << std::endl;
           ReadVelocity(*num_atoms);
@@ -511,6 +515,58 @@ int AtomicReader::ReadDihedrals(const rbmd::Id& num_dihedrals)
     return 0;
 }
 
+int AtomicReader::ReadImpropers(const rbmd::Id& num_impropers)
+{
+    try {
+        auto& full_structure_data = _md_data._structure_data;
+        FullStructureData* data = dynamic_cast<FullStructureData*>(full_structure_data.get());
+        auto& improper_type = data->_h_improper_type;
+        auto& improper_id0 = data->_h_improper_id0;
+        auto& improper_id1 = data->_h_improper_id1;
+        auto& improper_id2 = data->_h_improper_id2;
+        auto& improper_id3 = data->_h_improper_id3;
+        CHECK_RUNTIME(MALLOCHOST(&improper_type, num_impropers * sizeof(rbmd::Id)));
+        CHECK_RUNTIME(MALLOCHOST(&improper_id0, num_impropers * sizeof(rbmd::Id)));
+        CHECK_RUNTIME(MALLOCHOST(&improper_id1, num_impropers * sizeof(rbmd::Id)));
+        CHECK_RUNTIME(MALLOCHOST(&improper_id2, num_impropers * sizeof(rbmd::Id)));
+        CHECK_RUNTIME(MALLOCHOST(&improper_id3, num_impropers * sizeof(rbmd::Id)));
+        rbmd::Id improper_id_value;
+        rbmd::Id improper_type_value;
+        rbmd::Id improper_id0_value;
+        rbmd::Id improper_id1_value;
+        rbmd::Id improper_id2_value;
+        rbmd::Id improper_id3_value;
+
+        _line_start = &_mapped_memory[_locate];
+        for (auto num = 0; _locate < _file_size && num < num_impropers; ++_locate)
+        {
+            if (_mapped_memory[_locate] == '\n')
+            {
+
+                auto line = std::string(_line_start, &_mapped_memory[_locate]); std::istringstream iss(line);
+                if (rbmd::IsLegalLine(line))
+                {
+                    iss >> improper_id_value >> improper_type_value >> improper_id0_value >> improper_id1_value >> improper_id2_value >> improper_id3_value;
+                    improper_type[improper_id_value - 1] = improper_type_value - 1;
+                    improper_id0[improper_id_value - 1] = improper_id0_value - 1;
+                    improper_id1[improper_id_value - 1] = improper_id1_value - 1;
+                    improper_id2[improper_id_value - 1] = improper_id2_value - 1;
+                    improper_id3[improper_id_value - 1] = improper_id3_value - 1;
+                    ++num;
+
+                   // std::cout << improper_type_value << " " <<improper_id0_value << " " << improper_id1_value << " " << improper_id2_value << " " << improper_id3_value<< std::endl;
+                }
+                _line_start = &_mapped_memory[_locate];
+            }
+        }
+    }
+    catch (const std::exception& e) {
+        // log
+        return -1;
+    }
+
+    return 0;
+}
 
 void AtomicReader::SetSpecialBonds()
 {

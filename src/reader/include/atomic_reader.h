@@ -19,6 +19,7 @@ class AtomicReader : public StructureReder {
   int ReadBond(const rbmd::Id& atoms_num);
   int ReadAngle(const rbmd::Id& atoms_num);
   int ReadDihedrals(const rbmd::Id& atoms_num);
+  int ReadImpropers(const rbmd::Id& atoms_num);
   void SetSpecialBonds_fix();
   void SetSpecialBonds();
   void MolecularMapInsert(const rbmd::Id& key, const rbmd::Id& value);
