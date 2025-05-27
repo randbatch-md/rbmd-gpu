@@ -41,9 +41,6 @@ LJCutCoulKspace::LJCutCoulKspace()
       break;
   }
 
-  _cut_off = DataManager::getInstance().getConfigData()->Get
-<rbmd::Real>("cut_off", "hyper_parameters", "neighbor");
-
 //   _accuracy = DataManager::getInstance().getConfigData()->Get<rbmd::Real>(
 // "accuracy", "hyper_parameters", "coulomb");
 //   auto box =  DataManager::getInstance().getMDData()->_box;
@@ -64,6 +61,21 @@ LJCutCoulKspace::LJCutCoulKspace()
 //
 //   std::cout << "g_ewald: " << _g_ewald  <<", alpha: "<<
 //     _alpha  << ", num_k: " << _num_k << std::endl;
+  std::remove("thermo.txt");
+}
+
+LJCutCoulKspace::~LJCutCoulKspace(){}
+
+void LJCutCoulKspace::Init()
+{
+  _cut_off = DataManager::getInstance().getConfigData()->Get
+      <rbmd::Real>("cut_off", "hyper_parameters", "neighbor");
+
+   _neighbor_type = DataManager::getInstance().getConfigData()->Get
+      <std::string>("type", "hyper_parameters", "neighbor");
+
+   _coulomb_type =DataManager::getInstance().getConfigData()->Get<std::string>(
+        "type", "hyper_parameters", "coulomb");
 
   _alpha = DataManager::getInstance().getConfigData()->Get<rbmd::Real>(
 "alpha", "hyper_parameters", "coulomb");
@@ -72,34 +84,13 @@ LJCutCoulKspace::LJCutCoulKspace()
   _kmax_array.x = Kmax[0];
   _kmax_array.y = Kmax[1];
   _kmax_array.z = Kmax[2];
-
   _num_k =  (2*_kmax_array.x +1)  * (2*_kmax_array.y +1)
             * (2*_kmax_array.z +1) - 1;
-
-  _h_Re_array = static_cast<rbmd::Real*>(malloc(_num_k * sizeof(rbmd::Real)));
-  _h_Im_array = static_cast<rbmd::Real*>(malloc(_num_k * sizeof(rbmd::Real)));
-  std::remove("thermo_local.txt");
-}
-
-LJCutCoulKspace::~LJCutCoulKspace()
-{
-  free(_h_Re_array);
-  free(_h_Im_array);
-}
-
-void LJCutCoulKspace::Init()
-{
-   _neighbor_type = DataManager::getInstance().getConfigData()->Get
-      <std::string>("type", "hyper_parameters", "neighbor");
-
-   _coulomb_type =DataManager::getInstance().getConfigData()->Get<std::string>(
-        "type", "hyper_parameters", "coulomb");
 
   if("RBE" == _coulomb_type) {
     _RBE_P = DataManager::getInstance().getConfigData()->Get<rbmd::Id>(
   "coulomb_sample_num", "hyper_parameters", "coulomb");
     GetPsampleKey();
-    //RBEInit(*_box,_alpha,_RBE_P);
   }
 }
 
@@ -282,8 +273,8 @@ void LJCutCoulKspace::ComputeChargeStructureFactorEwald(
     Int3 kmax_array,
     rbmd::Real alpha,
     rbmd::Real qqr2e,
-    rbmd::Real* value_Re_array,
-    rbmd::Real* value_Im_array)
+    thrust::host_vector<rbmd::Real> value_Re_array,
+    thrust::host_vector<rbmd::Real> value_Im_array)
 {
     //thrust::fill(density_real.begin(), density_real.end(), 0.0f);
     //thrust::fill(density_imag.begin(), density_imag.end(), 0.0f);
@@ -360,27 +351,16 @@ void LJCutCoulKspace::ComputeEwlad()
 {
   auto num_atoms = *(_structure_info_data->_num_atoms);
 
-  memset(_h_Re_array, 0, _num_k * sizeof(rbmd::Real));
-  memset(_h_Im_array, 0, _num_k * sizeof(rbmd::Real));
-
   //compute charge structure factor
+  thrust::host_vector<rbmd::Real> h_Re_array(_num_k);
+  thrust::host_vector<rbmd::Real> h_Im_array(_num_k);
   ComputeChargeStructureFactorEwald(*_box, num_atoms, _kmax_array,
-    _alpha,_qqr2e, _h_Re_array,_h_Im_array);
+    _alpha,_qqr2e, h_Re_array,h_Im_array);
 
   thrust::device_vector<rbmd::Real> d_real_array(_num_k);
   thrust::device_vector<rbmd::Real> d_imag_array(_num_k);
-  thrust::copy(_h_Re_array,_h_Re_array+_num_k,d_real_array.begin());
-  thrust::copy(_h_Im_array,_h_Im_array+_num_k,d_imag_array.begin());
-
-  std::vector<rbmd::Real> real_array;
-  std::vector<rbmd::Real> imag_array;
-  real_array.resize(_num_k);
-  imag_array.resize(_num_k);
-
-  MEMCPY(thrust::raw_pointer_cast(real_array.data()),thrust::raw_pointer_cast(d_real_array.data()),
-    _num_k * sizeof(rbmd::Real),D2H);
-  MEMCPY(thrust::raw_pointer_cast(imag_array.data()),thrust::raw_pointer_cast(d_imag_array.data()),
-    _num_k * sizeof(rbmd::Real),D2H);
+  d_real_array = h_Re_array;
+  d_imag_array = h_Im_array;
 
   //EwaldForce//
   op::ComputeEwaldForceOp<device::DEVICE_GPU>()(
@@ -701,7 +681,7 @@ void LJCutCoulKspace::EvaluatePotentialenergy()
   //test_ave_pe = _ave_pe;
 
   //out
-  std::ofstream outfile("thermo_local.txt", std::ios::app);
+  std::ofstream outfile("thermo.txt", std::ios::app);
   if (outfile.tellp() == 0) {
     outfile << "step e_vdwl e_coul e_kspace e_pe" << std::endl;
   }

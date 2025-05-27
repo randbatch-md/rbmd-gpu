@@ -18,7 +18,7 @@ rbmd::Real test_e_pe_init;
 LJ::LJ() {
   _rbl_neighbor_list_builder = std::make_shared<RblFullNeighborListBuilder>();
   _neighbor_list_builder = std::make_shared<FullNeighborListBuilder>();
-  std::remove("thermo_local.txt");
+  std::remove("thermo.txt");
 }
 
 LJ::~LJ()
@@ -230,7 +230,7 @@ void LJ::EvaluatePotentialenergy()
   _e_pe = _e_vdwl;
 
   //out
-  std::ofstream outfile("thermo_local.txt", std::ios::app);
+  std::ofstream outfile("thermo.txt", std::ios::app);
   if (outfile.tellp() == 0) {
     outfile << "step e_vdwl  e_pe" << std::endl;
   }

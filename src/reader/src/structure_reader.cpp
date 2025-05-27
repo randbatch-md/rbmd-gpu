@@ -86,7 +86,7 @@ int StructureReder::ReadHeader() {
           }
           else if (line.find("dihedral types") != std::string::npos) {
               iss >> *(info->_num_dihedrals_type);
-              //std::cout << *(info->_num_angles_type) << " angle types" << std::endl;
+              //std::cout << *(info->_num_dihedrals_type) << " dihedral types" << std::endl;
           } else if (line.find("improper types") != std::string::npos) {
             iss >> *(info->_num_impropers_type);
             // std::cout << *(info->_num_impropers_type) << " improper types" << std::endl;
@@ -317,6 +317,12 @@ int StructureReder::ReadPairCoeffs(const rbmd::Id& numAtomTypes) {
 }
 
 int StructureReder::ReadBondCoeffs(const rbmd::Id& numBondTypes) {
+  const auto& config = DataManager::getInstance().getConfigData();
+  if (!config->PathExists({"hyper_parameters", "force_field", "bond_type"})) {
+    std::cerr << "FATAL ERROR: Missing bond_type definition in config" << std::endl;
+    exit(EXIT_FAILURE); //
+  }
+
   try {
       auto force_filed = std::dynamic_pointer_cast<CVFFForceFieldData>(_md_data._force_field_data);
       auto& bond_coeffs_k = force_filed->_h_bond_coeffs_k;
@@ -356,6 +362,12 @@ int StructureReder::ReadBondCoeffs(const rbmd::Id& numBondTypes) {
 
 int StructureReder::ReadAngleCoeffs(const rbmd::Id& numAngleTypes)
 {
+  const auto& config = DataManager::getInstance().getConfigData();
+  if (!config->PathExists({"hyper_parameters", "force_field", "angle_type"})) {
+    std::cerr << "FATAL ERROR: Missing angle_type definition in config" << std::endl;
+    exit(EXIT_FAILURE); //
+  }
+
   try {
       auto force_filed = std::dynamic_pointer_cast<CVFFForceFieldData>(_md_data._force_field_data);
       auto& angle_coeffs_k = force_filed->_h_angle_coeffs_k;
@@ -394,46 +406,51 @@ int StructureReder::ReadAngleCoeffs(const rbmd::Id& numAngleTypes)
 
 int StructureReder::ReadDihedralsCoeffs(const rbmd::Id& numDihedralsTypes)
 {
-  auto dihedral_type = DataManager::getInstance().getConfigData()->Get
-    <std::string>("dihedral_type", "hyper_parameters", "force_field");
+  const auto& config = DataManager::getInstance().getConfigData();
+  if (!config->PathExists({"hyper_parameters", "force_field", "dihedral_type"})) {
+    std::cerr << "FATAL ERROR: Missing dihedral_type definition in config" << std::endl;
+    exit(EXIT_FAILURE); //
+  }
 
+  std::string dihedral_type ="NULL";
+  dihedral_type = config->Get<std::string>("dihedral_type", "hyper_parameters", "force_field");
   if (dihedral_type == "Harmonic") {
-        try {
-        auto force_filed = std::dynamic_pointer_cast<CVFFForceFieldData>(_md_data._force_field_data);
-        auto& dihedral_coeffs_k = force_filed->_h_dihedral_coeffs_k;
-        auto& dihedral_coeffs_sign = force_filed->_h_dihedral_coeffs_sign;
-        auto& dihedral_coeffs_multiplicity = force_filed->_h_dihedral_coeffs_multiplicity;
-        CHECK_RUNTIME(MALLOCHOST(&dihedral_coeffs_k, numDihedralsTypes * sizeof(rbmd::Real)));
-        CHECK_RUNTIME(MALLOCHOST(&dihedral_coeffs_sign, numDihedralsTypes * sizeof(rbmd::Real)));
-        CHECK_RUNTIME(MALLOCHOST(&dihedral_coeffs_multiplicity, numDihedralsTypes * sizeof(rbmd::Real)));
-        rbmd::Id dihedral_type;
-        rbmd::Real dihedral_coeffs_k_value;
-        rbmd::Real dihedral_coeffs_sign_value;
-        rbmd::Real dihedral_coeffs_multiplicity_value;
+      try {
+          auto force_filed = std::dynamic_pointer_cast<CVFFForceFieldData>(_md_data._force_field_data);
+          auto& dihedral_coeffs_k = force_filed->_h_dihedral_coeffs_k;
+          auto& dihedral_coeffs_sign = force_filed->_h_dihedral_coeffs_sign;
+          auto& dihedral_coeffs_multiplicity = force_filed->_h_dihedral_coeffs_multiplicity;
+          CHECK_RUNTIME(MALLOCHOST(&dihedral_coeffs_k, numDihedralsTypes * sizeof(rbmd::Real)));
+          CHECK_RUNTIME(MALLOCHOST(&dihedral_coeffs_sign, numDihedralsTypes * sizeof(rbmd::Real)));
+          CHECK_RUNTIME(MALLOCHOST(&dihedral_coeffs_multiplicity, numDihedralsTypes * sizeof(rbmd::Real)));
+          rbmd::Id dihedral_type;
+          rbmd::Real dihedral_coeffs_k_value;
+          rbmd::Real dihedral_coeffs_sign_value;
+          rbmd::Real dihedral_coeffs_multiplicity_value;
 
-        _line_start = &_mapped_memory[_locate];
-        for (auto num = 0; _locate < _file_size && num < numDihedralsTypes; ++_locate)
-        {
-            if (_mapped_memory[_locate] == '\n')
-            {
-                auto line = std::string(_line_start, &_mapped_memory[_locate]); std::istringstream iss(line);
-                if (rbmd::IsLegalLine(line))
-                {
-                    iss >> dihedral_type >> dihedral_coeffs_k_value >> dihedral_coeffs_sign_value >> dihedral_coeffs_multiplicity_value;
-                    dihedral_coeffs_k[dihedral_type - 1] = dihedral_coeffs_k_value;
-                    dihedral_coeffs_sign[dihedral_type - 1] = dihedral_coeffs_sign_value;
-                    dihedral_coeffs_multiplicity[dihedral_type - 1] = dihedral_coeffs_multiplicity_value;
-                    //std::cout << dihedral_type << " " << dihedral_coeffs_k_value << " " << dihedral_coeffs_sign_value << " " << dihedral_coeffs_multiplicity_value << std::endl;
-                    ++num;
-                }
-                _line_start = &_mapped_memory[_locate];
-            }
-        }
+          _line_start = &_mapped_memory[_locate];
+          for (auto num = 0; _locate < _file_size && num < numDihedralsTypes; ++_locate)
+          {
+              if (_mapped_memory[_locate] == '\n')
+              {
+                  auto line = std::string(_line_start, &_mapped_memory[_locate]); std::istringstream iss(line);
+                  if (rbmd::IsLegalLine(line))
+                  {
+                      iss >> dihedral_type >> dihedral_coeffs_k_value >> dihedral_coeffs_sign_value >> dihedral_coeffs_multiplicity_value;
+                      dihedral_coeffs_k[dihedral_type - 1] = dihedral_coeffs_k_value;
+                      dihedral_coeffs_sign[dihedral_type - 1] = dihedral_coeffs_sign_value;
+                      dihedral_coeffs_multiplicity[dihedral_type - 1] = dihedral_coeffs_multiplicity_value;
+                      //std::cout << dihedral_type << " " << dihedral_coeffs_k_value << " " << dihedral_coeffs_sign_value << " " << dihedral_coeffs_multiplicity_value << std::endl;
+                      ++num;
+                  }
+                  _line_start = &_mapped_memory[_locate];
+              }
+          }
     }
-    catch (const std::exception& e) {
+      catch (const std::exception& e) {
         // log
         return -1;
-    }
+       }
   }
   else if (dihedral_type == "OPLS") {
     try {
@@ -483,7 +500,14 @@ int StructureReder::ReadDihedralsCoeffs(const rbmd::Id& numDihedralsTypes)
 
 int StructureReder::ReadImproperCoeffs(const rbmd::Id& numImproperTypes)
 {
-  auto improper_type = DataManager::getInstance().getConfigData()->Get
+  const auto& config = DataManager::getInstance().getConfigData();
+  if (!config->PathExists({"hyper_parameters", "force_field", "improper_type"})) {
+    std::cerr << "FATAL ERROR: Missing improper_type definition in config" << std::endl;
+    exit(EXIT_FAILURE); //
+  }
+
+  std::string improper_type ="NULL";
+  improper_type = DataManager::getInstance().getConfigData()->Get
     <std::string>("improper_type", "hyper_parameters", "force_field");
 
   if (improper_type == "Harmonic") {

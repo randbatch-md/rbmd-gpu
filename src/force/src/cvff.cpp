@@ -44,9 +44,6 @@ CVFF::CVFF()
       break;
   }
 
-  _cut_off = DataManager::getInstance().getConfigData()->Get
- <rbmd::Real>("cut_off", "hyper_parameters", "neighbor");
-
 //   _accuracy = DataManager::getInstance().getConfigData()->Get<rbmd::Real>(
 // "accuracy", "hyper_parameters", "coulomb");
 //
@@ -68,45 +65,44 @@ CVFF::CVFF()
 //     << ", Kmax: " << _kmax_array.x << " " << _kmax_array.y << " "
 //     << _kmax_array.z << std::endl;
 
-    _alpha = DataManager::getInstance().getConfigData()->Get<rbmd::Real>(
-  "alpha", "hyper_parameters", "coulomb");
-  auto Kmax =DataManager::getInstance().getConfigData()->
-    GetArray<rbmd::Id>("kmax", "hyper_parameters", "coulomb");
-  _kmax_array.x = Kmax[0];
-  _kmax_array.y = Kmax[1];
-  _kmax_array.z = Kmax[2];
-
-  _num_k =  (2*_kmax_array.x +1)  * (2*_kmax_array.y +1)
-            * (2*_kmax_array.z +1) - 1;
-  _h_Re_array = static_cast<rbmd::Real*>(malloc(_num_k * sizeof(rbmd::Real)));
-  _h_Im_array = static_cast<rbmd::Real*>(malloc(_num_k * sizeof(rbmd::Real)));
-  std::remove("thermo_local.txt");
+  std::remove("thermo.txt");
 }
 
-CVFF::~CVFF()
-{
-  free(_h_Re_array);
-  free(_h_Im_array);
-}
+CVFF::~CVFF(){}
 
 void CVFF::Init()
 {
-  _neighbor_type = DataManager::getInstance().getConfigData()->Get
-     <std::string>("type", "hyper_parameters", "neighbor");
+  const auto& config = DataManager::getInstance().getConfigData();
+  _cut_off = config->Get<rbmd::Real>("cut_off", "hyper_parameters", "neighbor");
+  _neighbor_type = config->Get<std::string>("type", "hyper_parameters", "neighbor");
 
-   _coulomb_type =DataManager::getInstance().getConfigData()->Get<std::string>(
-        "type", "hyper_parameters", "coulomb");
+  _coulomb_type = "NULL"; // default
+  auto& hyper_parameters = config->GetJsonNode("hyper_parameters");
+  if (hyper_parameters.isMember("coulomb")) {
+    _coulomb_type = config->Get<std::string>("type", "hyper_parameters", "coulomb");
+  }
 
-  if("RBE" == _coulomb_type) {
-    _RBE_P = DataManager::getInstance().getConfigData()->Get<rbmd::Id>(
-  "coulomb_sample_num", "hyper_parameters", "coulomb");
-    GetPsampleKey();
+  if(_coulomb_type != "NULL" )
+  {
+    _alpha = config->Get<rbmd::Real>("alpha", "hyper_parameters", "coulomb");
+    auto Kmax =config->GetArray<rbmd::Id>("kmax", "hyper_parameters", "coulomb");
+    _kmax_array.x = Kmax[0];
+    _kmax_array.y = Kmax[1];
+    _kmax_array.z = Kmax[2];
+    _num_k =  (2*_kmax_array.x +1)  * (2*_kmax_array.y +1)
+              * (2*_kmax_array.z +1) - 1;
+    if("RBE" == _coulomb_type) {
+      _RBE_P = config->Get<rbmd::Id>("coulomb_sample_num", "hyper_parameters", "coulomb");
+      GetPsampleKey();
+    }
   }
 }
 
 void CVFF::Execute() {
   ComputeLJCutCoulForce();
-  ComputeKspaceForce();
+  if(_coulomb_type != "NULL" ) {
+    ComputeKspaceForce();
+  }
 
   ComputeBondForce();
   ComputeAngleForce();
@@ -318,8 +314,8 @@ void CVFF::ComputeChargeStructureFactorEwald(
     Int3 Kmax_array,
     rbmd::Real alpha,
     rbmd::Real qqr2e,
-    rbmd::Real* value_Re_array,
-    rbmd::Real* value_Im_array)
+    thrust::host_vector<rbmd::Real> value_Re_array,
+    thrust::host_vector<rbmd::Real> value_Im_array)
 {
     //thrust::fill(density_real.begin(), density_real.end(), 0.0f);
     //thrust::fill(density_imag.begin(), density_imag.end(), 0.0f);
@@ -390,19 +386,19 @@ void CVFF::ComputeChargeStructureFactorEwald(
 void CVFF::ComputeEwlad()
 {
   auto start = std::chrono::high_resolution_clock::now();
-  //
+
   auto num_atoms = *(_structure_info_data->_num_atoms);
 
-  memset(_h_Re_array, 0, _num_k * sizeof(rbmd::Real));
-  memset(_h_Im_array, 0, _num_k * sizeof(rbmd::Real));
-
+  //compute charge structure factor
+  thrust::host_vector<rbmd::Real> h_Re_array(_num_k);
+  thrust::host_vector<rbmd::Real> h_Im_array(_num_k);
   ComputeChargeStructureFactorEwald(*_box, num_atoms, _kmax_array,
-    _alpha,_qqr2e, _h_Re_array, _h_Im_array);
+    _alpha,_qqr2e, h_Re_array, h_Im_array);
 
   thrust::device_vector<rbmd::Real> d_real_array(_num_k);
   thrust::device_vector<rbmd::Real> d_imag_array(_num_k);
-  thrust::copy(_h_Re_array,_h_Re_array+_num_k,d_real_array.begin());
-  thrust::copy(_h_Im_array,_h_Im_array+_num_k,d_imag_array.begin());
+  d_real_array = h_Re_array;
+  d_imag_array = h_Im_array;
 
   //EwaldForce//
     op::ComputeEwaldForceOp<device::DEVICE_GPU>()(
@@ -1092,7 +1088,7 @@ void CVFF::EvaluatePotentialenergy()
   auto interval = DataManager::getInstance().getConfigData()->Get<rbmd::Id>(
 "interval", "outputs", "thermo_out");
 
-  std::ofstream outfile("thermo_local.txt", std::ios::app);
+  std::ofstream outfile("thermo.txt", std::ios::app);
   if (outfile.tellp() == 0) {
     outfile << "step  e_vdwl  e_coul  e_kspace  e_bond "
             << "e_angle  e_dihedral e_improper e_pe" << std::endl;

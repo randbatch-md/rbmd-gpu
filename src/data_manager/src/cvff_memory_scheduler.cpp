@@ -20,10 +20,6 @@ bool CVFFMemoryScheduler::asyncMemoryH2D() {
   auto sd = std::dynamic_pointer_cast<FullStructureData>(_structure_data);
   auto fd = std::dynamic_pointer_cast<CVFFForceFieldData>(_force_field_data);
 
-  auto dihedral_type = DataManager::getInstance().getConfigData()->
-   Get<std::string>("dihedral_type", "hyper_parameters", "force_field");
-  auto improper_type = DataManager::getInstance().getConfigData()->
-   Get<std::string>("improper_type", "hyper_parameters", "force_field");
   /// copy data
   _device_data->_d_molecular_id.resize(num_atoms);
 
@@ -172,6 +168,11 @@ bool CVFFMemoryScheduler::asyncMemoryH2D() {
                fd->_h_angle_coeffs_equilibrium + num_angles_type,
                _device_data->_d_angle_coeffs_equilibrium.begin());
   //dihedral
+  std::string dihedral_type = "NULL";
+  if(*(_structure_info_data->_num_dihedrals)) {
+    dihedral_type = DataManager::getInstance().getConfigData()->
+      Get<std::string>("dihedral_type", "hyper_parameters", "force_field");
+  }
   if (dihedral_type == "Harmonic") {
     _device_data->_d_dihedral_coeffs_k.resize(num_dihedrals_type);
     _device_data->_d_dihedral_coeffs_sign.resize(num_dihedrals_type);
@@ -209,6 +210,11 @@ bool CVFFMemoryScheduler::asyncMemoryH2D() {
   }
 
   //improper
+  std::string improper_type = "NULL";
+  if(*(_structure_info_data->_num_impropers)) {
+    improper_type = DataManager::getInstance().getConfigData()->
+      Get<std::string>("improper_type", "hyper_parameters", "force_field");
+  }
   if (improper_type == "Harmonic") {
     _device_data->_d_improper_coeffs_k.resize(num_impropers_type);
     _device_data->_d_improper_coeffs_chi.resize(num_impropers_type);

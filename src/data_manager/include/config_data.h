@@ -144,6 +144,15 @@ class ConfigData : public Object {
    */
   bool HasNode(const std::string& key) { return _json_node.isMember(key); }
 
+  bool PathExists(std::initializer_list<std::string> path) {
+    const Json::Value* current = &_json_node;
+    for (const auto& key : path) {
+      if (!current->isMember(key)) return false;
+      current = &(*current)[key];
+    }
+    return true;
+  }
+
  private:
   /**
    * @brief Check whether the file is json file
