@@ -137,7 +137,6 @@ bool CVFFMemoryScheduler::asyncMemoryH2D() {
   thrust::copy(sd->_h_improper_id3, sd->_h_improper_id3 + num_impropers,
                _device_data->_d_improper_id3.begin());
 
-
   /// (2) copy force field
   /// mass
   _device_data->_d_mass.resize(num_atoms_type);
@@ -169,6 +168,7 @@ bool CVFFMemoryScheduler::asyncMemoryH2D() {
                _device_data->_d_angle_coeffs_equilibrium.begin());
   //dihedral
   std::string dihedral_type = "NULL";
+
   if(*(_structure_info_data->_num_dihedrals)) {
     dihedral_type = DataManager::getInstance().getConfigData()->
       Get<std::string>("dihedral_type", "hyper_parameters", "force_field");
@@ -211,6 +211,7 @@ bool CVFFMemoryScheduler::asyncMemoryH2D() {
 
   //improper
   std::string improper_type = "NULL";
+
   if(*(_structure_info_data->_num_impropers)) {
     improper_type = DataManager::getInstance().getConfigData()->
       Get<std::string>("improper_type", "hyper_parameters", "force_field");

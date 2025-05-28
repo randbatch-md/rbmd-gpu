@@ -423,7 +423,7 @@ int StructureReder::ReadDihedralsCoeffs(const rbmd::Id& numDihedralsTypes)
           CHECK_RUNTIME(MALLOCHOST(&dihedral_coeffs_k, numDihedralsTypes * sizeof(rbmd::Real)));
           CHECK_RUNTIME(MALLOCHOST(&dihedral_coeffs_sign, numDihedralsTypes * sizeof(rbmd::Real)));
           CHECK_RUNTIME(MALLOCHOST(&dihedral_coeffs_multiplicity, numDihedralsTypes * sizeof(rbmd::Real)));
-          rbmd::Id dihedral_type;
+          rbmd::Id dihedral_type_id;
           rbmd::Real dihedral_coeffs_k_value;
           rbmd::Real dihedral_coeffs_sign_value;
           rbmd::Real dihedral_coeffs_multiplicity_value;
@@ -436,11 +436,11 @@ int StructureReder::ReadDihedralsCoeffs(const rbmd::Id& numDihedralsTypes)
                   auto line = std::string(_line_start, &_mapped_memory[_locate]); std::istringstream iss(line);
                   if (rbmd::IsLegalLine(line))
                   {
-                      iss >> dihedral_type >> dihedral_coeffs_k_value >> dihedral_coeffs_sign_value >> dihedral_coeffs_multiplicity_value;
-                      dihedral_coeffs_k[dihedral_type - 1] = dihedral_coeffs_k_value;
-                      dihedral_coeffs_sign[dihedral_type - 1] = dihedral_coeffs_sign_value;
-                      dihedral_coeffs_multiplicity[dihedral_type - 1] = dihedral_coeffs_multiplicity_value;
-                      //std::cout << dihedral_type << " " << dihedral_coeffs_k_value << " " << dihedral_coeffs_sign_value << " " << dihedral_coeffs_multiplicity_value << std::endl;
+                      iss >> dihedral_type_id >> dihedral_coeffs_k_value >> dihedral_coeffs_sign_value >> dihedral_coeffs_multiplicity_value;
+                      dihedral_coeffs_k[dihedral_type_id - 1] = dihedral_coeffs_k_value;
+                      dihedral_coeffs_sign[dihedral_type_id - 1] = dihedral_coeffs_sign_value;
+                      dihedral_coeffs_multiplicity[dihedral_type_id - 1] = dihedral_coeffs_multiplicity_value;
+                      //std::cout << dihedral_type_id << " " << dihedral_coeffs_k_value << " " << dihedral_coeffs_sign_value << " " << dihedral_coeffs_multiplicity_value << std::endl;
                       ++num;
                   }
                   _line_start = &_mapped_memory[_locate];
@@ -463,7 +463,7 @@ int StructureReder::ReadDihedralsCoeffs(const rbmd::Id& numDihedralsTypes)
         CHECK_RUNTIME(MALLOCHOST(&dihedral_coeffs_k2, numDihedralsTypes * sizeof(rbmd::Real)));
         CHECK_RUNTIME(MALLOCHOST(&dihedral_coeffs_k3, numDihedralsTypes * sizeof(rbmd::Real)));
         CHECK_RUNTIME(MALLOCHOST(&dihedral_coeffs_k4, numDihedralsTypes * sizeof(rbmd::Real)));
-        rbmd::Id dihedral_type;
+        rbmd::Id dihedral_type_id;
         rbmd::Real dihedral_coeffs_k1_value;
         rbmd::Real dihedral_coeffs_k2_value;
         rbmd::Real dihedral_coeffs_k3_value;
@@ -477,12 +477,12 @@ int StructureReder::ReadDihedralsCoeffs(const rbmd::Id& numDihedralsTypes)
                 auto line = std::string(_line_start, &_mapped_memory[_locate]); std::istringstream iss(line);
                 if (rbmd::IsLegalLine(line))
                 {
-                    iss >> dihedral_type >> dihedral_coeffs_k1_value >> dihedral_coeffs_k2_value >> dihedral_coeffs_k3_value >> dihedral_coeffs_k4_value;
-                    dihedral_coeffs_k1[dihedral_type - 1] = dihedral_coeffs_k1_value;
-                    dihedral_coeffs_k2[dihedral_type - 1] = dihedral_coeffs_k2_value;
-                    dihedral_coeffs_k3[dihedral_type - 1] = dihedral_coeffs_k3_value;
-                    dihedral_coeffs_k4[dihedral_type - 1] = dihedral_coeffs_k4_value;
-                    //std::cout << dihedral_type << " " << dihedral_coeffs_k_value << " " << dihedral_coeffs_sign_value << " " << dihedral_coeffs_multiplicity_value << std::endl;
+                    iss >> dihedral_type_id >> dihedral_coeffs_k1_value >> dihedral_coeffs_k2_value >> dihedral_coeffs_k3_value >> dihedral_coeffs_k4_value;
+                    dihedral_coeffs_k1[dihedral_type_id - 1] = dihedral_coeffs_k1_value;
+                    dihedral_coeffs_k2[dihedral_type_id - 1] = dihedral_coeffs_k2_value;
+                    dihedral_coeffs_k3[dihedral_type_id - 1] = dihedral_coeffs_k3_value;
+                    dihedral_coeffs_k4[dihedral_type_id - 1] = dihedral_coeffs_k4_value;
+                    //std::cout << dihedral_type_id << " " << dihedral_coeffs_k_value << " " << dihedral_coeffs_sign_value << " " << dihedral_coeffs_multiplicity_value << std::endl;
                     ++num;
                 }
                 _line_start = &_mapped_memory[_locate];
@@ -493,6 +493,10 @@ int StructureReder::ReadDihedralsCoeffs(const rbmd::Id& numDihedralsTypes)
         // log
         return -1;
     }
+  }
+  else {
+    std::cerr << "FATAL ERROR: The definition of dihedral_type is invalid" << std::endl;
+    exit(EXIT_FAILURE); //
   }
 
   return 0;
@@ -519,7 +523,7 @@ int StructureReder::ReadImproperCoeffs(const rbmd::Id& numImproperTypes)
         CHECK_RUNTIME(MALLOCHOST(&improper_coeffs_k, numImproperTypes * sizeof(rbmd::Real)));
         CHECK_RUNTIME(MALLOCHOST(&improper_coeffs_degree, numImproperTypes * sizeof(rbmd::Real)));
 
-        rbmd::Id improper_type;
+        rbmd::Id improper_type_id;
         rbmd::Real improper_coeffs_k_value;
         rbmd::Real improper_coeffs_degree_value;
 
@@ -531,10 +535,10 @@ int StructureReder::ReadImproperCoeffs(const rbmd::Id& numImproperTypes)
                 auto line = std::string(_line_start, &_mapped_memory[_locate]); std::istringstream iss(line);
                 if (rbmd::IsLegalLine(line))
                 {
-                    iss >> improper_type >> improper_coeffs_k_value >> improper_coeffs_degree_value;
-                    improper_coeffs_k[improper_type - 1] = improper_coeffs_k_value;
-                    improper_coeffs_degree[improper_type - 1] = improper_coeffs_degree_value;
-                    //std::cout << improper_type << " " << improper_coeffs_k_value << " " <<improper_coeffs_degree_value << std::endl;
+                    iss >> improper_type_id >> improper_coeffs_k_value >> improper_coeffs_degree_value;
+                    improper_coeffs_k[improper_type_id - 1] = improper_coeffs_k_value;
+                    improper_coeffs_degree[improper_type_id - 1] = improper_coeffs_degree_value;
+                    //std::cout << improper_type_id << " " << improper_coeffs_k_value << " " <<improper_coeffs_degree_value << std::endl;
                     ++num;
                 }
                 _line_start = &_mapped_memory[_locate];
@@ -555,7 +559,7 @@ int StructureReder::ReadImproperCoeffs(const rbmd::Id& numImproperTypes)
         CHECK_RUNTIME(MALLOCHOST(&improper_coeffs_k, numImproperTypes * sizeof(rbmd::Real)));
         CHECK_RUNTIME(MALLOCHOST(&improper_coeffs_d, numImproperTypes * sizeof(rbmd::Id)));
         CHECK_RUNTIME(MALLOCHOST(&improper_coeffs_n, numImproperTypes * sizeof(rbmd::Id)));
-        rbmd::Id improper_type;
+        rbmd::Id improper_type_id;
         rbmd::Real improper_coeffs_k_value;
         rbmd::Id improper_coeffs_d_value;
         rbmd::Id improper_coeffs_n_value;
@@ -568,11 +572,11 @@ int StructureReder::ReadImproperCoeffs(const rbmd::Id& numImproperTypes)
                 auto line = std::string(_line_start, &_mapped_memory[_locate]); std::istringstream iss(line);
                 if (rbmd::IsLegalLine(line))
                 {
-                    iss >> improper_type >> improper_coeffs_k_value >> improper_coeffs_d_value >> improper_coeffs_n_value;
-                    improper_coeffs_k[improper_type - 1] = improper_coeffs_k_value;
-                    improper_coeffs_d[improper_type - 1] = improper_coeffs_d_value;
-                    improper_coeffs_n[improper_type - 1] = improper_coeffs_n_value;
-                    //std::cout << improper_type << " " << improper_coeffs_k_value << " " << improper_coeffs_d_value << " " << improper_coeffs_n_value << std::endl;
+                    iss >> improper_type_id >> improper_coeffs_k_value >> improper_coeffs_d_value >> improper_coeffs_n_value;
+                    improper_coeffs_k[improper_type_id - 1] = improper_coeffs_k_value;
+                    improper_coeffs_d[improper_type_id - 1] = improper_coeffs_d_value;
+                    improper_coeffs_n[improper_type_id - 1] = improper_coeffs_n_value;
+                    //std::cout << "improper_type :::" <<improper_type << " " << improper_coeffs_k_value << " " << improper_coeffs_d_value << " " << improper_coeffs_n_value << std::endl;
                     ++num;
                 }
                 _line_start = &_mapped_memory[_locate];
@@ -584,6 +588,9 @@ int StructureReder::ReadImproperCoeffs(const rbmd::Id& numImproperTypes)
         return -1;
     }
   }
-
+  else {
+    std::cerr << "FATAL ERROR: The definition of improper_type is invalid" << std::endl;
+    exit(EXIT_FAILURE); //
+  }
   return 0;
 }

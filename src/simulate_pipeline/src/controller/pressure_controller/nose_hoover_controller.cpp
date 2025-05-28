@@ -177,7 +177,7 @@ void NoseHooverController::ComputeTemperature(){
   _temperature = 0.5 * _temp_sum / (_tdof * _kB / 2.0);
 
   if (std::isnan(_temperature)) {
-    std::cerr << "Error: Temperature is infinite. Exiting..." << std::endl;
+    std::cerr << "FATAL ERROR: Temperature is infinite" << std::endl;
     exit(EXIT_FAILURE);
   }
   // std::cout << "temperature= " << _temperature << std::endl;

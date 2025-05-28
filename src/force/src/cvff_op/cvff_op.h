@@ -253,6 +253,32 @@ namespace op {
         rbmd::Real* energy_improper);
   };
 
+template <typename DEVICE>
+struct ComputeImproperCVFFForceOp
+{
+  void operator()(
+     Box box,
+     const rbmd::Id num_atoms,
+    const rbmd::Id num_impropers,
+    const rbmd::Id* atom_id_to_idx,
+    const rbmd::Real* improper_coeffs_k,
+    const rbmd::Id* improper_coeffs_d,
+    const rbmd::Id* improper_coeffs_n,
+    const rbmd::Id* improper_type,
+    const rbmd::Id* improperlisti,
+    const rbmd::Id* improperlistj,
+    const rbmd::Id* improperlistk,
+    const rbmd::Id* improperlistw,
+    const rbmd::Real* px,
+    const rbmd::Real* py,
+    const rbmd::Real* pz,
+    rbmd::Real* fx,
+    rbmd::Real* fy,
+    rbmd::Real* fz,
+    rbmd::Real* flat_virial,
+    rbmd::Real* energy_improper);
+};
+
  ///////////////////////
 
 
@@ -508,6 +534,31 @@ namespace op {
       rbmd::Real* energy_improper);
   };
 
+template <>
+struct ComputeImproperCVFFForceOp<device::DEVICE_GPU>
+{
+  void operator()(
+     Box box,
+     const rbmd::Id num_atoms,
+    const rbmd::Id num_impropers,
+    const rbmd::Id* atom_id_to_idx,
+    const rbmd::Real* improper_coeffs_k,
+    const rbmd::Id* improper_coeffs_d,
+    const rbmd::Id* improper_coeffs_n,
+    const rbmd::Id* improper_type,
+    const rbmd::Id* improperlisti,
+    const rbmd::Id* improperlistj,
+    const rbmd::Id* improperlistk,
+    const rbmd::Id* improperlistw,
+    const rbmd::Real* px,
+    const rbmd::Real* py,
+    const rbmd::Real* pz,
+    rbmd::Real* fx,
+    rbmd::Real* fy,
+    rbmd::Real* fz,
+    rbmd::Real* flat_virial,
+    rbmd::Real* energy_improper);
+};
 
 
 

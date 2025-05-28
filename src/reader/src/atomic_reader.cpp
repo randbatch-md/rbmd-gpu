@@ -33,7 +33,7 @@ int AtomicReader::ReadData() {
         } else if (line.find("Dihedrals") != std::string::npos) {
           //std::cout << "Dihedrals" << std::endl;
           ReadDihedrals(*(_md_data._structure_info_data->_num_dihedrals));
-        } else if (line.find("Dihedrals") != std::string::npos) {
+        } else if (line.find("Impropers") != std::string::npos) {
           //std::cout << "Dihedrals" << std::endl;
           ReadImpropers(*(_md_data._structure_info_data->_num_impropers));
           //std::cout << "Impropers" << std::endl;
@@ -501,7 +501,7 @@ int AtomicReader::ReadDihedrals(const rbmd::Id& num_dihedrals)
                   // record 1-4 connections (first and last atoms)
                   auto pair = ordered_pair(dihedral_id0_value - 1, dihedral_id3_value - 1);
                   data->special_pairs_14.push_back(pair);
-                   // std::cout << dihedral_type_value << " " <<dihedral_id0_value << " " << dihedral_id1_value << " " << dihedral_id2_value << " " << dihedral_id3_value<< std::endl;
+                   //std::cout << dihedral_type_value << " " <<dihedral_id0_value << " " << dihedral_id1_value << " " << dihedral_id2_value << " " << dihedral_id3_value<< std::endl;
                 }
                 _line_start = &_mapped_memory[_locate];
             }
@@ -554,7 +554,7 @@ int AtomicReader::ReadImpropers(const rbmd::Id& num_impropers)
                     improper_id3[improper_id_value - 1] = improper_id3_value - 1;
                     ++num;
 
-                   // std::cout << improper_type_value << " " <<improper_id0_value << " " << improper_id1_value << " " << improper_id2_value << " " << improper_id3_value<< std::endl;
+                   //std::cout << improper_type_value << " " <<improper_id0_value << " " << improper_id1_value << " " << improper_id2_value << " " << improper_id3_value<< std::endl;
                 }
                 _line_start = &_mapped_memory[_locate];
             }

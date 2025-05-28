@@ -1366,6 +1366,262 @@ __global__ void ComputeBondForce(
     }
   }
 
+  __global__ void ComputeImproperCVFFForce(
+    Box box,const rbmd::Id num_atoms,const rbmd::Id num_impropers,
+    const rbmd::Id* atom_id_to_idx,const rbmd::Real* improper_coeffs_k,
+    const rbmd::Id* improper_coeffs_d,const rbmd::Id* improper_coeffs_n,
+    const rbmd::Id* improper_type,
+    const rbmd::Id* improperlisti,const rbmd::Id* improperlistj,
+    const rbmd::Id* improperlistk,const rbmd::Id* improperlistw,
+    const rbmd::Real* px,const rbmd::Real* py,const rbmd::Real* pz,
+    rbmd::Real* fx,rbmd::Real* fy,rbmd::Real* fz,
+    rbmd::Real* flat_virial,rbmd::Real* energy_improper) {
+    __shared__ typename BLOCKREDUCE<rbmd::Real, BLOCK_SIZE>::TempStorage
+        temp_storage;
+    rbmd::Real local_energy_improper = 0;
+
+    unsigned int tid1 = blockIdx.x * blockDim.x + threadIdx.x;
+    if (tid1 < num_impropers) {
+      rbmd::Id improperi = improperlisti[tid1];
+      rbmd::Id improperj = improperlistj[tid1];
+      rbmd::Id improperk = improperlistk[tid1];
+      rbmd::Id improperw = improperlistw[tid1];
+
+      rbmd::Id improperii = atom_id_to_idx[improperi];
+      rbmd::Id improperjj = atom_id_to_idx[improperj];
+      rbmd::Id improperkk = atom_id_to_idx[improperk];
+      rbmd::Id improperww = atom_id_to_idx[improperw];
+      rbmd::Id impropertype = improper_type[tid1];
+
+      rbmd::Real k = improper_coeffs_k[impropertype];
+      rbmd::Id d = improper_coeffs_d[impropertype]; // -1  or  1
+      rbmd::Id n = improper_coeffs_n[impropertype]; // 0 1 2 3 4 5
+
+      rbmd::Real x12 = px[improperii] - px[improperjj];  // i j =vb1
+      rbmd::Real y12 = py[improperii] - py[improperjj];
+      rbmd::Real z12 = pz[improperii] - pz[improperjj];
+      MinImageDistance(box, x12, y12, z12);
+
+      rbmd::Real x23 = px[improperkk] - px[improperjj];  //  k j=vb2
+      rbmd::Real y23 = py[improperkk] - py[improperjj];
+      rbmd::Real z23 = pz[improperkk] - pz[improperjj];
+      MinImageDistance(box, x23, y23, z23);
+
+      rbmd::Real  x23m = -x23;
+      rbmd::Real  y23m = -y23;
+      rbmd::Real  z23m = -z23;
+
+      rbmd::Real x34 = px[improperww] - px[improperkk];  // w k   =vb3
+      rbmd::Real y34 = py[improperww] - py[improperkk];
+      rbmd::Real z34 = pz[improperww] - pz[improperkk];
+      MinImageDistance(box, x34, y34, z34);
+
+      rbmd::Real sb1 = 1.0 / (x12 * x12 + y12 * y12 + z12 * z12);
+      rbmd::Real sb2 = 1.0 / (x23 * x23 + y23 * y23 + z23 * z23);
+      rbmd::Real sb3 = 1.0 / (x34 * x34 + y34 * y34 + z34 * z34);
+
+      rbmd::Real rb1 = SQRT(sb1);
+      rbmd::Real rb3 = SQRT(sb3);
+
+      rbmd::Real c0 = (x12 * x34 + y12 * y34 + z12 * z34) * rb1 * rb3;
+      // 1st and 2nd angle
+      rbmd::Real  b1mag2, b1mag, b2mag2;
+      rbmd::Real b2mag, b3mag2, b3mag, ctmp, r12c1, c1mag, r12c2;
+      rbmd::Real c2mag, sc1, sc2, s1, s2, s12, c, p, pd, rc2, a, a11, a22;
+      rbmd::Real a33, a12, a13, a23, sx2, sy2, sz2;
+
+
+      b1mag2 = x12 * x12 + y12 * y12 + z12 * z12;
+      b1mag = SQRT(b1mag2);
+      b2mag2 = x23 * x23 + y23 * y23 + z23 * z23;
+      b2mag = SQRT(b2mag2);
+      b3mag2 =x34 * x34 + y34 * y34 + z34 * z34;
+      b3mag = SQRT(b3mag2);
+
+      ctmp = x12 * x23 + y12 * y23 + z12 * z23;
+      r12c1 = 1.0 / (b1mag * b2mag);
+      c1mag = ctmp * r12c1;
+
+      ctmp = x23m * x34 + y23m * y34 + z23m * z34;
+      r12c2 = 1.0 / (b2mag * b3mag);
+      c2mag = ctmp * r12c2;
+      // cos and sin of 2 angles and final c
+
+      sc1 = SQRT(1.0 - c1mag * c1mag);
+      if (sc1 < SMALL) sc1 = SMALL;
+      sc1 = 1.0 / sc1;
+
+      sc2 = SQRT(1.0 - c2mag * c2mag);
+      if (sc2 < SMALL) sc2 = SMALL;
+      sc2 = 1.0 / sc2;
+
+      s1 = sc1 * sc1;
+      s2 = sc2 * sc2;
+      s12 = sc1 * sc2;
+      c = (c0 + c1mag * c2mag) * s12;
+
+      // error check
+
+
+      if (c > 1.0) c = 1.0;
+      if (c < -1.0) c = -1.0;
+
+      rbmd::Id m = n ;
+
+      if (m == 2) {
+        p = 2.0 * c * c;
+        pd = 2.0 * c;
+      } else if (m == 3) {
+        rc2 = c * c;
+        p = (4.0 * rc2 - 3.0) * c + 1.0;
+        pd = 6.0 * rc2 - 1.5;
+      } else if (m == 4) {
+        rc2 = c * c;
+        p = 8.0 * (rc2 - 1) * rc2 + 2.0;
+        pd = (16.0 * rc2 - 8.0) * c;
+      } else if (m == 6) {
+        rc2 = c * c;
+        p = ((32.0 * rc2 - 48.0) * rc2 + 18.0) * rc2;
+        pd = (96.0 * (rc2 - 1.0) * rc2 + 18.0) * c;
+      } else if (m == 1) {
+        p = c + 1.0;
+        pd = 0.5;
+      } else if (m == 5) {
+        rc2 = c * c;
+        p = ((16.0 * rc2 - 20.0) * rc2 + 5.0) * c + 1.0;
+        pd = (40.0 * rc2 - 30.0) * rc2 + 2.5;
+      } else if (m == 0) {
+        p = 2.0;
+        pd = 0.0;
+      }
+
+      if (d == -1) {
+        p = 2.0 - p;
+        pd = -pd;
+      }
+
+      local_energy_improper = k * p;
+      //printf("local_energy_improper:  %f\n ",local_energy_improper);
+
+      a = 2.0 * k * pd;
+      c = c * a;
+      s12 = s12 * a;
+      a11 = c * sb1 * s1;
+      a22 = -sb2 * (2.0 * c0 * s12 - c * (s1 + s2));
+      a33 = c * sb3 * s2;
+      a12 = -r12c1 * (c1mag * c * s1 + c2mag * s12);
+      a13 = -rb1 * rb3 * s12;
+      a23 = r12c2 * (c2mag * c * s2 + c1mag * s12);
+
+      sx2 = a12 * x12 + a22 * x23 + a23 * x34;
+      sy2 = a12 * y12 + a22 * y23 + a23 * y34;
+      sz2 = a12 * z12 + a22 * z23 + a23 * z34;
+
+      // force
+      rbmd::Real force_improperi_x, force_improperi_y, force_improperi_z;
+      rbmd::Real force_improperj_x, force_improperj_y, force_improperj_z;
+      rbmd::Real force_improperk_x, force_improperk_y, force_improperk_z;
+      rbmd::Real force_improperw_x, force_improperw_y, force_improperw_z;
+
+      force_improperi_x = a11 * x12 + a12 * x23 + a13 * x34;
+      force_improperi_y = a11 * y12 + a12 * y23 + a13 * y34;
+      force_improperi_z = a11 * z12 + a12 * z23 + a13 * z34;
+
+      force_improperj_x = -sx2 - force_improperi_x;
+      force_improperj_y = -sy2 - force_improperi_y;
+      force_improperj_z = -sz2 - force_improperi_z;
+
+      force_improperw_x = a13 * x12 + a23 * x23 + a33 * x34;
+      force_improperw_y = a13 * y12 + a23 * y23 + a33 * y34;
+      force_improperw_z = a13 * z12 + a23 * z23 + a33 * z34;
+
+      force_improperk_x = sx2 - force_improperw_x;
+      force_improperk_y = sy2 - force_improperw_y;
+      force_improperk_z = sz2 - force_improperw_z;
+
+
+      atomicAdd(&fx[improperii], force_improperi_x);
+      atomicAdd(&fy[improperii], force_improperi_y);
+      atomicAdd(&fz[improperii], force_improperi_z);
+
+      atomicAdd(&fx[improperjj], force_improperj_x);
+      atomicAdd(&fy[improperjj], force_improperj_y);
+      atomicAdd(&fz[improperjj], force_improperj_z);
+
+      atomicAdd(&fx[improperww], force_improperw_x);
+      atomicAdd(&fy[improperww], force_improperw_y);
+      atomicAdd(&fz[improperww], force_improperw_z);
+
+      atomicAdd(&fx[improperkk], force_improperk_x);
+      atomicAdd(&fy[improperkk], force_improperk_y);
+      atomicAdd(&fz[improperkk], force_improperk_z);
+
+      //
+      rbmd::Real global_virial_temp[6];
+      global_virial_temp[0] = (x12 * force_improperi_x + x23 * force_improperk_x +
+          (x34 + x23) * force_improperw_x);
+
+      global_virial_temp[1] = (y12 * force_improperi_y+ y23 * force_improperk_y +
+         (y34 + y23) * force_improperw_y);
+
+      global_virial_temp[2] = (z12 * force_improperi_z + z23 * force_improperk_z +
+         (z34 + z23) * force_improperw_z);
+
+      global_virial_temp[3] = (x12 * force_improperi_y + x23 * force_improperk_y +
+         (x34 + x23) * force_improperw_y);
+
+      global_virial_temp[4] = (x12* force_improperi_z + x23 * force_improperk_z +
+         (x34 + x23) * force_improperw_z);
+
+      global_virial_temp[5] =  (y12 * force_improperi_z + y23 * force_improperk_z +
+         (y34 + y23) * force_improperw_z);
+
+      rbmd::Real local_virial[6];
+      local_virial[0] = 0.25* global_virial_temp[0];
+      local_virial[1] = 0.25* global_virial_temp[1];
+      local_virial[2] = 0.25* global_virial_temp[2];
+      local_virial[3] = 0.25* global_virial_temp[3];
+      local_virial[4] = 0.25* global_virial_temp[4];
+      local_virial[5] = 0.25* global_virial_temp[5];
+
+      // // 将每个 improper 的 virial 分量加到相应的原子
+      atomicAdd(&flat_virial[0 * num_atoms + improperii], local_virial[0]);
+      atomicAdd(&flat_virial[1 * num_atoms + improperii], local_virial[1]);
+      atomicAdd(&flat_virial[2 * num_atoms + improperii], local_virial[2]);
+      atomicAdd(&flat_virial[3 * num_atoms + improperii], local_virial[3]);
+      atomicAdd(&flat_virial[4 * num_atoms + improperii], local_virial[4]);
+      atomicAdd(&flat_virial[5 * num_atoms + improperii], local_virial[5]);
+
+      atomicAdd(&flat_virial[0 * num_atoms + improperjj], local_virial[0]);
+      atomicAdd(&flat_virial[1 * num_atoms + improperjj], local_virial[1]);
+      atomicAdd(&flat_virial[2 * num_atoms + improperjj], local_virial[2]);
+      atomicAdd(&flat_virial[3 * num_atoms + improperjj], local_virial[3]);
+      atomicAdd(&flat_virial[4 * num_atoms + improperjj], local_virial[4]);
+      atomicAdd(&flat_virial[5 * num_atoms + improperjj], local_virial[5]);
+
+      atomicAdd(&flat_virial[0 * num_atoms + improperkk], local_virial[0]);
+      atomicAdd(&flat_virial[1 * num_atoms + improperkk], local_virial[1]);
+      atomicAdd(&flat_virial[2 * num_atoms + improperkk], local_virial[2]);
+      atomicAdd(&flat_virial[3 * num_atoms + improperkk], local_virial[3]);
+      atomicAdd(&flat_virial[4 * num_atoms + improperkk], local_virial[4]);
+      atomicAdd(&flat_virial[5 * num_atoms + improperkk], local_virial[5]);
+
+      atomicAdd(&flat_virial[0 * num_atoms + improperww], local_virial[0]);
+      atomicAdd(&flat_virial[1 * num_atoms + improperww], local_virial[1]);
+      atomicAdd(&flat_virial[2 * num_atoms + improperww], local_virial[2]);
+      atomicAdd(&flat_virial[3 * num_atoms + improperww], local_virial[3]);
+      atomicAdd(&flat_virial[4 * num_atoms + improperww], local_virial[4]);
+      atomicAdd(&flat_virial[5 * num_atoms + improperww], local_virial[5]);
+    }
+    rbmd::Real block_sum =
+        BLOCKREDUCE<rbmd::Real, BLOCK_SIZE>(temp_storage)
+            .Sum(local_energy_improper);
+
+    if (threadIdx.x == 0) {
+      atomicAdd(energy_improper, block_sum);
+    }
+  }
+
 ////////////////////////////////////////
 //verlet-list:  force  of special lJ_cut and coul_cut
   void SpecialLJCutCoulForceOp<device::DEVICE_GPU>::operator()(
@@ -1528,6 +1784,26 @@ __global__ void ComputeBondForce(
           improperlistk, improperlistw, px, py, pz,fx, fy, fz,
           flat_virial,energy_improper));
   }
+
+void ComputeImproperCVFFForceOp<device::DEVICE_GPU>::operator()(
+  Box box,const rbmd::Id num_atoms,const rbmd::Id num_impropers,
+  const rbmd::Id* atom_id_to_idx,const rbmd::Real* improper_coeffs_k,
+  const rbmd::Id* improper_coeffs_d, const rbmd::Id* improper_coeffs_n,
+  const rbmd::Id* improper_type,
+  const rbmd::Id* improperlisti,const rbmd::Id* improperlistj,
+  const rbmd::Id* improperlistk,const rbmd::Id* improperlistw,
+  const rbmd::Real* px,const rbmd::Real* py,const rbmd::Real* pz,
+  rbmd::Real* fx,rbmd::Real* fy,rbmd::Real* fz,
+  rbmd::Real* flat_virial,rbmd::Real* energy_improper) {
+  unsigned int blocks_per_grid = (num_impropers + BLOCK_SIZE - 1) / BLOCK_SIZE;
+
+  CHECK_KERNEL(ComputeImproperCVFFForce<<<blocks_per_grid, BLOCK_SIZE, 0, 0>>>(
+      box,num_atoms,num_impropers, atom_id_to_idx, improper_coeffs_k,
+      improper_coeffs_d,improper_coeffs_n,
+      improper_type,improperlisti, improperlistj,
+      improperlistk, improperlistw, px, py, pz,fx, fy, fz,
+      flat_virial,energy_improper));
+}
 
 }
 

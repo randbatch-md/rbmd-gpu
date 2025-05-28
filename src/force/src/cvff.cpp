@@ -1017,12 +1017,12 @@ void CVFF::DihedralOPLS() {
 void CVFF::ComputeImproperForce()
 {
   auto improper_type = DataManager::getInstance().getConfigData()->Get
-<std::string>("dihedral_type", "hyper_parameters", "force_field");
+<std::string>("improper_type", "hyper_parameters", "force_field");
 
   if (improper_type == "Harmonic") {
     ImproperHarmonic();
   }
-  else if (improper_type == "OPLS") {
+  else if (improper_type == "CVFF") {
     ImproperCVFF();
   }
 }
@@ -1042,7 +1042,7 @@ void CVFF::ImproperHarmonic() {
   thrust::device_vector<rbmd::Real> d_total_eimproper(1, 0.0);
 
   auto num_atoms = *(_structure_info_data->_num_atoms);
-  auto num_impropers = *(_structure_info_data->_num_dihedrals);
+  auto num_impropers = *(_structure_info_data->_num_impropers);
   op::ComputeImproperHarmonicForceOp<device::DEVICE_GPU>()(
     *_box,num_atoms,num_impropers,
     thrust::raw_pointer_cast(atom_id_to_idx.data()),
@@ -1074,7 +1074,55 @@ void CVFF::ImproperHarmonic() {
    << "average_energy_improper:" << _e_improper << std::endl;
 }
 
-void CVFF::ImproperCVFF() {}
+void CVFF::ImproperCVFF()
+{
+   auto start = std::chrono::high_resolution_clock::now();
+  thrust::fill(_device_data->_d_force_improper_x.begin(),
+    _device_data->_d_force_improper_x.end(), 0.0f);
+  thrust::fill(_device_data->_d_force_improper_y.begin(),
+    _device_data->_d_force_improper_y.end(), 0.0f);
+  thrust::fill(_device_data->_d_force_improper_z.begin(),
+    _device_data->_d_force_improper_z.end(), 0.0f);
+
+  auto atom_id_to_idx =
+    LinkedCellLocator::GetInstance().GetLinkedCell()->_atom_id_to_idx;
+
+  thrust::device_vector<rbmd::Real> d_total_eimproper(1, 0.0);
+
+  auto num_atoms = *(_structure_info_data->_num_atoms);
+  auto num_impropers = *(_structure_info_data->_num_impropers);
+  op::ComputeImproperCVFFForceOp<device::DEVICE_GPU>()(
+    *_box,num_atoms,num_impropers,
+    thrust::raw_pointer_cast(atom_id_to_idx.data()),
+    thrust::raw_pointer_cast(_device_data->_d_improper_coeffs_k.data()),
+    thrust::raw_pointer_cast(_device_data->_d_improper_coeffs_d.data()),
+    thrust::raw_pointer_cast(_device_data->_d_improper_coeffs_n.data()),
+    thrust::raw_pointer_cast(_device_data->_d_improper_type.data()),
+    thrust::raw_pointer_cast(_device_data->_d_improper_id0.data()),
+    thrust::raw_pointer_cast(_device_data->_d_improper_id1.data()),
+    thrust::raw_pointer_cast(_device_data->_d_improper_id2.data()),
+    thrust::raw_pointer_cast(_device_data->_d_improper_id3.data()),
+    thrust::raw_pointer_cast(_device_data->_d_px.data()),
+    thrust::raw_pointer_cast(_device_data->_d_py.data()),
+    thrust::raw_pointer_cast(_device_data->_d_pz.data()),
+    thrust::raw_pointer_cast(_device_data->_d_force_improper_x.data()),
+    thrust::raw_pointer_cast(_device_data->_d_force_improper_y.data()),
+    thrust::raw_pointer_cast(_device_data->_d_force_improper_z.data()),
+    thrust::raw_pointer_cast(_device_data->_d_flat_virial_improper_atom.data()),
+    thrust::raw_pointer_cast(d_total_eimproper.data()));
+
+  auto end = std::chrono::high_resolution_clock::now();
+  std::chrono::duration<rbmd::Real> duration = end - start;
+  std::cout << "计算improper耗时" << duration.count() << "秒" << std::endl;
+
+  // D2H
+  thrust::host_vector<rbmd::Real> h_total_eimproper(d_total_eimproper);
+  _e_improper = h_total_eimproper[0]/num_impropers;
+
+  std::cout << "test_current_step:" << test_current_step <<  " ,"
+   << "average_energy_improper:" << _e_improper << std::endl;
+
+}
 
 void CVFF::EvaluatePotentialenergy()
 {
