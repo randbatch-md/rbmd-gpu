@@ -2,9 +2,9 @@
   "init_configuration": {
 
     "read_data": {
-      "file": "mix_c_v0.data",
+      "file": "peo+Li.data",
       "unit": "REAL", 
-      "atom_style": "full",   //支持atomic，charge,full
+      "atom_style": "full",   //atomic，charge,full
       "velocity_type": "GAUSS"
     }
 
@@ -22,10 +22,10 @@
     "force_field": {
       "type": "CVFF",
 	   //"potential_file": "/path/to/"
-	  "bond_type": "Harmonic",
-	  "angle_type": "Harmonic",
-	  "dihedral_type": "Harmonic",
-	  "improper_type": "Harmonic"
+	  "bond_type": "Harmonic",  		// Harmonic 
+	  "angle_type": "Harmonic",   		// Harmonic 
+	  "dihedral_type": "Harmonic"		// Harmonic , OPLS
+	  //"improper_type": "Harmonic"  	  	// Harmonic , CVFF
     },
 
     "neighbor": {
