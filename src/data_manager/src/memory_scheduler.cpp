@@ -45,7 +45,7 @@ bool MemoryScheduler::asyncMemoryH2D() {
   auto& h_atoms_type = _structure_data->_h_atoms_type;
   auto& h_molecular_id = _structure_data->_h_molecular_id;
 
-  /// cpoy position
+  /// copy position
   _device_data->_d_px.resize(num_atoms);
   _device_data->_d_py.resize(num_atoms);
   _device_data->_d_pz.resize(num_atoms);
@@ -57,7 +57,7 @@ bool MemoryScheduler::asyncMemoryH2D() {
   thrust::copy(h_py, h_py + num_atoms, _device_data->_d_py.begin());
   thrust::copy(h_pz, h_pz + num_atoms, _device_data->_d_pz.begin());
 
-  /// cpoy flag
+  /// copy flag
   _device_data->_d_flagX.resize(num_atoms);
   _device_data->_d_flagY.resize(num_atoms);
   _device_data->_d_flagZ.resize(num_atoms);
@@ -68,7 +68,7 @@ bool MemoryScheduler::asyncMemoryH2D() {
   // thrust::copy(h_flagY, h_flagY + num_atoms, _device_data->_d_flagY.begin());
   // thrust::copy(h_flagZ, h_flagZ + num_atoms, _device_data->_d_flagZ.begin());
 
-  /// cpoy velocity
+  /// copy velocity
   _device_data->_d_vx.resize(num_atoms);
   _device_data->_d_vy.resize(num_atoms);
   _device_data->_d_vz.resize(num_atoms);
@@ -78,7 +78,7 @@ bool MemoryScheduler::asyncMemoryH2D() {
 
 
 
-  // cpoy charge
+  // copy charge
   if (charge_data && charge_data->_h_charge)
   {
     _device_data->_d_charge.resize(num_atoms);
@@ -88,7 +88,7 @@ bool MemoryScheduler::asyncMemoryH2D() {
   else{_device_data->_d_charge.resize(num_atoms);}
 
 
-  /// cpoy force
+  /// copy force
   _device_data->_d_fx.resize(num_atoms);
   _device_data->_d_fy.resize(num_atoms);
   _device_data->_d_fz.resize(num_atoms);
@@ -131,7 +131,7 @@ bool MemoryScheduler::asyncMemoryH2D() {
   _device_data->_d_force_improper_y.resize(num_atoms);
   _device_data->_d_force_improper_z.resize(num_atoms);
 
-  //cpoy virial
+  //copy virial
   _device_data->_d_flat_virial.resize(6*num_atoms);
   _device_data->_d_flat_virial_lj.resize(6*num_atoms);
   _device_data->_d_flat_virial_specialcoul.resize(6*num_atoms);
@@ -165,7 +165,7 @@ bool MemoryScheduler::asyncMemoryH2D() {
   thrust::copy(h_atoms_type, h_atoms_type + num_atoms,
                _device_data->_d_atoms_type.begin());
   // thrust::copy(h_molecular_id, h_molecular_id + num_atoms,    //TODO
-  // 有好多h没有，只需resize
+  //
   //              _device_data->_d_molecular_id.begin());
 
   // copy box

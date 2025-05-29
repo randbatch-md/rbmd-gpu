@@ -136,7 +136,7 @@ void CVFF::ComputeLJRBL()
     auto end = std::chrono::high_resolution_clock::now();
 
     std::chrono::duration<rbmd::Real> duration = end - start;
-    std::cout << "构建RBL邻居列表耗时" << duration.count() << "秒" << std::endl;
+    std::cout << "time_build_RBL= " << duration.count() << " second" << std::endl;
 
     // compute force
     auto start_rbl_force = std::chrono::high_resolution_clock::now();
@@ -194,7 +194,7 @@ void CVFF::ComputeLJRBL()
 
   auto end_rbl_force = std::chrono::high_resolution_clock::now();
   std::chrono::duration<rbmd::Real> duration_rbl_force = end_rbl_force - start_rbl_force;
-  std::cout<< "num_atoms=  " << num_atoms << "; " << "计算RBL耗时" << duration_rbl_force.count() << "秒" << std::endl;
+  std::cout<< "num_atoms=  " << num_atoms << "; " << "time_RBL= " << duration_rbl_force.count() << " second" << std::endl;
 
     //energy
     ComputeLJCoulEnergy();
@@ -209,7 +209,7 @@ void CVFF::ComputeLJVerlet()
   auto end = std::chrono::high_resolution_clock::now();
 
   std::chrono::duration<rbmd::Real> duration = end - start;
-  std::cout << "构建verlet-list耗时" << duration.count() << "秒" << std::endl;
+  std::cout << "time_build_verlet= " << duration.count() << " second" << std::endl;
 
   //
   auto start_verlet_force = std::chrono::high_resolution_clock::now();
@@ -244,17 +244,17 @@ void CVFF::ComputeLJVerlet()
 
   auto end_verlet_force = std::chrono::high_resolution_clock::now();
   std::chrono::duration<rbmd::Real> duration_verlet_force = end_verlet_force - start_verlet_force;
-  std::cout << "计算 verlet_lj 力耗时" << duration_verlet_force.count() << "秒" << std::endl;
+  std::cout<< "num_atoms=  " << num_atoms << "; " << "time_verlet= " << duration_verlet_force.count() << " second" << std::endl;
 
-  // 从设备端拷贝数据到主机端
+  // D2H
   thrust::host_vector<rbmd::Real> h_total_evdwl(_d_total_evdwl);
   thrust::host_vector<rbmd::Real> h_total_ecoul(_d_total_ecoul);
   _e_vdwl = h_total_evdwl[0]/num_atoms;
   _e_coul = h_total_ecoul[0]/num_atoms;
 
 
-  std::cout << "test_current_step:" << test_current_step <<  " ,"
-  << "average_energy_vdwl:" << _e_vdwl << " " << "average_coul_energy:" <<
+  std::cout << "current_step:" << test_current_step <<  " ,"
+  << "average_energy_vdwl:" << _e_vdwl << ", " << "average_coul_energy:" <<
     _e_coul << std::endl;
 
 //sum virial_special_lj on host
@@ -363,7 +363,7 @@ void CVFF::ComputeChargeStructureFactorEwald(
   _e_kspace = _e_kspace + _e_self_energy;
 
   //out
-   std::cout << "test_current_step:" << test_current_step <<  " ,"
+   std::cout << "current_step:" << test_current_step <<  " ,"
    << "average_energy_ewald:" << _e_kspace << std::endl;
 }
 
@@ -400,7 +400,7 @@ void CVFF::ComputeEwlad()
 
   auto end = std::chrono::high_resolution_clock::now();
   std::chrono::duration<rbmd::Real> duration = end - start;
-  std::cout << "计算Ewald耗时" << duration.count() << "秒" << std::endl;
+  std::cout << "time_ewald= " << duration.count() << " second" << std::endl;
 
 
   //sum virial_kspace on host
@@ -420,7 +420,7 @@ void CVFF::RBEInit(Box box,rbmd::Real alpha,rbmd::Id RBE_P)
   thrust::host_vector<rbmd::Real> h_P_Sample_y(RBE_P);
   thrust::host_vector<rbmd::Real> h_P_Sample_z(RBE_P);
 
-  // TODO 用随机数生成器重构！
+  // TODO Reconstruct using random number generator!
   rbe_presolve_psample.Fetch_P_Sample(0.0, sigma,
     thrust::raw_pointer_cast(h_P_Sample_x.data()),
     thrust::raw_pointer_cast(h_P_Sample_y.data()),
@@ -493,7 +493,7 @@ void CVFF::ComputeChargeStructureFactorRBE(
   //      alpha, qqr2e ,_e_kspace);
   // _e_kspace = _e_kspace +_e_self_energy;
   //
-  // std::cout << "test_current_step:" << test_current_step <<  " ,"
+  // std::cout << "current_step:" << test_current_step <<  " ,"
   // << "average_energy_rbe:" << _e_kspace << std::endl;
 }
 
@@ -527,7 +527,7 @@ void CVFF::ComputeRBE()
 
   auto end = std::chrono::high_resolution_clock::now();
   std::chrono::duration<rbmd::Real> duration = end - start;
-  std::cout << "计算RBE耗时" << duration.count() << "秒" << std::endl;
+  std::cout << "time_RBE= " << duration.count() << " second" << std::endl;
 
   //sum virial_kspace on host
   ReduceVirial(num_atoms,_device_data->_d_flat_virial_kspace,
@@ -544,7 +544,7 @@ void CVFF::ComputeLJCoulEnergy()
   auto end = std::chrono::high_resolution_clock::now();
 
   std::chrono::duration<rbmd::Real> duration = end - start;
-  std::cout << "后处理---构建verlet-list耗时---" << duration.count() << "秒" << std::endl;
+  std::cout << "postprocessing_build_verlet= " << duration.count() << " second" << std::endl;
 
 
   thrust::device_vector<rbmd::Real> _d_total_evdwl(1, 0.0);
@@ -572,13 +572,13 @@ void CVFF::ComputeLJCoulEnergy()
                 thrust::raw_pointer_cast(_d_total_evdwl.data()),
            thrust::raw_pointer_cast(_d_total_ecoul.data()));
 
-  // 从设备端拷贝数据到主机端
+  // D2H
   thrust::host_vector<rbmd::Real> h_total_evdwl(_d_total_evdwl);
   thrust::host_vector<rbmd::Real> h_total_ecoul(_d_total_ecoul);
   _e_vdwl = h_total_evdwl[0]/num_atoms;
   _e_coul = h_total_ecoul[0]/num_atoms;
 
-  std::cout << "test_current_step:" << test_current_step <<  " ,"
+  std::cout << "current_step:" << test_current_step <<  " ,"
   << "average_energy_vdwl:" << _e_vdwl << " " << "average_coul_energy:" <<
     _e_coul  << std::endl;
 
@@ -701,13 +701,13 @@ void CVFF::ComputeBondForce()
 
   auto end = std::chrono::high_resolution_clock::now();
   std::chrono::duration<rbmd::Real> duration = end - start;
-  std::cout << "计算bond耗时" << duration.count() << "秒" << std::endl;
+  std::cout << "time_bond= " << duration.count() << " second" << std::endl;
 
   // D2H
   thrust::host_vector<rbmd::Real> h_total_ebond(d_total_ebond);
   _e_bond = h_total_ebond[0]/num_bonds;
 
-  std::cout << "test_current_step:" << test_current_step <<  " ,"
+  std::cout << "current_step:" << test_current_step <<  " ,"
   << "average_energy_bond:" << _e_bond  << std::endl;
 
   // //sum virial_bond  on host
@@ -756,13 +756,13 @@ void CVFF::ComputeAngleForce()
 
   auto end = std::chrono::high_resolution_clock::now();
   std::chrono::duration<rbmd::Real> duration = end - start;
-  std::cout << "计算angle耗时" << duration.count() << "秒" << std::endl;
+  std::cout << "time_angle= " << duration.count() << " second" << std::endl;
 
   // D2H
   thrust::host_vector<rbmd::Real> h_total_eangle(d_total_eangle);
   _e_angle = h_total_eangle[0]/num_angles;
 
-  std::cout << "test_current_step:" << test_current_step <<  " ," <<
+  std::cout << "current_step:" << test_current_step <<  " ," <<
     "average_energy_angle:" << _e_angle << std::endl;
 
   //sum virial_angle on host
@@ -826,13 +826,13 @@ void CVFF::DihedralHarmonic() {
 
   auto end = std::chrono::high_resolution_clock::now();
   std::chrono::duration<rbmd::Real> duration = end - start;
-  std::cout << "计算dihedral耗时" << duration.count() << "秒" << std::endl;
+  std::cout << "time_dihedral= " << duration.count() << " second" << std::endl;
 
   // D2H
   thrust::host_vector<rbmd::Real> h_total_edihedral(d_total_edihedral);
   _e_dihedral = h_total_edihedral[0]/num_dihedrals;
 
-  std::cout << "test_current_step:" << test_current_step <<  " ,"
+  std::cout << "current_step:" << test_current_step <<  " ,"
    << "average_energy_dihedral:" << _e_dihedral << std::endl;
 
   //sum virial_dihedral on host
@@ -884,13 +884,13 @@ void CVFF::DihedralOPLS() {
 
   auto end = std::chrono::high_resolution_clock::now();
   std::chrono::duration<rbmd::Real> duration = end - start;
-  std::cout << "计算dihedral耗时" << duration.count() << "秒" << std::endl;
+  std::cout << "time_dihedral= " << duration.count() << " second" << std::endl;
 
   // D2H
   thrust::host_vector<rbmd::Real> h_total_edihedral(d_total_edihedral);
   _e_dihedral = h_total_edihedral[0]/num_dihedrals;
 
-  std::cout << "test_current_step:" << test_current_step <<  " ,"
+  std::cout << "current_step:" << test_current_step <<  " ,"
    << "average_energy_dihedral:" << _e_dihedral << std::endl;
 
   //sum virial_dihedral on host
@@ -948,13 +948,13 @@ void CVFF::ImproperHarmonic() {
 
   auto end = std::chrono::high_resolution_clock::now();
   std::chrono::duration<rbmd::Real> duration = end - start;
-  std::cout << "计算improper耗时" << duration.count() << "秒" << std::endl;
+  std::cout << "time_improper= " << duration.count() << " second" << std::endl;
 
   // D2H
   thrust::host_vector<rbmd::Real> h_total_eimproper(d_total_eimproper);
   _e_improper = h_total_eimproper[0]/num_impropers;
 
-  std::cout << "test_current_step:" << test_current_step <<  " ,"
+  std::cout << "current_step:" << test_current_step <<  " ,"
    << "average_energy_improper:" << _e_improper << std::endl;
 
   ReduceVirial(num_atoms,_device_data->_d_flat_virial_improper_atom,
@@ -1000,13 +1000,13 @@ void CVFF::ImproperCVFF()
 
   auto end = std::chrono::high_resolution_clock::now();
   std::chrono::duration<rbmd::Real> duration = end - start;
-  std::cout << "计算improper耗时" << duration.count() << "秒" << std::endl;
+  std::cout << "time_improper= " << duration.count() << " second" << std::endl;
 
   // D2H
   thrust::host_vector<rbmd::Real> h_total_eimproper(d_total_eimproper);
   _e_improper = h_total_eimproper[0]/num_impropers;
 
-  std::cout << "test_current_step:" << test_current_step <<  " ,"
+  std::cout << "current_step:" << test_current_step <<  " ,"
    << "average_energy_improper:" << _e_improper << std::endl;
 
   ReduceVirial(num_atoms,_device_data->_d_flat_virial_improper_atom,

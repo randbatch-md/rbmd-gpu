@@ -119,13 +119,7 @@ void LJCutCoulKspace::ComputeLJCutCoulForce()
 void LJCutCoulKspace::ComputeLJRBL()
 {
     // rbl_neighbor_list_build
-    auto start = std::chrono::high_resolution_clock::now();
     _rbl_list = _rbl_neighbor_list_builder->Build();
-
-    auto end = std::chrono::high_resolution_clock::now();
-
-    std::chrono::duration<rbmd::Real> duration = end - start;
-    std::cout << "构建RBL邻居列表耗时" << duration.count() << "秒" << std::endl;
 
     // compute force
     const auto r_core =
@@ -184,13 +178,7 @@ void LJCutCoulKspace::ComputeLJRBL()
 void LJCutCoulKspace::ComputeLJVerlet()
 {
   //neighbor_list_build
-  auto start = std::chrono::high_resolution_clock::now();
   _list = _neighbor_list_builder->Build();
-
-  auto end = std::chrono::high_resolution_clock::now();
-
-  std::chrono::duration<rbmd::Real> duration = end - start;
-  std::cout << "构建verlet-list耗时" << duration.count() << "秒" << std::endl;
 
   //
   thrust::device_vector<rbmd::Real> d_total_evdwl(1, 0.0);
@@ -469,6 +457,7 @@ void LJCutCoulKspace::ComputeChargeStructureFactorRBE(
 
 void LJCutCoulKspace::ComputeRBE()
 {
+  auto start = std::chrono::high_resolution_clock::now();
   //
   auto num_atoms = *(_structure_info_data->_num_atoms);
   _rhok_real_redue.resize(_RBE_P);
@@ -493,6 +482,10 @@ void LJCutCoulKspace::ComputeRBE()
         thrust::raw_pointer_cast(_device_data->_d_force_kspace_z.data()),
         thrust::raw_pointer_cast(_device_data->_d_flat_virial_kspace.data()));
 
+  auto end = std::chrono::high_resolution_clock::now();
+  std::chrono::duration<rbmd::Real> duration = end - start;
+  std::cout << "time_RBE= " << duration.count() << "second" << std::endl;
+
   //sum virial_kspace on host
   ReduceVirial(num_atoms,_device_data->_d_flat_virial_kspace,
 _device_data->_d_virial_kspace);
@@ -502,13 +495,7 @@ void LJCutCoulKspace::ComputeLJCoulEnergy()
 {
   // energy
   //neighbor_list_build
-  auto start = std::chrono::high_resolution_clock::now();
   _list = _neighbor_list_builder->Build();
-
-  auto end = std::chrono::high_resolution_clock::now();
-
-  std::chrono::duration<rbmd::Real> duration = end - start;
-  std::cout << "后处理---构建verlet-list耗时---" << duration.count() << "秒" << std::endl;
 
   //
   thrust::device_vector<rbmd::Real> _d_total_evdwl(1, 0.0);
@@ -530,7 +517,7 @@ void LJCutCoulKspace::ComputeLJCoulEnergy()
                 thrust::raw_pointer_cast(_d_total_evdwl.data()),
                 thrust::raw_pointer_cast(_d_total_ecoul.data()));
 
-  // 从设备端拷贝数据到主机端
+  // D2H
   thrust::host_vector<rbmd::Real> h_total_evdwl(_d_total_evdwl);
   thrust::host_vector<rbmd::Real> h_total_ecoul(_d_total_ecoul);
   _e_vdwl = h_total_evdwl[0]/num_atoms;

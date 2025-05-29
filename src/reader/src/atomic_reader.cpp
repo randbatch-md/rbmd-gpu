@@ -695,7 +695,7 @@ void AtomicReader::SetSpecialBonds_fix() {
     // Step 1: do  1-2  (highest priority)
     for (const auto& pair : data->special_pairs_12) {
         auto ordered = ordered_pair(pair.first, pair.second);
-        if (excluded_pairs.insert(ordered).second) { // 确保唯一性
+        if (excluded_pairs.insert(ordered).second) { //
             // Symmetric processing: Neighbors of atoms i and j are added to each other
             atom_neighbors[pair.first].push_back(pair.second);
             atom_weights[pair.first].push_back(w1);
@@ -750,7 +750,7 @@ void AtomicReader::SetSpecialBonds_fix() {
         }
     }
 
-    // Step 6: compute  offsets and  offset_count（前缀和）
+    // Step 6: compute  offsets and  offset_count
     offsets[0] = 0;
     for (rbmd::Id i = 0; i < num_atoms; ++i) {
         offset_count[i] = offset_counts[i];
@@ -763,7 +763,7 @@ void AtomicReader::SetSpecialBonds_fix() {
     data->_num_special_offsets = num_atoms + 1;
     data->_num_special_offset_count = num_atoms;
 
-  // 1. 输出 weights 到 weights.txt
+  // 1.
   std::ofstream weights_file("weights.txt");
   if (weights_file.is_open()) {
     for (rbmd::Id i = 0; i < data->_num_special_weights; ++i) {
@@ -772,7 +772,7 @@ void AtomicReader::SetSpecialBonds_fix() {
     weights_file.close();
   }
 
-  // 2. 输出 ids 到 ids.txt
+  // 2.
   std::ofstream ids_file("ids.txt");
   if (ids_file.is_open()) {
     for (rbmd::Id i = 0; i < data->_num_special_ids; ++i) {
@@ -781,7 +781,7 @@ void AtomicReader::SetSpecialBonds_fix() {
     ids_file.close();
   }
 
-  // 3. 输出 offset_count 到 offset_count.txt
+  // 3.
   std::ofstream offset_count_file("offset_count.txt");
   if (offset_count_file.is_open()) {
     for (rbmd::Id i = 0; i < num_atoms; ++i) {
@@ -790,7 +790,7 @@ void AtomicReader::SetSpecialBonds_fix() {
     offset_count_file.close();
   }
 
-  // 4. 输出 offsets 到 offsets.txt
+  // 4.
   std::ofstream offsets_file("offsets.txt");
   if (offsets_file.is_open()) {
     for (rbmd::Id i = 0; i <= num_atoms; ++i) { // 注意: offsets 长度为 num_atoms + 1

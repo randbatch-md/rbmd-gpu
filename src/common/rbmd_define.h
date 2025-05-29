@@ -113,7 +113,7 @@ typedef int3 Int3;
 #define make_Int3 make_int3
 #endif
 
-// 返回数组需要对齐的大小，n为数组的长度
+//
 #define ALIGN_SIZE(type, n) \
   ((sizeof(type) > 4) ? NEXT_POWER_OF_TWO(n) * 8 : NEXT_POWER_OF_TWO(n) * 4)
 
@@ -125,7 +125,7 @@ typedef int3 Int3;
                    ? (n)          \
                    : (1 << (sizeof(n) * 8 - __builtin_clz((n) - 1)))))
 
-#elif defined(_MSC_VER)  // MSVC   TODO： 待验证
+#elif defined(_MSC_VER)  // MSVC   TODO：
 #include <intrin.h>
 #define IS_POWER_OF_TWO(x) (((x) & ((x) - 1)) == 0)
 #define NEXT_POWER_OF_TWO(n)       \
@@ -138,7 +138,7 @@ typedef int3 Int3;
 #error "Unsupported compiler"
 #endif
 
-#if defined(__CUDA)  // NVCC   //TODO   待验证
+#if defined(__CUDA)  // NVCC   //TODO
 #define ALIGN(n) __align__(n)
 #elif defined(__GNUC__)  // GCC
 #define ALIGN(n) __attribute__((aligned(n)))

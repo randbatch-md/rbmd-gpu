@@ -58,9 +58,10 @@ void LJ::ComputeLJRBL()
     auto end = std::chrono::high_resolution_clock::now();
 
     std::chrono::duration<rbmd::Real> duration = end - start;
-    std::cout << "构建RBL邻居列表耗时" << duration.count() << "秒" << std::endl;
+    std::cout << "time_build_RBL= " << duration.count() << "秒" << std::endl;
 
     // compute force
+    auto start_rbl_force = std::chrono::high_resolution_clock::now();
     const auto r_core =
         DataManager::getInstance().getConfigData()->Get<rbmd::Real>(
             "r_core", "hyper_parameters", "neighbor");
@@ -105,6 +106,10 @@ void LJ::ComputeLJRBL()
                         thrust::raw_pointer_cast(_device_data->_d_fy.data()),
                         thrust::raw_pointer_cast(_device_data->_d_fz.data()));
 
+  auto end_rbl_force = std::chrono::high_resolution_clock::now();
+  std::chrono::duration<rbmd::Real> duration_rbl_force = end_rbl_force - start_rbl_force;
+  std::cout<< "num_atoms=  " << num_atoms << "; " << "time_RBL= " << duration_rbl_force.count() << "second" << std::endl;
+
     //energy
     ComputeLJEnergy();
 }
@@ -118,9 +123,10 @@ void LJ::ComputeLJVerlet()
   auto end = std::chrono::high_resolution_clock::now();
 
   std::chrono::duration<rbmd::Real> duration = end - start;
-  std::cout << "构建verlet-list耗时" << duration.count() << "秒" << std::endl;
+  std::cout << "time_build_verlet= " << duration.count() << "秒" << std::endl;
 
   //
+  auto start_verlet_force = std::chrono::high_resolution_clock::now();
   thrust::device_vector<rbmd::Real> d_total_evdwl(1, 0.0);
   auto num_atoms = *(_structure_info_data->_num_atoms);
   // compute LJ
@@ -141,7 +147,11 @@ void LJ::ComputeLJVerlet()
               thrust::raw_pointer_cast(_device_data->_d_flat_virial.data()),
               thrust::raw_pointer_cast(d_total_evdwl.data()));
 
-  // 从设备端拷贝数据到主机端
+  auto end_verlet_force = std::chrono::high_resolution_clock::now();
+  std::chrono::duration<rbmd::Real> duration_verlet_force = end_verlet_force - start_verlet_force;
+  std::cout<< "num_atoms=  " << num_atoms << "; " << "time_verlet= " << duration_verlet_force.count() << "second" << std::endl;
+
+  // D2H
   thrust::host_vector<rbmd::Real> h_total_evdwl(d_total_evdwl);
   _e_vdwl = h_total_evdwl[0] / num_atoms;
 
@@ -175,7 +185,7 @@ void LJ::ComputeLJEnergy()
                thrust::raw_pointer_cast(_device_data->_d_flat_virial.data()),
                thrust::raw_pointer_cast(d_total_evdwl.data()));
 
-  // 从设备端拷贝数据到主机端
+  // D2H
   thrust::host_vector<rbmd::Real> h_total_evdwl(d_total_evdwl);
   _e_vdwl = h_total_evdwl[0] / num_atoms;
 

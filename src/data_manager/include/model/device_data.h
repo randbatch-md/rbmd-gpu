@@ -73,9 +73,6 @@ class DeviceData {
   thrust::device_vector<rbmd::Id> _d_improper_id2;
   thrust::device_vector<rbmd::Id> _d_improper_id3;
 
-  /// Processing data
-  // thrust::device_vector<rbmd::Id> _d_special_source_array;
-  // thrust::device_vector<rbmd::Id> _d_special_offsets_array;
 
 
   ///< force on device>

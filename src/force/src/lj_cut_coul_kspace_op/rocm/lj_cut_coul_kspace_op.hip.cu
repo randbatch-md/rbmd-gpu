@@ -735,19 +735,19 @@ __global__ void EikFix2(
     int wave_idx = blockIdx.x;
     if (wave_idx >= total_wavevectors) return;
     //if(wave_idx == 0 ) {
-      // 获取当前波矢的(k, l, m)
+      //
       rbmd::Id k = kxvecs[wave_idx];
       rbmd::Id l = kyvecs[wave_idx];
       rbmd::Id m = kzvecs[wave_idx];
 
-      // 计算sqk
+      //
       rbmd::Real sqk = (k * REAL_DATA(unitk)[0]) * (k * REAL_DATA(unitk)[0]) +
                        (l * REAL_DATA(unitk)[1]) * (l * REAL_DATA(unitk)[1]) +
                        (m * REAL_DATA(unitk)[2]) * (m * REAL_DATA(unitk)[2]);
 
       if (sqk > gsqmx) return;
 
-      // 使用共享内存进行归约
+      //
       extern __shared__ rbmd::Real shared_mem[];
       rbmd::Real* s_cstr = shared_mem;
       rbmd::Real* s_sstr = &shared_mem[blockDim.x];
@@ -756,8 +756,8 @@ __global__ void EikFix2(
       rbmd::Real local_cstr = 0.0;
       rbmd::Real local_sstr = 0.0;
 
-      // 计算每个线程需要处理的原子范围
-      int chunk_size = (num_atoms + blockDim.x - 1) / blockDim.x;  // 每个线程处理的原子数
+      //
+      int chunk_size = (num_atoms + blockDim.x - 1) / blockDim.x;  //
       int start_idx = tid * chunk_size;
       int end_idx = MIN((tid + 1) * chunk_size, num_atoms);
 
@@ -779,12 +779,12 @@ __global__ void EikFix2(
         local_sstr += charge[i] * s;
       }
 
-      // 将每个线程的部分和存入共享内存
+      //
       s_cstr[tid] = local_cstr;
       s_sstr[tid] = local_sstr;
       __syncthreads();
 
-      // 归约求和
+      //
       for (unsigned int s = blockDim.x / 2; s > 0; s >>= 1) {
         if (tid < s) {
           s_cstr[tid] += s_cstr[tid + s];
@@ -794,7 +794,7 @@ __global__ void EikFix2(
       }
     //printf("test_p---  %f  %f\n",s_cstr[tid], s_sstr[tid]);
 
-      // 线程0写回结果
+      //
       if (tid == 0) {
         atomicAdd(&sfacrl[wave_idx], s_cstr[0]);
         atomicAdd(&sfacim[wave_idx], s_sstr[0]);
@@ -812,13 +812,13 @@ __global__ void EikFix3(
     int wave_idx = blockIdx.x;
     if (wave_idx >= total_wavevectors) return;
     //if(wave_idx == 0 ) {
-      // 获取当前波矢的(k, l, m)
+      //
       rbmd::Real k = kxvecs[wave_idx];
       rbmd::Real l = kyvecs[wave_idx];
       rbmd::Real m = kzvecs[wave_idx];
       //printf("test_p---  %i  %f  %f   %f\n",wave_idx,k,l,m);
 
-      // 使用共享内存进行归约
+      //
       extern __shared__ rbmd::Real shared_mem[];
       rbmd::Real* s_cstr = shared_mem;
       rbmd::Real* s_sstr = &shared_mem[blockDim.x];
@@ -827,8 +827,8 @@ __global__ void EikFix3(
       rbmd::Real local_cstr = 0.0;
       rbmd::Real local_sstr = 0.0;
 
-      // 计算每个线程需要处理的原子范围
-      int chunk_size = (num_atoms + blockDim.x - 1) / blockDim.x;  // 每个线程处理的原子数
+      //
+      int chunk_size = (num_atoms + blockDim.x - 1) / blockDim.x;  //
       int start_idx = tid * chunk_size;
       int end_idx = MIN((tid + 1) * chunk_size, num_atoms);
 
@@ -852,12 +852,12 @@ __global__ void EikFix3(
 
       }
 
-      // 将每个线程的部分和存入共享内存
+      //
       s_cstr[tid] = local_cstr;
       s_sstr[tid] = local_sstr;
       __syncthreads();
 
-      // 归约求和
+      //
       for (unsigned int s = blockDim.x / 2; s > 0; s >>= 1) {
         if (tid < s) {
           s_cstr[tid] += s_cstr[tid + s];
@@ -867,7 +867,7 @@ __global__ void EikFix3(
       }
      //printf("test_p---  %f  %f\n",s_cstr[tid], s_sstr[tid]);
 
-      // 线程0写回结果
+      //
       if (tid == 0) {
         atomicAdd(&sfacrl[wave_idx], s_cstr[0]);
         atomicAdd(&sfacim[wave_idx], s_sstr[0]);

@@ -90,7 +90,7 @@ void MDApplication::AddSimulate() {
 
     if ("NVT" == type) {
       ensemble = std::make_shared<NVTensemble>();
-    } else if ("NVP" == type) {
+    } else if ("NPT" == type) {
       ensemble = std::make_shared<NPTensemble>();
     } else if ("NVE" == type) {
       ensemble = std::make_shared<NVEensemble>();

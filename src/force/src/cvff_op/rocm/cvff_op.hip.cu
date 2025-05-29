@@ -499,7 +499,7 @@ __global__ void ComputeBondForce(
     local_virial[4]  = 0.5 *global_virial_temp[4];
     local_virial[5]  = 0.5 *global_virial_temp[5];
 
-    // 将每个 bond 的 virial 分量加到相应的原子
+    //
     atomicAdd(&flat_virial[0 * num_atoms + bondii], local_virial[0]);
     atomicAdd(&flat_virial[1 * num_atoms + bondii], local_virial[1]);
     atomicAdd(&flat_virial[2 * num_atoms + bondii], local_virial[2]);
@@ -638,7 +638,7 @@ __global__ void ComputeBondForce(
       local_virial[4]  =  0.3333333333*global_virial_temp[4];
       local_virial[5]  =  0.3333333333*global_virial_temp[5];
 
-      // 将每个 angle 的 virial 分量加到相应的原子
+      //
       //Column-Major Order : j * M + i
       atomicAdd(&flat_virial[0 * num_atoms + anglelii], local_virial[0]);
       atomicAdd(&flat_virial[1 * num_atoms + anglelii], local_virial[1]);
@@ -877,7 +877,7 @@ __global__ void ComputeBondForce(
       local_virial[4] = 0.25* global_virial_temp[4];
       local_virial[5] = 0.25* global_virial_temp[5];
 
-      // // 将每个 dihedral 的 virial 分量加到相应的原子
+      //
       atomicAdd(&flat_virial[0 * num_atoms + dihedralii], local_virial[0]);
       atomicAdd(&flat_virial[1 * num_atoms + dihedralii], local_virial[1]);
       atomicAdd(&flat_virial[2 * num_atoms + dihedralii], local_virial[2]);
@@ -1126,7 +1126,7 @@ __global__ void ComputeBondForce(
       local_virial[4] = 0.25* global_virial_temp[4];
       local_virial[5] = 0.25* global_virial_temp[5];
 
-      // // 将每个 dihedral 的 virial 分量加到相应的原子
+      //
       atomicAdd(&flat_virial[0 * num_atoms + dihedralii], local_virial[0]);
       atomicAdd(&flat_virial[1 * num_atoms + dihedralii], local_virial[1]);
       atomicAdd(&flat_virial[2 * num_atoms + dihedralii], local_virial[2]);
@@ -1328,7 +1328,7 @@ __global__ void ComputeBondForce(
       local_virial[4] = 0.25* global_virial_temp[4];
       local_virial[5] = 0.25* global_virial_temp[5];
 
-      // // 将每个 improper 的 virial 分量加到相应的原子
+      //
       atomicAdd(&flat_virial[0 * num_atoms + improperii], local_virial[0]);
       atomicAdd(&flat_virial[1 * num_atoms + improperii], local_virial[1]);
       atomicAdd(&flat_virial[2 * num_atoms + improperii], local_virial[2]);
@@ -1584,7 +1584,7 @@ __global__ void ComputeBondForce(
       local_virial[4] = 0.25* global_virial_temp[4];
       local_virial[5] = 0.25* global_virial_temp[5];
 
-      // // 将每个 improper 的 virial 分量加到相应的原子
+      //
       atomicAdd(&flat_virial[0 * num_atoms + improperii], local_virial[0]);
       atomicAdd(&flat_virial[1 * num_atoms + improperii], local_virial[1]);
       atomicAdd(&flat_virial[2 * num_atoms + improperii], local_virial[2]);

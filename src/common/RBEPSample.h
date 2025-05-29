@@ -148,7 +148,7 @@ struct RBEPSAMPLE
               rbmd::Real(ROUND(FetchSample_1D(mu, sigma.z)))};
     } while (ABS(X_0.x) < epsilonx && ABS(X_0.y) < epsilonx &&
              ABS(X_0.z) < epsilonx);
-    /// 记录第一个样本
+    ///Record the first sample
     P_Sample_x[0] = X_0.x;
     P_Sample_y[0] = X_0.y;
     P_Sample_z[0] = X_0.z;
@@ -167,7 +167,7 @@ struct RBEPSAMPLE
       if (ABS(X_1.x) < epsilonx && ABS(X_1.y) < epsilonx &&
           ABS(X_1.z) < epsilonx)
       {
-        i = i - 1;  //// 维持样本数量
+        i = i - 1;  //// Maintain the sample size
         continue;
       }
     }

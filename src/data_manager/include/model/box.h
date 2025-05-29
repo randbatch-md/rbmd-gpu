@@ -4,43 +4,43 @@
 
 class Box {
  public:
-  // 定义枚举类型 BoxType
+  //
   enum class BoxType {
-    ORTHOGONAL,  // 正交
-    TRICLINIC    // 三斜
+    ORTHOGONAL,  //
+    TRICLINIC    //
   };
 
-  BoxType _type = BoxType::ORTHOGONAL;  // 默认正交盒子
+  BoxType _type = BoxType::ORTHOGONAL;  //default
   Box() = default;
 
   /**
-   * 读取配置文件时初始化盒子
-   * @param box_type  盒子类型，枚举变量
-   * @param coord_min 盒子右下角坐标（xyz最小值）
-   * @param coord_max 盒子左上角坐标（xyz最达值）
-   * @param pbc 是否使用周期性边界条件 bool数组，对应xyz维度
+   * initialize the box
+   * @param box_type
+   * @param coord_min
+   * @param coord_max
+   * @param pbc
    */
   void Setup(BoxType box_type, const rbmd::Real coord_min[3],
             const rbmd::Real coord_max[3], const bool pbc[3]);
 
-  // TODO 边长角度  不经常访问的就直接做成对齐数组了    xyz 半的xyz
-  /// 在x维度使用周期性边界条件
+  // TODO
+  ///
   bool _pbc_x = true;
-  /// 在y维度使用周期性边界条件
+  ///
   bool _pbc_y = true;
-  /// 在z维度使用周期性边界条件
+  ///
   bool _pbc_z = true;
 
   rbmd::Real ALIGN(ALIGN_SIZE(rbmd::Real, 6)) _length[6]{};
   rbmd::Real ALIGN(ALIGN_SIZE(rbmd::Real, 6)) _length_inv[6]{};
   rbmd::Real ALIGN(ALIGN_SIZE(rbmd::Real, 3)) _median_point[3]{};
 
-  /// （local）盒子的左下角坐标（x,y,z）
+  /// （local）The coordinates of the lower left corner of the box
   rbmd::Real ALIGN(ALIGN_SIZE(rbmd::Real, 3)) _coord_min[3]{};
-  /// （local）盒子的右上角坐标（x,y,z）
+  /// （local）The coordinates of the upper right corner of the box
   rbmd::Real ALIGN(ALIGN_SIZE(rbmd::Real, 3)) _coord_max[3]{};
 
-  /// 以单元格为单位的box的宽度（x,y,z）
+  /// individual cells
   rbmd::Id ALIGN(ALIGN_SIZE(rbmd::Id, 3)) _box_width_as_cell_units[3]{};
 };
 

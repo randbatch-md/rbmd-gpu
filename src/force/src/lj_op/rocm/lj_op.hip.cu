@@ -311,7 +311,7 @@ inline __device__ void ComputeVirial_fix(rbmd::Real px12, rbmd::Real py12,
     unsigned int tid = blockIdx.x * blockDim.x + threadIdx.x;
     unsigned int local_tid = threadIdx.x;
 
-    // 加载数据到共享内存
+    //
     if (tid < num_atoms) {
       s_fx[local_tid] = fx[tid];
       s_fy[local_tid] = fy[tid];
@@ -320,7 +320,7 @@ inline __device__ void ComputeVirial_fix(rbmd::Real px12, rbmd::Real py12,
 
     __syncthreads();
 
-    // 执行计算
+    //
     if (tid < num_atoms) {
       s_fx[local_tid] -= corr_value_x;
       s_fy[local_tid] -= corr_value_y;
@@ -329,7 +329,7 @@ inline __device__ void ComputeVirial_fix(rbmd::Real px12, rbmd::Real py12,
 
     __syncthreads();
 
-    // 写回结果到全局内存
+    //
     if (tid < num_atoms) {
       fx[tid] = s_fx[local_tid];
       fy[tid] = s_fy[local_tid];

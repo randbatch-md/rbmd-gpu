@@ -64,7 +64,7 @@ private:
   std::string _neighbor_type;
   rbmd::Real _cut_off;
 
-  // 用于存储元素对和对应的参数
+  //
   typedef std::map<std::tuple<std::string,
   std::string, std::string>, TersoffParams> TersoffData;
   std::ifstream _potential_file;
