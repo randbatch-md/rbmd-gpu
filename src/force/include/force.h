@@ -1,4 +1,6 @@
 #pragma once
+#include <thrust/host_vector.h>
+
 #include <memory>
 
 #include "data_manager.h"
@@ -19,7 +21,24 @@ class Force {
   virtual void Init() {};
   virtual void Execute() = 0;
   virtual void EvaluatePotentialenergy(){};
+  void ReduceVirial(
+    rbmd::Id num_atoms,
+    const  thrust::device_vector<rbmd::Real>& d_flat_virial_atom,
+    thrust::device_vector<rbmd::Real>& d_virial)
+  {
+    thrust::host_vector<rbmd::Real> h_flat_virial_atom(d_flat_virial_atom);
 
+    std::vector<rbmd::Real> virial(6, 0.0);
+    for(int atom = 0; atom < num_atoms; ++atom){
+      for(int j = 0; j < 6; ++j){
+        virial[j] += h_flat_virial_atom[j * num_atoms + atom];
+      }
+    }
+
+    //H2D
+    thrust::copy(virial.begin(),
+    virial.end(), d_virial.begin());
+  }
 
  protected:
   std::shared_ptr<StructureInfoData> _structure_info_data;

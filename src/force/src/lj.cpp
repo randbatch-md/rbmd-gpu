@@ -150,22 +150,8 @@ void LJ::ComputeLJVerlet()
   std::cout << "out of force execute" << std::endl;
 
   //sum virial_lj on host
-  std::vector<rbmd::Real> h_total_virial(num_atoms * 6);
-  thrust::copy(_device_data->_d_flat_virial.begin(),
-    _device_data->_d_flat_virial.end(), h_total_virial.begin());
-
-  std::vector<rbmd::Real> virial(6);
-  virial =  {0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
-
-  for(int atom = 0; atom < num_atoms; ++atom){
-    for(int i = 0; i < 6; ++i){
-      virial[i] += h_total_virial[ i * num_atoms + atom];
-    }
-  }
-
-  thrust::copy(virial.begin(),
-  virial.end(), _device_data->_d_virial_lj.begin());
-
+  ReduceVirial(num_atoms,_device_data->_d_flat_virial,
+_device_data->_d_virial_lj);
 }
 
 void LJ::ComputeLJEnergy()
@@ -197,23 +183,8 @@ void LJ::ComputeLJEnergy()
             << "average_vdwl_energy:" << _e_vdwl << std::endl;
 
   //sum virial_lj on host
-  std::vector<rbmd::Real> h_total_virial(num_atoms * 6);
-  thrust::copy(_device_data->_d_flat_virial.begin(),
-    _device_data->_d_flat_virial.end(), h_total_virial.begin());
-
-  std::vector<rbmd::Real> virial(6);
-  virial =  {0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
-
-  for(int atom = 0; atom < num_atoms; ++atom){
-    for(int i = 0; i < 6; ++i){
-      virial[i] += h_total_virial[ i * num_atoms + atom];
-    }
-  }
-
-
-  thrust::copy(virial.begin(),
-    virial.end(), _device_data->_d_virial_lj.begin());
-
+  ReduceVirial(num_atoms,_device_data->_d_flat_virial,
+_device_data->_d_virial_lj);
 }
 
 void LJ::EvaluatePotentialenergy()

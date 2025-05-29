@@ -79,11 +79,6 @@ void CVFF::Init()
   _coulomb_type = "NULL"; // default
   auto& hyper_parameters = config->GetJsonNode("hyper_parameters");
   if (hyper_parameters.isMember("coulomb")) {
-    _coulomb_type = config->Get<std::string>("type", "hyper_parameters", "coulomb");
-  }
-
-  if(_coulomb_type != "NULL" )
-  {
     _alpha = config->Get<rbmd::Real>("alpha", "hyper_parameters", "coulomb");
     auto Kmax =config->GetArray<rbmd::Id>("kmax", "hyper_parameters", "coulomb");
     _kmax_array.x = Kmax[0];
@@ -91,6 +86,8 @@ void CVFF::Init()
     _kmax_array.z = Kmax[2];
     _num_k =  (2*_kmax_array.x +1)  * (2*_kmax_array.y +1)
               * (2*_kmax_array.z +1) - 1;
+
+    _coulomb_type = config->Get<std::string>("type", "hyper_parameters", "coulomb");
     if("RBE" == _coulomb_type) {
       _RBE_P = config->Get<rbmd::Id>("coulomb_sample_num", "hyper_parameters", "coulomb");
       GetPsampleKey();
@@ -261,21 +258,8 @@ void CVFF::ComputeLJVerlet()
     _e_coul << std::endl;
 
 //sum virial_special_lj on host
-std::vector<rbmd::Real> h_flat_virial_lj(num_atoms * 6);
-thrust::copy(_device_data->_d_flat_virial_lj.begin(),
-  _device_data->_d_flat_virial_lj.end(), h_flat_virial_lj.begin());
-
-std::vector<rbmd::Real> virial_lj(6);
-virial_lj =  {0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
-
-for(int atom = 0; atom < num_atoms; ++atom){
-  for(int i = 0; i < 6; ++i){
-    virial_lj[i] += h_flat_virial_lj[i * num_atoms + atom];
-  }
-}
-
- thrust::copy(virial_lj.begin(),
-   virial_lj.end(), _device_data->_d_virial_lj.begin());
+  ReduceVirial(num_atoms,_device_data->_d_flat_virial_lj,
+_device_data->_d_virial_lj);
 }
 
 void CVFF::ComputeKspaceForce()
@@ -420,21 +404,8 @@ void CVFF::ComputeEwlad()
 
 
   //sum virial_kspace on host
-  std::vector<rbmd::Real> h_flat_virial_kspace(num_atoms * 6);
-  thrust::copy(_device_data->_d_flat_virial_kspace.begin(),
-    _device_data->_d_flat_virial_kspace.end(), h_flat_virial_kspace.begin());
-
-  std::vector<rbmd::Real> virial_kspace(6);
-  virial_kspace =  {0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
-
-  for(int atom = 0; atom < num_atoms; ++atom){
-    for(int i = 0; i < 6; ++i){
-      virial_kspace[i] += h_flat_virial_kspace[i * num_atoms + atom];
-    }
-  }
-
-  thrust::copy(virial_kspace.begin(),
-    virial_kspace.end(), _device_data->_d_virial_kspace.begin());
+  ReduceVirial(num_atoms,_device_data->_d_flat_virial_kspace,
+_device_data->_d_virial_kspace);
 }
 
 
@@ -559,21 +530,8 @@ void CVFF::ComputeRBE()
   std::cout << "计算RBE耗时" << duration.count() << "秒" << std::endl;
 
   //sum virial_kspace on host
-  std::vector<rbmd::Real> h_flat_virial_kspace(num_atoms * 6);
-  thrust::copy(_device_data->_d_flat_virial_kspace.begin(),
-    _device_data->_d_flat_virial_kspace.end(), h_flat_virial_kspace.begin());
-
-  std::vector<rbmd::Real> virial_kspace(6);
-  virial_kspace =  {0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
-
-  for(int atom = 0; atom < num_atoms; ++atom){
-    for(int i = 0; i < 6; ++i){
-      virial_kspace[i] += h_flat_virial_kspace[i * num_atoms + atom];
-    }
-  }
-
-  thrust::copy(virial_kspace.begin(),
-    virial_kspace.end(), _device_data->_d_virial_kspace.begin());
+  ReduceVirial(num_atoms,_device_data->_d_flat_virial_kspace,
+_device_data->_d_virial_kspace);
 }
 
 void CVFF::ComputeLJCoulEnergy()
@@ -625,21 +583,8 @@ void CVFF::ComputeLJCoulEnergy()
     _e_coul  << std::endl;
 
   //sum virial on host
-  std::vector<rbmd::Real> h_flat_virial_lj(num_atoms * 6);
-  thrust::copy(_device_data->_d_flat_virial_lj.begin(),
-    _device_data->_d_flat_virial_lj.end(), h_flat_virial_lj.begin());
-
-  std::vector<rbmd::Real> virial_lj(6);
-  virial_lj =  {0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
-
-  for(int atom = 0; atom < num_atoms; ++atom){
-    for(int i = 0; i < 6; ++i){
-      virial_lj[i] += h_flat_virial_lj[i * num_atoms + atom];
-    }
-  }
-
-  thrust::copy(virial_lj.begin(),
-    virial_lj.end(), _device_data->_d_virial_lj.begin());
+  ReduceVirial(num_atoms,_device_data->_d_flat_virial_lj,
+_device_data->_d_virial_lj);
 }
 
 void CVFF::ComputeSelfEnergy(
@@ -766,29 +711,8 @@ void CVFF::ComputeBondForce()
   << "average_energy_bond:" << _e_bond  << std::endl;
 
   // //sum virial_bond  on host
-  std::vector<rbmd::Real> h_flat_virial_bond_atom(num_atoms * 6);
-  thrust::copy(_device_data->_d_flat_virial_bond_atom.begin(),
-    _device_data->_d_flat_virial_bond_atom.end(), h_flat_virial_bond_atom.begin());
-
-  std::vector<rbmd::Real> virial_bond(6);
-  virial_bond =  {0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
-
-  for(int atom = 0; atom < num_atoms; ++atom){
-    for(int j = 0; j < 6; ++j){
-      virial_bond[j] += h_flat_virial_bond_atom[j * num_atoms + atom];
-    }
-  }
-
-  // // std::ofstream output_file3("output_virial_bond.txt");
-  // // for (size_t i = 0; i < virial_bond.size(); ++i)
-  // // {
-  // //   output_file3 << i << " " <<virial_bond[i]  << std::endl;
-  // // }
-  // // output_file3.close();
-  //
-
-  thrust::copy(virial_bond.begin(),
-  virial_bond.end(), _device_data->_d_virial_bond.begin());
+  ReduceVirial(num_atoms,_device_data->_d_flat_virial_bond_atom,
+_device_data->_d_virial_bond);
 }
 
 void CVFF::ComputeAngleForce()
@@ -842,20 +766,8 @@ void CVFF::ComputeAngleForce()
     "average_energy_angle:" << _e_angle << std::endl;
 
   //sum virial_angle on host
-  std::vector<rbmd::Real> h_flat_virial_angle_atom(num_atoms * 6);
-  thrust::copy(_device_data->_d_flat_virial_angle_atom.begin(),
-    _device_data->_d_flat_virial_angle_atom.end(), h_flat_virial_angle_atom.begin());
-
-  std::vector<rbmd::Real> virial_angle(6);
-  virial_angle =  {0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
-
-  for(int atom = 0; atom < num_atoms; ++atom){
-    for(int j = 0; j < 6; ++j){
-      virial_angle[j] += h_flat_virial_angle_atom[j * num_atoms + atom];
-    }
-  }
-  thrust::copy(virial_angle.begin(),
-  virial_angle.end(), _device_data->_d_virial_angle.begin());
+  ReduceVirial(num_atoms,_device_data->_d_flat_virial_angle_atom,
+_device_data->_d_virial_angle);
 }
 
 void CVFF::ComputeDihedralForce()
@@ -924,22 +836,8 @@ void CVFF::DihedralHarmonic() {
    << "average_energy_dihedral:" << _e_dihedral << std::endl;
 
   //sum virial_dihedral on host
-  std::vector<rbmd::Real> h_flat_virial_dihedral_atom(num_atoms * 6);
-  thrust::copy(_device_data->_d_flat_virial_dihedral_atom.begin(),
-    _device_data->_d_flat_virial_dihedral_atom.end(), h_flat_virial_dihedral_atom.begin());
-
-  std::vector<rbmd::Real> virial_dihedral(6);
-  virial_dihedral =  {0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
-
-  for(int atom = 0; atom < num_atoms; ++atom){
-    for(int j = 0; j < 6; ++j){
-      virial_dihedral[j] += h_flat_virial_dihedral_atom[j * num_atoms + atom];
-    }
-  }
-
-  thrust::copy(virial_dihedral.begin(),
-  virial_dihedral.end(), _device_data->_d_virial_dihedral.begin());
-
+  ReduceVirial(num_atoms,_device_data->_d_flat_virial_dihedral_atom,
+  _device_data->_d_virial_dihedral);
 }
 
 void CVFF::DihedralOPLS() {
@@ -996,22 +894,8 @@ void CVFF::DihedralOPLS() {
    << "average_energy_dihedral:" << _e_dihedral << std::endl;
 
   //sum virial_dihedral on host
-  std::vector<rbmd::Real> h_flat_virial_dihedral_atom(num_atoms * 6);
-  thrust::copy(_device_data->_d_flat_virial_dihedral_atom.begin(),
-    _device_data->_d_flat_virial_dihedral_atom.end(), h_flat_virial_dihedral_atom.begin());
-
-  std::vector<rbmd::Real> virial_dihedral(6);
-  virial_dihedral =  {0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
-
-  for(int atom = 0; atom < num_atoms; ++atom){
-    for(int j = 0; j < 6; ++j){
-      virial_dihedral[j] += h_flat_virial_dihedral_atom[j * num_atoms + atom];
-    }
-  }
-
-  thrust::copy(virial_dihedral.begin(),
-  virial_dihedral.end(), _device_data->_d_virial_dihedral.begin());
-
+  ReduceVirial(num_atoms,_device_data->_d_flat_virial_dihedral_atom,
+    _device_data->_d_virial_dihedral);
 }
 
 void CVFF::ComputeImproperForce()
@@ -1072,6 +956,9 @@ void CVFF::ImproperHarmonic() {
 
   std::cout << "test_current_step:" << test_current_step <<  " ,"
    << "average_energy_improper:" << _e_improper << std::endl;
+
+  ReduceVirial(num_atoms,_device_data->_d_flat_virial_improper_atom,
+  _device_data->_d_virial_improper);
 }
 
 void CVFF::ImproperCVFF()
@@ -1122,6 +1009,8 @@ void CVFF::ImproperCVFF()
   std::cout << "test_current_step:" << test_current_step <<  " ,"
    << "average_energy_improper:" << _e_improper << std::endl;
 
+  ReduceVirial(num_atoms,_device_data->_d_flat_virial_improper_atom,
+_device_data->_d_virial_improper);
 }
 
 void CVFF::EvaluatePotentialenergy()

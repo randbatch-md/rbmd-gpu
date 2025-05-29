@@ -226,21 +226,8 @@ void LJCutCoulKspace::ComputeLJVerlet()
   << "average_vdwl_energy:" << _e_vdwl << " ," <<  "average_coul_energy:" << _e_coul << std::endl;
 
   //sum virial_lj on host
-  std::vector<rbmd::Real> h_flat_virial_lj(num_atoms * 6);
-  thrust::copy(_device_data->_d_flat_virial_lj.begin(),
-    _device_data->_d_flat_virial_lj.end(), h_flat_virial_lj.begin());
-
-  std::vector<rbmd::Real> virial_lj(6);
-  virial_lj =  {0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
-
-  for(int atom = 0; atom < num_atoms; ++atom){
-    for(int i = 0; i < 6; ++i){
-      virial_lj[i] += h_flat_virial_lj[ i* num_atoms + atom];
-    }
-  }
-
-  thrust::copy(virial_lj.begin(),
-    virial_lj.end(), _device_data->_d_virial_lj.begin());
+  ReduceVirial(num_atoms,_device_data->_d_flat_virial_lj,
+_device_data->_d_virial_lj);
 }
 
 void LJCutCoulKspace::ComputeKspaceForce()
@@ -377,21 +364,8 @@ void LJCutCoulKspace::ComputeEwlad()
         thrust::raw_pointer_cast(_device_data->_d_flat_virial_kspace.data()));
 
   //sum virial_kspace on host
-  std::vector<rbmd::Real> h_flat_virial_kspace(num_atoms * 6);
-  thrust::copy(_device_data->_d_flat_virial_kspace.begin(),
-    _device_data->_d_flat_virial_kspace.end(), h_flat_virial_kspace.begin());
-
-  std::vector<rbmd::Real> virial_kspace(6);
-  virial_kspace =  {0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
-
-  for(int atom = 0; atom < num_atoms; ++atom){
-    for(int i = 0; i < 6; ++i){
-      virial_kspace[i] += h_flat_virial_kspace[i* num_atoms + atom ];
-    }
-  }
-  thrust::copy(virial_kspace.begin(),
-  virial_kspace.end(), _device_data->_d_virial_kspace.begin());
-
+  ReduceVirial(num_atoms,_device_data->_d_flat_virial_kspace,
+_device_data->_d_virial_kspace);
 }
 
 
@@ -520,21 +494,8 @@ void LJCutCoulKspace::ComputeRBE()
         thrust::raw_pointer_cast(_device_data->_d_flat_virial_kspace.data()));
 
   //sum virial_kspace on host
-  std::vector<rbmd::Real> h_flat_virial_kspace(num_atoms * 6);
-  thrust::copy(_device_data->_d_flat_virial_kspace.begin(),
-    _device_data->_d_flat_virial_kspace.end(), h_flat_virial_kspace.begin());
-
-  std::vector<rbmd::Real> virial_kspace(6);
-  virial_kspace =  {0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
-
-  for(int atom = 0; atom < num_atoms; ++atom){
-    for(int i = 0; i < 6; ++i){
-      virial_kspace[i] += h_flat_virial_kspace[i* num_atoms + atom ];
-    }
-  }
-
-  thrust::copy(virial_kspace.begin(),
-  virial_kspace.end(), _device_data->_d_virial_kspace.begin());
+  ReduceVirial(num_atoms,_device_data->_d_flat_virial_kspace,
+_device_data->_d_virial_kspace);
 }
 
 void LJCutCoulKspace::ComputeLJCoulEnergy()
@@ -579,22 +540,8 @@ void LJCutCoulKspace::ComputeLJCoulEnergy()
   << "average_vdwl_energy:" << _e_vdwl << " ," <<  "average_coul_energy:" << _e_coul << std::endl;
 
   //sum virial_lj on host
-  std::vector<rbmd::Real> h_flat_virial_lj(num_atoms * 6);
-  thrust::copy(_device_data->_d_flat_virial_lj.begin(),
-    _device_data->_d_flat_virial_lj.end(), h_flat_virial_lj.begin());
-
-  std::vector<rbmd::Real> virial_lj(6);
-  virial_lj =  {0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
-
-  for(int atom = 0; atom < num_atoms; ++atom){
-    for(int i = 0; i < 6; ++i){
-      virial_lj[i] += h_flat_virial_lj[i * num_atoms + atom ]; //Struct of Arrays
-    }
-  }
-
-  thrust::copy(virial_lj.begin(),
-  virial_lj.end(), _device_data->_d_virial_lj.begin());
-
+  ReduceVirial(num_atoms,_device_data->_d_flat_virial_lj,
+_device_data->_d_virial_lj);
 }
 
 void LJCutCoulKspace::ComputeSelfEnergy(
