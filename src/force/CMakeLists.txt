@@ -19,7 +19,7 @@ foreach(header_file ${all_include_dirs})
 endforeach()
 list(REMOVE_DUPLICATES include_dirs)
 
-# ѭ�����ӿ�
+#
 file(GLOB tools_path ${CMAKE_CURRENT_LIST_DIR}/../../tools/*.tar.gz)
 
 foreach(tool_path ${tools_path})
@@ -31,7 +31,6 @@ foreach(tool_path ${tools_path})
 endforeach()
 
 find_package(PkgConfig REQUIRED)
-pkg_check_modules(JSONCPP REQUIRED jsoncpp IMPORTED_TARGET GLOBAL)
 pkg_check_modules(SPDLOG REQUIRED spdlog IMPORTED_TARGET GLOBAL)
 
 

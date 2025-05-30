@@ -64,7 +64,7 @@ list(REMOVE_DUPLICATES include_dirs)
 
 include_directories(${include_dirs})
 
-# �����ҵ������о�̬�⵽��ִ���ļ�
+#
 file(GLOB tools_path ${CMAKE_CURRENT_LIST_DIR}/tools/*.tar.gz)
 
 foreach(tool_path ${tools_path})
@@ -76,7 +76,6 @@ foreach(tool_path ${tools_path})
 endforeach()
 
 find_package(PkgConfig REQUIRED)
-pkg_check_modules(JSONCPP REQUIRED jsoncpp IMPORTED_TARGET GLOBAL)
 pkg_check_modules(SPDLOG REQUIRED spdlog IMPORTED_TARGET GLOBAL)
 pkg_check_modules(CXXOPTS REQUIRED cxxopts IMPORTED_TARGET GLOBAL)
 
@@ -95,4 +94,4 @@ set(LIBRARY_NAMES
 if(USE_CUDA)
 	target_compile_options(${PROJECT_NAME} PRIVATE $<$<COMPILE_LANGUAGE:CUDA>:--extended-lambda>)
 endif()
-target_link_libraries(${PROJECT_NAME} PUBLIC ${LIBRARY_NAMES} PkgConfig::JSONCPP PkgConfig::SPDLOG PkgConfig::CXXOPTS)
+target_link_libraries(${PROJECT_NAME} PUBLIC ${LIBRARY_NAMES}  PkgConfig::SPDLOG PkgConfig::CXXOPTS)
