@@ -77,8 +77,8 @@ void CVFF::Init()
   _neighbor_type = config->Get<std::string>("type", "hyper_parameters", "neighbor");
 
   _coulomb_type = "NULL"; // default
-  auto& hyper_parameters = config->GetJsonNode("hyper_parameters");
-  if (hyper_parameters.isMember("coulomb")) {
+  if (config->PathExists({"hyper_parameters", "coulomb"}))
+  {
     _alpha = config->Get<rbmd::Real>("alpha", "hyper_parameters", "coulomb");
     auto Kmax =config->GetArray<rbmd::Id>("kmax", "hyper_parameters", "coulomb");
     _kmax_array.x = Kmax[0];
@@ -254,7 +254,7 @@ void CVFF::ComputeLJVerlet()
 
 
   std::cout << "current_step:" << test_current_step <<  " ,"
-  << "average_energy_vdwl:" << _e_vdwl << ", " << "average_coul_energy:" <<
+  << "average_energy_vdwl:" << _e_vdwl << ", " << "average_energy_coul:" <<
     _e_coul << std::endl;
 
 //sum virial_special_lj on host
@@ -579,7 +579,7 @@ void CVFF::ComputeLJCoulEnergy()
   _e_coul = h_total_ecoul[0]/num_atoms;
 
   std::cout << "current_step:" << test_current_step <<  " ,"
-  << "average_energy_vdwl:" << _e_vdwl << " " << "average_coul_energy:" <<
+  << "average_energy_vdwl:" << _e_vdwl << " " << "average_energy_coul:" <<
     _e_coul  << std::endl;
 
   //sum virial on host

@@ -3,8 +3,6 @@
 // #include "system.h"
 #include "ensemble.h"
 #include "../common/types.h"
-#include "json/reader.h"
-#include "json/value.h"
 #include "../output/include/output.h"
 extern int test_current_step;
 

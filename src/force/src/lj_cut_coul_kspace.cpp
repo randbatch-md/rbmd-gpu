@@ -210,8 +210,8 @@ void LJCutCoulKspace::ComputeLJVerlet()
   _e_vdwl = h_total_evdwl[0]/num_atoms;
   _e_coul = h_total_ecoul[0]/num_atoms;
 
-  std::cout << "test_current_step:" << test_current_step <<  " ,"
-  << "average_vdwl_energy:" << _e_vdwl << " ," <<  "average_coul_energy:" << _e_coul << std::endl;
+  std::cout << "current_step:" << test_current_step <<  " ,"
+  << "average_energy_vdwl:" << _e_vdwl << " ," <<  "average_energy_coul:" << _e_coul << std::endl;
 
   //sum virial_lj on host
   ReduceVirial(num_atoms,_device_data->_d_flat_virial_lj,
@@ -317,7 +317,7 @@ void LJCutCoulKspace::ComputeChargeStructureFactorEwald(
   _e_kspace = _e_kspace + _e_self_energy;
 
   //out
-   std::cout << "test_current_step:" << test_current_step <<  " ,"
+   std::cout << "current_step:" << test_current_step <<  " ,"
    << "ave_energy_ewald:" << _e_kspace << std::endl;
 
 }
@@ -450,7 +450,7 @@ void LJCutCoulKspace::ComputeChargeStructureFactorRBE(
   _e_kspace = _e_kspace +_e_self_energy;
 
     //out
-   std::cout << "test_current_step:" << test_current_step <<  " ,"
+   std::cout << "current_step:" << test_current_step <<  " ,"
    << "ave_energy_rbe:" << _e_kspace << std::endl;
 
 }
@@ -523,8 +523,8 @@ void LJCutCoulKspace::ComputeLJCoulEnergy()
   _e_vdwl = h_total_evdwl[0]/num_atoms;
   _e_coul = h_total_ecoul[0]/num_atoms;
 
-  std::cout << "test_current_step:" << test_current_step <<  " ,"
-  << "average_vdwl_energy:" << _e_vdwl << " ," <<  "average_coul_energy:" << _e_coul << std::endl;
+  std::cout << "current_step:" << test_current_step <<  " ,"
+  << "average_energy_vdwl:" << _e_vdwl << " ," <<  "average_energy_coul:" << _e_coul << std::endl;
 
   //sum virial_lj on host
   ReduceVirial(num_atoms,_device_data->_d_flat_virial_lj,

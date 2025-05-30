@@ -26,22 +26,6 @@ __global__ void ComputeTemperature(const rbmd::Id num_atoms,
     atomicAdd(temp_contrib, block_sum);
   }
 
-  /*		rbmd::Real temp_sum = 0;
-
-                  int tid = threadIdx.x + blockIdx.x * blockDim.x;
-                  if (tid < num_atoms)
-                  {
-                          rbmd::Real massi = mass[atoms_type[tid]];
-
-                          rbmd::Real vx_temp = vx[tid];
-                          rbmd::Real vy_temp = vy[tid];
-                          rbmd::Real vz_temp = vz[tid];
-
-                          temp_sum += mvv2e * massi *
-                                  (vx_temp * vx_temp + vy_temp * vy_temp +
-     vz_temp * vz_temp);
-                  }
-                  atomicAdd(temp_contrib, temp_sum);	*/
 }
 
 __global__ void UpdataVelocityRescale(const rbmd::Id num_atoms,

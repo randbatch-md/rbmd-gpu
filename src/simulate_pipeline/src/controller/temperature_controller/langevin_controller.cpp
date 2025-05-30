@@ -60,7 +60,7 @@ void LangevinController::ComputeTemperature() {
 
     bool available_shake = false;
 
-    if (available_shake)  // H2O / NACl / EAM ...
+    if (available_shake)  // H2O
     {
         bool shake = true;
         if (shake) {
@@ -118,7 +118,6 @@ rbmd::Real LangevinController:: FetchSample_1D(const bool& random,
         U2 = RandomValue(0.0, 1.0);
         std::vector<rbmd::Real> ChooseSample{ 0.0, 0.0 };
         ChooseSample[0] = sigma * std::sqrt(-2.0 * std::log(U1)) * std::cos(2 * M_PI * U2) + mu;
-        //ChooseSample[1] = sigma * vtkm::Sqrt(-2.0 * vtkm::Log(U1)) * sin(2 * vtkm::Pi() * U2) + mu;
         return ChooseSample[0];
     }
     else
@@ -127,7 +126,6 @@ rbmd::Real LangevinController:: FetchSample_1D(const bool& random,
         U2 = 0.5;
         std::vector<rbmd::Real> ChooseSample{ 0.0, 0.0 };
         ChooseSample[0] = sigma * std::sqrt(-2.0 * std::log(U1)) * std::cos(2 * M_PI * U2) + mu;
-        //ChooseSample[1] = sigma * vtkm::Sqrt(-2.0 * vtkm::Log(U1)) * sin(2 * vtkm::Pi() * U2) + mu;
         return ChooseSample[0];
     }
 }

@@ -470,7 +470,7 @@ void NoseHooverController::FinalIntegrate()
   }
 
   //
-  std::cout <<  "current_step " << test_current_step << " "
+  std::cout <<  "current_step " << test_current_step << " ,"
   <<"temperature=  " << _temperature  << " , " << "pressure=  " << _pressure
   << std::endl;
 

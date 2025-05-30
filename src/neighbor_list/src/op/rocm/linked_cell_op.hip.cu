@@ -54,24 +54,24 @@ __global__ void AssignAtomsToCell(rbmd::Real* px, rbmd::Real* py,
   }
   Int3 cell_idx;
   Real3 local_point = make_Real3(px[idx], py[idx], pz[idx]);
-  // TODO 可以取消这段逻辑吗？  这里local point 并没有修改原来的
-  if (local_point.x <= box._coord_min[0]) {
-    local_point.x += linked_cell->_d_cell_length[0] * 0.5;
-  } else if (local_point.x >= box._coord_max[0]) {
-    local_point.x -= linked_cell->_d_cell_length[0] * 0.5;
-  }
-
-  if (local_point.y <= box._coord_min[1]) {
-    local_point.y += linked_cell->_d_cell_length[1] * 0.5;
-  } else if (local_point.y >= box._coord_max[1]) {
-    local_point.y -= linked_cell->_d_cell_length[1] * 0.5;
-  }
-
-  if (local_point.z <= box._coord_min[2]) {
-    local_point.z += linked_cell->_d_cell_length[2] * 0.5;
-  } else if (local_point.z >= box._coord_max[2]) {
-    local_point.z -= linked_cell->_d_cell_length[2] * 0.5;
-  }
+  // // TODO 可以取消这段逻辑吗？  这里local point 并没有修改原来的
+  // if (local_point.x <= box._coord_min[0]) {
+  //   local_point.x += linked_cell->_d_cell_length[0] * 0.5;
+  // } else if (local_point.x >= box._coord_max[0]) {
+  //   local_point.x -= linked_cell->_d_cell_length[0] * 0.5;
+  // }
+  //
+  // if (local_point.y <= box._coord_min[1]) {
+  //   local_point.y += linked_cell->_d_cell_length[1] * 0.5;
+  // } else if (local_point.y >= box._coord_max[1]) {
+  //   local_point.y -= linked_cell->_d_cell_length[1] * 0.5;
+  // }
+  //
+  // if (local_point.z <= box._coord_min[2]) {
+  //   local_point.z += linked_cell->_d_cell_length[2] * 0.5;
+  // } else if (local_point.z >= box._coord_max[2]) {
+  //   local_point.z -= linked_cell->_d_cell_length[2] * 0.5;
+  // }
 
   cell_idx.x = MIN(MAX((int)(FLOOR((double)(local_point.x - box._coord_min[0]) *
                                    linked_cell->_d_cell_length_reciprocal[0])) +

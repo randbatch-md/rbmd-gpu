@@ -65,7 +65,7 @@ void RescaleController::ComputeTemperature() {
 
     bool available_shake = true;
 
-    if (available_shake)  // H2O / NACl / EAM ...
+    if (available_shake)  // H2O
     {
         bool shake = DataManager::getInstance().getConfigData()->GetJudge<bool>( "fix_shake", "hyper_parameters", "extend");
         if (shake) {
@@ -75,7 +75,7 @@ void RescaleController::ComputeTemperature() {
             _temperature = 0.5 * _temp_sum / ((3 * num_atoms - 3) * _kB / 2.0);
         }
     }
-    else  // PEO
+    else  //
     {
         _temperature = 0.5 * _temp_sum / ((3 * num_atoms - 3) * _kB / 2.0);
     }

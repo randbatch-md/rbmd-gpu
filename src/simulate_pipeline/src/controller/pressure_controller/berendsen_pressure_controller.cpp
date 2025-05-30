@@ -156,8 +156,8 @@ void BerendsenPressureController::ResetBox()
   // CHECK_RUNTIME(
   //     MEMCPY(_box., h_box, sizeof(Box), H2D));
 
-  std::cout << "range.Min=" <<  _box->_coord_min[0] << ",range.Max="
-  << _box->_coord_max[0] << std::endl;
+  // std::cout << "range.Min=" <<  _box->_coord_min[0] << ",range.Max="
+  // << _box->_coord_max[0] << std::endl;
 
   // convert real coords
   Lamda2X();

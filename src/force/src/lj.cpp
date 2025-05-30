@@ -155,8 +155,8 @@ void LJ::ComputeLJVerlet()
   thrust::host_vector<rbmd::Real> h_total_evdwl(d_total_evdwl);
   _e_vdwl = h_total_evdwl[0] / num_atoms;
 
-  std::cout << "test_current_step:" << test_current_step << " "
-            << "average_vdwl_energy:" << _e_vdwl << std::endl;
+  std::cout << "current_step:" << test_current_step << " "
+            << "average_energy_vdwl:" << _e_vdwl << std::endl;
   std::cout << "out of force execute" << std::endl;
 
   //sum virial_lj on host
@@ -189,8 +189,8 @@ void LJ::ComputeLJEnergy()
   thrust::host_vector<rbmd::Real> h_total_evdwl(d_total_evdwl);
   _e_vdwl = h_total_evdwl[0] / num_atoms;
 
-  std::cout << "test_current_step:" << test_current_step << " "
-            << "average_vdwl_energy:" << _e_vdwl << std::endl;
+  std::cout << "current_step:" << test_current_step << " "
+            << "average_energy_vdwl:" << _e_vdwl << std::endl;
 
   //sum virial_lj on host
   ReduceVirial(num_atoms,_device_data->_d_flat_virial,

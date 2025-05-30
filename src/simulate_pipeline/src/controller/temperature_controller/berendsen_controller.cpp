@@ -67,7 +67,7 @@ void BerendsenController::ComputeTemperature() {
 
   bool available_shake = true; //TODO: need to judge
 
-  if (available_shake)  // H2O / NACl / EAM ...
+  if (available_shake)  // H2O
   {
     bool shake = DataManager::getInstance().getConfigData()->GetJudge<bool>
       ("fix_shake", "hyper_parameters", "extend");

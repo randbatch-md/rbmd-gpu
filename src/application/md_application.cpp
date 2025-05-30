@@ -9,6 +9,7 @@
 #include "cvff_memory_scheduler.h"
 #include "memory_scheduler.h"
 #include "output/include/TrajectoryOutput.h"
+#include "../common/json.hpp"
 MDApplication::MDApplication(int argc, char* argv[]) : Application(argc, argv) {}
 
 int MDApplication::Execute() {
@@ -79,13 +80,16 @@ int MDApplication::Execute() {
 void MDApplication::AddSimulate() {
   auto execution_node = _config_data->GetJsonNode("execution");
   std::vector<std::string> simulate_pipelines;
-  if (execution_node.isObject()) {
-    simulate_pipelines = execution_node.getMemberNames();
+  if (!execution_node.is_object()) {
+    return;
   }
 
-  for (const auto& simulate_pipeline : simulate_pipelines) {
-    auto& simulate_child_node = execution_node[simulate_pipeline.c_str()];
-    auto type = simulate_child_node["type"].asString();
+  //for (const auto& [simulate_pipeline, simulate_child_node] : execution_node.items()) {
+  for (const auto& item : execution_node.items())
+  {
+    const std::string& simulate_pipeline = item.key();
+    const auto& simulate_child_node = item.value();
+    auto type = simulate_child_node["type"].get<std::string>();
     std::shared_ptr<Ensemble> ensemble;
 
     if ("NVT" == type) {
@@ -97,8 +101,8 @@ void MDApplication::AddSimulate() {
     } else {
       std::cout << " the type of execution of json file is wrong" << std::endl;
     }
-    _simulate_pipelines.push_back(ensemble);
-    _simulate_nodes.push_back(simulate_child_node);
+    _simulate_pipelines.push_back(std::move(ensemble));
+    _simulate_nodes.emplace_back(simulate_child_node);
   }
 }
 

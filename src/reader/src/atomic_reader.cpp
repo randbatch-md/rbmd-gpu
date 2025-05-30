@@ -793,7 +793,7 @@ void AtomicReader::SetSpecialBonds_fix() {
   // 4.
   std::ofstream offsets_file("offsets.txt");
   if (offsets_file.is_open()) {
-    for (rbmd::Id i = 0; i <= num_atoms; ++i) { // 注意: offsets 长度为 num_atoms + 1
+    for (rbmd::Id i = 0; i <= num_atoms; ++i) {
       offsets_file << i  << " " << data->_h_special_offsets[i] << "\n";
     }
     offsets_file.close();
