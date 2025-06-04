@@ -30,11 +30,8 @@ class Application : public Object {
   virtual int Execute() = 0;
 
  private:
-  bool Check();
 
  protected:
-  // std::shared_ptr<CommandLine> _command_line;
-  // std::shared_ptr<System> _system;
   std::vector<std::shared_ptr<Ensemble>> _simulate_pipelines;
   std::shared_ptr<Ensemble> _simulate_pipeline;
   std::shared_ptr<Output> _output;

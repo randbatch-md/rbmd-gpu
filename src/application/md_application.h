@@ -12,4 +12,5 @@ class MDApplication : public Application {
 
  private:
   int ReadMDData();
+  std::shared_ptr<CommandLine> _cmd; //
 };

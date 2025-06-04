@@ -10,48 +10,17 @@
 #include "memory_scheduler.h"
 #include "output/include/TrajectoryOutput.h"
 #include "../common/json.hpp"
-MDApplication::MDApplication(int argc, char* argv[]) : Application(argc, argv) {}
+MDApplication::MDApplication(int argc, char* argv[])
+  : Application(argc, argv),
+    _cmd(std::make_shared<CommandLine>(argc, argv))
+{
+  DataManager::Initialize(_cmd->GetConfigPath());
+  //
+  ReadMDData();
+}
 
 int MDApplication::Execute() {
-  // try
-  //{
-  //	if (-1 == ReadMDData())
-  //	{
-  //		//log
-  //		return -1;
-  //	}
-  //
-  //	if (!_config_data->HasNode("execution"))
-  //	{
-  //		return -1;
-  //	}
-  //	//_executioner =
-  // std::make_shared<Executioner>(_parser->GetJsonNode("execution"), _system);
-  //	//_executioner =
-  // std::make_shared<Executioner>(_config_data->GetJsonNode("execution"),
-  //_simulate_pipelines);
-  //
-  //	for (size_t i = 0; i < _simulate_pipelines.size(); i++)
-  //	{
-  //		_executioner = std::make_shared<Executioner>(_simulate_nodes[i],
-  //_simulate_pipelines[i]);
-  //
-  //		_executioner->Setup();
-  //
-  //		if (-1 == _executioner->Execute())
-  //		{
-  //			//log
-  //			//_console->error("execute failed!");
-  //		}
-  //	}
-  //
-  // }
-  // catch (const std::exception&)
-  //{
-  //	//log
-  //	return -1;
-  // }
-  ReadMDData();
+
   std::string ensemble_type = DataManager::getInstance().getConfigData()->Get
     <std::string>("ensemble", "execution");
   if("NVE" == ensemble_type)
