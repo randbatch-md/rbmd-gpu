@@ -7,7 +7,7 @@
 #include "device_types.h"
 #include "unit_factor.h"
 #include "data_manager.h"
-
+#include "common/thermo_stats.hpp"
 extern rbmd::Real test_e_pe_rbl;
 extern rbmd::Real test_e_pe_init;
 extern rbmd::Id test_current_step;
@@ -81,7 +81,7 @@ void EnergyStableSchemeController::ComputeTemp() {
     _temperature = 0.5 * _temp_sum / ((3 * num_atoms - 3) * _kB / 2.0);
   }
 
-  std::cout << "temperature: " << _temperature << std::endl;
+  ThermoStats::Instance().AddThermoData("temperature",_temperature);
   // out
   std::ofstream outfile("temperature.txt", std::ios::app);
   outfile << test_current_step << " " << _temperature << std::endl;

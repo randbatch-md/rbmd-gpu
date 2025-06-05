@@ -135,7 +135,7 @@ void CVFF::ComputeLJRBL()
     auto end = std::chrono::high_resolution_clock::now();
 
     std::chrono::duration<rbmd::Real> duration = end - start;
-    std::cout << "time_build_RBL= " << duration.count() << " second" << std::endl;
+    TimingStatistics::Instance().record("Neighbor-List",duration.count());
 
     // compute force
     auto start_rbl_force = std::chrono::high_resolution_clock::now();
@@ -193,7 +193,7 @@ void CVFF::ComputeLJRBL()
 
   auto end_rbl_force = std::chrono::high_resolution_clock::now();
   std::chrono::duration<rbmd::Real> duration_rbl_force = end_rbl_force - start_rbl_force;
-  std::cout<< "num_atoms=  " << num_atoms << "; " << "time_RBL= " << duration_rbl_force.count() << " second" << std::endl;
+  TimingStatistics::Instance().record("Short-Range",duration_rbl_force.count());
 
     //energy
     ComputeLJCoulEnergy();
@@ -538,7 +538,7 @@ void CVFF::ComputeLJCoulEnergy()
   auto end = std::chrono::high_resolution_clock::now();
 
   std::chrono::duration<rbmd::Real> duration = end - start;
-  std::cout << "postprocessing_build_verlet= " << duration.count() << " second" << std::endl;
+  TimingStatistics::Instance().record("Neighbor-List",duration.count());
 
 
   thrust::device_vector<rbmd::Real> _d_total_evdwl(1, 0.0);

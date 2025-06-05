@@ -6,6 +6,7 @@
 #include "common/device_types.h"
 #include "full_neighbor_list_op.h"
 #include "rbl_full_neighbor_list_op.h"
+#include "output/include/Logger.hpp"
 
 RblFullNeighborListBuilder::RblFullNeighborListBuilder() {
   _r_core = DataManager::getInstance().getConfigData()->Get<rbmd::Real>(
@@ -34,9 +35,8 @@ RblFullNeighborListBuilder::RblFullNeighborListBuilder() {
                              (2 * _linked_cell->_cell_count_within_cutoff + 1);
   if (_linked_cell->_total_cells < this->_neighbor_cell_num) {
      this->_neighbor_cell_num = _linked_cell->_total_cells;
-     std::cout << "\033[31mwarning: The current simulation domain is too small "
-                  "for PBC to be effective.\033[0m"
-               << std::endl;
+    Logger::Instance().warn("\033[31mwarning: The current simulation domain is too small "
+                 "for PBC to be effective.\033[0m");
      this->FullNeighborListBuilder::ComputeNeighborCellsWithoutPBC();
    } else {
      this->FullNeighborListBuilder::ComputeNeighborCells();
