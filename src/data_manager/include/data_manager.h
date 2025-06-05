@@ -29,17 +29,7 @@ class DataManager {
   /**
    * @brief Constructors and destructors are not open to the public
    */
-  DataManager()
-      : _config_data(std::make_shared<ConfigData>("rbmd.json")),
-        //_md_data(std::make_shared<MDData>(_config_data->Get<std::string>("atom_style", "init_configuration", "read_data"), _config_data->Get<std::string>("type", "hyper_parameters", "force_field"))),
-        _device_data(std::make_shared<DeviceData>())
-        //, _memory_scheduler(std::make_shared<MemoryScheduler>())
-        {
-            _md_data = std::make_shared<MDData>(_config_data->Get<std::string>
-              ("atom_style", "init_configuration", "read_data"),
-              _config_data->Get<std::string>("type", "hyper_parameters", "force_field"));
-        };  // �����ʼ����_config_data ԭ����DataManager() = default;
-
+  DataManager() = default;
   ~DataManager() = default;
 
  public:
@@ -89,7 +79,25 @@ class DataManager {
 
   void unloadDeviceData()
   {
-      _device_data->unload();
+    _memory_scheduler.reset();
+    _device_data->unload();
+    _device_data.reset();
+    _md_data.reset();
+    _postProcess_data.reset();
+  }
+
+  static void Initialize(const std::string& json_file) {
+    getInstance()._loadConfig(json_file);
+  }
+
+  //
+  void _loadConfig(const std::string& json_file) {
+    _config_data = std::make_shared<ConfigData>(json_file);
+    _md_data = std::make_shared<MDData>(
+        _config_data->Get<std::string>("atom_style", "init_configuration", "read_data"),
+        _config_data->Get<std::string>("type", "hyper_parameters", "force_field")
+    );
+    _device_data = std::make_shared<DeviceData>();
   }
 
  private:

@@ -2,6 +2,7 @@
 
 #include "common/object.h"
 #include "cxxopts.hpp"
+#include "version.h"
 
 class CommandLine : public Object {
  public:
@@ -9,13 +10,34 @@ class CommandLine : public Object {
   virtual ~CommandLine() = default;
 
  public:
-  bool RunApplication();
-  static void Initialize();
+  //
+  std::string GetConfigPath() const  {
+    if (!_co.count("j"))
+      throw std::runtime_error("Usage: " " -j input.json");
+    return _co["j"].as<std::string>();
+  }
+
+  //Help
+  static std::string GetHelpText() {
+    return R"(
+    Usage:  -j input.json [options]
+
+    Options:
+      -j, --json FILE    Specify configuration file (required)
+      -h, --help         Show this help message
+      -v, --version      Show version information
+    )";
+  }
+
+  //Version
+  static std::string GetVersionText() {
+    return VERSION;
+  }
 
  private:
   void ParseCommand();
 
  private:
   cxxopts::ParseResult _co;
-  static cxxopts::Options _opts;
+  cxxopts::Options _opts;
 };

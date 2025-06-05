@@ -1,5 +1,7 @@
 #pragma once
 #include "basic_structure_data.h"
+#include <vector>             //
+#include <utility>            //
 
 class FullStructureData : public BasicStructureData {
  public:

@@ -88,6 +88,8 @@ void LJCutCoulKspace::Init()
     _RBE_P = DataManager::getInstance().getConfigData()->Get<rbmd::Id>(
   "coulomb_sample_num", "hyper_parameters", "coulomb");
     GetPsampleKey();
+
+    _energy_rbe_flag = DataManager::getInstance().getConfigData()->Get<std::string>("energy_rbe_flag", "hyper_parameters", "coulomb");
   }
 }
 
@@ -111,14 +113,26 @@ void LJCutCoulKspace::ComputeLJCutCoulForce()
   {
     ComputeLJVerlet();
   }
+
+  //add thermo
+  ThermoStats::Instance().AddThermoData("vdwl",_e_vdwl);
+  ThermoStats::Instance().AddThermoData("coul",_e_coul);
 }
 
 void LJCutCoulKspace::ComputeLJRBL()
 {
     // rbl_neighbor_list_build
+    auto start = std::chrono::high_resolution_clock::now();
     _rbl_list = _rbl_neighbor_list_builder->Build();
 
+    auto end = std::chrono::high_resolution_clock::now();
+
+    std::chrono::duration<rbmd::Real> duration = end - start;
+    TimingStatistics::Instance().record("Neighbor-List",duration.count());
+	
     // compute force
+	auto start_rbl_force = std::chrono::high_resolution_clock::now();
+		
     const auto r_core =
       DataManager::getInstance().getConfigData()->Get<rbmd::Real>(
           "r_core", "hyper_parameters", "neighbor");
@@ -168,16 +182,31 @@ void LJCutCoulKspace::ComputeLJRBL()
                         thrust::raw_pointer_cast(_device_data->_d_force_ljcoul_y.data()),
                         thrust::raw_pointer_cast(_device_data->_d_force_ljcoul_z.data()));
 
+	auto end_rbl_force = std::chrono::high_resolution_clock::now();
+	std::chrono::duration<rbmd::Real> duration_rbl_force = end_rbl_force - start_rbl_force;
+	TimingStatistics::Instance().record("Short-Range",duration_rbl_force.count());
+  
     //energy
-    ComputeLJCoulEnergy();
+   _energy_rbl_flag = DataManager::getInstance().getConfigData()->Get<std::string>
+      ("energy_rbl_flag", "hyper_parameters", "neighbor");
+   if ("yes" == _energy_rbl_flag ){
+       ComputeLJCoulEnergy();
+    }
 }
 
 void LJCutCoulKspace::ComputeLJVerlet()
 {
   //neighbor_list_build
+  auto start = std::chrono::high_resolution_clock::now();
   _list = _neighbor_list_builder->Build();
 
+  auto end = std::chrono::high_resolution_clock::now();
+  std::chrono::duration<rbmd::Real> duration = end - start;
+  TimingStatistics::Instance().record("Neighbor-List",duration.count());
+  
   //
+  auto start_verlet_force = std::chrono::high_resolution_clock::now();
+  
   thrust::device_vector<rbmd::Real> d_total_evdwl(1, 0.0);
   thrust::device_vector<rbmd::Real> d_total_ecoul(1, 0.0);
   //
@@ -201,14 +230,15 @@ void LJCutCoulKspace::ComputeLJVerlet()
                     thrust::raw_pointer_cast(d_total_evdwl.data()),
                       thrust::raw_pointer_cast(d_total_ecoul.data()));
 
-  // 从设备端拷贝数据到主机端
+  auto end_verlet_force = std::chrono::high_resolution_clock::now();
+  std::chrono::duration<rbmd::Real> duration_verlet_force = end_verlet_force - start_verlet_force;
+  TimingStatistics::Instance().record("Short-Range",duration_verlet_force.count());
+  
+  // 
   thrust::host_vector<rbmd::Real> h_total_evdwl(d_total_evdwl);
   thrust::host_vector<rbmd::Real> h_total_ecoul(d_total_ecoul);
   _e_vdwl = h_total_evdwl[0]/num_atoms;
   _e_coul = h_total_ecoul[0]/num_atoms;
-
-  ThermoStats::Instance().AddThermoData("vdwl",_e_vdwl);
-  ThermoStats::Instance().AddThermoData("coul",_e_coul);
 
   //sum virial_lj on host
   ReduceVirial(num_atoms,_device_data->_d_flat_virial_lj,
@@ -225,6 +255,8 @@ void LJCutCoulKspace::ComputeKspaceForce()
   {
      ComputeEwlad();
   }
+  //add thermo
+  ThermoStats::Instance().AddThermoData("kspace",_e_kspace);
 }
 
 void LJCutCoulKspace::SumForces()
@@ -298,9 +330,7 @@ void LJCutCoulKspace::ComputeChargeStructureFactorEwald(
             }
         }
     }
-  auto end = std::chrono::high_resolution_clock::now();
-  std::chrono::duration<rbmd::Real> duration = end - start;
-  std::cout << "构建传统电荷结构因子耗时" << duration.count() << "秒" << std::endl;
+
   //energy
 
   //charge self energy//
@@ -312,15 +342,12 @@ void LJCutCoulKspace::ComputeChargeStructureFactorEwald(
   _e_kspace = total_energy_kspace / num_atoms;
 
   _e_kspace = _e_kspace + _e_self_energy;
-
-  //out
-   std::cout << "current_step:" << test_current_step <<  " ,"
-   << "ave_energy_ewald:" << _e_kspace << std::endl;
-
 }
 
 void LJCutCoulKspace::ComputeEwlad()
 {
+  auto start = std::chrono::high_resolution_clock::now();
+  //
   auto num_atoms = *(_structure_info_data->_num_atoms);
 
   //compute charge structure factor
@@ -347,7 +374,11 @@ void LJCutCoulKspace::ComputeEwlad()
         thrust::raw_pointer_cast(_device_data->_d_force_kspace_y.data()),
         thrust::raw_pointer_cast(_device_data->_d_force_kspace_z.data()),
         thrust::raw_pointer_cast(_device_data->_d_flat_virial_kspace.data()));
-
+		
+  auto end = std::chrono::high_resolution_clock::now();
+  std::chrono::duration<rbmd::Real> duration = end - start;
+  TimingStatistics::Instance().record("Long-Range",duration.count());
+  
   //sum virial_kspace on host
   ReduceVirial(num_atoms,_device_data->_d_flat_virial_kspace,
 _device_data->_d_virial_kspace);
@@ -437,7 +468,7 @@ void LJCutCoulKspace::ComputeChargeStructureFactorRBE(
     thrust::equal_to<rbmd::Id>(),thrust::plus<rbmd::Real>());
 
   //energy
-
+if ("yes" == _energy_rbe_flag ){
   //charge self energy//
   ComputeSelfEnergy(alpha,qqr2e,_e_self_energy);
 
@@ -445,10 +476,7 @@ void LJCutCoulKspace::ComputeChargeStructureFactorRBE(
   ComputeKspaceEnergy(box, num_atoms, kmax_array,
       alpha, qqr2e ,_e_kspace);
   _e_kspace = _e_kspace +_e_self_energy;
-
-    //out
-   std::cout << "current_step:" << test_current_step <<  " ,"
-   << "ave_energy_rbe:" << _e_kspace << std::endl;
+}
 
 }
 
@@ -519,9 +547,6 @@ void LJCutCoulKspace::ComputeLJCoulEnergy()
   thrust::host_vector<rbmd::Real> h_total_ecoul(_d_total_ecoul);
   _e_vdwl = h_total_evdwl[0]/num_atoms;
   _e_coul = h_total_ecoul[0]/num_atoms;
-
-  ThermoStats::Instance().AddThermoData("vdwl",_e_vdwl);
-  ThermoStats::Instance().AddThermoData("coul",_e_coul);
 
   //sum virial_lj on host
   ReduceVirial(num_atoms,_device_data->_d_flat_virial_lj,
@@ -611,6 +636,8 @@ void LJCutCoulKspace::EvaluatePotentialenergy()
   _e_pe = _e_vdwl+ _e_coul +_e_kspace;
   //test_ave_pe = _ave_pe;
 
+  ThermoStats::Instance().AddThermoData("total-potential-energy",_e_pe);
+  
   //out
   std::ofstream outfile("thermo.txt", std::ios::app);
   if (outfile.tellp() == 0) {

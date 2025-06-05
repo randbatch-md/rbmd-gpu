@@ -17,19 +17,20 @@ private:
   std::vector<std::string> active_keys;
 
   const std::vector<std::string> canonical_key_order = {
-      "temperature", "pressure", "vdwl", "coul", "bond", "angle", "dihed",
-      "improper"
-  };
+      "temperature", "pressure", "vdwl", "coul", "kspace",
+    "bond", "angle", "dihedral", "improper" , "total-potential-energy"};
 
   const std::unordered_map<std::string, std::string> key_to_display_name = {
-      {"temperature", "Temperature"},
-      {"pressure", "Pressure"},
-      {"vdwl", "E_Short_Range"},
-      {"coul", "E_Long_Range"},
-      {"bond", "E_Bond"},
-      {"angle", "E_Angle"},
-      {"dihed", "E_Dihed"},
-      {"improper", "E_Improper"}
+      {"temperature", "temperature"},
+      {"pressure", "pressure"},
+      {"vdwl", "E_vdwl"},
+      {"coul", "E_coul"},
+     {"kspace", "E_kspace"},
+      {"bond", "E_bond"},
+      {"angle", "E_angle"},
+      {"dihedral", "E_dihedral"},
+      {"improper", "E_improper"},
+      {"total-potential-energy", "E_pe"}
   };
 
   const std::unordered_map<std::string, int> key_to_width = {
@@ -37,10 +38,12 @@ private:
       {"pressure",    12},
       {"vdwl",        15},
       {"coul",        14},
+     {"kspace",        14},
       {"bond",        12},
       {"angle",       12},
-      {"dihed",       12},
-      {"improper",    12}
+      {"dihedral",     12},
+      {"improper",    12},
+      {"total-potential-energy",  12}
   };
 
   const std::unordered_map<std::string, int> key_to_precision = {
@@ -48,10 +51,12 @@ private:
       {"pressure", 4},
       {"vdwl", 4},
       {"coul", 4},
+     {"kspace", 4},
       {"bond", 4},
       {"angle", 4},
-      {"dihed", 4},
-      {"improper", 4}
+      {"dihedral", 4},
+      {"improper", 4},
+      {"total-potential-energy", 4}
   };
 
   std::unordered_map<std::string, rbmd::Real> thermo_data;
@@ -70,7 +75,7 @@ private:
     for (const auto& key : active_keys) {
       std::string display_name = key_to_display_name.count(key)
                                    ? key_to_display_name.at(key)
-                                   : ("AvgE_" + key);
+                                   : key;  //
       // MODIFIED: Reduced default width for other keys
       int width = key_to_width.count(key) ? key_to_width.at(key) : 15;
       header_ss << std::setw(width) << display_name;

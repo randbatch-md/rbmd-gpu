@@ -45,6 +45,8 @@ void LJ::Execute()
     ComputeLJVerlet();
   }
 
+  //add thermo
+  ThermoStats::Instance().AddThermoData("vdwl",_e_vdwl);
   //
   EvaluatePotentialenergy();
 }
@@ -111,7 +113,11 @@ void LJ::ComputeLJRBL()
   TimingStatistics::Instance().record("Short-Range",duration_rbl_force.count());
 
     //energy
-    ComputeLJEnergy();
+  _energy_rbl_flag = DataManager::getInstance().getConfigData()->Get<std::string>
+      ("energy_rbl_flag", "hyper_parameters", "neighbor");
+  if ("yes" == _energy_rbl_flag ) {
+       ComputeLJEnergy();
+  }
 }
 
 void LJ::ComputeLJVerlet()
@@ -154,8 +160,6 @@ void LJ::ComputeLJVerlet()
   thrust::host_vector<rbmd::Real> h_total_evdwl(d_total_evdwl);
   _e_vdwl = h_total_evdwl[0] / num_atoms;
 
-  ThermoStats::Instance().AddThermoData("vdwl",_e_vdwl);
-
   //sum virial_lj on host
   ReduceVirial(num_atoms,_device_data->_d_flat_virial,
 _device_data->_d_virial_lj);
@@ -186,9 +190,6 @@ void LJ::ComputeLJEnergy()
   thrust::host_vector<rbmd::Real> h_total_evdwl(d_total_evdwl);
   _e_vdwl = h_total_evdwl[0] / num_atoms;
 
-  ThermoStats::Instance().AddThermoData("vdwl",_e_vdwl);
-
-
   //sum virial_lj on host
   ReduceVirial(num_atoms,_device_data->_d_flat_virial,
 _device_data->_d_virial_lj);
@@ -206,6 +207,8 @@ void LJ::EvaluatePotentialenergy()
     test_e_pe_init = _e_pe_init;
   }
   _e_pe = _e_vdwl;
+
+  ThermoStats::Instance().AddThermoData("total-potential-energy",_e_pe);
 
   //out
   std::ofstream outfile("thermo.txt", std::ios::app);
