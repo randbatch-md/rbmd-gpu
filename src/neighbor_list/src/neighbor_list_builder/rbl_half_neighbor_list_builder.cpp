@@ -4,10 +4,12 @@
 
 #include <common/types.h>
 
+#include <output/include/Logger.hpp>
+
 #include "half_neighbor_list_op.h"
 #include "rbl_half_neighbor_list_op.h"
 void RblHalfNeighborListBuilder::EstimateNeighborsList() {
-  std::cout << "\033[31mresizing neighbor list array...\033[0m" << std::endl;
+  Logger::Instance().debug("Reallocating neighbor list capacity");
   rbmd::Id* d_total_max_neighbor_num;
   CHECK_RUNTIME(MALLOC(&d_total_max_neighbor_num, sizeof(rbmd::Id)));
   CHECK_RUNTIME(MEMCPY(d_total_max_neighbor_num,

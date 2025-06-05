@@ -1,15 +1,21 @@
 #include "md_application.h"
-#include "command_line.h"
-#include "atomic_reader.h"
+
+#include <spdlog/sinks/basic_file_sink.h>
+#include <spdlog/sinks/stdout_color_sinks.h>
 #include <memory>
+
+#include "../common/json.hpp"
 #include "../simulate_pipeline/include/npt_ensemble.h"
 #include "../simulate_pipeline/include/nve_ensemble.h"
 #include "../simulate_pipeline/include/nvt_ensemble.h"
-#include "lj_memory_scheduler.h"
+#include "atomic_reader.h"
+#include "command_line.h"
 #include "cvff_memory_scheduler.h"
+#include "lj_memory_scheduler.h"
 #include "memory_scheduler.h"
 #include "output/include/TrajectoryOutput.h"
-#include "../common/json.hpp"
+#include "output/include/linux_pipe_sink.hpp"
+#include "output/include/Logger.hpp"
 MDApplication::MDApplication(int argc, char* argv[]) : Application(argc, argv) {}
 
 int MDApplication::Execute() {
@@ -51,6 +57,28 @@ int MDApplication::Execute() {
   //	//log
   //	return -1;
   // }
+  const std::string divider = "================================================";
+  const std::string LOGO = R"(
+         _____    ____    __  __   _____
+        |  __ \  |  _ \  |  \/  | |  __ \
+        | |__) | | |_) | | \  / | | |  | |
+        |  _  /  |  _ <  | |\/| | | |  | |
+        | | \ \  | |_) | | |  | | | |__| |
+        |_|  \_\ |____/  |_|  |_| |_____/
+        
+  )";
+   std::string Logo_output ="\n" + divider + "\n" + LOGO + "\n" + divider + "\n";
+  // Create a named pipe sink
+  auto pipe_sink = std::make_shared<linux_pipe_sink_mt>("/tmp/rbmd_log_pipe");
+  auto console_sink = std::make_shared<spdlog::sinks::stdout_color_sink_mt>();
+  std::vector<spdlog::sink_ptr> sinks;
+  sinks.push_back(pipe_sink);
+  sinks.push_back(console_sink);
+  auto combined_logger = std::make_shared<spdlog::logger>("logger", sinks.begin(), sinks.end());
+  combined_logger->set_pattern("[%Y-%m-%d %H:%M:%S.%e] [%^%l%$] %v");
+  combined_logger->set_level(spdlog::level::info);
+  Logger::Instance().Configure(0,combined_logger);
+  Logger::Instance().info(Logo_output.c_str());
   ReadMDData();
   std::string ensemble_type = DataManager::getInstance().getConfigData()->Get
     <std::string>("ensemble", "execution");
@@ -68,10 +96,11 @@ int MDApplication::Execute() {
   }
   _output = std::make_shared<TrajectoryOutput>();
   _simulate = std::make_shared<Simulate>(_simulate_pipeline,_output);
-  
+
   _simulate->Init();
 
   _simulate->Execute();
+  std::string finish_output =divider + "        Finish        " + divider ;
 
   DataManager::getInstance().unloadDeviceData();
   return 0;
@@ -99,7 +128,7 @@ void MDApplication::AddSimulate() {
     } else if ("NVE" == type) {
       ensemble = std::make_shared<NVEensemble>();
     } else {
-      std::cout << " the type of execution of json file is wrong" << std::endl;
+      Logger::Instance().error(" the type of execution of json file is wrong");
     }
     _simulate_pipelines.push_back(std::move(ensemble));
     _simulate_nodes.emplace_back(simulate_child_node);

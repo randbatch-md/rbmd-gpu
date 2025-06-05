@@ -1,24 +1,23 @@
 #include "cvff.h"
 
-#include <thrust/device_ptr.h>
-#include "thrust/sort.h"
+#include <output/include/Logger.hpp>
 
 #include "../../common/device_types.h"
 #include "../../common/rbmd_define.h"
 #include "../../common/types.h"
-#include "../common/unit_factor.h"
-#include "lj_op/lj_op.h"
-#include "lj_cut_coul_kspace_op/lj_cut_coul_kspace_op.h"
-#include "cvff_op/cvff_op.h"
 #include "../common/RBEPSample.h"
-#include "../common/erf_table.h"
+#include "../common/unit_factor.h"
+#include "cvff_op/cvff_op.h"
+#include "lj_cut_coul_kspace_op/lj_cut_coul_kspace_op.h"
+#include "lj_op/lj_op.h"
 #include "neighbor_list/include/linked_cell/linked_cell_locator.h"
-#include "neighbor_list/include/neighbor_list_builder/half_neighbor_list_builder.h"
 #include "neighbor_list/include/neighbor_list_builder/full_neighbor_list_builder.h"
 #include "neighbor_list/include/neighbor_list_builder/rbl_full_neighbor_list_builder.h"
+#include "thrust/sort.h"
 // #include <hipcub/hipcub.hpp>
 // #include <hipcub/backend/rocprim/block/block_reduce.hpp>
-
+#include "common/thermo_stats.hpp"
+#include "common/timing_statistics.hpp"
 extern int test_current_step;
 extern std::map<std::string, UNIT> unit_factor_map;
 
@@ -209,7 +208,8 @@ void CVFF::ComputeLJVerlet()
   auto end = std::chrono::high_resolution_clock::now();
 
   std::chrono::duration<rbmd::Real> duration = end - start;
-  std::cout << "time_build_verlet= " << duration.count() << " second" << std::endl;
+
+  TimingStatistics::Instance().record("Neighbor-List",duration.count());
 
   //
   auto start_verlet_force = std::chrono::high_resolution_clock::now();
@@ -244,8 +244,7 @@ void CVFF::ComputeLJVerlet()
 
   auto end_verlet_force = std::chrono::high_resolution_clock::now();
   std::chrono::duration<rbmd::Real> duration_verlet_force = end_verlet_force - start_verlet_force;
-  std::cout<< "num_atoms=  " << num_atoms << "; " << "time_verlet= " << duration_verlet_force.count() << " second" << std::endl;
-
+  TimingStatistics::Instance().record("Short-Range",duration_verlet_force.count());
   // D2H
   thrust::host_vector<rbmd::Real> h_total_evdwl(_d_total_evdwl);
   thrust::host_vector<rbmd::Real> h_total_ecoul(_d_total_ecoul);
@@ -253,9 +252,8 @@ void CVFF::ComputeLJVerlet()
   _e_coul = h_total_ecoul[0]/num_atoms;
 
 
-  std::cout << "current_step:" << test_current_step <<  " ,"
-  << "average_energy_vdwl:" << _e_vdwl << ", " << "average_energy_coul:" <<
-    _e_coul << std::endl;
+  ThermoStats::Instance().AddThermoData("vdwl",_e_vdwl);
+  ThermoStats::Instance().AddThermoData("coul",_e_coul);
 
 //sum virial_special_lj on host
   ReduceVirial(num_atoms,_device_data->_d_flat_virial_lj,
@@ -362,9 +360,7 @@ void CVFF::ComputeChargeStructureFactorEwald(
 
   _e_kspace = _e_kspace + _e_self_energy;
 
-  //out
-   std::cout << "current_step:" << test_current_step <<  " ,"
-   << "average_energy_ewald:" << _e_kspace << std::endl;
+  ThermoStats::Instance().AddThermoData("coul",_e_kspace);
 }
 
 void CVFF::ComputeEwlad()
@@ -400,8 +396,7 @@ void CVFF::ComputeEwlad()
 
   auto end = std::chrono::high_resolution_clock::now();
   std::chrono::duration<rbmd::Real> duration = end - start;
-  std::cout << "time_ewald= " << duration.count() << " second" << std::endl;
-
+  TimingStatistics::Instance().record("Long-Range",duration.count());
 
   //sum virial_kspace on host
   ReduceVirial(num_atoms,_device_data->_d_flat_virial_kspace,
@@ -527,8 +522,7 @@ void CVFF::ComputeRBE()
 
   auto end = std::chrono::high_resolution_clock::now();
   std::chrono::duration<rbmd::Real> duration = end - start;
-  std::cout << "time_RBE= " << duration.count() << " second" << std::endl;
-
+  TimingStatistics::Instance().record("Long-Range",duration.count());
   //sum virial_kspace on host
   ReduceVirial(num_atoms,_device_data->_d_flat_virial_kspace,
 _device_data->_d_virial_kspace);
@@ -578,9 +572,8 @@ void CVFF::ComputeLJCoulEnergy()
   _e_vdwl = h_total_evdwl[0]/num_atoms;
   _e_coul = h_total_ecoul[0]/num_atoms;
 
-  std::cout << "current_step:" << test_current_step <<  " ,"
-  << "average_energy_vdwl:" << _e_vdwl << " " << "average_energy_coul:" <<
-    _e_coul  << std::endl;
+  ThermoStats::Instance().AddThermoData("vdwl",_e_vdwl);
+  ThermoStats::Instance().AddThermoData("coul",_e_coul);
 
   //sum virial on host
   ReduceVirial(num_atoms,_device_data->_d_flat_virial_lj,
@@ -701,14 +694,13 @@ void CVFF::ComputeBondForce()
 
   auto end = std::chrono::high_resolution_clock::now();
   std::chrono::duration<rbmd::Real> duration = end - start;
-  std::cout << "time_bond= " << duration.count() << " second" << std::endl;
+  TimingStatistics::Instance().record("Bond",duration.count());
 
   // D2H
   thrust::host_vector<rbmd::Real> h_total_ebond(d_total_ebond);
   _e_bond = h_total_ebond[0]/num_bonds;
 
-  std::cout << "current_step:" << test_current_step <<  " ,"
-  << "average_energy_bond:" << _e_bond  << std::endl;
+  ThermoStats::Instance().AddThermoData("bond",_e_bond);
 
   // //sum virial_bond  on host
   ReduceVirial(num_atoms,_device_data->_d_flat_virial_bond_atom,
@@ -756,14 +748,12 @@ void CVFF::ComputeAngleForce()
 
   auto end = std::chrono::high_resolution_clock::now();
   std::chrono::duration<rbmd::Real> duration = end - start;
-  std::cout << "time_angle= " << duration.count() << " second" << std::endl;
-
+  TimingStatistics::Instance().record("Angle",duration.count());
   // D2H
   thrust::host_vector<rbmd::Real> h_total_eangle(d_total_eangle);
   _e_angle = h_total_eangle[0]/num_angles;
 
-  std::cout << "current_step:" << test_current_step <<  " ," <<
-    "average_energy_angle:" << _e_angle << std::endl;
+  ThermoStats::Instance().AddThermoData("angle",_e_angle);
 
   //sum virial_angle on host
   ReduceVirial(num_atoms,_device_data->_d_flat_virial_angle_atom,
@@ -826,14 +816,13 @@ void CVFF::DihedralHarmonic() {
 
   auto end = std::chrono::high_resolution_clock::now();
   std::chrono::duration<rbmd::Real> duration = end - start;
-  std::cout << "time_dihedral= " << duration.count() << " second" << std::endl;
+  TimingStatistics::Instance().record("Dihedral",duration.count());
 
   // D2H
   thrust::host_vector<rbmd::Real> h_total_edihedral(d_total_edihedral);
   _e_dihedral = h_total_edihedral[0]/num_dihedrals;
 
-  std::cout << "current_step:" << test_current_step <<  " ,"
-   << "average_energy_dihedral:" << _e_dihedral << std::endl;
+  ThermoStats::Instance().AddThermoData("dihed",_e_dihedral);
 
   //sum virial_dihedral on host
   ReduceVirial(num_atoms,_device_data->_d_flat_virial_dihedral_atom,
@@ -884,14 +873,13 @@ void CVFF::DihedralOPLS() {
 
   auto end = std::chrono::high_resolution_clock::now();
   std::chrono::duration<rbmd::Real> duration = end - start;
-  std::cout << "time_dihedral= " << duration.count() << " second" << std::endl;
-
+  TimingStatistics::Instance().record("Dihedral",duration.count());
   // D2H
   thrust::host_vector<rbmd::Real> h_total_edihedral(d_total_edihedral);
   _e_dihedral = h_total_edihedral[0]/num_dihedrals;
 
-  std::cout << "current_step:" << test_current_step <<  " ,"
-   << "average_energy_dihedral:" << _e_dihedral << std::endl;
+
+  ThermoStats::Instance().AddThermoData("dihed",_e_dihedral);
 
   //sum virial_dihedral on host
   ReduceVirial(num_atoms,_device_data->_d_flat_virial_dihedral_atom,
@@ -948,14 +936,14 @@ void CVFF::ImproperHarmonic() {
 
   auto end = std::chrono::high_resolution_clock::now();
   std::chrono::duration<rbmd::Real> duration = end - start;
-  std::cout << "time_improper= " << duration.count() << " second" << std::endl;
+  TimingStatistics::Instance().record("Improper",duration.count());
 
   // D2H
   thrust::host_vector<rbmd::Real> h_total_eimproper(d_total_eimproper);
   _e_improper = h_total_eimproper[0]/num_impropers;
 
-  std::cout << "current_step:" << test_current_step <<  " ,"
-   << "average_energy_improper:" << _e_improper << std::endl;
+
+  ThermoStats::Instance().AddThermoData("improper",_e_improper);
 
   ReduceVirial(num_atoms,_device_data->_d_flat_virial_improper_atom,
   _device_data->_d_virial_improper);
@@ -1000,14 +988,13 @@ void CVFF::ImproperCVFF()
 
   auto end = std::chrono::high_resolution_clock::now();
   std::chrono::duration<rbmd::Real> duration = end - start;
-  std::cout << "time_improper= " << duration.count() << " second" << std::endl;
+  TimingStatistics::Instance().record("Improper",duration.count());
 
   // D2H
   thrust::host_vector<rbmd::Real> h_total_eimproper(d_total_eimproper);
   _e_improper = h_total_eimproper[0]/num_impropers;
 
-  std::cout << "current_step:" << test_current_step <<  " ,"
-   << "average_energy_improper:" << _e_improper << std::endl;
+  ThermoStats::Instance().AddThermoData("improper",_e_improper);
 
   ReduceVirial(num_atoms,_device_data->_d_flat_virial_improper_atom,
 _device_data->_d_virial_improper);

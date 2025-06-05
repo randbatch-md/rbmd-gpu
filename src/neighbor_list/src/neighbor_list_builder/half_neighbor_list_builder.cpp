@@ -1,5 +1,7 @@
 #include "half_neighbor_list_builder.h"
 
+#include <output/include/Logger.hpp>
+
 #include "common/device_types.h"
 #include "data_manager.h"
 #include "full_neighbor_list_builder.h"
@@ -41,7 +43,7 @@ void HalfNeighborListBuilder::ComputeNeighborCells() {
 }
 
 void HalfNeighborListBuilder::EstimateNeighborsList() {
-  std::cout << "\033[31mresizing neighbor list array...\033[0m" << std::endl;
+  Logger::Instance().debug("Reallocating neighbor list capacity");
   rbmd::Id* d_total_max_neighbor_num;
   CHECK_RUNTIME(MALLOC(&d_total_max_neighbor_num, sizeof(rbmd::Id)));
   CHECK_RUNTIME(MEMCPY(d_total_max_neighbor_num,
