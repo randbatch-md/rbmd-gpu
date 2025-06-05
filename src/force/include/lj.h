@@ -34,6 +34,7 @@ class LJ : public Force {
   rbmd::Real virial[6];
 
   //RBL
+  std::string  _energy_rbl_flag = "yes";
   std::string _neighbor_type;
   rbmd::Real _cut_off;
 

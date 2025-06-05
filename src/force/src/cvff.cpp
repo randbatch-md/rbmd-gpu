@@ -90,13 +90,17 @@ void CVFF::Init()
     if("RBE" == _coulomb_type) {
       _RBE_P = config->Get<rbmd::Id>("coulomb_sample_num", "hyper_parameters", "coulomb");
       GetPsampleKey();
+
+      _energy_rbe_flag = config->Get<std::string>("energy_rbe_flag", "hyper_parameters", "coulomb");
     }
   }
 }
 
 void CVFF::Execute() {
+  const auto& config = DataManager::getInstance().getConfigData();
+
   ComputeLJCutCoulForce();
-  if(_coulomb_type != "NULL" ) {
+  if(config->PathExists({"hyper_parameters", "coulomb"})) {
     ComputeKspaceForce();
   }
 
@@ -124,6 +128,10 @@ void CVFF::ComputeLJCutCoulForce()
   {
     ComputeLJVerlet();
   }
+
+  //add thermo
+  ThermoStats::Instance().AddThermoData("vdwl",_e_vdwl);
+  ThermoStats::Instance().AddThermoData("coul",_e_coul);
 }
 
 void CVFF::ComputeLJRBL()
@@ -196,7 +204,11 @@ void CVFF::ComputeLJRBL()
   TimingStatistics::Instance().record("Short-Range",duration_rbl_force.count());
 
     //energy
+  _energy_rbl_flag = DataManager::getInstance().getConfigData()->Get<std::string>
+      ("energy_rbl_flag", "hyper_parameters", "neighbor");
+  if ("yes" == _energy_rbl_flag ) {
     ComputeLJCoulEnergy();
+  }
 }
 
 void CVFF::ComputeLJVerlet()
@@ -251,10 +263,6 @@ void CVFF::ComputeLJVerlet()
   _e_vdwl = h_total_evdwl[0]/num_atoms;
   _e_coul = h_total_ecoul[0]/num_atoms;
 
-
-  ThermoStats::Instance().AddThermoData("vdwl",_e_vdwl);
-  ThermoStats::Instance().AddThermoData("coul",_e_coul);
-
 //sum virial_special_lj on host
   ReduceVirial(num_atoms,_device_data->_d_flat_virial_lj,
 _device_data->_d_virial_lj);
@@ -270,6 +278,7 @@ void CVFF::ComputeKspaceForce()
   {
      ComputeEwlad();
   }
+  ThermoStats::Instance().AddThermoData("kspace",_e_kspace);
 }
 
 void CVFF::SumForces()
@@ -359,8 +368,6 @@ void CVFF::ComputeChargeStructureFactorEwald(
   _e_kspace = total_energy_kspace / num_atoms;
 
   _e_kspace = _e_kspace + _e_self_energy;
-
-  ThermoStats::Instance().AddThermoData("coul",_e_kspace);
 }
 
 void CVFF::ComputeEwlad()
@@ -478,18 +485,16 @@ void CVFF::ComputeChargeStructureFactorRBE(
     rhok_image_atom.begin(),psamplekey_out.begin(), rhok_image_redue.begin(),
     thrust::equal_to<rbmd::Id>(),thrust::plus<rbmd::Real>());
 
-  // //energy
-  //
-  // //charge self energy//
-  // ComputeSelfEnergy(alpha,qqr2e,_e_self_energy);
-  //
-  // //kspace energy
-  // ComputeKspaceEnergy(box, num_atoms, kmax_array,
-  //      alpha, qqr2e ,_e_kspace);
-  // _e_kspace = _e_kspace +_e_self_energy;
-  //
-  // std::cout << "current_step:" << test_current_step <<  " ,"
-  // << "average_energy_rbe:" << _e_kspace << std::endl;
+  //energy
+  if ("yes" == _energy_rbe_flag ) {
+    //charge self energy//
+    ComputeSelfEnergy(alpha,qqr2e,_e_self_energy);
+
+    //kspace energy
+    ComputeKspaceEnergy(box, num_atoms, kmax_array,
+         alpha, qqr2e ,_e_kspace);
+    _e_kspace = _e_kspace +_e_self_energy;
+  }
 }
 
 void CVFF::ComputeRBE()
@@ -532,13 +537,13 @@ void CVFF::ComputeLJCoulEnergy()
 {
   // energy
   //neighbor_list_build
-  auto start = std::chrono::high_resolution_clock::now();
+  //auto start = std::chrono::high_resolution_clock::now();
   _list = _neighbor_list_builder->Build();
 
-  auto end = std::chrono::high_resolution_clock::now();
+  //auto end = std::chrono::high_resolution_clock::now();
 
-  std::chrono::duration<rbmd::Real> duration = end - start;
-  TimingStatistics::Instance().record("Neighbor-List",duration.count());
+  //std::chrono::duration<rbmd::Real> duration = end - start;
+  //TimingStatistics::Instance().record("Neighbor-List",duration.count());
 
 
   thrust::device_vector<rbmd::Real> _d_total_evdwl(1, 0.0);
@@ -571,9 +576,6 @@ void CVFF::ComputeLJCoulEnergy()
   thrust::host_vector<rbmd::Real> h_total_ecoul(_d_total_ecoul);
   _e_vdwl = h_total_evdwl[0]/num_atoms;
   _e_coul = h_total_ecoul[0]/num_atoms;
-
-  ThermoStats::Instance().AddThermoData("vdwl",_e_vdwl);
-  ThermoStats::Instance().AddThermoData("coul",_e_coul);
 
   //sum virial on host
   ReduceVirial(num_atoms,_device_data->_d_flat_virial_lj,
@@ -765,12 +767,15 @@ void CVFF::ComputeDihedralForce()
   auto dihedral_type = DataManager::getInstance().getConfigData()->Get
   <std::string>("dihedral_type", "hyper_parameters", "force_field");
 
-  if (dihedral_type == "Harmonic") {
+  if (dihedral_type == "harmonic") {
     DihedralHarmonic();
   }
-  else if (dihedral_type == "OPLS") {
+  else if (dihedral_type == "opls") {
     DihedralOPLS();
   }
+
+  //add thermo
+  ThermoStats::Instance().AddThermoData("dihedral",_e_dihedral);
 }
 
 void CVFF::DihedralHarmonic() {
@@ -821,8 +826,6 @@ void CVFF::DihedralHarmonic() {
   // D2H
   thrust::host_vector<rbmd::Real> h_total_edihedral(d_total_edihedral);
   _e_dihedral = h_total_edihedral[0]/num_dihedrals;
-
-  ThermoStats::Instance().AddThermoData("dihed",_e_dihedral);
 
   //sum virial_dihedral on host
   ReduceVirial(num_atoms,_device_data->_d_flat_virial_dihedral_atom,
@@ -878,9 +881,6 @@ void CVFF::DihedralOPLS() {
   thrust::host_vector<rbmd::Real> h_total_edihedral(d_total_edihedral);
   _e_dihedral = h_total_edihedral[0]/num_dihedrals;
 
-
-  ThermoStats::Instance().AddThermoData("dihed",_e_dihedral);
-
   //sum virial_dihedral on host
   ReduceVirial(num_atoms,_device_data->_d_flat_virial_dihedral_atom,
     _device_data->_d_virial_dihedral);
@@ -891,12 +891,15 @@ void CVFF::ComputeImproperForce()
   auto improper_type = DataManager::getInstance().getConfigData()->Get
 <std::string>("improper_type", "hyper_parameters", "force_field");
 
-  if (improper_type == "Harmonic") {
+  if (improper_type == "harmonic") {
     ImproperHarmonic();
   }
-  else if (improper_type == "CVFF") {
+  else if (improper_type == "cvff") {
     ImproperCVFF();
   }
+
+  //add thermo
+  ThermoStats::Instance().AddThermoData("improper",_e_improper);
 }
 
 void CVFF::ImproperHarmonic() {
@@ -941,9 +944,6 @@ void CVFF::ImproperHarmonic() {
   // D2H
   thrust::host_vector<rbmd::Real> h_total_eimproper(d_total_eimproper);
   _e_improper = h_total_eimproper[0]/num_impropers;
-
-
-  ThermoStats::Instance().AddThermoData("improper",_e_improper);
 
   ReduceVirial(num_atoms,_device_data->_d_flat_virial_improper_atom,
   _device_data->_d_virial_improper);
@@ -994,8 +994,6 @@ void CVFF::ImproperCVFF()
   thrust::host_vector<rbmd::Real> h_total_eimproper(d_total_eimproper);
   _e_improper = h_total_eimproper[0]/num_impropers;
 
-  ThermoStats::Instance().AddThermoData("improper",_e_improper);
-
   ReduceVirial(num_atoms,_device_data->_d_flat_virial_improper_atom,
 _device_data->_d_virial_improper);
 }
@@ -1007,6 +1005,8 @@ void CVFF::EvaluatePotentialenergy()
 
   _e_pe = _e_vdwl+ _e_coul +_e_kspace+
               _e_bond +_e_angle +_e_dihedral+_e_improper;
+
+  ThermoStats::Instance().AddThermoData("total-potential-energy",_e_pe);
 
   //out
   auto interval = DataManager::getInstance().getConfigData()->Get<rbmd::Id>(

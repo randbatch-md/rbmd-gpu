@@ -93,6 +93,7 @@ private:
   //RBL
   std::string _neighbor_type;
   rbmd::Real _cut_off;
+  std::string  _energy_rbl_flag = "yes";
 
   rbmd::Real _corr_value_x = 0.0;
   rbmd::Real _corr_value_y = 0.0;
@@ -146,6 +147,7 @@ private:
   rbmd::Real* _h_Im_array;
 
   //RBE
+  std::string  _energy_rbe_flag = "yes";
   std::string _coulomb_type;
   rbmd::Id _RBE_P;
   rbmd::Real _qqr2e;

@@ -30,7 +30,6 @@ class Application : public Object {
   virtual int Execute() = 0;
 
  private:
-  bool Check();
 
  protected:
   // std::shared_ptr<CommandLine> _command_line;

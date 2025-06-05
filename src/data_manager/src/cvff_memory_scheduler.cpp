@@ -167,13 +167,13 @@ bool CVFFMemoryScheduler::asyncMemoryH2D() {
                fd->_h_angle_coeffs_equilibrium + num_angles_type,
                _device_data->_d_angle_coeffs_equilibrium.begin());
   //dihedral
-  std::string dihedral_type = "NULL";
+  std::string dihedral_type = "null";
 
   if(*(_structure_info_data->_num_dihedrals)) {
     dihedral_type = DataManager::getInstance().getConfigData()->
       Get<std::string>("dihedral_type", "hyper_parameters", "force_field");
   }
-  if (dihedral_type == "Harmonic") {
+  if (dihedral_type == "harmonic") {
     _device_data->_d_dihedral_coeffs_k.resize(num_dihedrals_type);
     _device_data->_d_dihedral_coeffs_sign.resize(num_dihedrals_type);
     _device_data->_d_dihedral_coeffs_multiplicity.resize(num_dihedrals_type);
@@ -188,7 +188,7 @@ bool CVFFMemoryScheduler::asyncMemoryH2D() {
                  fd->_h_dihedral_coeffs_multiplicity + num_dihedrals_type,
                  _device_data->_d_dihedral_coeffs_multiplicity.begin());
   }
-  else if (dihedral_type == "OPLS") {
+  else if (dihedral_type == "opls") {
     _device_data->_d_dihedral_coeffs_k1.resize(num_dihedrals_type);
     _device_data->_d_dihedral_coeffs_k2.resize(num_dihedrals_type);
     _device_data->_d_dihedral_coeffs_k3.resize(num_dihedrals_type);
@@ -210,13 +210,13 @@ bool CVFFMemoryScheduler::asyncMemoryH2D() {
   }
 
   //improper
-  std::string improper_type = "NULL";
+  std::string improper_type = "null";
 
   if(*(_structure_info_data->_num_impropers)) {
     improper_type = DataManager::getInstance().getConfigData()->
       Get<std::string>("improper_type", "hyper_parameters", "force_field");
   }
-  if (improper_type == "Harmonic") {
+  if (improper_type == "harmonic") {
     _device_data->_d_improper_coeffs_k.resize(num_impropers_type);
     _device_data->_d_improper_coeffs_chi.resize(num_impropers_type);
 
@@ -227,7 +227,7 @@ bool CVFFMemoryScheduler::asyncMemoryH2D() {
                  fd->_h_improper_coeffs_degree + num_impropers_type,
                  _device_data->_d_improper_coeffs_chi.begin());
   }
-  else if (improper_type == "CVFF") {
+  else if (improper_type == "cvff") {
     _device_data->_d_improper_coeffs_k.resize(num_impropers_type);
     _device_data->_d_improper_coeffs_d.resize(num_impropers_type);
     _device_data->_d_improper_coeffs_n.resize(num_impropers_type);

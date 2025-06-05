@@ -62,20 +62,19 @@ public:
         categories[category].update(time_seconds);
         total_time += time_seconds;
     }
-    
-  // Print statistics summary
+
   void print_summary() const {
       // Calculate average total time across all categories
       double avg_total = 0.0;
-      for (const auto& [name, stats] : categories) {
-        avg_total += stats.avg();
+      for (const auto& category_pair : categories) {
+        avg_total += category_pair.second.avg();
       }
 
       // Build output string
       std::stringstream ss;
       ss << "\n";
       ss << "┌──────────────────┬──────────────────┐\n";
-      ss << "│     Category     │      Avg Time    │\n";
+      ss << "│     Category     │  Avg Time (s)    │\n";
       ss << "├──────────────────┼──────────────────┤\n";
 
       // Set output format
@@ -86,21 +85,25 @@ public:
         "Neighbor-List", "Short-Range", "Long-Range", "Bond","Angle","Dihedral","Improper"
     };
 
+      // 按照 order 的顺序输出
       for (const auto& section : order) {
         auto it = categories.find(section);
         if (it != categories.end()) {
-          const Stats& stats = it->second;
+          const auto& name = it->first;
+          const auto& stats = it->second;
 
-          ss << "│ " << std::setw(16) << std::left << section << " │ "
-               << std::setw(16) << std::right << stats.avg() << " │\n";
+          ss << "│ " << std::setw(16) << std::left << name
+             << " │ " << std::setw(16) << std::right << stats.avg() << " │\n";
         }
       }
 
+      // 表格底部
       ss << "└──────────────────┴──────────────────┘\n";
+
       // Log using spdlog
       Logger::Instance().info(ss.str().c_str());
     }
-    
+
     // Reset statistics
     void reset() {
         categories.clear();

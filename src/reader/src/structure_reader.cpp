@@ -435,9 +435,9 @@ int StructureReder::ReadDihedralsCoeffs(const rbmd::Id& numDihedralsTypes)
     exit(EXIT_FAILURE); //
   }
 
-  std::string dihedral_type ="NULL";
+  std::string dihedral_type ="null";
   dihedral_type = config->Get<std::string>("dihedral_type", "hyper_parameters", "force_field");
-  if (dihedral_type == "Harmonic") {
+  if (dihedral_type == "harmonic") {
       try {
           auto force_filed = std::dynamic_pointer_cast<CVFFForceFieldData>(_md_data._force_field_data);
           auto& dihedral_coeffs_k = force_filed->_h_dihedral_coeffs_k;
@@ -475,7 +475,7 @@ int StructureReder::ReadDihedralsCoeffs(const rbmd::Id& numDihedralsTypes)
         return -1;
        }
   }
-  else if (dihedral_type == "OPLS") {
+  else if (dihedral_type == "opls") {
     try {
         auto force_filed = std::dynamic_pointer_cast<CVFFForceFieldData>(_md_data._force_field_data);
         auto& dihedral_coeffs_k1 = force_filed->_h_dihedral_coeffs_k1;
@@ -533,11 +533,11 @@ int StructureReder::ReadImproperCoeffs(const rbmd::Id& numImproperTypes)
     exit(EXIT_FAILURE); //
   }
 
-  std::string improper_type ="NULL";
+  std::string improper_type ="null";
   improper_type = DataManager::getInstance().getConfigData()->Get
     <std::string>("improper_type", "hyper_parameters", "force_field");
 
-  if (improper_type == "Harmonic") {
+  if (improper_type == "harmonic") {
         try {
         auto force_filed = std::dynamic_pointer_cast<CVFFForceFieldData>(_md_data._force_field_data);
         auto& improper_coeffs_k = force_filed->_h_improper_coeffs_k;
@@ -573,7 +573,7 @@ int StructureReder::ReadImproperCoeffs(const rbmd::Id& numImproperTypes)
         return -1;
     }
   }
-  else if (improper_type == "CVFF") {
+  else if (improper_type == "cvff") {
     try {
         auto force_filed = std::dynamic_pointer_cast<CVFFForceFieldData>(_md_data._force_field_data);
         auto& improper_coeffs_k = force_filed->_h_improper_coeffs_k;

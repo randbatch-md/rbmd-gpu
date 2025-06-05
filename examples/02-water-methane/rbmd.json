@@ -22,22 +22,24 @@
     "force_field": {
       "type": "CVFF", // OPLS-AA,CVFF
       //"potential_file": "/path/to/"
-	  "bond_type" :"Harmonic",        // Harmonic 
-	  "angle_type":"Harmonic"         // Harmonic 
+	  "bond_type" :"harmonic",        // harmonic 
+	  "angle_type":"harmonic"         // Harmonic 
     },
 
     "neighbor": {
-      "type": "VERLETLIST", //RBL,VERLETLIST
+      "type": "Verlet-List", //RBL,Verlet-List
       "cut_off": 12,
       "r_core": 5,
       "neighbor_sample_num": 50
+	  //"energy_rbl_flag":  "yes"    //yes ,no 
     },
 
     "coulomb": {
       "type": "RBE", //  RBE,EWALD
       "coulomb_sample_num": 500,
       "alpha": 0.02675,
-      "kmax": [7,7,7]
+      "kmax": [7,7,7],
+	  "energy_rbe_flag":  "yes"   //yes ,no 
     },
 
     "extend": {

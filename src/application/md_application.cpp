@@ -16,47 +16,12 @@
 #include "output/include/TrajectoryOutput.h"
 #include "output/include/linux_pipe_sink.hpp"
 #include "output/include/Logger.hpp"
-MDApplication::MDApplication(int argc, char* argv[]) : Application(argc, argv) {}
+MDApplication::MDApplication(int argc, char* argv[])
+  : Application(argc, argv),
+  _cmd(std::make_shared<CommandLine>(argc, argv))
+{
+  DataManager::Initialize(_cmd->GetConfigPath());
 
-int MDApplication::Execute() {
-  // try
-  //{
-  //	if (-1 == ReadMDData())
-  //	{
-  //		//log
-  //		return -1;
-  //	}
-  //
-  //	if (!_config_data->HasNode("execution"))
-  //	{
-  //		return -1;
-  //	}
-  //	//_executioner =
-  // std::make_shared<Executioner>(_parser->GetJsonNode("execution"), _system);
-  //	//_executioner =
-  // std::make_shared<Executioner>(_config_data->GetJsonNode("execution"),
-  //_simulate_pipelines);
-  //
-  //	for (size_t i = 0; i < _simulate_pipelines.size(); i++)
-  //	{
-  //		_executioner = std::make_shared<Executioner>(_simulate_nodes[i],
-  //_simulate_pipelines[i]);
-  //
-  //		_executioner->Setup();
-  //
-  //		if (-1 == _executioner->Execute())
-  //		{
-  //			//log
-  //			//_console->error("execute failed!");
-  //		}
-  //	}
-  //
-  // }
-  // catch (const std::exception&)
-  //{
-  //	//log
-  //	return -1;
-  // }
   const std::string divider = "================================================";
   const std::string LOGO = R"(
          _____    ____    __  __   _____
@@ -65,21 +30,32 @@ int MDApplication::Execute() {
         |  _  /  |  _ <  | |\/| | | |  | |
         | | \ \  | |_) | | |  | | | |__| |
         |_|  \_\ |____/  |_|  |_| |_____/
-        
+
   )";
-   std::string Logo_output ="\n" + divider + "\n" + LOGO + "\n" + divider + "\n";
-  // Create a named pipe sink
-  auto pipe_sink = std::make_shared<linux_pipe_sink_mt>("/tmp/rbmd_log_pipe");
+  std::string Logo_output ="\n" + divider + "\n" + LOGO + "\n" + divider + "\n";
   auto console_sink = std::make_shared<spdlog::sinks::stdout_color_sink_mt>();
+  auto file_sink = std::make_shared<spdlog::sinks::basic_file_sink_mt>("./rbmd.log",true);
   std::vector<spdlog::sink_ptr> sinks;
+  // Create a named pipe sink
+#ifdef WITH_GUI
+  auto pipe_sink = std::make_shared<linux_pipe_sink_mt>("/tmp/rbmd_log_pipe");
   sinks.push_back(pipe_sink);
+#endif
   sinks.push_back(console_sink);
+  sinks.push_back(file_sink);
   auto combined_logger = std::make_shared<spdlog::logger>("logger", sinks.begin(), sinks.end());
-  combined_logger->set_pattern("[%Y-%m-%d %H:%M:%S.%e] [%^%l%$] %v");
+  combined_logger->set_pattern("[%Y-%m-%d %H:%M:%S.%02e] [%^%l%$] %v");
   combined_logger->set_level(spdlog::level::info);
   Logger::Instance().Configure(0,combined_logger);
   Logger::Instance().info(Logo_output.c_str());
+  //
   ReadMDData();
+}
+
+int MDApplication::Execute() {
+
+
+  //ReadMDData();
   std::string ensemble_type = DataManager::getInstance().getConfigData()->Get
     <std::string>("ensemble", "execution");
   if("NVE" == ensemble_type)
@@ -100,7 +76,10 @@ int MDApplication::Execute() {
   _simulate->Init();
 
   _simulate->Execute();
+
+  const std::string divider = "================================================";
   std::string finish_output =divider + "        Finish        " + divider ;
+  Logger::Instance().info(finish_output.c_str());
 
   DataManager::getInstance().unloadDeviceData();
   return 0;
