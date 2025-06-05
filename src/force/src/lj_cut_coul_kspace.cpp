@@ -1,7 +1,5 @@
 #include "lj_cut_coul_kspace.h"
 
-#include <thrust/device_ptr.h>
-
 #include "../../common/device_types.h"
 #include "../../common/rbmd_define.h"
 #include "../../common/types.h"
@@ -9,14 +7,13 @@
 #include "lj_op/lj_op.h"
 #include "lj_cut_coul_kspace_op/lj_cut_coul_kspace_op.h"
 #include "../common/RBEPSample.h"
-#include "../common/erf_table.h"
 #include "neighbor_list/include/linked_cell/linked_cell_locator.h"
-#include "neighbor_list/include/neighbor_list_builder/half_neighbor_list_builder.h"
 #include "neighbor_list/include/neighbor_list_builder/full_neighbor_list_builder.h"
 #include "neighbor_list/include/neighbor_list_builder/rbl_full_neighbor_list_builder.h"
 // #include <hipcub/hipcub.hpp>
 // #include <hipcub/backend/rocprim/block/block_reduce.hpp>
-
+#include "common/thermo_stats.hpp"
+#include "common/timing_statistics.hpp"
 extern int test_current_step;
 extern std::map<std::string, UNIT> unit_factor_map;
 
@@ -210,8 +207,8 @@ void LJCutCoulKspace::ComputeLJVerlet()
   _e_vdwl = h_total_evdwl[0]/num_atoms;
   _e_coul = h_total_ecoul[0]/num_atoms;
 
-  std::cout << "current_step:" << test_current_step <<  " ,"
-  << "average_energy_vdwl:" << _e_vdwl << " ," <<  "average_energy_coul:" << _e_coul << std::endl;
+  ThermoStats::Instance().AddThermoData("vdwl",_e_vdwl);
+  ThermoStats::Instance().AddThermoData("coul",_e_coul);
 
   //sum virial_lj on host
   ReduceVirial(num_atoms,_device_data->_d_flat_virial_lj,
@@ -484,7 +481,7 @@ void LJCutCoulKspace::ComputeRBE()
 
   auto end = std::chrono::high_resolution_clock::now();
   std::chrono::duration<rbmd::Real> duration = end - start;
-  std::cout << "time_RBE= " << duration.count() << "second" << std::endl;
+  TimingStatistics::Instance().record("Long-Range",duration.count());
 
   //sum virial_kspace on host
   ReduceVirial(num_atoms,_device_data->_d_flat_virial_kspace,
@@ -523,8 +520,8 @@ void LJCutCoulKspace::ComputeLJCoulEnergy()
   _e_vdwl = h_total_evdwl[0]/num_atoms;
   _e_coul = h_total_ecoul[0]/num_atoms;
 
-  std::cout << "current_step:" << test_current_step <<  " ,"
-  << "average_energy_vdwl:" << _e_vdwl << " ," <<  "average_energy_coul:" << _e_coul << std::endl;
+  ThermoStats::Instance().AddThermoData("vdwl",_e_vdwl);
+  ThermoStats::Instance().AddThermoData("coul",_e_coul);
 
   //sum virial_lj on host
   ReduceVirial(num_atoms,_device_data->_d_flat_virial_lj,

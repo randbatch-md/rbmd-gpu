@@ -78,8 +78,7 @@ class ConfigData : public Object {
     };
 
     (getNode(std::forward<Args>(args)), ...);
-    std::cout << "Checking key: " << key << " in node: " << json_node.dump(4)
-              << std::endl;
+
 
     if (json_node.contains(key)) {
       nlohmann::ordered_json value = json_node[key];

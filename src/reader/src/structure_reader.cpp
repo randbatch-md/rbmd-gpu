@@ -7,7 +7,7 @@
 #include "../Utilities/string_util.h"
 #include "model/md_data.h"
 #include "data_manager.h"
-
+#include "output/include/Logger.hpp"
 StructureReder::StructureReder(const std::string& filePath, MDData& data)
     : MmapReader(filePath), _md_data(data) {}
 
@@ -61,35 +61,35 @@ int StructureReder::ReadHeader() {
         if (rbmd::IsLegalLine(line)) {
           if (line.find("atoms") != std::string::npos) {
             iss >> *(info->_num_atoms);
-            // std::cout << *(info->_num_atoms) << " atoms" << std::endl;
+            Logger::Instance().info("read {} atoms", *(info->_num_atoms));
           } else if (line.find("bonds") != std::string::npos) {
             iss >> *(info->_num_bonds);
-            // std::cout << *(info->_num_bonds) << " bonds" << std::endl;
+            Logger::Instance().info("read {} bonds", *(info->_num_bonds));
           } else if (line.find("angles") != std::string::npos) {
             iss >> *(info->_num_angles);
-            // std::cout << *(info->_num_angles) << " angles" << std::endl;
+            Logger::Instance().info("read {} angles", *(info->_num_angles));
           } else if (line.find("dihedrals") != std::string::npos) {
             iss >> *(info->_num_dihedrals);
-             //std::cout << *(info->_num_dihedrals) << " dihedrals" << std::endl;
+            Logger::Instance().info("read {} dihedrals",*(info->_num_dihedrals));
           } else if (line.find("impropers") != std::string::npos) {
             iss >> *(info->_num_impropers);
-            //std::cout << *(info->_num_impropers) << " impropers" << std::endl;
+            Logger::Instance().info("read {} impropers",*(info->_num_impropers));
           } else if (line.find("atom types") != std::string::npos) {
             iss >> *(info->_num_atoms_type);
-            //std::cout << *(info->_num_atoms_type) << " atom types" << std::endl;
+            Logger::Instance().info("read {} atom types",*(info->_num_atoms_type));
           } else if (line.find("bond types") != std::string::npos) {
             iss >> *(info->_num_bounds_type);
-            //std::cout << *(info->_num_bounds_type) << " bond types" << std::endl;
+            Logger::Instance().info("read {} bond types",*(info->_num_bounds_type));
           } else if (line.find("angle types") != std::string::npos) {
             iss >> *(info->_num_angles_type);
-            // std::cout << *(info->_num_angles_type) << " angle types" << std::endl;
+            Logger::Instance().info("read {} angle types",*(info->_num_angles_type));
           }
           else if (line.find("dihedral types") != std::string::npos) {
               iss >> *(info->_num_dihedrals_type);
-              //std::cout << *(info->_num_dihedrals_type) << " dihedral types" << std::endl;
+            Logger::Instance().info("read {} dihedral types",*(info->_num_dihedrals_type));
           } else if (line.find("improper types") != std::string::npos) {
             iss >> *(info->_num_impropers_type);
-            // std::cout << *(info->_num_impropers_type) << " improper types" << std::endl;
+            Logger::Instance().info("read {} improper types",*(info->_num_impropers_type));
           } else if (line.find("xlo xhi") != std::string::npos) {
             iss >> coord_min[0] >> coord_max[0];
             // std::cout << coord_min[0] << " " << coord_max[0] << "xlo xhi" <<
@@ -110,6 +110,29 @@ int StructureReder::ReadHeader() {
             (*info->_range)[2][1] = coord_max[2];
             bool pbc[3] = {1, 1, 1};
             box->Setup(box->_type, coord_min, coord_max, pbc);
+            // 计算盒子边长
+            double length_x = coord_max[0] - coord_min[0];
+            double length_y = coord_max[1] - coord_min[1];
+            double length_z = coord_max[2] - coord_min[2];
+            std::string box_type = "ORTHOGONAL";
+            if (box->_type == Box::BoxType::TRICLINIC) {
+              box_type = "TRICLINIC";
+            }
+            Logger::Instance().info(
+            "Initial Box Configuration:\n"
+            "         Type:       {}\n"
+            "         Min (Å):    ({:.2f}, {:.2f}, {:.2f})\n"
+            "         Max (Å):    ({:.2f}, {:.2f}, {:.2f})\n"
+            "         Lengths (Å): ({:.2f}, {:.2f}, {:.2f})\n"
+            "         PBC:        x={}, y={}, z={}",
+            box_type,
+            coord_min[0], coord_min[1], coord_min[2],
+            coord_max[0], coord_max[1], coord_max[2],
+            length_x, length_y, length_z,
+            pbc[0] ? "periodic" : "fixed",
+            pbc[1] ? "periodic" : "fixed",
+            pbc[2] ? "periodic" : "fixed"
+            );
             _line_start = &_mapped_memory[_locate];
             break;
           }

@@ -1,15 +1,15 @@
 #include "lj.h"
 
-#include <thrust/device_ptr.h>
+#include <output/include/Logger.hpp>
 
 #include "../../common/device_types.h"
 #include "../../common/rbmd_define.h"
 #include "../../common/types.h"
-#include "../data_manager/include/model/md_data.h"
 #include "lj_op/lj_op.h"
 #include "neighbor_list/include/neighbor_list_builder/full_neighbor_list_builder.h"
-#include "neighbor_list/include/neighbor_list_builder/half_neighbor_list_builder.h"
 #include "neighbor_list/include/neighbor_list_builder/rbl_full_neighbor_list_builder.h"
+#include "common/timing_statistics.hpp"
+#include "common/thermo_stats.hpp"
 // #include <hipcub/hipcub.hpp>
 // #include <hipcub/backend/rocprim/block/block_reduce.hpp>
 extern int test_current_step;
@@ -123,8 +123,7 @@ void LJ::ComputeLJVerlet()
   auto end = std::chrono::high_resolution_clock::now();
 
   std::chrono::duration<rbmd::Real> duration = end - start;
-  std::cout << "time_build_verlet= " << duration.count() << "秒" << std::endl;
-
+  TimingStatistics::Instance().record("Neighbor-List",duration.count());
   //
   auto start_verlet_force = std::chrono::high_resolution_clock::now();
   thrust::device_vector<rbmd::Real> d_total_evdwl(1, 0.0);
@@ -149,15 +148,13 @@ void LJ::ComputeLJVerlet()
 
   auto end_verlet_force = std::chrono::high_resolution_clock::now();
   std::chrono::duration<rbmd::Real> duration_verlet_force = end_verlet_force - start_verlet_force;
-  std::cout<< "num_atoms=  " << num_atoms << "; " << "time_verlet= " << duration_verlet_force.count() << "second" << std::endl;
+  TimingStatistics::Instance().record("Short-Range",duration_verlet_force.count());
 
   // D2H
   thrust::host_vector<rbmd::Real> h_total_evdwl(d_total_evdwl);
   _e_vdwl = h_total_evdwl[0] / num_atoms;
 
-  std::cout << "current_step:" << test_current_step << " "
-            << "average_energy_vdwl:" << _e_vdwl << std::endl;
-  std::cout << "out of force execute" << std::endl;
+  ThermoStats::Instance().AddThermoData("vdwl",_e_vdwl);
 
   //sum virial_lj on host
   ReduceVirial(num_atoms,_device_data->_d_flat_virial,
@@ -189,8 +186,8 @@ void LJ::ComputeLJEnergy()
   thrust::host_vector<rbmd::Real> h_total_evdwl(d_total_evdwl);
   _e_vdwl = h_total_evdwl[0] / num_atoms;
 
-  std::cout << "current_step:" << test_current_step << " "
-            << "average_energy_vdwl:" << _e_vdwl << std::endl;
+  ThermoStats::Instance().AddThermoData("vdwl",_e_vdwl);
+
 
   //sum virial_lj on host
   ReduceVirial(num_atoms,_device_data->_d_flat_virial,

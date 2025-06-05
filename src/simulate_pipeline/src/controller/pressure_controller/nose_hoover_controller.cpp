@@ -11,7 +11,7 @@
 #include "simulate.h"
 #include "default_position_controller.h"
 #include "default_velocity_controller.h"
-
+#include "common/thermo_stats.hpp"
 extern int test_current_step;
 
 NoseHooverController::NoseHooverController() {
@@ -155,6 +155,10 @@ void NoseHooverController::Init() {
 
   //Nose-Hoover parameters init
   SetUp();
+
+  ThermoStats::Instance().AddThermoData("temperature",temperature_array[0]);
+
+  ThermoStats::Instance().AddThermoData("pressure",_pressure_start);
 }
 
 void NoseHooverController::Update()
@@ -180,7 +184,6 @@ void NoseHooverController::ComputeTemperature(){
     std::cerr << "FATAL ERROR: Temperature is infinite" << std::endl;
     exit(EXIT_FAILURE);
   }
-  // std::cout << "temperature= " << _temperature << std::endl;
 }
 
 void NoseHooverController::ComputeVirial()
@@ -202,7 +205,6 @@ void NoseHooverController::ComputePressure()
     + _device_data->_d_virial[1] +_device_data->_d_virial[2])
   /3.0 * inv_volume * _nktv2p;
 
-  //std::cout << " pressure=" << _pressure << std::endl;
 }
 
 void NoseHooverController::Couple()
@@ -469,10 +471,8 @@ void NoseHooverController::FinalIntegrate()
     NHCPressIntegrate();
   }
 
-  //
-  std::cout <<  "current_step " << test_current_step << " ,"
-  <<"temperature=  " << _temperature  << " , " << "pressure=  " << _pressure
-  << std::endl;
+  ThermoStats::Instance().AddThermoData("temperature",_temperature);
+  ThermoStats::Instance().AddThermoData("pressure",_pressure);
 
   //out
   auto interval = DataManager::getInstance().getConfigData()->Get<rbmd::Id>(

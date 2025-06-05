@@ -8,6 +8,7 @@
 #include <random>
 #include <numeric>
 #include <cmath>
+#include "common/thermo_stats.hpp"
 LangevinController::LangevinController() {
   CHECK_RUNTIME(MALLOC(&_d_temp_contrib, sizeof(rbmd::Real)));
 }
@@ -35,6 +36,12 @@ void LangevinController::Init() {
     default:
       break;
   }
+  auto temperature_array=DataManager::getInstance().getConfigData()->
+    GetArray<rbmd::Real>("temperature", "execution");
+  ThermoStats::Instance().AddThermoData("temperature",temperature_array[0]);
+  auto pressure_array=DataManager::getInstance().getConfigData()->
+    GetArray<rbmd::Real>("pressure", "execution");
+  ThermoStats::Instance().AddThermoData("pressure",pressure_array[0]);
 }
 
 void LangevinController::Update() {
@@ -75,7 +82,7 @@ void LangevinController::ComputeTemperature() {
         _temperature = 0.5 * _temp_sum / ((3 * num_atoms - 3) * _kB / 2.0);
     }
 
-    std::cout << "temperature= " << _temperature << std::endl;
+    ThermoStats::Instance().AddThermoData("temperature",_temperature);
     // out
     std::ofstream outfile("temperature.txt", std::ios::app);
     outfile << test_current_step << " " << _temperature << std::endl;

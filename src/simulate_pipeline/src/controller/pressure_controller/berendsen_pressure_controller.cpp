@@ -8,7 +8,7 @@
 #include "device_types.h"
 #include "unit_factor.h"
 #include "update_pressure_op.h"
-
+#include "common/thermo_stats.hpp"
 extern rbmd::Real test_temperature;
 extern rbmd::Id test_current_step;
 BerendsenPressureController::BerendsenPressureController() {
@@ -55,6 +55,11 @@ GetArray<rbmd::Real>("pressure", "execution"); //[1.0,1.0,1.0,10.0]
   = _pressure_stop;
    REAL_DATA(_p_damp)[0] = REAL_DATA(_p_damp)[1] = REAL_DATA(_p_damp)[2]
   = _pressure_damp;
+  auto temperature_array=DataManager::getInstance().getConfigData()->
+  GetArray<rbmd::Real>("temperature", "execution");
+  ThermoStats::Instance().AddThermoData("temperature",temperature_array[0]);
+
+  ThermoStats::Instance().AddThermoData("pressure",_pressure_start);
 }
 
 void BerendsenPressureController::Update()
@@ -102,7 +107,7 @@ void BerendsenPressureController::ComputePressure()
     + _device_data->_d_virial[1] +_device_data->_d_virial[2])
   /3.0 * inv_volume * _nktv2p;
 
-  std::cout << " pressure=" << _pressure << std::endl;
+  ThermoStats::Instance().AddThermoData("pressure",_pressure);
   // out
   std::ofstream outfile("pressure.txt", std::ios::app);
   outfile << test_current_step << " " << _pressure << std::endl;

@@ -2,62 +2,56 @@
 #include <spdlog/spdlog.h>
 
 #include <memory>
-#include <string>
 #include <utility>
 
-class RankLogger {
+class Logger {
  private:
-  int _current_rank = -1;
+  int _current_rank = -1;  // 默认值，表示未配置或无效
   std::shared_ptr<spdlog::logger> _handle_logger = nullptr;
   bool _is_configured = false;
 
-  RankLogger() = default;
-  ~RankLogger() = default;
+  Logger() = default;
+  ~Logger() = default;
 
  public:
-  RankLogger(const RankLogger &) = delete;
-  RankLogger &operator=(const RankLogger &) = delete;
+  Logger(const Logger &) = delete;
+  Logger &operator=(const Logger &) = delete;
 
-  static RankLogger &getInstance() {
-    static RankLogger instance;
+  static Logger &Instance() {
+    static Logger instance;
     return instance;
   }
 
   void Configure(int current_rank, std::shared_ptr<spdlog::logger> spd_logger) {
     if (_is_configured) {
       spdlog::warn(
-          "RankLogger is already configured for rank {}. Re-configuration "
-          "attempt ignored.",
-          _current_rank);
-      return;
-    }
-
-    if (!spd_logger) {
-      spdlog::error(
-          "RankLogger configuration failed: provided spd_logger is null.");
+          "Logger is already configured. Re-configuration attempt "
+          "ignored.");
       return;
     }
 
     _current_rank = current_rank;
     _handle_logger = std::move(spd_logger);
 
-    _handle_logger->set_pattern("%^[%l rank: " + std::to_string(_current_rank) +
-                                "]%$ %v");
-
-    _is_configured = true;
+    if (_handle_logger) {
+      _is_configured = true;
+    } else {
+      spdlog::error(
+          "Logger configuration failed: provided spd_logger is null.");
+    }
   }
 
-  bool isConfigured() const { return _is_configured; }
+  bool IsConfigured() const { return _is_configured; }
 
   template <typename... Args>
   void log(spdlog::level::level_enum level, const char *fmt,
            const Args &...args) {
-    if (_is_configured && _handle_logger) {
+    if (_is_configured && _handle_logger && _current_rank == 0) {
       _handle_logger->log(level, fmt, args...);
     } else if (!_is_configured) {
       if (spdlog::default_logger_raw()) {
         spdlog::default_logger_raw()->warn(
-            "RankLogger used before being configured. Original message: {}",
+            "Logger used before being configured. Original message: {}",
             fmt::format(fmt, args...));
       }
     }

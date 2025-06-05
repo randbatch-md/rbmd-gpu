@@ -13,6 +13,7 @@
 #include "berendsen_pressure_controller.h"
 #include "nose_hoover_controller.h"
 #include "shake_controller.h"
+#include "thermo_stats.hpp"
 
 NPTensemble::NPTensemble() {
   _position_controller = std::make_shared<DefaultPositionController>();
@@ -45,7 +46,6 @@ void NPTensemble::Init() {
 
   _force_controller->Init();
   _force_controller->Execute();
-
   _shake_controller->Init();
 
   _temp_ctrl_type = DataManager::getInstance().getConfigData()->Get
