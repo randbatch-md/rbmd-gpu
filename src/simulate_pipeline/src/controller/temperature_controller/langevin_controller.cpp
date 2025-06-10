@@ -39,9 +39,7 @@ void LangevinController::Init() {
   auto temperature_array=DataManager::getInstance().getConfigData()->
     GetArray<rbmd::Real>("temperature", "execution");
   ThermoStats::Instance().AddThermoData("temperature",temperature_array[0]);
-  auto pressure_array=DataManager::getInstance().getConfigData()->
-    GetArray<rbmd::Real>("pressure", "execution");
-  ThermoStats::Instance().AddThermoData("pressure",pressure_array[0]);
+  ThermoStats::Instance().AddThermoData("pressure",0.0);
 }
 
 void LangevinController::Update() {

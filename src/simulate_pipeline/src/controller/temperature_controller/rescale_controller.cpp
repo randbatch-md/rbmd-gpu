@@ -44,9 +44,7 @@ void RescaleController::Init() {
   }
 
   ThermoStats::Instance().AddThermoData("temperature",_temperature_start);
-  auto pressure_array=DataManager::getInstance().getConfigData()->
-    GetArray<rbmd::Real>("pressure", "execution");
-  ThermoStats::Instance().AddThermoData("pressure",pressure_array[0]);
+  ThermoStats::Instance().AddThermoData("pressure",0.0);
 }
 
 void RescaleController::Update() {

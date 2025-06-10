@@ -342,11 +342,15 @@ int StructureReder::ReadPairCoeffs(const rbmd::Id& numAtomTypes) {
 int StructureReder::ReadBondCoeffs(const rbmd::Id& numBondTypes) {
   const auto& config = DataManager::getInstance().getConfigData();
   if (!config->PathExists({"hyper_parameters", "force_field", "bond_type"})) {
-    std::cerr << "FATAL ERROR: Missing bond_type definition in config" << std::endl;
+    Logger::Instance().info( "\033[31mFATAL ERROR: Missing 'bond_type' definition "
+             "in 'force_field'.\033[0m");
     exit(EXIT_FAILURE); //
   }
-
-  try {
+  //
+  std::string bond_type ="null";
+  bond_type = config->Get<std::string>("bond_type", "hyper_parameters", "force_field");
+  if (bond_type == "harmonic") {
+    try {
       auto force_filed = std::dynamic_pointer_cast<CVFFForceFieldData>(_md_data._force_field_data);
       auto& bond_coeffs_k = force_filed->_h_bond_coeffs_k;
       auto& bond_coeffs_equilibrium = force_filed->_h_bond_coeffs_equilibrium;
@@ -355,31 +359,36 @@ int StructureReder::ReadBondCoeffs(const rbmd::Id& numBondTypes) {
       rbmd::Id bound_type;
       rbmd::Real bond_coeffs_k_value;
       rbmd::Real equilibrium_value;
-      
+
       _line_start = &_mapped_memory[_locate];
       for (auto num = 0; _locate < _file_size && num < numBondTypes; ++_locate)
       {
-          if (_mapped_memory[_locate] == '\n')
+        if (_mapped_memory[_locate] == '\n')
+        {
+          auto line = std::string(_line_start,&_mapped_memory[_locate]);
+          std::istringstream iss(line);
+          if(rbmd::IsLegalLine(line))
           {
-              auto line = std::string(_line_start,&_mapped_memory[_locate]); 
-              std::istringstream iss(line); 
-              if(rbmd::IsLegalLine(line))
-              {
-                  iss >> bound_type >> bond_coeffs_k_value >> equilibrium_value;
-                  //std::cout << bound_type << " " <<bond_coeffs_k_value << " " << equilibrium_value << std::endl;
-                  bond_coeffs_k[bound_type - 1] = bond_coeffs_k_value;
-                  bond_coeffs_equilibrium[bound_type - 1] =equilibrium_value;
-                  ++num;
-               }
-                  _line_start = &_mapped_memory[_locate];
-           }
+            iss >> bound_type >> bond_coeffs_k_value >> equilibrium_value;
+            //std::cout << bound_type << " " <<bond_coeffs_k_value << " " << equilibrium_value << std::endl;
+            bond_coeffs_k[bound_type - 1] = bond_coeffs_k_value;
+            bond_coeffs_equilibrium[bound_type - 1] =equilibrium_value;
+            ++num;
+          }
+          _line_start = &_mapped_memory[_locate];
+        }
       }
 
-  } catch (const std::exception& e) {
-    // log
-    return -1;
+    } catch (const std::exception& e) {
+      // log
+      return -1;
+    }
   }
-
+  else {
+    Logger::Instance().info( "\033[31mFATAL ERROR: The definition of 'bond_type' "
+      "is invalid.\033[0m");
+    exit(EXIT_FAILURE); //
+  }
   return 0;
 }
 
@@ -387,11 +396,15 @@ int StructureReder::ReadAngleCoeffs(const rbmd::Id& numAngleTypes)
 {
   const auto& config = DataManager::getInstance().getConfigData();
   if (!config->PathExists({"hyper_parameters", "force_field", "angle_type"})) {
-    std::cerr << "FATAL ERROR: Missing angle_type definition in config" << std::endl;
+    Logger::Instance().info( "\033[31mFATAL ERROR: Missing 'angle_type' definition "
+         "in 'force_field'.\033[0m");
     exit(EXIT_FAILURE); //
   }
-
-  try {
+  //
+  std::string angle_type ="null";
+  angle_type = config->Get<std::string>("angle_type", "hyper_parameters", "force_field");
+  if (angle_type == "harmonic") {
+    try {
       auto force_filed = std::dynamic_pointer_cast<CVFFForceFieldData>(_md_data._force_field_data);
       auto& angle_coeffs_k = force_filed->_h_angle_coeffs_k;
       auto& angle_coeffs_equilibrium = force_filed->_h_angle_coeffs_equilibrium;
@@ -400,30 +413,35 @@ int StructureReder::ReadAngleCoeffs(const rbmd::Id& numAngleTypes)
       rbmd::Id angle_type;
       rbmd::Real angle_coeffs_k_value;
       rbmd::Real equilibrium_value;
-      
+
       _line_start = &_mapped_memory[_locate];
       for (auto num = 0; _locate < _file_size && num < numAngleTypes; ++_locate)
       {
-         if (_mapped_memory[_locate] == '\n')
-         {
-             auto line = std::string(_line_start,&_mapped_memory[_locate]);
-             std::istringstream iss(line); 
-             if(rbmd::IsLegalLine(line))
-             {
-                 iss >> angle_type >> angle_coeffs_k_value >>equilibrium_value;
-                 //std::cout << angle_type << " " <<angle_coeffs_k_value << " " << equilibrium_value << std::endl;
-                 angle_coeffs_k[angle_type - 1] = angle_coeffs_k_value; 
-                 angle_coeffs_equilibrium[angle_type - 1] = equilibrium_value;
-                 ++num;
-             }
-             _line_start = &_mapped_memory[_locate];
-         }
+        if (_mapped_memory[_locate] == '\n')
+        {
+          auto line = std::string(_line_start,&_mapped_memory[_locate]);
+          std::istringstream iss(line);
+          if(rbmd::IsLegalLine(line))
+          {
+            iss >> angle_type >> angle_coeffs_k_value >>equilibrium_value;
+            //std::cout << angle_type << " " <<angle_coeffs_k_value << " " << equilibrium_value << std::endl;
+            angle_coeffs_k[angle_type - 1] = angle_coeffs_k_value;
+            angle_coeffs_equilibrium[angle_type - 1] = equilibrium_value;
+            ++num;
+          }
+          _line_start = &_mapped_memory[_locate];
+        }
       }
-  } catch (const std::exception& e) {
-    // log
-    return -1;
+    } catch (const std::exception& e) {
+      // log
+      return -1;
+    }
   }
-
+  else {
+    Logger::Instance().info( "\033[31mFATAL ERROR: The definition of 'angle_type' "
+      "is invalid.\033[0m");
+    exit(EXIT_FAILURE); //
+  }
   return 0;
 }
 
@@ -431,7 +449,8 @@ int StructureReder::ReadDihedralsCoeffs(const rbmd::Id& numDihedralsTypes)
 {
   const auto& config = DataManager::getInstance().getConfigData();
   if (!config->PathExists({"hyper_parameters", "force_field", "dihedral_type"})) {
-    std::cerr << "FATAL ERROR: Missing dihedral_type definition in config" << std::endl;
+    Logger::Instance().info( "\033[31mFATAL ERROR: Missing 'dihedral_type' definition "
+     "in 'force_field'.\033[0m");
     exit(EXIT_FAILURE); //
   }
 
@@ -518,7 +537,8 @@ int StructureReder::ReadDihedralsCoeffs(const rbmd::Id& numDihedralsTypes)
     }
   }
   else {
-    std::cerr << "FATAL ERROR: The definition of dihedral_type is invalid" << std::endl;
+    Logger::Instance().info( "\033[31mFATAL ERROR: The definition of 'dihedral_type' "
+      "is invalid.\033[0m");
     exit(EXIT_FAILURE); //
   }
 
@@ -529,7 +549,8 @@ int StructureReder::ReadImproperCoeffs(const rbmd::Id& numImproperTypes)
 {
   const auto& config = DataManager::getInstance().getConfigData();
   if (!config->PathExists({"hyper_parameters", "force_field", "improper_type"})) {
-    std::cerr << "FATAL ERROR: Missing improper_type definition in config" << std::endl;
+    Logger::Instance().info( "\033[31mFATAL ERROR: Missing 'improper_type' definition "
+      "in 'force_field'.\033[0m");
     exit(EXIT_FAILURE); //
   }
 
@@ -612,7 +633,8 @@ int StructureReder::ReadImproperCoeffs(const rbmd::Id& numImproperTypes)
     }
   }
   else {
-    std::cerr << "FATAL ERROR: The definition of improper_type is invalid" << std::endl;
+    Logger::Instance().info( "\033[31mFATAL ERROR: The definition of 'improper_type' "
+        "is invalid.\033[0m");
     exit(EXIT_FAILURE); //
   }
   return 0;

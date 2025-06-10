@@ -62,6 +62,7 @@ typedef double2 Real2;
 #define FLOOR floor
 #define SQRT sqrt
 #define ERF erf
+#define ERFC erfc
 #define EXP exp
 #define COS cos
 #define SIN sin
@@ -87,6 +88,7 @@ typedef float2 Real2;
 #define FLOOR floorf
 #define SQRT sqrtf
 #define ERF erff
+#define ERFC erfcf
 #define EXP expf
 #define COS cosf
 #define SIN sinf

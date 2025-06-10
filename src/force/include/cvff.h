@@ -99,7 +99,7 @@ private:
   rbmd::Real _e_pe_rbl = 0;
 
   //RBL
-  std::string  _energy_rbl_flag = "yes";
+  std::string  _energy_rbl_flag = "yes"; //default
   std::string _neighbor_type;
   rbmd::Real _cut_off;
 
@@ -127,7 +127,7 @@ private:
   //RBE
   std::string _coulomb_type;
   rbmd::Id _RBE_P;
-  std::string  _energy_rbe_flag = "yes";
+  std::string  _energy_rbe_flag = "yes"; //default
   rbmd::Real _qqr2e;
   rbmd::Id _num_k;
   thrust::device_vector<rbmd::Real>  _P_Sample_x;

@@ -88,7 +88,7 @@ bool MemoryScheduler::asyncMemoryH2D() {
   else{_device_data->_d_charge.resize(num_atoms);}
 
 
-  /// copy force
+  //resize force
   _device_data->_d_fx.resize(num_atoms);
   _device_data->_d_fy.resize(num_atoms);
   _device_data->_d_fz.resize(num_atoms);

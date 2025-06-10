@@ -109,24 +109,60 @@ void LinkedCell::SyncHToD() {
                        sizeof(rbmd::Real), H2D));
 }
 
-void LinkedCell::SortAtomsByCellKey() {
-  // 使用 zip_iterator 组合多个数组
-  auto zip_begin = thrust::make_zip_iterator(thrust::make_tuple(
-      _device_data->_d_atoms_id.begin(), _device_data->_d_atoms_type.begin(),
-      _device_data->_d_px.begin(), _device_data->_d_py.begin(),
-      _device_data->_d_pz.begin(), _device_data->_d_vx.begin(),
-      _device_data->_d_vy.begin(), _device_data->_d_vz.begin(),
-      _device_data->_d_charge.begin(), _device_data->_d_molecular_id.begin()));
+template <typename... Iterators>
+void SortWithIterators(thrust::device_vector<int>& cell_ids, Iterators... its) {
+  auto zip_begin = thrust::make_zip_iterator(thrust::make_tuple(its...));
+  thrust::stable_sort_by_key(cell_ids.begin(), cell_ids.end(), zip_begin);
+}
 
-  // 一次性排序所有数据
-  thrust::stable_sort_by_key(_per_atom_cell_id.begin(), _per_atom_cell_id.end(),
-                             zip_begin);
+void LinkedCell::SortAtomsByCellKey() {
+  auto atom_style = DataManager::getInstance().getConfigData()->Get<std::string>(
+    "atom_style", "init_configuration", "read_data");
+
+  if ("atomic" == atom_style) {
+    SortWithIterators(_per_atom_cell_id,
+      _device_data->_d_atoms_id.begin(),
+      _device_data->_d_atoms_type.begin(),
+      _device_data->_d_px.begin(),
+      _device_data->_d_py.begin(),
+      _device_data->_d_pz.begin(),
+      _device_data->_d_vx.begin(),
+      _device_data->_d_vy.begin(),
+      _device_data->_d_vz.begin());
+  }
+  else if ("charge" == atom_style) {
+    SortWithIterators(_per_atom_cell_id,
+      _device_data->_d_atoms_id.begin(),
+      _device_data->_d_atoms_type.begin(),
+      _device_data->_d_px.begin(),
+      _device_data->_d_py.begin(),
+      _device_data->_d_pz.begin(),
+      _device_data->_d_vx.begin(),
+      _device_data->_d_vy.begin(),
+      _device_data->_d_vz.begin(),
+      _device_data->_d_charge.begin());
+  }
+  else if ("full" == atom_style) {
+    SortWithIterators(_per_atom_cell_id,
+      _device_data->_d_atoms_id.begin(),
+      _device_data->_d_atoms_type.begin(),
+      _device_data->_d_px.begin(),
+      _device_data->_d_py.begin(),
+      _device_data->_d_pz.begin(),
+      _device_data->_d_vx.begin(),
+      _device_data->_d_vy.begin(),
+      _device_data->_d_vz.begin(),
+      _device_data->_d_charge.begin(),
+      _device_data->_d_molecular_id.begin());
+  }
 
   // 执行 MapAtomidToIdxOp
   op::MapAtomidToIdxOp<device::DEVICE_GPU> map_atomid_to_idx_op;
   map_atomid_to_idx_op(thrust::raw_pointer_cast(_atom_id_to_idx.data()),
-                       raw_ptr(_device_data->_d_atoms_id), _total_atoms_num);
+                     raw_ptr(_device_data->_d_atoms_id), _total_atoms_num);
 }
+
+
 template <typename T>
 void LinkedCell::MapAtomId(thrust::device_vector<T>& d_target) {
   auto* d_atom_id_to_idx = thrust::raw_pointer_cast(_atom_id_to_idx.data());

@@ -65,32 +65,82 @@ LJCutCoulKspace::~LJCutCoulKspace(){}
 
 void LJCutCoulKspace::Init()
 {
-  _cut_off = DataManager::getInstance().getConfigData()->Get
-      <rbmd::Real>("cut_off", "hyper_parameters", "neighbor");
+  const auto& config = DataManager::getInstance().getConfigData();
 
-   _neighbor_type = DataManager::getInstance().getConfigData()->Get
-      <std::string>("type", "hyper_parameters", "neighbor");
+  //neighbor
+  _cut_off = config->Get<rbmd::Real>("cut_off", "hyper_parameters", "neighbor");
+  _neighbor_type = config->Get<std::string>("type", "hyper_parameters", "neighbor");
 
-   _coulomb_type =DataManager::getInstance().getConfigData()->Get<std::string>(
-        "type", "hyper_parameters", "coulomb");
-
-  _alpha = DataManager::getInstance().getConfigData()->Get<rbmd::Real>(
-"alpha", "hyper_parameters", "coulomb");
-  auto Kmax =DataManager::getInstance().getConfigData()->
-    GetArray<rbmd::Id>("kmax", "hyper_parameters", "coulomb");
-  _kmax_array.x = Kmax[0];
-  _kmax_array.y = Kmax[1];
-  _kmax_array.z = Kmax[2];
-  _num_k =  (2*_kmax_array.x +1)  * (2*_kmax_array.y +1)
-            * (2*_kmax_array.z +1) - 1;
-
-  if("RBE" == _coulomb_type) {
-    _RBE_P = DataManager::getInstance().getConfigData()->Get<rbmd::Id>(
-  "coulomb_sample_num", "hyper_parameters", "coulomb");
-    GetPsampleKey();
-
-    _energy_rbe_flag = DataManager::getInstance().getConfigData()->Get<std::string>("energy_rbe_flag", "hyper_parameters", "coulomb");
+  if("RBL" == _neighbor_type) {
+    bool energy_rbl_flag = config->PathExists({"hyper_parameters", "neighbor" ,"energy_rbl_flag"});
+    if (energy_rbl_flag) {
+      _energy_rbl_flag = config->Get<std::string>("energy_rbl_flag", "hyper_parameters", "neighbor");
+    }
+    else {
+      Logger::Instance().info( "\033[31mFATAL ERROR: When using RBL for the neighbor type, "
+                   "the key 'energy_rbl_flag' must be defined.\033[0m");
+      exit(EXIT_FAILURE); //
+    }
   }
+
+  //coulomb
+  _coulomb_type = "NULL"; // default
+  if (config->PathExists({"hyper_parameters", "coulomb"}))
+  {
+    //accuracy
+    if (config->PathExists({"hyper_parameters", "coulomb" ,"accuracy"})) {
+     	 _accuracy = DataManager::getInstance().getConfigData()->Get<rbmd::Real>(
+			"accuracy", "hyper_parameters", "coulomb");
+
+      auto box =  DataManager::getInstance().getMDData()->_box;
+      auto volue = CalculateVolume(*box);
+      auto num_atoms = *(_structure_info_data->_num_atoms);
+      //  sum q_sq
+      ComputeQsqSum(); //q2
+
+      //compute g_ewald
+      _g_ewald = _accuracy*SQRT(num_atoms*_cut_off*volue) / (2.0*_sum_sq_charge);
+      if (_g_ewald >= 1.0) _g_ewald = (1.35 - 0.15*LOG(_accuracy))/_cut_off;
+      else _g_ewald = SQRT(-LOG(_g_ewald)) / _cut_off;
+      _alpha = _g_ewald*_g_ewald;
+      std::cout << "accuracy : " <<_accuracy  << ",  alpha= " <<  _alpha <<std::endl;
+    }
+
+    //alpha
+  if (config->PathExists({"hyper_parameters", "coulomb" ,"alpha"})) {
+      _alpha = config->Get<rbmd::Real>("alpha", "hyper_parameters", "coulomb");
+
+      auto accuracy_test = ERFC(_cut_off * SQRT(_alpha));
+      //std::cout << "accuracy_test= " <<  accuracy_test <<std::endl;
+  }
+
+    //Kmax
+    auto Kmax =config->GetArray<rbmd::Id>("kmax", "hyper_parameters", "coulomb");
+    _kmax_array.x = Kmax[0];
+    _kmax_array.y = Kmax[1];
+    _kmax_array.z = Kmax[2];
+    _num_k =  (2*_kmax_array.x +1)  * (2*_kmax_array.y +1)
+              * (2*_kmax_array.z +1) - 1;
+
+    //RBE
+    _coulomb_type = config->Get<std::string>("type", "hyper_parameters", "coulomb");
+    if("RBE" == _coulomb_type) {
+      _RBE_P = config->Get<rbmd::Id>("coulomb_sample_num", "hyper_parameters", "coulomb");
+      GetPsampleKey();
+
+      //
+      bool energy_rbe_flag = config->PathExists({"hyper_parameters", "coulomb" ,"energy_rbe_flag"});
+      if (energy_rbe_flag) {
+        _energy_rbe_flag = config->Get<std::string>("energy_rbe_flag", "hyper_parameters", "coulomb");
+      }
+      else {
+        Logger::Instance().info( "\033[31mFATAL ERROR: When using RBE for the Coulomb type, "
+                     "the key 'energy_rbe_flag' must be defined.\033[0m");
+        exit(EXIT_FAILURE); //
+      }
+    }
+  }
+
 }
 
 void LJCutCoulKspace::Execute()
@@ -187,9 +237,7 @@ void LJCutCoulKspace::ComputeLJRBL()
 	TimingStatistics::Instance().record("Short-Range",duration_rbl_force.count());
   
     //energy
-   _energy_rbl_flag = DataManager::getInstance().getConfigData()->Get<std::string>
-      ("energy_rbl_flag", "hyper_parameters", "neighbor");
-   if ("yes" == _energy_rbl_flag ){
+   if ("yes" == _energy_rbl_flag){
        ComputeLJCoulEnergy();
     }
 }
@@ -468,16 +516,20 @@ void LJCutCoulKspace::ComputeChargeStructureFactorRBE(
     thrust::equal_to<rbmd::Id>(),thrust::plus<rbmd::Real>());
 
   //energy
-if ("yes" == _energy_rbe_flag ){
-  //charge self energy//
-  ComputeSelfEnergy(alpha,qqr2e,_e_self_energy);
+  const auto& config = DataManager::getInstance().getConfigData();
+  if(config->PathExists({"hyper_parameters", "coulomb" ,"energy_rbe_flag"}))
+  {
+    _energy_rbe_flag = config->Get<std::string>("energy_rbe_flag", "hyper_parameters", "coulomb");
+    if ("yes" == _energy_rbe_flag ){
+      //charge self energy//
+      ComputeSelfEnergy(alpha,qqr2e,_e_self_energy);
 
-  //kspace energy
-  ComputeKspaceEnergy(box, num_atoms, kmax_array,
-      alpha, qqr2e ,_e_kspace);
-  _e_kspace = _e_kspace +_e_self_energy;
-}
-
+      //kspace energy
+      ComputeKspaceEnergy(box, num_atoms, kmax_array,
+          alpha, qqr2e ,_e_kspace);
+      _e_kspace = _e_kspace +_e_self_energy;
+     }
+  }
 }
 
 void LJCutCoulKspace::ComputeRBE()
