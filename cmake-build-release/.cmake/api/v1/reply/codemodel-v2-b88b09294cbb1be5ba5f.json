@@ -1,0 +1,288 @@
+{
+	"configurations" : 
+	[
+		{
+			"directories" : 
+			[
+				{
+					"build" : ".",
+					"childIndexes" : 
+					[
+						1,
+						2,
+						3
+					],
+					"jsonFile" : "directory-.-Release-f5ebdc15457944623624.json",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.16"
+					},
+					"projectIndex" : 0,
+					"source" : ".",
+					"targetIndexes" : 
+					[
+						3
+					]
+				},
+				{
+					"build" : "cmake",
+					"jsonFile" : "directory-cmake-Release-0eb79bec6da18a9ec259.json",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.16"
+					},
+					"parentIndex" : 0,
+					"projectIndex" : 0,
+					"source" : "cmake"
+				},
+				{
+					"build" : "tools",
+					"jsonFile" : "directory-tools-Release-f9645b0170a45a75eff2.json",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.16"
+					},
+					"parentIndex" : 0,
+					"projectIndex" : 0,
+					"source" : "tools"
+				},
+				{
+					"build" : "src",
+					"childIndexes" : 
+					[
+						4,
+						5,
+						6,
+						7,
+						8
+					],
+					"jsonFile" : "directory-src-Release-b6cf2213fc5053b67c22.json",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.16"
+					},
+					"parentIndex" : 0,
+					"projectIndex" : 0,
+					"source" : "src"
+				},
+				{
+					"build" : "src/data_manager",
+					"jsonFile" : "directory-src.data_manager-Release-9f5f4db8e507ac44d4ae.json",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.16"
+					},
+					"parentIndex" : 3,
+					"projectIndex" : 1,
+					"source" : "src/data_manager",
+					"targetIndexes" : 
+					[
+						0
+					]
+				},
+				{
+					"build" : "src/reader",
+					"jsonFile" : "directory-src.reader-Release-c9feb3ee19028da80f94.json",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.16"
+					},
+					"parentIndex" : 3,
+					"projectIndex" : 2,
+					"source" : "src/reader",
+					"targetIndexes" : 
+					[
+						4
+					]
+				},
+				{
+					"build" : "src/neighbor_list",
+					"jsonFile" : "directory-src.neighbor_list-Release-798fe4e0f5eb506afeeb.json",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.3"
+					},
+					"parentIndex" : 3,
+					"projectIndex" : 3,
+					"source" : "src/neighbor_list",
+					"targetIndexes" : 
+					[
+						2
+					]
+				},
+				{
+					"build" : "src/force",
+					"jsonFile" : "directory-src.force-Release-eac10485bfb96c9bc078.json",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.16"
+					},
+					"parentIndex" : 3,
+					"projectIndex" : 4,
+					"source" : "src/force",
+					"targetIndexes" : 
+					[
+						1
+					]
+				},
+				{
+					"build" : "src/simulate_pipeline",
+					"jsonFile" : "directory-src.simulate_pipeline-Release-b95026289a122d8d7c7c.json",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.16"
+					},
+					"parentIndex" : 3,
+					"projectIndex" : 5,
+					"source" : "src/simulate_pipeline",
+					"targetIndexes" : 
+					[
+						5
+					]
+				}
+			],
+			"name" : "Release",
+			"projects" : 
+			[
+				{
+					"childIndexes" : 
+					[
+						1,
+						2,
+						3,
+						4,
+						5
+					],
+					"directoryIndexes" : 
+					[
+						0,
+						1,
+						2,
+						3
+					],
+					"name" : "rbmd-gpu",
+					"targetIndexes" : 
+					[
+						3
+					]
+				},
+				{
+					"directoryIndexes" : 
+					[
+						4
+					],
+					"name" : "data_manager",
+					"parentIndex" : 0,
+					"targetIndexes" : 
+					[
+						0
+					]
+				},
+				{
+					"directoryIndexes" : 
+					[
+						5
+					],
+					"name" : "reader",
+					"parentIndex" : 0,
+					"targetIndexes" : 
+					[
+						4
+					]
+				},
+				{
+					"directoryIndexes" : 
+					[
+						6
+					],
+					"name" : "neighbor_list",
+					"parentIndex" : 0,
+					"targetIndexes" : 
+					[
+						2
+					]
+				},
+				{
+					"directoryIndexes" : 
+					[
+						7
+					],
+					"name" : "force",
+					"parentIndex" : 0,
+					"targetIndexes" : 
+					[
+						1
+					]
+				},
+				{
+					"directoryIndexes" : 
+					[
+						8
+					],
+					"name" : "simulate_pipeline",
+					"parentIndex" : 0,
+					"targetIndexes" : 
+					[
+						5
+					]
+				}
+			],
+			"targets" : 
+			[
+				{
+					"directoryIndex" : 4,
+					"id" : "data_manager::@2bc392022471ac2b04dc",
+					"jsonFile" : "target-data_manager-Release-1d349414602e5a193cc5.json",
+					"name" : "data_manager",
+					"projectIndex" : 1
+				},
+				{
+					"directoryIndex" : 7,
+					"id" : "force::@7c18b2dcba1f7cd8203a",
+					"jsonFile" : "target-force-Release-f9ca6481d4cc90dabaa6.json",
+					"name" : "force",
+					"projectIndex" : 4
+				},
+				{
+					"directoryIndex" : 6,
+					"id" : "neighbor_list::@23f4361c6d5e8a29ec59",
+					"jsonFile" : "target-neighbor_list-Release-877a708339c45a22ea55.json",
+					"name" : "neighbor_list",
+					"projectIndex" : 3
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "rbmd-gpu::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-rbmd-gpu-Release-04ce009754510c3f5c61.json",
+					"name" : "rbmd-gpu",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 5,
+					"id" : "reader::@f18139fd06a467f94e47",
+					"jsonFile" : "target-reader-Release-a040bf9b8f461733ec7f.json",
+					"name" : "reader",
+					"projectIndex" : 2
+				},
+				{
+					"directoryIndex" : 8,
+					"id" : "simulate_pipeline::@9c92efb67800a7004653",
+					"jsonFile" : "target-simulate_pipeline-Release-ef75abb5c7ff8d657fbf.json",
+					"name" : "simulate_pipeline",
+					"projectIndex" : 5
+				}
+			]
+		}
+	],
+	"kind" : "codemodel",
+	"paths" : 
+	{
+		"build" : "/tmp/tmp.JerYnEdXc8/cmake-build-release",
+		"source" : "/tmp/tmp.JerYnEdXc8"
+	},
+	"version" : 
+	{
+		"major" : 2,
+		"minor" : 7
+	}
+}

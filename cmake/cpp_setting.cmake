@@ -7,8 +7,8 @@ macro(config_cpp name)
 	${CMAKE_CURRENT_LIST_DIR}/../
 	${CMAKE_CURRENT_LIST_DIR}/include/)
 
-	#target_compile_features(${name} PRIVATE cxx_std_17)
-	target_compile_features(${name} PRIVATE cxx_std_14)
+	target_compile_features(${name} PRIVATE cxx_std_17)
+	#target_compile_features(${name} PRIVATE cxx_std_14)
 
 	#default release
 	if(CMAKE_BUILD_TYPE STREQUAL "")

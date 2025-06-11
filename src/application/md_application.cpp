@@ -12,6 +12,7 @@
 #include "command_line.h"
 #include "cvff_memory_scheduler.h"
 #include "lj_memory_scheduler.h"
+#include "mace_memory_scheduler.h"
 #include "memory_scheduler.h"
 #include "output/include/TrajectoryOutput.h"
 #include "output/include/linux_pipe_sink.hpp"
@@ -151,6 +152,9 @@ int MDApplication::ReadMDData() {
   auto force_type = DataManager::getInstance().getConfigData()->Get<std::string>("type", "hyper_parameters", "force_field");
   if ("CVFF" == force_type) {
       memory_scheduler = std::make_shared<CVFFMemoryScheduler>();
+  }
+  else  if ("MACE" == force_type) {
+    memory_scheduler = std::make_shared<MACEMemoryScheduler>();
   }
   else
   {

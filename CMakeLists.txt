@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.16)
 
-set(CMAKE_CXX_STANDARD 14)
+set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
@@ -37,7 +37,18 @@ set(src
 ./src/common/unit_factor.cpp
 ./src/common/RBEPSample.h
 ./src/common/erf_table.h
-${output_srcs})
+${output_srcs}
+		src/force/include/maceload.h
+		src/force/src/maceload.cpp
+		src/data_manager/include/scheduler/mace_memory_scheduler.h
+		src/data_manager/include/force_field/mace_force_field_data.h
+		src/data_manager/src/mace_memory_scheduler.cpp
+		src/data_manager/src/mace_memory_scheduler.cpp
+		src/data_manager/src/mace_memory_scheduler.cpp
+		src/neighbor_list/src/op/rocm/mace_neighbor_list_op.hip.cu
+		src/neighbor_list/src/op/mace_neighbor_list_op.h
+		src/neighbor_list/src/neighbor_list_builder/mace_neighbor_list_builder.cpp
+		src/neighbor_list/include/neighbor_list_builder/mace_neighbor_list_builder.h)
 
 include_directories("${CMAKE_CURRENT_LIST_DIR}/src")
 include_directories("${CMAKE_CURRENT_LIST_DIR}/src/Utilities")
@@ -49,6 +60,27 @@ include_directories("${CMAKE_CURRENT_LIST_DIR}/src/output")
 if(USE_CUDA)
 	set_source_files_properties(${src} PROPERTIES LANGUAGE CUDA)
 endif()
+#torch
+#find_package(hipblas REQUIRED)
+#find_package(hipfft REQUIRED)
+#find_package(hiprand REQUIRED)
+#find_package(hipsparse REQUIRED)
+#find_package(hipsolver REQUIRED)
+#add gflags and libtorch
+#set(CMAKE_PREFIX_PATH "/home/amd/zkh/gflags" "/home/amd/libtorch" ${CMAKE_PREFIX_PATH})
+#find_package(gflags REQUIRED)
+#et(TORCH_DIR "/home/amd/libtorch")
+#find_package(Torch REQUIRED)
+#set(torch_INCLUDE_DIRS "${TORCH_DIR}/include" "${TORCH_DIR}/include/torch/csrc/api/include" "${TORCH_DIR}/include/torch/csrc/autograd" "${TORCH_DIR}/include/torch/csrc/cuda")
+#set(Torch_LINK_DIRS "${TORCH_DIR}/lib")
+#include_directories(${torch_INCLUDE_DIRS})
+#link_directories(${torch_LINK_DIRS})
+#list(APPEND depend_names ${TORCH_LIBRARIES})
+#list(APPEND depend_names PkgConfig::JSONCPP)
+#list(APPEND include_dirs "${TORCH_DIR}/include")
+#list(APPEND include_dirs "${TORCH_DIR}/include/torch/csrc/api/include")
+#list(APPEND include_dirs "${TORCH_DIR}/include/torch/csrc/autograd")
+#list(APPEND include_dirs "${TORCH_DIR}/include/torch/csrc/cuda")
 
 
 file(GLOB_RECURSE all_include_dirs

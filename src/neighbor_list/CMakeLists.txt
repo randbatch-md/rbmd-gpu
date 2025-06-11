@@ -38,9 +38,30 @@ get_property(TOOLS_LINK_PATH GLOBAL PROPERTY TOOLS_LINK_PATH)
 set(inclue_files ${TOOLS_INCLUDE_PATH}  "../data_manager/include"  ${include_dirs} ${spdlog_include} ${INCLUDE_DIRS})
 set(link_dirs ${TOOLS_LINK_PATH}  ${spdlog_link} ${LINK_DIRS})
 #set(link_name "hip::device" "spdlog" "hip::hipcub")
-set(depend_names ${LINK_NAME} "data_manager")
+set(depend_names ${LINK_NAME} "data_manager" "glog::glog")
 
 
+#torch
+find_package(hipblas REQUIRED)
+find_package(hipfft REQUIRED)
+find_package(hiprand REQUIRED)
+find_package(hipsparse REQUIRED)
+find_package(hipsolver REQUIRED)
+#find_package(glog REQUIRED)
+set(CMAKE_PREFIX_PATH "/home/amd/zkh/gflags" "/home/amd/zkh/gtest" "/home/amd/zkh/gloginstall" "/home/amd/libtorch" ${CMAKE_PREFIX_PATH})
+set(gtest_DIR "/home/amd/zkh/gtest")
+find_package(gflags REQUIRED)
+find_package(GTest REQUIRED)
+find_package(glog REQUIRED)
+
+set(TORCH_DIR "/home/amd/libtorch")
+find_package(Torch REQUIRED)
+list(APPEND link_dirs "${TORCH_DIR}/lib")
+list(APPEND depend_names ${TORCH_LIBRARIES})
+list(APPEND include_files "${TORCH_DIR}/include")
+list(APPEND include_files "${TORCH_DIR}/include/torch/csrc/api/include")
+list(APPEND include_files "${TORCH_DIR}/include/torch/csrc/autograd")
+list(APPEND include_files "${TORCH_DIR}/include/torch/csrc/cuda")
 
 cpp_library(
 name ${PROJECT_NAME}

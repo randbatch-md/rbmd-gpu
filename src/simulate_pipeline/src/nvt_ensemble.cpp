@@ -14,6 +14,8 @@
 #include "shake_controller.h"
 #include "data_manager.h"
 #include "model/md_data.h"
+#include "maceload.h"
+
 NVTensemble::NVTensemble()
 {
   _position_controller = std::make_shared<DefaultPositionController>();
@@ -29,6 +31,10 @@ NVTensemble::NVTensemble()
   }
   else if ("LJ/CUT/COUL/LONG" == force_type){
     _force_controller = std::make_shared<LJCutCoulKspace>(); // TODO: json file forcetype
+  }
+  else if ("MACE" == force_type) {
+    std::cout<<"mace_nvt_run"<<std::endl;
+    _force_controller = std::make_shared<maceload>();
   }
   _temperature_controller = std::make_shared<BerendsenController>();
   _shake_controller = std::make_shared<ShakeController>();

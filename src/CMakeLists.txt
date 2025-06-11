@@ -1,3 +1,4 @@
+add_definitions(-D_GLIBCXX_USE_CXX11_ABI=1)
 add_subdirectory(data_manager)
 add_subdirectory(reader)
 add_subdirectory(neighbor_list)

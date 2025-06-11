@@ -25,6 +25,9 @@ NVEensemble::NVEensemble() {
   else if ("LJ/CUT/COUL/LONG" == force_type){
     _force_controller = std::make_shared<LJCutCoulKspace>(); // TODO: json file forcetype
   }
+/*  else if ("MACE" == force_type) {
+    _force_controller = std::make_shared<maceload>();
+  }*/
 
   _energy_stable_scheme_controller = std::make_shared<EnergyStableSchemeController>();
 }

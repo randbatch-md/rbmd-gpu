@@ -13,7 +13,7 @@ bool LJMemoryScheduler::asyncMemoryH2D() {
 
   /// copy force field
   _device_data->_d_eps.resize(num_atoms_type);
-  _device_data->_d_mass.resize(num_atoms_type);
+  // _device_data->_d_mass.resize(num_atoms_type);
   _device_data->_d_sigma.resize(num_atoms_type);
 
   //_device_data->_d_charge.resize(num_atoms);
@@ -26,8 +26,8 @@ bool LJMemoryScheduler::asyncMemoryH2D() {
 
 
   /// mass
-  thrust::copy(fd->_h_mass, fd->_h_mass + num_atoms_type,
-               _device_data->_d_mass.begin());
+  // thrust::copy(fd->_h_mass, fd->_h_mass + num_atoms_type,
+  //              _device_data->_d_mass.begin());
 
   /// sigma
   if ( fd->_h_sigma) {

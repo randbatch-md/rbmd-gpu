@@ -9,7 +9,7 @@ class LJForceFieldData : public ForceFieldData {
 
  public:
   /// mass
-  rbmd::Real* _h_mass;
+ // rbmd::Real* _h_mass;
 
   /// eps
   rbmd::Real* _h_eps;

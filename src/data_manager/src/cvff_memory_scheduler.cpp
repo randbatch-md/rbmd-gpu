@@ -139,9 +139,9 @@ bool CVFFMemoryScheduler::asyncMemoryH2D() {
 
   /// (2) copy force field
   /// mass
-  _device_data->_d_mass.resize(num_atoms_type);
-  thrust::copy(fd->_h_mass, fd->_h_mass + num_atoms_type,
-               _device_data->_d_mass.begin());
+  // _device_data->_d_mass.resize(num_atoms_type);
+  // thrust::copy(fd->_h_mass, fd->_h_mass + num_atoms_type,
+  //              _device_data->_d_mass.begin());
   /// eps
  _device_data->_d_eps.resize(num_atoms_type);
   thrust::copy(fd->_h_eps, fd->_h_eps + num_atoms_type,

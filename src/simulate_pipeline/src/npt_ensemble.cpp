@@ -14,6 +14,7 @@
 #include "nose_hoover_controller.h"
 #include "shake_controller.h"
 #include "thermo_stats.hpp"
+#include "maceload.h"
 
 NPTensemble::NPTensemble() {
   _position_controller = std::make_shared<DefaultPositionController>();
@@ -30,6 +31,9 @@ NPTensemble::NPTensemble() {
   else if ("LJ/CUT/COUL/LONG" == force_type){
     _force_controller = std::make_shared<LJCutCoulKspace>(); // TODO: json file forcetype
   }
+ /* else if ("MACE" == force_type) {
+    _force_controller = std::make_shared<maceload>();
+  }*/
 
   _temperature_controller = std::make_shared<BerendsenController>();
   _pressure_controller = std::make_shared<BerendsenPressureController>();
