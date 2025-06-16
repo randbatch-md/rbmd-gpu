@@ -333,6 +333,32 @@ void CVFF::SumForces()
     _device_data->_d_force_kspace_z,_device_data->_d_force_bond_z,
     _device_data->_d_force_angle_z,_device_data->_d_force_dihedral_z,
     _device_data->_d_force_improper_z);
+
+  auto num_atoms = *(_structure_info_data->_num_atoms);
+  auto atom_id_to_idx =
+LinkedCellLocator::GetInstance().GetLinkedCell()->_atom_id_to_idx;
+
+  thrust::host_vector<rbmd::Real> h_fx(num_atoms);
+  thrust::host_vector<rbmd::Real> h_fy(num_atoms);
+  thrust::host_vector<rbmd::Real> h_fz(num_atoms);
+
+
+  thrust::copy(_device_data->_d_fx.begin(),_device_data->_d_fx.end(),
+    h_fx.begin());
+  thrust::copy(_device_data->_d_fy.begin(),_device_data->_d_fy.end(),
+    h_fy.begin());
+  thrust::copy(_device_data->_d_fz.begin(),_device_data->_d_fz.end(),
+  h_fz.begin());
+
+  std::ofstream fx("f_cvff.txt");
+  if (fx.is_open()) {
+    for (rbmd::Id i = 0; i < num_atoms; ++i) {
+      auto idx = atom_id_to_idx[i];
+      fx << i  << " " << h_fx[idx] << " " << h_fy[idx]
+        << " " << h_fz[idx]  << "\n";
+    }
+    fx.close();
+  }
 }
 
 void CVFF::ComputeChargeStructureFactorEwald(

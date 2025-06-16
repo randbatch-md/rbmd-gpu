@@ -12,6 +12,7 @@
 #include "command_line.h"
 #include "cvff_memory_scheduler.h"
 #include "lj_memory_scheduler.h"
+#include "eam_memory_scheduler.h"
 #include "memory_scheduler.h"
 #include "output/include/TrajectoryOutput.h"
 #include "output/include/linux_pipe_sink.hpp"
@@ -46,6 +47,7 @@ MDApplication::MDApplication(int argc, char* argv[])
   auto combined_logger = std::make_shared<spdlog::logger>("logger", sinks.begin(), sinks.end());
   combined_logger->set_pattern("[%Y-%m-%d %H:%M:%S.%02e] [%^%l%$] %v");
   combined_logger->set_level(spdlog::level::info);
+  combined_logger->flush_on(spdlog::level::info);
   Logger::Instance().Configure(0,combined_logger);
   Logger::Instance().info(Logo_output.c_str());
   //
@@ -152,9 +154,19 @@ int MDApplication::ReadMDData() {
   if ("CVFF" == force_type) {
       memory_scheduler = std::make_shared<CVFFMemoryScheduler>();
   }
-  else
+  else if ("LJ/CUT" == force_type)
   {
       memory_scheduler = std::make_shared<LJMemoryScheduler>();
+  }
+  else if ("EAM" == force_type)
+  {
+    // EAMForceFieldData eam_force_field_data;
+    // std::string potential_file =
+    // DataManager::getInstance().getConfigData()->Get<std::string>(
+    //     "potential_file", "hyper_parameters", "force_field");
+    // eam_force_field_data.ReadPotentialFile(potential_file);
+
+    memory_scheduler = std::make_shared<EAMMemoryScheduler>();
   }
 
   DataManager::getInstance().Fill2Device(memory_scheduler);

@@ -8,6 +8,7 @@
 #include "lj_cut_coul_kspace.h"
 #include "cvff.h"
 #include "tersoff.h"
+#include "eam.h"
 #include "rescale_controller.h"
 #include "berendsen_controller.h"
 #include "nose_hoover_controller.h"
@@ -29,6 +30,9 @@ NVTensemble::NVTensemble()
   }
   else if ("LJ/CUT/COUL/LONG" == force_type){
     _force_controller = std::make_shared<LJCutCoulKspace>(); // TODO: json file forcetype
+  }
+  else if ("EAM" == force_type){
+    _force_controller = std::make_shared<EAM>(); // TODO: json file forcetype
   }
   _temperature_controller = std::make_shared<BerendsenController>();
   _shake_controller = std::make_shared<ShakeController>();
@@ -76,30 +80,30 @@ void NVTensemble::Solve() {
       _shake_controller->ShakeB();
     }
   }
-  else
-  {
-    auto start = std::chrono::high_resolution_clock::now();
+ else
+ {
+   auto start = std::chrono::high_resolution_clock::now();
 
-    _velocity_controller->Update();
+   _velocity_controller->Update();
 
-    _position_controller->Update();
+   _position_controller->Update();
 
-    bool use_shake = DataManager::getInstance().getConfigData()->GetJudge<bool>
-    ( "fix_shake", "hyper_parameters", "extend");; //TODO: json file
-    if (use_shake)
-    {
-      _shake_controller->ShakeA();
-    }
+   bool use_shake = DataManager::getInstance().getConfigData()->GetJudge<bool>
+   ( "fix_shake", "hyper_parameters", "extend");; //TODO: json file
+   if (use_shake)
+   {
+     _shake_controller->ShakeA();
+   }
 
-    _force_controller->Execute();
+   _force_controller->Execute();
 
-    if ("LANGEVIN"==DataManager::getInstance().getConfigData()->Get<std::string>
-      ("temp_ctrl_type", "execution"))
-    {
-      _temperature_controller->Update();
-    }
+   if ("LANGEVIN"==DataManager::getInstance().getConfigData()->Get<std::string>
+     ("temp_ctrl_type", "execution"))
+   {
+     _temperature_controller->Update();
+   }
 
-    _velocity_controller->Update();
+   _velocity_controller->Update();
 
     if (use_shake)
     {
@@ -118,7 +122,7 @@ void NVTensemble::Solve() {
     auto end = std::chrono::high_resolution_clock::now();
     std::chrono::duration<rbmd::Real> duration = end - start;
 
-  }
+ }
 
 }
 

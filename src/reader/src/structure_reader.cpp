@@ -191,75 +191,38 @@ int StructureReder::ReadForceField() {
 }
 
 int StructureReder::ReadMass(const rbmd::Id& numAtomTypes) {
-    auto force_style = DataManager::getInstance().getConfigData()->Get<std::string>( "type", "hyper_parameters", "force_field");
-    if ("CVFF" == force_style) {
-        try {
-            auto force_filed =
-                std::dynamic_pointer_cast<CVFFForceFieldData>(_md_data._force_field_data);
-            auto& mass = force_filed->_h_mass;
-            CHECK_RUNTIME(MALLOCHOST(&mass, numAtomTypes * sizeof(rbmd::Real)));
-            rbmd::Id atom_type;
-            rbmd::Real value;
+  try {
+    auto force_filed =
+        std::dynamic_pointer_cast<ForceFieldData>(_md_data._force_field_data);
+    auto& mass = force_filed->_h_mass;
+    CHECK_RUNTIME(MALLOCHOST(&mass, numAtomTypes * sizeof(rbmd::Id)));
+    rbmd::Id atom_type;
+    rbmd::Real value;
 
-            _line_start = &_mapped_memory[_locate];
-            for (auto num = 0; _locate < _file_size && num < numAtomTypes; ++_locate) {
-                if (_mapped_memory[_locate] == '\n') {
-                    auto line = std::string(_line_start, &_mapped_memory[_locate]);
-                    std::istringstream iss(line);
-                    if (rbmd::IsLegalLine(line)) {
-                        iss >> atom_type >> value;
-                        mass[atom_type - 1] = value;
-                        // std::cout << atom_type << " " << force_filed->_h_mass[atom_type -
-                        // 1] << std::endl;
-                        ++num;
-                    }
+    _line_start = &_mapped_memory[_locate];
+    for (auto num = 0; _locate < _file_size && num < numAtomTypes; ++_locate) {
+      if (_mapped_memory[_locate] == '\n') {
+        auto line = std::string(_line_start, &_mapped_memory[_locate]);
+        std::istringstream iss(line);
+        if (rbmd::IsLegalLine(line)) {
+          iss >> atom_type >> value;
+          mass[atom_type - 1] = value;
+          // std::cout << atom_type << " " << force_filed->_h_mass[atom_type -
+          // 1] << std::endl;
+          ++num;
+        }
 
-                    _line_start = &_mapped_memory[_locate];
-                }
-            }
-            auto& mass_1 = force_filed->_h_mass;
-            //std::cout << "mass[0]=" << force_filed->_h_mass[0] << ","<< "mass[1]=" << force_filed->_h_mass[1] << std::endl;
-        }
-        catch (const std::exception& e) {
-            // log
-            return -1;
-        }
-    }else
-    {
-        try {
-            auto force_filed =
-                std::dynamic_pointer_cast<LJForceFieldData>(_md_data._force_field_data);
-            auto& mass = force_filed->_h_mass;
-            CHECK_RUNTIME(MALLOCHOST(&mass, numAtomTypes * sizeof(rbmd::Id)));
-            rbmd::Id atom_type;
-            rbmd::Real value;
-
-            _line_start = &_mapped_memory[_locate];
-            for (auto num = 0; _locate < _file_size && num < numAtomTypes; ++_locate) {
-                if (_mapped_memory[_locate] == '\n') {
-                    auto line = std::string(_line_start, &_mapped_memory[_locate]);
-                    std::istringstream iss(line);
-                    if (rbmd::IsLegalLine(line)) {
-                        iss >> atom_type >> value;
-                        mass[atom_type - 1] = value;
-                        // std::cout << atom_type << " " << force_filed->_h_mass[atom_type -
-                        // 1] << std::endl;
-                        ++num;
-                    }
-
-                    _line_start = &_mapped_memory[_locate];
-                }
-            }
-            auto& mass_1 = force_filed->_h_mass;
-            /*std::cout << "mass[0]=" << force_filed->_h_mass[0] << ","
-                << "mass[1]=" << force_filed->_h_mass[1] << std::endl;*/
-        }
-        catch (const std::exception& e) {
-            // log
-            return -1;
-        }
+        _line_start = &_mapped_memory[_locate];
+      }
     }
-  
+    auto& mass_1 = force_filed->_h_mass;
+    /*std::cout << "mass[0]=" << force_filed->_h_mass[0] << ","
+        << "mass[1]=" << force_filed->_h_mass[1] << std::endl;*/
+  }
+  catch (const std::exception& e) {
+    // log
+    return -1;
+  }
 
   return 0;
 }

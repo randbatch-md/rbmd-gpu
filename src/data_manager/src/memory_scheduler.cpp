@@ -14,6 +14,7 @@ MemoryScheduler::MemoryScheduler()
 
 bool MemoryScheduler::asyncMemoryH2D() {
   auto& num_atoms = *(_structure_info_data->_num_atoms);
+  auto& atoms_type = *(_structure_info_data->_num_atoms_type);
   auto& num_bonds = *(_structure_info_data->_num_bonds);
   auto& num_angles = *(_structure_info_data->_num_angles);
   auto& num_dihedrals = *(_structure_info_data->_num_dihedrals);
@@ -41,6 +42,7 @@ bool MemoryScheduler::asyncMemoryH2D() {
 
   auto& h_evdwl= _structure_data->_h_evdwl;
 
+  auto& h_mass = _force_field_data->_h_mass;
   auto& h_atoms_id = _structure_data->_h_atoms_id;
   auto& h_atoms_type = _structure_data->_h_atoms_type;
   auto& h_molecular_id = _structure_data->_h_molecular_id;
@@ -157,9 +159,13 @@ bool MemoryScheduler::asyncMemoryH2D() {
   _device_data->_d_virial_improper.resize(6);
 
   /// copy other
+  _device_data->_d_mass.resize(atoms_type);
   _device_data->_d_atoms_id.resize(num_atoms);
   _device_data->_d_atoms_type.resize(num_atoms);
   //_device_data->_d_molecular_id.resize(num_atoms);
+
+  thrust::copy(h_mass, h_mass + atoms_type,
+             _device_data->_d_mass.begin());
   thrust::copy(h_atoms_id, h_atoms_id + num_atoms,
                _device_data->_d_atoms_id.begin());
   thrust::copy(h_atoms_type, h_atoms_type + num_atoms,

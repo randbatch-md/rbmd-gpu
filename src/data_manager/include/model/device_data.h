@@ -117,6 +117,7 @@ class DeviceData {
   thrust::device_vector<rbmd::Real> _d_rhor;
 
   /// ϕ(r) on host
+  thrust::device_vector<rbmd::Real> _d_zr;
   thrust::device_vector<rbmd::Real> _d_z2r;
 
   ///< force on device>
@@ -191,6 +192,9 @@ class DeviceData {
 
   // ERFTable in device
   ERFTable* _d_erf_table;
+
+  thrust::device_vector<rbmd::Real> _eam_rho;
+  thrust::device_vector<rbmd::Real> _eam_fp;
 
   void unload()
   {

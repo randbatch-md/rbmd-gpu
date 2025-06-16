@@ -68,6 +68,12 @@ void NoseHooverController::Init() {
       _kB = UnitFactor<UNIT::LJ>::_kb;
       _fmt2v = UnitFactor<UNIT::LJ>::_fmt2v;
       break;
+    case UNIT::METAL:
+      _nktv2p = UnitFactor<UNIT::METAL>::_nktv2p;
+      _mvv2e = UnitFactor<UNIT::METAL>::_mvv2e;
+      _kB = UnitFactor<UNIT::METAL>::_kb;
+      _fmt2v = UnitFactor<UNIT::METAL>::_fmt2v;
+      break;
     case UNIT::REAL:
       _nktv2p = UnitFactor<UNIT::REAL>::_nktv2p;
       _mvv2e = UnitFactor<UNIT::REAL>::_mvv2e;
@@ -180,10 +186,10 @@ void NoseHooverController::ComputeTemperature(){
 
   _temperature = 0.5 * _temp_sum / (_tdof * _kB / 2.0);
 
-  if (std::isnan(_temperature)) {
-    std::cerr << "FATAL ERROR: Temperature is infinite" << std::endl;
-    exit(EXIT_FAILURE);
-  }
+  // if (std::isnan(_temperature)) {
+  //   std::cerr << "FATAL ERROR: Temperature is infinite" << std::endl;
+  //   exit(EXIT_FAILURE);
+  // }
 }
 
 void NoseHooverController::ComputeVirial()

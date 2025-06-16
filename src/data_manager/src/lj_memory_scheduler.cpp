@@ -25,9 +25,9 @@ bool LJMemoryScheduler::asyncMemoryH2D() {
   }
 
 
-  /// mass
-  thrust::copy(fd->_h_mass, fd->_h_mass + num_atoms_type,
-               _device_data->_d_mass.begin());
+  // /// mass
+  // thrust::copy(fd->_h_mass, fd->_h_mass + num_atoms_type,
+  //              _device_data->_d_mass.begin());
 
   /// sigma
   if ( fd->_h_sigma) {

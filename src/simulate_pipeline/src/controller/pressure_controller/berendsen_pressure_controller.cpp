@@ -38,6 +38,10 @@ GetArray<rbmd::Real>("pressure", "execution"); //[1.0,1.0,1.0,10.0]
       _nktv2p = UnitFactor<UNIT::LJ>::_nktv2p;
       _kB = UnitFactor<UNIT::LJ>::_kb;
       break;
+    case UNIT::METAL:
+      _nktv2p = UnitFactor<UNIT::METAL>::_nktv2p;
+      _kB = UnitFactor<UNIT::METAL>::_kb;
+      break;
     case UNIT::REAL:
       _nktv2p = UnitFactor<UNIT::REAL>::_mvv2e;
       _kB = UnitFactor<UNIT::REAL>::_kb;
