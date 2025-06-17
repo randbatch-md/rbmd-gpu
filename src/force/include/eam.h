@@ -42,8 +42,6 @@ private:
   std::shared_ptr<NeighborList> _list;
 
   //energy
-  thrust::device_vector<rbmd::Real> _d_energy_embedding;
-  thrust::device_vector<rbmd::Real> _d_energy_pair;
 
   rbmd::Real _e_embedding = 0;
   rbmd::Real _e_pair = 0;

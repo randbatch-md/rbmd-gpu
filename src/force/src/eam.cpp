@@ -8,7 +8,6 @@
 #include "../common/unit_factor.h"
 #include "eam_op/eam_op.h"
 #include "force_op/force_op.h"
-#include "lj_op/lj_op.h"
 #include "neighbor_list/include/linked_cell/linked_cell_locator.h"
 #include "neighbor_list/include/neighbor_list_builder/full_neighbor_list_builder.h"
 #include "neighbor_list/include/neighbor_list_builder/rbl_full_neighbor_list_builder.h"
@@ -317,49 +316,50 @@ thrust::raw_pointer_cast(d_energy_pair.data()));
 }
 
 void EAM::EAMRBL() {
+
   //neighbor_list_build
-  auto start = std::chrono::high_resolution_clock::now();
+  auto start_rbl = std::chrono::high_resolution_clock::now();
   _rbl_list = _rbl_neighbor_list_builder->Build();
+  auto end_rbl = std::chrono::high_resolution_clock::now();
+  std::chrono::duration<rbmd::Real> duration_rbl = end_rbl - start_rbl;
 
-  auto end = std::chrono::high_resolution_clock::now();
-  std::chrono::duration<rbmd::Real> duration = end - start;
-  TimingStatistics::Instance().record("Neighbor-List",duration.count());
-
+  TimingStatistics::Instance().record("Neighbor-List",duration_rbl.count());
 
   // compute force
   auto start_rbl_force = std::chrono::high_resolution_clock::now();
 
-  const auto r_core =
-    DataManager::getInstance().getConfigData()->Get<rbmd::Real>(
-        "r_core", "hyper_parameters", "neighbor");
-
-  const auto neighbor_sample_num =
-  DataManager::getInstance().getConfigData()->Get<rbmd::Id>(
-      "neighbor_sample_num", "hyper_parameters", "neighbor");
-
   auto num_atoms = *(_structure_info_data->_num_atoms);
-  thrust::device_vector<rbmd::Real> eam_rho(num_atoms);
   thrust::device_vector<rbmd::Real> eam_fp(num_atoms);
+  thrust::device_vector<rbmd::Real> d_energy_embedding(1,0.0);
 
- //fp
-  op::ComputeFpRBL<device::DEVICE_GPU>()(
-*_box, eam_paras ,r_core ,file.cut_off, num_atoms,neighbor_sample_num,
-_rbl_list->_selection_frequency,
+  //1:  compute fp
+  _list = _neighbor_list_builder->Build();
+  op::ComputeFpVerlet<device::DEVICE_GPU>()(
+*_box, eam_paras ,file.cut_off, num_atoms,
 thrust::raw_pointer_cast(_device_data->_d_atoms_type.data()),
 thrust::raw_pointer_cast(_device_data->_d_atoms_id.data()),
-thrust::raw_pointer_cast(_rbl_list->_start_idx.data()),
-   thrust::raw_pointer_cast(_rbl_list->_end_idx.data()),
-   thrust::raw_pointer_cast(_rbl_list->_d_neighbors.data()),
-   thrust::raw_pointer_cast(_rbl_list->_d_random_neighbor.data()),
-   thrust::raw_pointer_cast(_rbl_list->_d_random_neighbor_num.data()),
+thrust::raw_pointer_cast(_list->_start_idx.data()),
+thrust::raw_pointer_cast(_list->_end_idx.data()),
+thrust::raw_pointer_cast(_list->_d_neighbors.data()),
 thrust::raw_pointer_cast(_d_rhor_spline.data()),
 thrust::raw_pointer_cast(_d_frho_spline.data()),
 thrust::raw_pointer_cast(_device_data->_d_px.data()),
 thrust::raw_pointer_cast(_device_data->_d_py.data()),
 thrust::raw_pointer_cast(_device_data->_d_pz.data()),
-thrust::raw_pointer_cast(eam_fp.data()));
+thrust::raw_pointer_cast(eam_fp.data()),
+thrust::raw_pointer_cast(d_energy_embedding.data()));
 
-  //EAMForce
+  thrust::host_vector<rbmd::Real> h_energy_embedding(d_energy_embedding);
+  _e_embedding = h_energy_embedding[0] / num_atoms;
+
+ //2: compute EAM_RBL
+  const auto r_core =
+    DataManager::getInstance().getConfigData()->Get<rbmd::Real>(
+        "r_core", "hyper_parameters", "neighbor");
+  const auto neighbor_sample_num =
+  DataManager::getInstance().getConfigData()->Get<rbmd::Id>(
+      "neighbor_sample_num", "hyper_parameters", "neighbor");
+
   op::ComputeEAMForceRBL<device::DEVICE_GPU>()(
 *_box, eam_paras ,r_core,file.cut_off, num_atoms,neighbor_sample_num,
 _rbl_list->_selection_frequency,
@@ -379,7 +379,6 @@ thrust::raw_pointer_cast(eam_fp.data()),
 thrust::raw_pointer_cast(_device_data->_d_fx.data()),
 thrust::raw_pointer_cast(_device_data->_d_fy.data()),
 thrust::raw_pointer_cast(_device_data->_d_fz.data()));
-
 
   _corr_value_x =
     thrust::reduce(_device_data->_d_fx.begin(), _device_data->_d_fx.end(),
@@ -413,7 +412,6 @@ void EAM::ComputEAMEnergy() {
   //neighbor_list_build
   _list = _neighbor_list_builder->Build();
 
-
   //
   auto num_atoms = *(_structure_info_data->_num_atoms);
   thrust::device_vector<rbmd::Real> eam_rho(num_atoms);
@@ -440,11 +438,8 @@ thrust::raw_pointer_cast(d_energy_embedding.data()),
 thrust::raw_pointer_cast(d_energy_pair.data()));
 
   // D2H
-  thrust::host_vector<rbmd::Real> h_energy_embedding(d_energy_embedding);
   thrust::host_vector<rbmd::Real> h_energy_pair(d_energy_pair);
-  _e_embedding = h_energy_embedding[0] / num_atoms;
-  _e_pair = ( h_energy_pair[0]) / num_atoms;
-
+  _e_pair = h_energy_pair[0] / num_atoms;
 }
 
 void EAM::SumForces() {
@@ -481,6 +476,7 @@ void EAM::SumForces() {
 void EAM::EvaluatePotentialenergy() {
 
   _e_pe = _e_embedding + _e_pair;
+  //std::cout<<  "energy:  "<< _e_embedding   <<  ", "<<   _e_pair   <<   std::endl;
   ThermoStats::Instance().AddThermoData("total-potential-energy",_e_pe);
 
   //out

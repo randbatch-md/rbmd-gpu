@@ -6,6 +6,28 @@
 
 namespace op {
 
+//Verlet:: Fp Verlet
+template <typename DEVICE>
+struct ComputeFpVerlet
+{
+  void operator()( Box box,
+        EAMParameters eam_paras,
+        const rbmd::Real cut_off,
+        const rbmd::Id num_atoms,
+        const rbmd::Id* atoms_type,
+        const rbmd::Id* atoms_id,
+        const rbmd::Id* start_id,
+        const rbmd::Id* end_id,
+        const rbmd::Id* id_verletlist,
+        const Real7*  rhor_spline,
+        const Real7* frho_spline,
+        const rbmd::Real* px,
+        const rbmd::Real* py,
+        const rbmd::Real* pz,
+        rbmd::Real* eam_fp,
+        rbmd::Real* energy_embedding);
+};
+
 //Verlet:: EAMForceVerletOp
 template <typename DEVICE>
 struct ComputeEAMForceVerlet
@@ -143,6 +165,27 @@ struct ComputeEAMEnergy
 ///
 
 template <>
+struct ComputeFpVerlet<device::DEVICE_GPU>
+{
+  void operator()( Box box,
+        EAMParameters eam_paras,
+        const rbmd::Real cut_off,
+        const rbmd::Id num_atoms,
+        const rbmd::Id* atoms_type,
+        const rbmd::Id* atoms_id,
+        const rbmd::Id* start_id,
+        const rbmd::Id* end_id,
+        const rbmd::Id* id_verletlist,
+        const Real7*  rhor_spline,
+        const Real7* frho_spline,
+        const rbmd::Real* px,
+        const rbmd::Real* py,
+        const rbmd::Real* pz,
+        rbmd::Real* eam_fp,
+        rbmd::Real* energy_embedding);
+};
+
+template <>
 struct ComputeEAMForceVerlet<device::DEVICE_GPU> {
   void operator()(Box box, EAMParameters eam_paras, const rbmd::Real cut_off,
                   const rbmd::Id num_atoms, const rbmd::Id* atoms_type,
@@ -155,7 +198,6 @@ struct ComputeEAMForceVerlet<device::DEVICE_GPU> {
                   rbmd::Real* fy, rbmd::Real* fz, rbmd::Real* energy_embedding,
                   rbmd::Real* energy_pair);
 };
-
 
 
 template <>

@@ -4,6 +4,7 @@
 #include "../../common/rbmd_define.h"
 #include "../../common/types.h"
 #include "../../common/unit_factor.h"
+#include "force_op/force_op.h"
 #include "lj_op/lj_op.h"
 #include "lj_cut_coul_kspace_op/lj_cut_coul_kspace_op.h"
 #include "../common/RBEPSample.h"

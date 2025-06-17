@@ -49,9 +49,7 @@ __device__ void  EAMFp(
 
 __device__ void EAMForce(rbmd::Real rsq, EAMParameters eam_paras,
     const Real7* rhor_spline,const Real7* z2r_spline, const rbmd::Real fp_i,
-    const rbmd::Real fp_j,const rbmd::Real x12 ,const rbmd::Real y12,
-    const rbmd::Real z12, rbmd::Real& force_pair,
-    rbmd::Real& phi)
+    const rbmd::Real fp_j, rbmd::Real& force_pair,rbmd::Real& phi)
 {
   auto r = SQRT(rsq);
   auto rdr = 1 / eam_paras.dr;
@@ -148,7 +146,7 @@ __global__ void FpVerlet(
     EAMFp(eam_paras,frho_spline,sum_rho,local_eam_fp,local_phi);
 
     eam_fp[tid1] = local_eam_fp ;
-    sum_phi += local_phi;
+    sum_phi = local_phi;
 
   }
 
@@ -212,15 +210,14 @@ __global__ void EAMForceVerlet(
       rbmd::Real force_pair;
       if (rsq < cutsq)
       {
-        EAMForce(rsq,eam_paras,rhor_spline,z2r_spline,fp_i,fp_j,x12,
-          y12,z12,force_pair,phi);
+        EAMForce(rsq,eam_paras,rhor_spline,z2r_spline,fp_i,fp_j,
+          force_pair,phi);
 
-        sum_fx += force_pair * x12;
-        sum_fy += force_pair * y12;
-        sum_fz += force_pair * z12;
-        local_phi += phi;
       }
-
+      sum_fx += force_pair * x12;
+      sum_fy += force_pair * y12;
+      sum_fz += force_pair * z12;
+      local_phi += phi;
     }
     //compute f
     fx[tid1]  = sum_fx;
@@ -454,8 +451,8 @@ __global__ void EAMForceRBL(
       rbmd::Real force_pair;
       if (rsq < rs_2)
       {
-        EAMForce(rsq,eam_paras,rhor_spline,z2r_spline,fp_i,fp_j,x12,
-          y12,z12,force_pair,local_phi_rs);
+        EAMForce(rsq,eam_paras,rhor_spline,z2r_spline,fp_i,fp_j,
+          force_pair,local_phi_rs);
       }
 
       sum_fsx += force_pair * x12;
@@ -485,8 +482,8 @@ __global__ void EAMForceRBL(
       rbmd::Real  force_pair;
       rbmd::Real local_phi_rcs;
       if (rsq < rc_2 && rsq > rs_2) {
-        EAMForce(rsq,eam_paras,rhor_spline,z2r_spline,fp_i,fp_j,x12,
-          y12,z12,force_pair,local_phi_rcs);
+        EAMForce(rsq,eam_paras,rhor_spline,z2r_spline,fp_i,fp_j,
+          force_pair,local_phi_rcs);
       }
       sum_fcsx += force_pair * x12;
       sum_fcsy += force_pair * y12;
@@ -555,8 +552,8 @@ __global__ void EAMForceEnergy(
      rbmd::Real  local_phi;
       if (rsq < rc_2)
       {
-        EAMForce(rsq,eam_paras,rhor_spline,z2r_spline,fp_i,fp_j,x12,
-          y12,z12,force_pair,local_phi);
+        EAMForce(rsq,eam_paras,rhor_spline,z2r_spline,fp_i,fp_j,
+          force_pair,local_phi);
       }
       sum_phi += local_phi;
     }
@@ -574,21 +571,38 @@ __global__ void EAMForceEnergy(
 
 
 ////////////////////////
-//Verlet :: EAMForceVerletOp
-void ComputeEAMForceVerlet<device::DEVICE_GPU>::operator()(
-     Box box, EAMParameters eam_paras ,const rbmd::Real rc,const rbmd::Id num_atoms,
-     const rbmd::Id* atoms_type, const rbmd::Id* atoms_id,
-    const rbmd::Id* start_id, const rbmd::Id* end_id, const rbmd::Id* id_verletlist,
-    const Real7* rhor_spline,const Real7* frho_spline,const Real7* z2r_spline,
-    const rbmd::Real* px, const rbmd::Real* py,const rbmd::Real* pz,
-    rbmd::Real* eam_rho, rbmd::Real* eam_fp ,
-    rbmd::Real* fx,rbmd::Real* fy, rbmd::Real* fz,
-    rbmd::Real* energy_embedding,rbmd::Real* energy_pair) {
-    unsigned int blocks_per_grid = (num_atoms + BLOCK_SIZE - 1) / BLOCK_SIZE;
+// Verlet ::  Fp
+void ComputeFpVerlet<device::DEVICE_GPU>::operator()(
+Box box, EAMParameters eam_paras ,const rbmd::Real rc,const rbmd::Id num_atoms,
+const rbmd::Id* atoms_type, const rbmd::Id* atoms_id,
+const rbmd::Id* start_id, const rbmd::Id* end_id, const rbmd::Id* id_verletlist,
+const Real7* rhor_spline,const Real7* frho_spline,
+const rbmd::Real* px, const rbmd::Real* py,const rbmd::Real* pz,
+rbmd::Real* eam_fp ,rbmd::Real* energy_embedding) {
+  unsigned int blocks_per_grid = (num_atoms + BLOCK_SIZE - 1) / BLOCK_SIZE;
 
-     // 1.  rho  ->  Fp
-  CHECK_KERNEL(FpVerlet<<<blocks_per_grid, BLOCK_SIZE, 0, 0>>> (
-          box, eam_paras,rc, num_atoms,atoms_type, atoms_id,  start_id, end_id,
+  // 1.  rho  ->  Fp
+  CHECK_KERNEL(FpVerlet<<<blocks_per_grid, BLOCK_SIZE, 0, 0>>>(
+      box, eam_paras, rc, num_atoms, atoms_type, atoms_id, start_id, end_id,
+      id_verletlist, rhor_spline, frho_spline, px, py, pz, eam_fp,
+      energy_embedding));
+}
+
+// Verlet :: EAMForceVerletOp
+void ComputeEAMForceVerlet<device::DEVICE_GPU>::operator()(
+    Box box, EAMParameters eam_paras, const rbmd::Real rc,
+    const rbmd::Id num_atoms, const rbmd::Id* atoms_type,
+    const rbmd::Id* atoms_id, const rbmd::Id* start_id, const rbmd::Id* end_id,
+    const rbmd::Id* id_verletlist, const Real7* rhor_spline,
+    const Real7* frho_spline, const Real7* z2r_spline, const rbmd::Real* px,
+    const rbmd::Real* py, const rbmd::Real* pz, rbmd::Real* eam_rho,
+    rbmd::Real* eam_fp, rbmd::Real* fx, rbmd::Real* fy, rbmd::Real* fz,
+    rbmd::Real* energy_embedding, rbmd::Real* energy_pair) {
+  unsigned int blocks_per_grid = (num_atoms + BLOCK_SIZE - 1) / BLOCK_SIZE;
+
+  // 1.  rho  ->  Fp
+  CHECK_KERNEL(FpVerlet<<<blocks_per_grid, BLOCK_SIZE, 0, 0>>>(
+      box, eam_paras, rc, num_atoms,atoms_type, atoms_id,  start_id, end_id,
           id_verletlist,rhor_spline,frho_spline,px, py, pz,eam_fp,energy_embedding));
     // 2. EAMForce
     CHECK_KERNEL(EAMForceVerlet<<<blocks_per_grid, BLOCK_SIZE, 0, 0>>> (
@@ -633,6 +647,9 @@ void ComputeFpRBL<device::DEVICE_GPU>::operator()(
           random_neighbor_num,rhor_spline,frho_spline,px, py, pz,eam_fp));
 }
 
+
+
+
 //RBL:: EAMForce
 void ComputeEAMForceRBL<device::DEVICE_GPU>::operator()(
     Box box, EAMParameters eam_paras ,const rbmd::Real rs,const rbmd::Real rc,
@@ -666,9 +683,9 @@ void ComputeEAMEnergy<device::DEVICE_GPU>::operator()(
   unsigned int blocks_per_grid = (num_atoms + BLOCK_SIZE - 1) / BLOCK_SIZE;
 
   // 1.  energy_embedding
-  CHECK_KERNEL(FpVerlet<<<blocks_per_grid, BLOCK_SIZE, 0, 0>>> (
-        box, eam_paras,rc, num_atoms,atoms_type, atoms_id,  start_id, end_id,
-        id_verletlist,rhor_spline,frho_spline,px, py, pz,eam_fp,energy_embedding));
+  // CHECK_KERNEL(FpVerlet<<<blocks_per_grid, BLOCK_SIZE, 0, 0>>> (
+  //       box, eam_paras,rc, num_atoms,atoms_type, atoms_id,  start_id, end_id,
+  //       id_verletlist,rhor_spline,frho_spline,px, py, pz,eam_fp,energy_embedding));
 
   // 2. energy_pair
   CHECK_KERNEL(EAMForceEnergy<<<blocks_per_grid, BLOCK_SIZE, 0, 0>>> (
@@ -676,7 +693,5 @@ void ComputeEAMEnergy<device::DEVICE_GPU>::operator()(
           id_verletlist,rhor_spline,z2r_spline,px, py, pz,eam_fp,energy_pair));
 
 }
-
-
 
 }

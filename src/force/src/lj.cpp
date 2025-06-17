@@ -6,6 +6,7 @@
 #include "../../common/rbmd_define.h"
 #include "../../common/types.h"
 #include "lj_op/lj_op.h"
+#include "force_op/force_op.h"
 #include "neighbor_list/include/neighbor_list_builder/full_neighbor_list_builder.h"
 #include "neighbor_list/include/neighbor_list_builder/rbl_full_neighbor_list_builder.h"
 #include "common/timing_statistics.hpp"
