@@ -12,11 +12,11 @@
 
 struct LinkedCellDeviceDataPtr {
   rbmd::Id _d_total_cells = 0;
-  rbmd::Id ALIGN(ALIGN_SIZE(rbmd::Id, 3)) _d_per_dimension_cells[3]{};
-  rbmd::Real ALIGN(ALIGN_SIZE(rbmd::Real, 3)) _d_cell_length[3]{};
+  rbmd::Id  _d_per_dimension_cells[3]{};
+  rbmd::Real  _d_cell_length[3]{};
   rbmd::Real _d_cutoff = 0;
   // Cell* _d_cells = nullptr;
-  rbmd::Real ALIGN(ALIGN_SIZE(rbmd::Real, 3)) _d_cell_length_reciprocal[3]{};
+  rbmd::Real  _d_cell_length_reciprocal[3]{};
 };
 
 class LinkedCell {
@@ -36,11 +36,11 @@ class LinkedCell {
   rbmd::Id _total_cells = 0;
   rbmd::Id _total_atoms_num = 0;
   /// 各维度的cell的数量（包括HaloCell）
-  rbmd::Id ALIGN(ALIGN_SIZE(rbmd::Id, 3)) _per_dimension_cells[3]{};
+  rbmd::Id  _per_dimension_cells[3]{};
   /// 各维度cell的长度
-  rbmd::Real ALIGN(ALIGN_SIZE(rbmd::Real, 3)) _cell_length[3]{};
+  rbmd::Real  _cell_length[3]{};
   /// 各维度cell的长度的倒数
-  rbmd::Real ALIGN(ALIGN_SIZE(rbmd::Real, 3)) _cell_length_reciprocal[3]{};
+  rbmd::Real  _cell_length_reciprocal[3]{};
 
   // 每个cell内的原子在原子列表的开始索引
   thrust::device_vector<rbmd::Id> _in_atom_list_start_index{};

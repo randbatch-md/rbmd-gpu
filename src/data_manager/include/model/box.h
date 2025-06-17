@@ -31,17 +31,17 @@ class Box {
   ///
   bool _pbc_z = true;
 
-  rbmd::Real ALIGN(ALIGN_SIZE(rbmd::Real, 6)) _length[6]{};
-  rbmd::Real ALIGN(ALIGN_SIZE(rbmd::Real, 6)) _length_inv[6]{};
-  rbmd::Real ALIGN(ALIGN_SIZE(rbmd::Real, 3)) _median_point[3]{};
+  rbmd::Real  _length[6]{};
+  rbmd::Real  _length_inv[6]{};
+  rbmd::Real  _median_point[3]{};
 
   /// （local）The coordinates of the lower left corner of the box
-  rbmd::Real ALIGN(ALIGN_SIZE(rbmd::Real, 3)) _coord_min[3]{};
+  rbmd::Real  _coord_min[3]{};
   /// （local）The coordinates of the upper right corner of the box
-  rbmd::Real ALIGN(ALIGN_SIZE(rbmd::Real, 3)) _coord_max[3]{};
+  rbmd::Real  _coord_max[3]{};
 
   /// individual cells
-  rbmd::Id ALIGN(ALIGN_SIZE(rbmd::Id, 3)) _box_width_as_cell_units[3]{};
+  rbmd::Id  _box_width_as_cell_units[3]{};
 };
 
 static __host__ __device__ __forceinline__ void MinImageDistance( Box box,

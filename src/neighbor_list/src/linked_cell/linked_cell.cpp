@@ -95,14 +95,14 @@ void LinkedCell::SyncHToD() {
                        &this->_total_cells, sizeof(rbmd::Id), H2D));
 
   CHECK_RUNTIME(MEMCPY(_linked_cell_device_data_ptr->_d_per_dimension_cells,
-                       this->_per_dimension_cells, ALIGN_SIZE(rbmd::Id, 3),
+                       this->_per_dimension_cells, sizeof(rbmd::Id) * 3,
                        H2D));
 
   CHECK_RUNTIME(MEMCPY(_linked_cell_device_data_ptr->_d_cell_length,
-                       this->_cell_length, ALIGN_SIZE(rbmd::Real, 3), H2D));
+                       this->_cell_length, sizeof(rbmd::Real) * 3, H2D));
 
   CHECK_RUNTIME(MEMCPY(_linked_cell_device_data_ptr->_d_cell_length_reciprocal,
-                       this->_cell_length_reciprocal, ALIGN_SIZE(rbmd::Real, 3),
+                       this->_cell_length_reciprocal, sizeof(rbmd::Real) * 3,
                        H2D));
 
   CHECK_RUNTIME(MEMCPY(&_linked_cell_device_data_ptr->_d_cutoff, &this->_cutoff,

@@ -30,8 +30,8 @@ foreach(tool_path ${tools_path})
 	list(APPEND CMAKE_PREFIX_PATH ${TOOL_INSTALL_PATH})
 endforeach()
 
-find_package(PkgConfig REQUIRED)
-pkg_check_modules(SPDLOG REQUIRED spdlog IMPORTED_TARGET GLOBAL)
+find_package(spdlog REQUIRED)
+
 
 
 set(INCLUDE_DIRS)
@@ -45,9 +45,9 @@ elseif(USE_CUDA)
 	set(INCLUDE_DIRS ${CMAKE_CUDA_TOOLKIT_INCLUDE_DIRECTORIES})
 endif()
 
-set(inclue_files "../data_manager/include" ${include_dirs} ${TOOLS_INCLUDE_PATH} ${INCLUDE_DIRS} ${SPDLOG_INCLUDE_DIRS})
-set(link_dirs ${LIBRARY_DIR} ${TOOLS_LINK_PATH} ${LINK_DIRS}  ${SPDLOG_LIBRARY_DIRS})
-set(depend_names ${LINK_NAME}  PkgConfig::SPDLOG)
+set(inclue_files "../data_manager/include" ${include_dirs} ${TOOLS_INCLUDE_PATH} ${INCLUDE_DIRS} ${spdlog_INCLUDE_DIRS})
+set(link_dirs ${LIBRARY_DIR} ${TOOLS_LINK_PATH} ${LINK_DIRS}  ${spdlog_LIBS})
+set(depend_names ${LINK_NAME} ${spdlog_LIBS})
 
 cpp_library(
 name ${PROJECT_NAME}
@@ -56,4 +56,4 @@ depends_link_dir ${link_dirs}
 depends_name ${depend_names}
 )
 set(LIB_DIR ${CMAKE_CURRENT_LIST_DIR}/../lib)
-target_link_libraries(${PROJECT_NAME} neighbor_list data_manager)
+target_link_libraries(${PROJECT_NAME}   spdlog::spdlog $<$<BOOL:${MINGW}>:ws2_32>)

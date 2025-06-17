@@ -7,6 +7,9 @@
 #include "full_neighbor_list_op.h"
 #include "rbl_full_neighbor_list_op.h"
 #include "output/include/Logger.hpp"
+#ifndef M_PI
+#define M_PI 3.14159265358979323846  
+#endif
 
 RblFullNeighborListBuilder::RblFullNeighborListBuilder() {
   _r_core = DataManager::getInstance().getConfigData()->Get<rbmd::Real>(

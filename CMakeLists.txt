@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.16)
 
-set(CMAKE_CXX_STANDARD 14)
+set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
@@ -26,7 +26,7 @@ add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/tools)
 add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/src)
 include_directories(${CMAKE_CURRENT_LIST_DIR}/src/common)
 
-file(GLOB_RECURSE output_srcs ./src/output/*.cpp ./src/output/*.cu)
+file(GLOB_RECURSE output_srcs ./src/output/*.hpp ./src/output/*.h ./src/output/*.cpp ./src/output/*.cu)
 set(src
 ./src/main.cpp
 #./src/executioner/executioner.cpp
@@ -75,9 +75,8 @@ foreach(tool_path ${tools_path})
 	list(APPEND CMAKE_PREFIX_PATH ${TOOL_INSTALL_PATH})
 endforeach()
 
-find_package(PkgConfig REQUIRED)
-pkg_check_modules(SPDLOG REQUIRED spdlog IMPORTED_TARGET GLOBAL)
-pkg_check_modules(CXXOPTS REQUIRED cxxopts IMPORTED_TARGET GLOBAL)
+find_package(spdlog REQUIRED)
+find_package(cxxopts REQUIRED)
 
 
 add_executable(${PROJECT_NAME} ${src})
@@ -94,4 +93,6 @@ set(LIBRARY_NAMES
 if(USE_CUDA)
 	target_compile_options(${PROJECT_NAME} PRIVATE $<$<COMPILE_LANGUAGE:CUDA>:--extended-lambda>)
 endif()
-target_link_libraries(${PROJECT_NAME} PUBLIC ${LIBRARY_NAMES}  PkgConfig::SPDLOG PkgConfig::CXXOPTS)
+target_include_directories(${PROJECT_NAME} PUBLIC ${cxxopts_INCLUDE_DIRS})
+target_link_libraries(${PROJECT_NAME} PUBLIC ${LIBRARY_NAMES}  ${cxxopts_LIBS})
+target_link_libraries(${PROJECT_NAME} PRIVATE spdlog::spdlog $<$<BOOL:${MINGW}>:ws2_32>  cxxopts::cxxopts)

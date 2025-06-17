@@ -1111,7 +1111,7 @@ void LJCutCoulKspace::ComputeQsf_fix()
   auto end = std::chrono::high_resolution_clock::now();
 
   std::chrono::duration<rbmd::Real> duration = end - start;
-  std::cout << "构建qfactor耗时" << duration.count() << "秒" << std::endl;
+  std::cout << "Building qfactor took " << duration.count() << " seconds" << std::endl;
 
   std::vector<rbmd::Real> qfactor_real(_Kmax3D);
   std::vector<rbmd::Real> qfactor_image(_Kmax3D);
@@ -1447,8 +1447,7 @@ void LJCutCoulKspace::ComputeWaveVectors_2( Box box,rbmd::Id Kmax)
     thrust::raw_pointer_cast(_d_qfactor_image.data()));
   auto end = std::chrono::high_resolution_clock::now();
   std::chrono::duration<rbmd::Real> duration = end - start;
-  std::cout << "构建优化 qactor耗时" << duration.count() << "秒" << std::endl;
-
+  std::cout << "Optimizing qactor took " << duration.count() << " seconds" << std::endl;
   std::vector<rbmd::Real> qfactor_real(_num_k);
   std::vector<rbmd::Real> qfactor_image(_num_k);
 

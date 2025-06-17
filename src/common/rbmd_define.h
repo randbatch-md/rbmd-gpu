@@ -37,7 +37,12 @@
 #define MAX_GPU_STREAMS (6)
 #define RBMD_TRUE (1)
 #define RBMD_FALSE (0)
+#define _USE_MATH_DEFINES  // 启用数学常量（部分编译器需要）
+#include <math.h>          // 或 <cmath>
 
+#ifndef M_PI
+#define M_PI 3.14159265358979323846
+#endif
 #ifndef TARGET_DCU
 #define MIN_NBNUM \
 (128)  /// CUDA AMD6800xt 96 DCU 128   TODO kernel us it  can use warpSize?
@@ -113,40 +118,6 @@ typedef int3 Int3;
 #define make_Int3 make_int3
 #endif
 
-//
-#define ALIGN_SIZE(type, n) \
-  ((sizeof(type) > 4) ? NEXT_POWER_OF_TWO(n) * 8 : NEXT_POWER_OF_TWO(n) * 4)
-
-#if defined(__GNUC__) || defined(__CUDA)  // GCC
-#define IS_POWER_OF_TWO(x) (((x) & ((x) - 1)) == 0)
-#define NEXT_POWER_OF_TWO(n)      \
-  ((n) == 0 ? 1                   \
-            : (IS_POWER_OF_TWO(n) \
-                   ? (n)          \
-                   : (1 << (sizeof(n) * 8 - __builtin_clz((n) - 1)))))
-
-#elif defined(_MSC_VER)  // MSVC   TODO：
-#include <intrin.h>
-#define IS_POWER_OF_TWO(x) (((x) & ((x) - 1)) == 0)
-#define NEXT_POWER_OF_TWO(n)       \
-  ((n) == 0                        \
-       ? 1                         \
-       : (IS_POWER_OF_TWO(n) ? (n) \
-                             : (1 << (sizeof(n) * 8 - _lzcnt_u32((n) - 1)))))
-
-#else
-#error "Unsupported compiler"
-#endif
-
-#if defined(__CUDA)  // NVCC   //TODO
-#define ALIGN(n) __align__(n)
-#elif defined(__GNUC__)  // GCC
-#define ALIGN(n) __attribute__((aligned(n)))
-#elif defined(_MSC_VER)  // MSVC
-#define ALIGN(n) __declspec(align(n))
-#else
-#error "Please provide a definition for ALIGN macro for your host compiler!"
-#endif
 
 #if defined (__CUDA)
     #define MALLOC cudaMalloc

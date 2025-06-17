@@ -1,8 +1,89 @@
 #include "../common/rbmd_define.h"
-#include "../lj_op/rocm/lj_op.hip.cu"
 #include "lj_cut_coul_kspace_op.h"
 #include "model/box.h"
+inline __device__ void lj126(rbmd::Real cut_off, rbmd::Real px12, rbmd::Real py12,
+                             rbmd::Real pz12, rbmd::Real eps_ij, rbmd::Real sigma_ij,
+                             rbmd::Real& force_lj, rbmd::Real& energy_lj) {
+  const rbmd::Real dis_2 = px12 * px12 + py12 * py12 + pz12 * pz12;
+  const rbmd::Real cut_off_2 = cut_off * cut_off;
 
+  //if (dis_2 < cut_off_2 && dis_2 > EPSILON){
+  if (dis_2 < cut_off_2) {
+    rbmd::Real sigmaij_6 = POW(sigma_ij, 6.0);
+    rbmd::Real dis_6 = POW(dis_2, 3.0);
+    rbmd::Real sigmaij_dis_6 = sigmaij_6 / dis_6;
+
+    force_lj = -24 * eps_ij * ((2 * sigmaij_dis_6 - 1) * sigmaij_dis_6) / dis_2;//+
+    energy_lj =
+        0.5 * (4 * eps_ij * (sigmaij_6 / dis_6 - 1) * sigmaij_dis_6);
+  } else {
+    force_lj = 0.0;
+    energy_lj = 0.0;
+  }
+}
+inline __device__ void lj126_rs(rbmd::Real rs, rbmd::Real px12, rbmd::Real py12,
+                                rbmd::Real pz12, rbmd::Real eps_ij,
+                                rbmd::Real sigma_ij, rbmd::Real& fs_ij) {
+  const rbmd::Real dis_2 = px12 * px12 + py12 * py12 + pz12 * pz12;
+  const rbmd::Real rs_2 = rs * rs;
+
+  if (dis_2 < rs_2 && dis_2 > EPSILON) {
+    rbmd::Real sigmaij_6 = POW(sigma_ij, 6.0);
+    rbmd::Real dis_6 = POW(dis_2, 3.0);
+    rbmd::Real sigmaij_dis_6 = sigmaij_6 / dis_6;
+    fs_ij = -24 * eps_ij * ((2 * sigmaij_dis_6 - 1) * sigmaij_dis_6) / dis_2;
+  } else
+    fs_ij = 0.0;
+}
+
+// lj126_rcs
+inline __device__ void lj126_rcs(rbmd::Real rc, rbmd::Real rs, rbmd::Id pice_num,
+                                 rbmd::Real px12, rbmd::Real py12, rbmd::Real pz12,
+                                 rbmd::Real eps_ij, rbmd::Real sigma_ij,
+                                 rbmd::Real& fcs_ij) {
+  const rbmd::Real dis_2 = px12 * px12 + py12 * py12 + pz12 * pz12;
+  const rbmd::Real rc_2 = rc * rc;
+  const rbmd::Real rs_2 = rs * rs;
+
+  if (dis_2 < rc_2 && dis_2 > rs_2) {
+    rbmd::Real sigmaij_6 = POW(sigma_ij, 6.0);
+    rbmd::Real dis_6 = POW(dis_2, 3.0);
+    rbmd::Real sigmaij_dis_6 = sigmaij_6 / dis_6;
+
+    fcs_ij = pice_num *
+             (-24 * eps_ij * ((2 * sigmaij_dis_6 - 1) * sigmaij_dis_6) / dis_2);
+  } else
+    fcs_ij = 0.0;
+}
+
+
+inline __device__ void ComputeVirial(rbmd::Real px12, rbmd::Real py12,
+                                     rbmd::Real pz12,rbmd::Real force,
+                                     rbmd::Real& local_virial_xx,rbmd::Real& local_virial_yy,
+                                     rbmd::Real& local_virial_zz,rbmd::Real& local_virial_xy,
+                                     rbmd::Real& local_virial_xz,rbmd::Real& local_virial_yz)
+{
+  local_virial_xx = -0.5* px12 *px12 * force;
+  local_virial_yy = -0.5* py12 *py12 * force;
+  local_virial_zz = -0.5* pz12 *pz12 * force;
+  local_virial_xy = -0.5* px12 *py12 * force;
+  local_virial_xz = -0.5* px12 *pz12 * force;
+  local_virial_yz = -0.5* py12 *pz12 * force;
+}
+
+inline __device__ void ComputeVirial_fix(rbmd::Real px12, rbmd::Real py12,
+                                         rbmd::Real pz12,rbmd::Real force,
+                                         rbmd::Real& local_virial_xx,rbmd::Real& local_virial_yy,
+                                         rbmd::Real& local_virial_zz,rbmd::Real& local_virial_xy,
+                                         rbmd::Real& local_virial_xz,rbmd::Real& local_virial_yz)
+{
+  local_virial_xx = 0.5* px12 *px12 * force;
+  local_virial_yy = 0.5* py12 *py12 * force;
+  local_virial_zz = 0.5* pz12 *pz12 * force;
+  local_virial_xy = 0.5* px12 *py12 * force;
+  local_virial_xz = 0.5* px12 *pz12 * force;
+  local_virial_yz = 0.5* py12 *pz12 * force;
+}
 namespace op {
 
   //---------device---------//

@@ -37,10 +37,9 @@ foreach(tool_path ${tools_path})
 	list(APPEND CMAKE_PREFIX_PATH ${TOOL_INSTALL_PATH})
 endforeach()
 
-find_package(PkgConfig REQUIRED)
-#pkg_check_modules(JSONCPP REQUIRED jsoncpp IMPORTED_TARGET GLOBAL)
-pkg_check_modules(SPDLOG REQUIRED spdlog IMPORTED_TARGET GLOBAL)
-#pkg_check_modules(CXXOPTS REQUIRED cxxopts IMPORTED_TARGET GLOBAL)
+
+find_package(spdlog REQUIRED)
+
 
 set(THRUST_INCLUDE_DIRS)
 set(THRUST_LINK_NAME)
@@ -52,8 +51,8 @@ elseif(USE_CUDA)
 endif()
 
 set(include_dir ${include_dirs} ${TOOLS_INCLUDE_PATH} ${THRUST_INCLUDE_DIRS} ${SPDLOG_INCLUDE_DIRS}  "../common")  # ${jsoncpp_INCLUDE_DIRS}
-set(link_dir  ${TOOLS_LINK_PATH} ${rocthrust_LIBRARIES} ${SPDLOG_LIBRARY_DIRS} )  # ${jsoncpp_LIBRARIES}
-set(depends_name ${THRUST_LINK_NAME}  PkgConfig::SPDLOG)
+set(link_dir  ${TOOLS_LINK_PATH} ${rocthrust_LIBRARIES} ${SPDLOG_LIBRARY_DIRS} ${spdlog_LIBRARIES})  # ${jsoncpp_LIBRARIES}
+set(depends_name ${THRUST_LINK_NAME} )
 
 cpp_library(
 name ${PROJECT_NAME}
@@ -61,3 +60,4 @@ depends_include ${include_dir}
 depends_link_dir ${link_dir}
 depends_name ${depends_name}
 )
+target_link_libraries(${PROJECT_NAME}   spdlog::spdlog $<$<BOOL:${MINGW}>:ws2_32>)

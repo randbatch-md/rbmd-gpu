@@ -5,8 +5,8 @@
 struct Cell {
   ///
   rbmd::Id _cell_id = 0;
-  rbmd::Real ALIGN(ALIGN_SIZE(rbmd::Real, 3)) cell_coord_min[3]{};
-  rbmd::Real ALIGN(ALIGN_SIZE(rbmd::Real, 3)) cell_coord_max[3]{};
+  rbmd::Real  cell_coord_min[3]{};
+  rbmd::Real  cell_coord_max[3]{};
   ///  number of atoms in current  cell
   rbmd::Id _atoms_count = 0;  // TODO
 };

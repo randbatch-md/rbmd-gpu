@@ -12,6 +12,8 @@ set(INCLUDE_DIR "../data_manager/include" "../common")
 set(LINK_DIR  ${library_link})
 set(DEPENDS_NAME  "data_manager")
 #message(WARNING  "sppdlog_link: ${sppdlog_link}")
+find_package(spdlog REQUIRED)
+
 cpp_library(
 name ${PROJECT_NAME}
 depends_include ${INCLUDE_DIR}
@@ -19,5 +21,6 @@ depends_link_dir ${LINK_DIR}
 depends_name ${DEPENDS_NAME}
 )
 set(LIB_DIR ${CMAKE_CURRENT_LIST_DIR}/../lib)
-target_link_libraries(${PROJECT_NAME}  data_manager)
+target_link_libraries(${PROJECT_NAME}  data_manager )
+target_link_libraries(${PROJECT_NAME}   spdlog::spdlog $<$<BOOL:${MINGW}>:ws2_32>)
 

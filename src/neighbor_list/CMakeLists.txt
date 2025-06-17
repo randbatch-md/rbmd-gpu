@@ -38,8 +38,9 @@ get_property(TOOLS_LINK_PATH GLOBAL PROPERTY TOOLS_LINK_PATH)
 set(inclue_files ${TOOLS_INCLUDE_PATH}  "../data_manager/include"  ${include_dirs} ${spdlog_include} ${INCLUDE_DIRS})
 set(link_dirs ${TOOLS_LINK_PATH}  ${spdlog_link} ${LINK_DIRS})
 #set(link_name "hip::device" "spdlog" "hip::hipcub")
-set(depend_names ${LINK_NAME} "data_manager")
+set(depend_names ${LINK_NAME} "data_manager" )
 
+find_package(spdlog REQUIRED)
 
 
 cpp_library(
@@ -48,3 +49,4 @@ depends_include ${inclue_files}
 depends_link_dir ${link_dirs}
 depends_name ${depend_names}
 )
+target_link_libraries(${PROJECT_NAME}   spdlog::spdlog $<$<BOOL:${MINGW}>:ws2_32>)

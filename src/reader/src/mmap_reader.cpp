@@ -1,9 +1,5 @@
 #include "../include/mmap_reader.h"
-
-#include <fcntl.h>
-#include <sys/mman.h>
-#include <sys/stat.h>
-#include <unistd.h>
+#include <system_error>  // 用于错误处理
 
 MmapReader::MmapReader(const std::string& filePath)
     : BaseReader(filePath),
@@ -12,41 +8,26 @@ MmapReader::MmapReader(const std::string& filePath)
       _line_start(nullptr),
       _locate(0) {}
 
-MmapReader::~MmapReader() {
-  if (-1 == munmap(_mapped_memory, _file_size)) {
-    // log
-  }
-}
 
 int MmapReader::Execute() {
-  auto fd = ::open(_file_path.c_str(), O_RDONLY);
-  if (-1 == fd) {
-    // log
+  try {
+    // 使用 mio 进行内存映射（只读模式）
+    mio::mmap_source mmap(_file_path);
+
+    // 获取文件大小
+    _file_size = mmap.size();
+
+    // 获取映射的内存地址
+    _mapped_memory = const_cast<char*>(mmap.data());  // 由于 mmap_source 是 const，需去除 const（谨慎操作）
+    _line_start = _mapped_memory;
+
+    // 将 mmap 对象移动到成员变量，确保生命周期延续
+    _mmap = std::move(mmap);
+
+    return 0;
+  } catch (const std::system_error& e) {
+    // 捕获并处理错误（如文件不存在、权限问题等）
+    // log: e.what()
     return -1;
   }
-
-  // get file size
-  struct stat file_stat;
-  if (-1 == fstat(fd, &file_stat)) {
-    // log
-    close(fd);
-    return -1;
-  }
-  _file_size = file_stat.st_size;
-
-  // mmap
-  _mapped_memory = static_cast<char*>(
-      mmap(nullptr, _file_size, PROT_READ, MAP_PRIVATE, fd, 0));
-  if (MAP_FAILED == _mapped_memory) {
-    // log
-    close(fd);
-    return -1;
-  }
-
-  _line_start = _mapped_memory;
-
-  // close fd
-  close(fd);
-
-  return 0;
 }

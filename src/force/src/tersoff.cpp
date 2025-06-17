@@ -1,5 +1,5 @@
 #include "tersoff.h"
-
+#include <sstream> 
 #include <regex>
 #include <unordered_map>
 #include <thrust/device_ptr.h>

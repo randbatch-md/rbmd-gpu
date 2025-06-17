@@ -4,15 +4,15 @@
 
 namespace op {
 
-  //---------device---------//
-  __device__ rbmd::Id index2D(rbmd::Id row, rbmd::Id col, rbmd::Id num_columns) {
-    return row * num_columns + col;
-  }
-
-  __device__ rbmd::Id index3D(rbmd::Id depth, rbmd::Id row, rbmd::Id col,
-                              rbmd::Id num_rows, rbmd::Id num_columns) {
-    return depth * (num_rows * num_columns) + row * num_columns + col;
-  }
+//  //---------device---------//
+//  __device__ rbmd::Id index2D(rbmd::Id row, rbmd::Id col, rbmd::Id num_columns) {
+//    return row * num_columns + col;
+//  }
+//
+//  __device__ rbmd::Id index3D(rbmd::Id depth, rbmd::Id row, rbmd::Id col,
+//                              rbmd::Id num_rows, rbmd::Id num_columns) {
+//    return depth * (num_rows * num_columns) + row * num_columns + col;
+//  }
 
   // lj126
   inline __device__ void lj126(rbmd::Real cut_off, rbmd::Real px12, rbmd::Real py12,

@@ -14,7 +14,6 @@
 #include "lj_memory_scheduler.h"
 #include "memory_scheduler.h"
 #include "output/include/TrajectoryOutput.h"
-#include "output/include/linux_pipe_sink.hpp"
 #include "output/include/Logger.hpp"
 MDApplication::MDApplication(int argc, char* argv[])
   : Application(argc, argv),
@@ -37,10 +36,6 @@ MDApplication::MDApplication(int argc, char* argv[])
   auto file_sink = std::make_shared<spdlog::sinks::basic_file_sink_mt>("./rbmd.log",true);
   std::vector<spdlog::sink_ptr> sinks;
   // Create a named pipe sink
-#ifdef WITH_GUI
-  auto pipe_sink = std::make_shared<linux_pipe_sink_mt>("/tmp/rbmd_log_pipe");
-  sinks.push_back(pipe_sink);
-#endif
   sinks.push_back(console_sink);
   sinks.push_back(file_sink);
   auto combined_logger = std::make_shared<spdlog::logger>("logger", sinks.begin(), sinks.end());
