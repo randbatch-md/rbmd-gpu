@@ -56,8 +56,7 @@ MDApplication::MDApplication(int argc, char* argv[])
 
 int MDApplication::Execute() {
 
-
-  //ReadMDData();
+  //
   std::string ensemble_type = DataManager::getInstance().getConfigData()->Get
     <std::string>("ensemble", "execution");
   if("NVE" == ensemble_type)
@@ -71,6 +70,10 @@ int MDApplication::Execute() {
   else if("NPT" == ensemble_type)
   {
     _simulate_pipeline = std::make_shared<NPTensemble>();
+  }
+  else {
+    Logger::Instance().error("\033[31m Unsupported ensemble type: {}\033[0m", ensemble_type );
+    exit(EXIT_FAILURE);  //
   }
   _output = std::make_shared<TrajectoryOutput>();
   _simulate = std::make_shared<Simulate>(_simulate_pipeline,_output);
@@ -109,7 +112,8 @@ void MDApplication::AddSimulate() {
     } else if ("NVE" == type) {
       ensemble = std::make_shared<NVEensemble>();
     } else {
-      Logger::Instance().error(" the type of execution of json file is wrong");
+      Logger::Instance().error("\033[31m Unsupported ensemble type: {}\033[0m", type );
+      exit(EXIT_FAILURE); //
     }
     _simulate_pipelines.push_back(std::move(ensemble));
     _simulate_nodes.emplace_back(simulate_child_node);
@@ -117,36 +121,13 @@ void MDApplication::AddSimulate() {
 }
 
 int MDApplication::ReadMDData() {
-  ////auto& md_data = std::dynamic_pointer_cast<MDSystem>(_system)->GetMDData();
-  // auto md_data = DataManager::getInstance().getMDData().get();
-  // std::shared_ptr<BaseReader> reader;
-  //_config_data = DataManager::getInstance().getConfigData();
-  // auto atom_style = _config_data->Get<std::string>("atom_style",
-  // "init_configuration", "read_data"); if ("atomic" == atom_style)
-  //{
-  //	reader = std::make_shared<AtomicReader>("rbmd.data", *md_data);
-  // }
-  // else if ("charge" == atom_style)
-  //{
-  //	//reader = std::make_shared<Charge_Reader>("rbmd.data", md_data);
-  // }
-  // else if ("full" == atom_style)
-  //{
-  //	//reader = std::make_shared<FullReader>("rbmd.data", md_data);
-  // }
-  // else
-  //{
-  //	//log
-  //	//_console->error("ilLegal atom style!");
-  //	return -1;
-  // }
+
   std::shared_ptr<BaseReader> reader;
   std::shared_ptr<MDData> md_data = DataManager::getInstance().getMDData();
 
   auto config_data = DataManager::getInstance().getConfigData();
   std::string file_path = config_data->Get<std::string>("file", "init_configuration", "read_data");
   reader = std::make_shared<AtomicReader>(file_path, *md_data);
-  //reader = std::make_shared<AtomicReader>("rbmd.data", *md_data);
   reader->Execute();
 
   std::shared_ptr<MemoryScheduler> memory_scheduler;
@@ -158,17 +139,18 @@ int MDApplication::ReadMDData() {
   {
       memory_scheduler = std::make_shared<LJMemoryScheduler>();
   }
+  else if ("LJ/CUT/COUL/LONG" == force_type)
+  {
+    memory_scheduler = std::make_shared<LJMemoryScheduler>();
+  }
   else if ("EAM" == force_type)
   {
-    // EAMForceFieldData eam_force_field_data;
-    // std::string potential_file =
-    // DataManager::getInstance().getConfigData()->Get<std::string>(
-    //     "potential_file", "hyper_parameters", "force_field");
-    // eam_force_field_data.ReadPotentialFile(potential_file);
-
     memory_scheduler = std::make_shared<EAMMemoryScheduler>();
   }
-
+  else {
+    Logger::Instance().error("\033[31m Unsupported force_field type: {}\033[0m", force_type );
+    exit(EXIT_FAILURE); //
+  }
   DataManager::getInstance().Fill2Device(memory_scheduler);
   return 0;
 }

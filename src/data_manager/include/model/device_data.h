@@ -193,9 +193,6 @@ class DeviceData {
   // ERFTable in device
   ERFTable* _d_erf_table;
 
-  thrust::device_vector<rbmd::Real> _eam_rho;
-  thrust::device_vector<rbmd::Real> _eam_fp;
-
   void unload()
   {
 	  CHECK_RUNTIME(FREE(_d_erf_table));

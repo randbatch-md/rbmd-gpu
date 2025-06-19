@@ -47,8 +47,8 @@
 #define WARP_SIZE (32)
 #endif
 
-#define MIN_NBNUM (96)
-#define WARP_SIZE (32)
+// #define MIN_NBNUM (96)
+// #define WARP_SIZE (32)
 
 #if USE_DOUBLE
     #if defined(__ROCM)

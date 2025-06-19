@@ -305,7 +305,7 @@ int StructureReder::ReadPairCoeffs(const rbmd::Id& numAtomTypes) {
 int StructureReder::ReadBondCoeffs(const rbmd::Id& numBondTypes) {
   const auto& config = DataManager::getInstance().getConfigData();
   if (!config->PathExists({"hyper_parameters", "force_field", "bond_type"})) {
-    Logger::Instance().info( "\033[31mFATAL ERROR: Missing 'bond_type' definition "
+    Logger::Instance().error( "\033[31m Missing 'bond_type' definition "
              "in 'force_field'.\033[0m");
     exit(EXIT_FAILURE); //
   }
@@ -348,8 +348,7 @@ int StructureReder::ReadBondCoeffs(const rbmd::Id& numBondTypes) {
     }
   }
   else {
-    Logger::Instance().info( "\033[31mFATAL ERROR: The definition of 'bond_type' "
-      "is invalid.\033[0m");
+    Logger::Instance().error("\033[31m Unsupported bond_type: {}\033[0m", bond_type );
     exit(EXIT_FAILURE); //
   }
   return 0;
@@ -359,7 +358,7 @@ int StructureReder::ReadAngleCoeffs(const rbmd::Id& numAngleTypes)
 {
   const auto& config = DataManager::getInstance().getConfigData();
   if (!config->PathExists({"hyper_parameters", "force_field", "angle_type"})) {
-    Logger::Instance().info( "\033[31mFATAL ERROR: Missing 'angle_type' definition "
+    Logger::Instance().error( "\033[31m Missing 'angle_type' definition "
          "in 'force_field'.\033[0m");
     exit(EXIT_FAILURE); //
   }
@@ -401,8 +400,7 @@ int StructureReder::ReadAngleCoeffs(const rbmd::Id& numAngleTypes)
     }
   }
   else {
-    Logger::Instance().info( "\033[31mFATAL ERROR: The definition of 'angle_type' "
-      "is invalid.\033[0m");
+    Logger::Instance().error("\033[31m Unsupported angle_type: {}\033[0m", angle_type );
     exit(EXIT_FAILURE); //
   }
   return 0;
@@ -412,7 +410,7 @@ int StructureReder::ReadDihedralsCoeffs(const rbmd::Id& numDihedralsTypes)
 {
   const auto& config = DataManager::getInstance().getConfigData();
   if (!config->PathExists({"hyper_parameters", "force_field", "dihedral_type"})) {
-    Logger::Instance().info( "\033[31mFATAL ERROR: Missing 'dihedral_type' definition "
+    Logger::Instance().error( "\033[31m Missing 'dihedral_type' definition "
      "in 'force_field'.\033[0m");
     exit(EXIT_FAILURE); //
   }
@@ -500,8 +498,7 @@ int StructureReder::ReadDihedralsCoeffs(const rbmd::Id& numDihedralsTypes)
     }
   }
   else {
-    Logger::Instance().info( "\033[31mFATAL ERROR: The definition of 'dihedral_type' "
-      "is invalid.\033[0m");
+    Logger::Instance().error("\033[31m Unsupported dihedral_type: {}\033[0m", dihedral_type );
     exit(EXIT_FAILURE); //
   }
 
@@ -512,7 +509,7 @@ int StructureReder::ReadImproperCoeffs(const rbmd::Id& numImproperTypes)
 {
   const auto& config = DataManager::getInstance().getConfigData();
   if (!config->PathExists({"hyper_parameters", "force_field", "improper_type"})) {
-    Logger::Instance().info( "\033[31mFATAL ERROR: Missing 'improper_type' definition "
+    Logger::Instance().error( "\033[31m Missing 'improper_type' definition "
       "in 'force_field'.\033[0m");
     exit(EXIT_FAILURE); //
   }
@@ -596,8 +593,7 @@ int StructureReder::ReadImproperCoeffs(const rbmd::Id& numImproperTypes)
     }
   }
   else {
-    Logger::Instance().info( "\033[31mFATAL ERROR: The definition of 'improper_type' "
-        "is invalid.\033[0m");
+    Logger::Instance().error("\033[31m Unsupported improper_type: {}\033[0m", improper_type );
     exit(EXIT_FAILURE); //
   }
   return 0;

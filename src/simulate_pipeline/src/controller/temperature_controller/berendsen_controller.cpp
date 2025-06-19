@@ -83,26 +83,55 @@ void BerendsenController::ComputeTemperature() {
     } else {
       _temperature = 0.5 * _temp_sum / ((3 * num_atoms - 3) * _kB / 2.0);
     }
-  } else  // PEO
+  } else
   {
     _temperature = 0.5 * _temp_sum / ((3 * num_atoms - 3) * _kB / 2.0);
   }
   test_temperature = _temperature;
+
+  //
+
   ThermoStats::Instance().AddThermoData("temperature",_temperature);
-  // out
-  std::ofstream outfile("temperature.txt", std::ios::app);
-  outfile << test_current_step << " " << _temperature << std::endl;
-  outfile.close();
+  ThermoStats::Instance().AddThermoData("pressure",0.0);
+
+  if (std::isnan(_temperature)) {
+    Logger::Instance().error( "\033[31mFATAL ERROR: The temperature of the MD simulation is NaN"
+                             ". Please check the initial model and the force field parameters. "
+    "is invalid.\033[0m");
+    exit(EXIT_FAILURE); //
+  }
+
+  //out
+  auto ensemble_type =DataManager::getInstance().getConfigData()->
+    Get<std::string>("ensemble", "execution");
+
+  if ("NVT" == ensemble_type)
+  {
+    auto interval = DataManager::getInstance().getConfigData()->Get<rbmd::Id>(
+"interval", "outputs", "thermo_out");
+    std::ofstream outfile("temperature.txt", std::ios::app);
+    if (outfile.tellp() == 0) {
+      outfile << "step temperature" << std::endl;
+    }
+    if (test_current_step % interval == 0) {
+      outfile << test_current_step << " " << _temperature << std::endl;
+    }
+    outfile.close();
+  }
 
   // CHECK_RUNTIME(FREE(temp_contrib));
 }
 
 void BerendsenController::UpdataVelocity() {
-  rbmd::Real coeff_Berendsen =
-      SQRT(1.0 + (_dt / _temperature_damp) * (_temperature_start/ _temperature - 1.0));
+  //
+  ComputeTempTargetInit();
+
+  // coeff_berendsen
+  rbmd::Real coeff_berendsen =
+      SQRT(1.0 + (_dt / _temperature_damp) * (_t_target/ _temperature - 1.0));
 
   op::UpdataVelocityRescaleOp<device::DEVICE_GPU>()(
-                    *(_structure_info_data->_num_atoms), coeff_Berendsen,
+                    *(_structure_info_data->_num_atoms), coeff_berendsen,
                      thrust::raw_pointer_cast(_device_data->_d_vx.data()),
                      thrust::raw_pointer_cast(_device_data->_d_vy.data()),
                      thrust::raw_pointer_cast(_device_data->_d_vz.data()));

@@ -7,6 +7,7 @@
 #include "../Utilities/string_util.h"
 #include "data_manager.h"
 #include "model/md_data.h"
+#include "output/include/Logger.hpp"
 #include "rbmd_define.h"
 
 AtomicReader::AtomicReader(const std::string& filePath, MDData& data)
@@ -125,6 +126,10 @@ void AtomicReader::AllocateDataSpace() {
       CHECK_RUNTIME(
           MALLOCHOST(&(data->_h_molecules_id), *(info->_num_atoms) * sizeof(rbmd::Id)));
 
+  }
+  else {
+    Logger::Instance().error("\033[31m Unsupported atom_style: {}\033[0m", atom_style );
+    exit(EXIT_FAILURE); //
   }
 }
 

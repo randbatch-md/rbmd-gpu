@@ -35,7 +35,9 @@ CVFF::CVFF()
     case UNIT::LJ:
       _qqr2e = UnitFactor<UNIT::LJ>::_qqr2e;
     break;
-
+    case UNIT::METAL:
+      _qqr2e = UnitFactor<UNIT::METAL>::_qqr2e;
+      break;
     case UNIT::REAL:
       _qqr2e = UnitFactor<UNIT::REAL>::_qqr2e;
     break;
@@ -70,7 +72,7 @@ void CVFF::Init()
       _energy_rbl_flag = config->Get<std::string>("energy_rbl_flag", "hyper_parameters", "neighbor");
     }
     else {
-      Logger::Instance().info( "\033[31mFATAL ERROR: When using RBL for the neighbor type, "
+      Logger::Instance().error( "\033[31m When using RBL for the neighbor type, "
                    "the key 'energy_rbl_flag' must be defined.\033[0m");
       exit(EXIT_FAILURE); //
     }
@@ -127,7 +129,7 @@ void CVFF::Init()
         _energy_rbe_flag = config->Get<std::string>("energy_rbe_flag", "hyper_parameters", "coulomb");
       }
       else {
-        Logger::Instance().info( "\033[31mFATAL ERROR: When using RBE for the Coulomb type, "
+        Logger::Instance().error( "\033[31m When using RBE for the coulomb type, "
                      "the key 'energy_rbe_flag' must be defined.\033[0m");
         exit(EXIT_FAILURE); //
       }
@@ -335,31 +337,31 @@ void CVFF::SumForces()
     _device_data->_d_force_angle_z,_device_data->_d_force_dihedral_z,
     _device_data->_d_force_improper_z);
 
-  auto num_atoms = *(_structure_info_data->_num_atoms);
-  auto atom_id_to_idx =
-LinkedCellLocator::GetInstance().GetLinkedCell()->_atom_id_to_idx;
+//   auto num_atoms = *(_structure_info_data->_num_atoms);
+//   auto atom_id_to_idx =
+// LinkedCellLocator::GetInstance().GetLinkedCell()->_atom_id_to_idx;
+//
+//   thrust::host_vector<rbmd::Real> h_fx(num_atoms);
+//   thrust::host_vector<rbmd::Real> h_fy(num_atoms);
+//   thrust::host_vector<rbmd::Real> h_fz(num_atoms);
+//
+//
+//   thrust::copy(_device_data->_d_fx.begin(),_device_data->_d_fx.end(),
+//     h_fx.begin());
+//   thrust::copy(_device_data->_d_fy.begin(),_device_data->_d_fy.end(),
+//     h_fy.begin());
+//   thrust::copy(_device_data->_d_fz.begin(),_device_data->_d_fz.end(),
+//   h_fz.begin());
 
-  thrust::host_vector<rbmd::Real> h_fx(num_atoms);
-  thrust::host_vector<rbmd::Real> h_fy(num_atoms);
-  thrust::host_vector<rbmd::Real> h_fz(num_atoms);
-
-
-  thrust::copy(_device_data->_d_fx.begin(),_device_data->_d_fx.end(),
-    h_fx.begin());
-  thrust::copy(_device_data->_d_fy.begin(),_device_data->_d_fy.end(),
-    h_fy.begin());
-  thrust::copy(_device_data->_d_fz.begin(),_device_data->_d_fz.end(),
-  h_fz.begin());
-
-  std::ofstream fx("f_cvff.txt");
-  if (fx.is_open()) {
-    for (rbmd::Id i = 0; i < num_atoms; ++i) {
-      auto idx = atom_id_to_idx[i];
-      fx << i  << " " << h_fx[idx] << " " << h_fy[idx]
-        << " " << h_fz[idx]  << "\n";
-    }
-    fx.close();
-  }
+  // std::ofstream fx("f_cvff.txt");
+  // if (fx.is_open()) {
+  //   for (rbmd::Id i = 0; i < num_atoms; ++i) {
+  //     auto idx = atom_id_to_idx[i];
+  //     fx << i  << " " << h_fx[idx] << " " << h_fy[idx]
+  //       << " " << h_fz[idx]  << "\n";
+  //   }
+  //   fx.close();
+  // }
 }
 
 void CVFF::ComputeChargeStructureFactorEwald(

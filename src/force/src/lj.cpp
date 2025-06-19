@@ -38,7 +38,7 @@ void LJ::Init() {
       _energy_rbl_flag = config->Get<std::string>("energy_rbl_flag", "hyper_parameters", "neighbor");
     }
     else {
-      Logger::Instance().info( "\033[31mFATAL ERROR: When using RBL for the neighbor type, "
+      Logger::Instance().error( "\033[31m When using RBL for the neighbor type, "
                    "the key 'energy_rbl_flag' must be defined.\033[0m");
       exit(EXIT_FAILURE); //
     }
@@ -225,11 +225,15 @@ void LJ::EvaluatePotentialenergy()
   ThermoStats::Instance().AddThermoData("total-potential-energy",_e_pe);
 
   //out
+  auto interval = DataManager::getInstance().getConfigData()->Get<rbmd::Id>(
+"interval", "outputs", "thermo_out");
   std::ofstream outfile("thermo.txt", std::ios::app);
   if (outfile.tellp() == 0) {
     outfile << "step e_vdwl  e_pe" << std::endl;
   }
-  outfile << test_current_step << " " << _e_vdwl  << " "<< _e_pe << std::endl;
+  if (test_current_step % interval == 0) {
+    outfile << test_current_step << " " << _e_vdwl  << " "<< _e_pe << std::endl;
+  }
   outfile.close();
 }
 

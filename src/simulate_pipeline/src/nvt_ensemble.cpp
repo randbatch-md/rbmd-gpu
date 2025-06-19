@@ -1,57 +1,91 @@
 #include "nvt_ensemble.h"
 
-#include <chrono>  // 添加计时功能的库
+#include <chrono>  //
+
+#include "data_manager.h"
+#include "model/md_data.h"
 
 #include "default_position_controller.h"
 #include "default_velocity_controller.h"
-#include "lj.h"
-#include "lj_cut_coul_kspace.h"
+#include "berendsen_controller.h"
+#include "langevin_controller.h"
+#include "rescale_controller.h"
+#include "nose_hoover_controller.h"
 #include "cvff.h"
+#include "lj_cut_coul_kspace.h"
+#include "lj.h"
 #include "tersoff.h"
 #include "eam.h"
-#include "rescale_controller.h"
-#include "berendsen_controller.h"
-#include "nose_hoover_controller.h"
+
 #include "shake_controller.h"
-#include "data_manager.h"
-#include "model/md_data.h"
+#include "output/include/Logger.hpp"
 NVTensemble::NVTensemble()
 {
   _position_controller = std::make_shared<DefaultPositionController>();
   _velocity_controller = std::make_shared<DefaultVelocityController>();
 
-  auto force_type = DataManager::getInstance().getConfigData()->Get<std::string>
-    ("type", "hyper_parameters", "force_field");
-  if ("CVFF" == force_type) {
-    _force_controller = std::make_shared<CVFF>(); // TODO: json file forcetype
-  }
-  else if ("LJ/CUT" == force_type){
-    _force_controller = std::make_shared<LJ>(); // TODO: json file forcetype
-  }
-  else if ("LJ/CUT/COUL/LONG" == force_type){
-    _force_controller = std::make_shared<LJCutCoulKspace>(); // TODO: json file forcetype
-  }
-  else if ("EAM" == force_type){
-    _force_controller = std::make_shared<EAM>(); // TODO: json file forcetype
-  }
-  _temperature_controller = std::make_shared<BerendsenController>();
-  _shake_controller = std::make_shared<ShakeController>();
+  // Unified  Force Field Controller
+  static const std::unordered_map<std::string, std::function<std::shared_ptr<Force>()>>
+  force_map = {
+    {"CVFF", [&]() { return std::make_shared<CVFF>(); }},
+    {"LJ/CUT", [&]() { return std::make_shared<LJ>(); }},
+    {"LJ/CUT/COUL/LONG", [&]() { return std::make_shared<LJCutCoulKspace>(); }},
+    {"EAM", [&]() { return std::make_shared<EAM>(); }},
+    {"Tersoff", [&]() { return std::make_shared<TerSoff>(); }}
+  };
 
-  _NoseHoover_controller = std::make_shared<NoseHooverController>();
+  //force_type
+  auto force_type = DataManager::getInstance().getConfigData()->Get<std::string>
+  ("type", "hyper_parameters", "force_field");
+  if (auto it = force_map.find(force_type); it != force_map.end())
+  {
+    _force_controller = it->second();
+  }
+  else {
+    Logger::Instance().error("Unsupported force field type: {}", force_type);
+  }
+
+  // unified temperature controller
+  _temp_ctrl_type = DataManager::getInstance().getConfigData()->Get
+  <std::string>("temp_ctrl_type", "execution");
+
+  if ("RESCALE" == _temp_ctrl_type) {
+    _temperature_controller = std::make_shared<RescaleController>();
+  }
+  else if ("BERENDSEN" == _temp_ctrl_type) {
+    _temperature_controller = std::make_shared<BerendsenController>();
+  }
+  else if ("LANGEVIN" == _temp_ctrl_type) {
+    _temperature_controller = std::make_shared<LangevinController>();
+  }
+  else if ("NOSE_HOOVER" == _temp_ctrl_type) {
+    _NoseHoover_controller = std::make_shared<NoseHooverController>();
+  }
+  else {
+    Logger::Instance().error("\033[31m Unsupported temp_ctrl_type: {}\033[0m", _temp_ctrl_type );
+    exit(EXIT_FAILURE); //
+  }
+
+  // //
+  // _NoseHoover_controller = std::make_shared<NoseHooverController>();
+
+  //shake
+  _shake_controller = std::make_shared<ShakeController>();
 }
 
 void NVTensemble::Init() {
   _position_controller->Init();
   _velocity_controller->Init();
-  _temperature_controller->Init();
 
   _force_controller->Init();
   _force_controller->Execute();
   _shake_controller->Init();
 
-  _temp_ctrl_type = DataManager::getInstance().getConfigData()->Get
-  <std::string>("temp_ctrl_type", "execution");
-  if("NOSE_HOOVER" == _temp_ctrl_type) {
+  if (_temperature_controller) {
+    _temperature_controller->Init();
+  }
+
+  if(_NoseHoover_controller) {
     _NoseHoover_controller->Init();
   }
 }
@@ -123,7 +157,6 @@ void NVTensemble::Solve() {
     std::chrono::duration<rbmd::Real> duration = end - start;
 
  }
-
 }
 
 void NVTensemble::Postsolve() {}

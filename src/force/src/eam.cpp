@@ -43,7 +43,7 @@ void EAM::Init() {
       _energy_rbl_flag = config->Get<std::string>("energy_rbl_flag", "hyper_parameters", "neighbor");
     }
     else {
-      Logger::Instance().info( "\033[31mFATAL ERROR: When using RBL for the neighbor type, "
+      Logger::Instance().error( "\033[31m When using RBL for the neighbor type, "
                    "the key 'energy_rbl_flag' must be defined.\033[0m");
       exit(EXIT_FAILURE); //
     }
@@ -92,8 +92,6 @@ void EAM::ReadPotentialFile(const std::string& filename) {
   {
     input_file >> file.rhor[i];
   }
-  std::cout<< "test--EAM--------" << file.nrho  << ", "<< file.drho << ", " << ", "
-    <<file.nr   << ", " << file.dr << ", "  << file.cut_off  <<std::endl;
 
   input_file.close();
 }

@@ -9,6 +9,8 @@
 #include <numeric>
 #include <cmath>
 #include "common/thermo_stats.hpp"
+extern int test_current_step;
+
 LangevinController::LangevinController() {
   CHECK_RUNTIME(MALLOC(&_d_temp_contrib, sizeof(rbmd::Real)));
 }
@@ -19,8 +21,8 @@ LangevinController::~LangevinController() {
 void LangevinController::Init() {
   _dt = DataManager::getInstance().getConfigData()->Get<rbmd::Real>(
       "timestep", "execution");    // TODO: read values from json file;
-  auto unit = "LJ";      // TODO: the conditions of LangevinController (only FarForce?)                    
-  UNIT unit_factor = unit_factor_map[unit];  
+  auto unit = "LJ";      // TODO: the conditions of LangevinController (only FarForce?)
+  UNIT unit_factor = unit_factor_map[unit];
 
   switch (unit_factor) {
     case UNIT::LJ:
@@ -41,7 +43,11 @@ void LangevinController::Init() {
   }
   auto temperature_array=DataManager::getInstance().getConfigData()->
     GetArray<rbmd::Real>("temperature", "execution");
-  ThermoStats::Instance().AddThermoData("temperature",temperature_array[0]);
+  _temperature_start = temperature_array[0];
+  _temperature_stop = temperature_array[1];
+  _temperature_damp = temperature_array[2];
+
+  ThermoStats::Instance().AddThermoData("temperature",_temperature_start);
   ThermoStats::Instance().AddThermoData("pressure",0.0);
 }
 
@@ -52,7 +58,7 @@ void LangevinController::Update() {
 }
 
 void LangevinController::ComputeTemperature() {
-    extern int test_current_step;
+
     rbmd::Id num_atoms = *(_structure_info_data->_num_atoms);
 
     CHECK_RUNTIME(MEMSET(_d_temp_contrib, 0, sizeof(rbmd::Real)));
@@ -78,31 +84,56 @@ void LangevinController::ComputeTemperature() {
             _temperature = 0.5 * _temp_sum / ((3 * num_atoms - 3) * _kB / 2.0);
         }
     }
-    else  // PEO
+    else  //
     {
         _temperature = 0.5 * _temp_sum / ((3 * num_atoms - 3) * _kB / 2.0);
     }
 
+    //
+
     ThermoStats::Instance().AddThermoData("temperature",_temperature);
-    // out
-    std::ofstream outfile("temperature.txt", std::ios::app);
-    outfile << test_current_step << " " << _temperature << std::endl;
-    outfile.close();
+    ThermoStats::Instance().AddThermoData("pressure",0.0);
+
+    if (std::isnan(_temperature)) {
+      Logger::Instance().error( "\033[31mFATAL ERROR: The temperature of the MD simulation is NaN"
+                               ". Please check the initial model and the force field parameters. "
+      "is invalid.\033[0m");
+      exit(EXIT_FAILURE); //
+    }
+
+    //out
+    auto ensemble_type =DataManager::getInstance().getConfigData()->
+      Get<std::string>("ensemble", "execution");
+    if ("NVT" == ensemble_type)
+    {
+      auto interval = DataManager::getInstance().getConfigData()->Get<rbmd::Id>(
+"interval", "outputs", "thermo_out");
+      std::ofstream outfile("temperature.txt", std::ios::app);
+      if (outfile.tellp() == 0) {
+        outfile << "step temperature" << std::endl;
+      }
+      if (test_current_step % interval == 0) {
+        outfile << test_current_step << " " << _temperature << std::endl;
+      }
+      outfile.close();
+    }
 
     // CHECK_RUNTIME(FREE(temp_contrib));
 }
 
 void LangevinController::UpdataForce() {
+  //
+  ComputeTempTargetInit();
 
-  bool random = true; // TODO: Related to the of velocity_type  
+  bool random = true; // TODO: Related to the of velocity_type
   auto temp_value = FetchSample_1D(random, rbmd::Real(0.0), rbmd::Real(1.0));
   std::vector<rbmd::Real> gaussian(3, temp_value);
-  
-  rbmd::Real kbT = 1;
+
+  //rbmd::Real kbT = 1;
   rbmd::Real gamma = 100.0;
   op::UpdataForceLangevinOp<device::DEVICE_GPU>()(
                   *(_structure_info_data->_num_atoms), gaussian[0],
-                  gaussian[1], gaussian[2], kbT, gamma,_dt,
+                  gaussian[1], gaussian[2], _t_target, gamma,_dt,
                   thrust::raw_pointer_cast(_device_data->_d_mass.data()),
                   thrust::raw_pointer_cast(_device_data->_d_vx.data()),
                   thrust::raw_pointer_cast(_device_data->_d_vy.data()),
