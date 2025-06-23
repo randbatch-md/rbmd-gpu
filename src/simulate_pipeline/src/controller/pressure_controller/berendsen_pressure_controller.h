@@ -27,8 +27,10 @@ private:
   rbmd::Real _kB;
   rbmd::Real  _tdof;
 
-  rbmd::Real _pressure_start, _pressure_stop, _pressure_damp;//read
-  rbmd::Real _bulkmodulus; //read
+  rbmd::Real _pressure_start = 0.0;   //read
+  rbmd::Real _pressure_stop  = 0.0;   //read
+  rbmd::Real _pressure_damp  = 1000;   //read
+  rbmd::Real  _bulkmodulus = 100;       //read
 
   Real3  _p_current, _dilation;
   Real3 _p_start, _p_stop, _p_damp, _p_target;

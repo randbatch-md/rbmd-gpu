@@ -28,6 +28,6 @@ public:
 private:
 	rbmd::Real _mvv2e;
 	rbmd::Real _kB;
-    rbmd::Real* _d_temp_contrib;
+        rbmd::Real* _d_temp_contrib;
 	rbmd::Real _dt;
 };

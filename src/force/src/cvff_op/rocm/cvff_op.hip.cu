@@ -5,10 +5,10 @@
 #include "model/box.h"
 #include "../lj_cut_coul_kspace_op/rocm/lj_cut_coul_kspace_op.hip.cu"
 
-
-namespace op{
 const rbmd::Real SMALL = 0.001;
 const rbmd::Real SMALLER = 0.00001;
+namespace op{
+
 //verlet-list : SpecialLJCutCoul
 __global__ void ComputeSpecialLJCutCoulForce(
      Box box, ERFTable* erf_table, const rbmd::Real cut_off,

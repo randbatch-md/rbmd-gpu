@@ -11,6 +11,8 @@
 #include "types.h"
 #include "output/include/Logger.hpp"
 
+extern int test_current_step;
+
 class ThermoStats {
 private:
   bool columns_determined_and_header_printed = false;
@@ -139,51 +141,61 @@ public:
     thermo_data[key] = value;
   }
 
-  void OutputRow() {
-    if (!columns_determined_and_header_printed && !thermo_data.empty()) {
-      DetermineAndPrintHeaderIfNeeded();
-    }
-
-    if (!columns_determined_and_header_printed || active_keys.empty()) {
-      if (current_step != -1 && !thermo_data.empty()) {
-        Logger::Instance().warn(
-            "ThermoStats: Header not initialized, skipping data row for step {}.",
-            current_step);
-      } else if (current_step != -1 && thermo_data.empty() && !
-                 columns_determined_and_header_printed) {
-        Logger::Instance().debug(
-            "ThermoStats: No data to determine header or print for step {}.",
-            current_step);
-      }
-      thermo_data.clear();
-      return;
-    }
-
-    std::stringstream ss;
-    ss << std::fixed;
-
-    ss << std::setw(8) << current_step;
-
-    for (const auto& key : active_keys) {
-      // MODIFIED: Reduced default width for other keys
-      int width = key_to_width.count(key) ? key_to_width.at(key) : 15;
-      int precision = key_to_precision.count(key)
-                        ? key_to_precision.at(key)
-                        : 6; // Default precision for other keys
-
-      if (thermo_data.count(key)) {
-        ss << std::setw(width) << std::setprecision(precision) << thermo_data.
-            at(key);
-      } else {
-        std::string na_str = "N/A";
-        std::stringstream temperature_ss_na; // This stringstream is not strictly necessary here
-                                             // could directly write to ss.
-        temperature_ss_na << std::setw(width) << na_str;
-        ss << temperature_ss_na.str();
-      }
-    }
-
-    Logger::Instance().info("{}", ss.str());
-    thermo_data.clear();
+  bool ShouldOutput()
+  {
+    auto interval = DataManager::getInstance().getConfigData()->Get<rbmd::Id>(
+"interval", "outputs", "thermo_out");
+    return test_current_step % interval == 0;
   }
+
+  void OutputRow() {
+    if (ShouldOutput()) {
+      if (!columns_determined_and_header_printed && !thermo_data.empty()) {
+        DetermineAndPrintHeaderIfNeeded();
+      }
+
+      if (!columns_determined_and_header_printed || active_keys.empty()) {
+        if (current_step != -1 && !thermo_data.empty()) {
+          Logger::Instance().warn(
+              "ThermoStats: Header not initialized, skipping data row for step {}.",
+              current_step);
+        } else if (current_step != -1 && thermo_data.empty() && !
+                   columns_determined_and_header_printed) {
+          Logger::Instance().debug(
+              "ThermoStats: No data to determine header or print for step {}.",
+              current_step);
+                   }
+        thermo_data.clear();
+        return;
+      }
+
+      std::stringstream ss;
+      ss << std::fixed;
+
+      ss << std::setw(8) << current_step;
+
+      for (const auto& key : active_keys) {
+        // MODIFIED: Reduced default width for other keys
+        int width = key_to_width.count(key) ? key_to_width.at(key) : 15;
+        int precision = key_to_precision.count(key)
+                          ? key_to_precision.at(key)
+                          : 6; // Default precision for other keys
+
+        if (thermo_data.count(key)) {
+          ss << std::setw(width) << std::setprecision(precision) << thermo_data.
+              at(key);
+        } else {
+          std::string na_str = "N/A";
+          std::stringstream temperature_ss_na; // This stringstream is not strictly necessary here
+          // could directly write to ss.
+          temperature_ss_na << std::setw(width) << na_str;
+          ss << temperature_ss_na.str();
+        }
+      }
+
+      Logger::Instance().info("{}", ss.str());
+      thermo_data.clear();
+    }
+  }
+
 };

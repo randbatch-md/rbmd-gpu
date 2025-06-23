@@ -56,7 +56,10 @@ private:
   rbmd::Real _temperature;
 
   // pressure
-  rbmd::Real _pressure_start, _pressure_stop, _pressure_damp,_bulkmodulus;//read
+  rbmd::Real _pressure_start = 0.0;   //read
+  rbmd::Real _pressure_stop  = 0.0;   //read
+  rbmd::Real _pressure_damp  = 1000;   //read
+  rbmd::Real  _bulkmodulus = 100;
 
   Real3  _p_current, _dilation; //compute
   Real3 _p_start, _p_stop, _p_damp, _p_target;
@@ -76,7 +79,10 @@ private:
 
 
   //temperature
-  rbmd::Real _t_start, _t_stop, _t_damp;   //read
+   rbmd::Real _t_start = 0.0;    //read
+   rbmd::Real _t_stop  = 0.0;    //read
+   rbmd::Real _t_damp  = 100;     //read
+
   rbmd::Real  _t_target, _ke_target,_t_freq;//compute
   rbmd::Real _tdof;
 

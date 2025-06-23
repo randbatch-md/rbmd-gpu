@@ -6,6 +6,7 @@
 #include "../../common/rbmd_define.h"
 #include "../../common/types.h"
 #include "lj_op/lj_op.h"
+#include "force_op/force_op.h"
 #include "neighbor_list/include/neighbor_list_builder/full_neighbor_list_builder.h"
 #include "neighbor_list/include/neighbor_list_builder/rbl_full_neighbor_list_builder.h"
 #include "common/timing_statistics.hpp"
@@ -26,12 +27,22 @@ LJ::~LJ()
 }
 
 void LJ::Init() {
-  _cut_off = DataManager::getInstance().getConfigData()->Get
- <rbmd::Real>("cut_off", "hyper_parameters", "neighbor");
+  const auto& config = DataManager::getInstance().getConfigData();
 
-  _neighbor_type =
-    DataManager::getInstance().getConfigData()->Get<std::string>(
-        "type", "hyper_parameters", "neighbor");
+  //neighbor
+  _cut_off = config->Get<rbmd::Real>("cut_off", "hyper_parameters", "neighbor");
+  _neighbor_type = config->Get<std::string>("type", "hyper_parameters", "neighbor");
+  if("RBL" == _neighbor_type) {
+    bool energy_rbl_flag = config->PathExists({"hyper_parameters", "neighbor" ,"energy_rbl_flag"});
+    if (energy_rbl_flag) {
+      _energy_rbl_flag = config->Get<std::string>("energy_rbl_flag", "hyper_parameters", "neighbor");
+    }
+    else {
+      Logger::Instance().error( "\033[31m When using RBL for the neighbor type, "
+                   "the key 'energy_rbl_flag' must be defined.\033[0m");
+      exit(EXIT_FAILURE); //
+    }
+  }
 }
 
 void LJ::Execute()
@@ -113,11 +124,15 @@ void LJ::ComputeLJRBL()
   TimingStatistics::Instance().record("Short-Range",duration_rbl_force.count());
 
     //energy
-  _energy_rbl_flag = DataManager::getInstance().getConfigData()->Get<std::string>
-      ("energy_rbl_flag", "hyper_parameters", "neighbor");
-  if ("yes" == _energy_rbl_flag ) {
-       ComputeLJEnergy();
-  }
+  const auto& config = DataManager::getInstance().getConfigData();
+  if(config->PathExists({"hyper_parameters", "neighbor" ,"energy_rbl_flag"}))
+   {
+      _energy_rbl_flag = DataManager::getInstance().getConfigData()->Get<std::string>
+           ("energy_rbl_flag", "hyper_parameters", "neighbor");
+      if ("yes" == _energy_rbl_flag ) {
+         ComputeLJEnergy();
+      }
+   }
 }
 
 void LJ::ComputeLJVerlet()
@@ -125,7 +140,6 @@ void LJ::ComputeLJVerlet()
   // neighbor_list_build
   auto start = std::chrono::high_resolution_clock::now();
   _list = _neighbor_list_builder->Build();
-
   auto end = std::chrono::high_resolution_clock::now();
 
   std::chrono::duration<rbmd::Real> duration = end - start;
@@ -211,11 +225,15 @@ void LJ::EvaluatePotentialenergy()
   ThermoStats::Instance().AddThermoData("total-potential-energy",_e_pe);
 
   //out
+  auto interval = DataManager::getInstance().getConfigData()->Get<rbmd::Id>(
+"interval", "outputs", "thermo_out");
   std::ofstream outfile("thermo.txt", std::ios::app);
   if (outfile.tellp() == 0) {
     outfile << "step e_vdwl  e_pe" << std::endl;
   }
-  outfile << test_current_step << " " << _e_vdwl  << " "<< _e_pe << std::endl;
+  if (test_current_step % interval == 0) {
+    outfile << test_current_step << " " << _e_vdwl  << " "<< _e_pe << std::endl;
+  }
   outfile.close();
 }
 

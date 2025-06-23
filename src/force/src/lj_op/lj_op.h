@@ -54,18 +54,6 @@ namespace op
                         rbmd::Real* fz);
 	};
 
-	template <typename DEVICE>
-	struct FixRBLForceOp
-	{
-		void operator()(
-			const rbmd::Id num_atoms,
-			const rbmd::Real corr_value_x,
-			const rbmd::Real corr_value_y,
-			const rbmd::Real corr_value_z,
-			rbmd::Real* fx,
-                        rbmd::Real* fy,
-                        rbmd::Real* fz);
-	};
 
 	template <typename DEVICE>
 	struct LJEnergyOp
@@ -129,19 +117,6 @@ namespace op
 			const rbmd::Real* px,
 			const rbmd::Real* py,
 			const rbmd::Real* pz,
-			rbmd::Real* fx,
-                        rbmd::Real* fy,
-                        rbmd::Real* fz);
-	};
-
-	template <>
-	struct FixRBLForceOp<device::DEVICE_GPU>
-	{
-		void operator()(
-			const rbmd::Id num_atoms,
-			const rbmd::Real corr_value_x,
-			const rbmd::Real corr_value_y,
-			const rbmd::Real corr_value_z,
 			rbmd::Real* fx,
                         rbmd::Real* fy,
                         rbmd::Real* fz);

@@ -117,6 +117,7 @@ class DeviceData {
   thrust::device_vector<rbmd::Real> _d_rhor;
 
   /// ϕ(r) on host
+  thrust::device_vector<rbmd::Real> _d_zr;
   thrust::device_vector<rbmd::Real> _d_z2r;
 
   ///< force on device>

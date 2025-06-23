@@ -41,11 +41,14 @@
 #ifndef TARGET_DCU
 #define MIN_NBNUM \
 (128)  /// CUDA AMD6800xt 96 DCU 128   TODO kernel us it  can use warpSize?
-#define WARP_SIZE (32)  /// CUDA AMD6800xt 32  DCU 64   TODO
+#define WARP_SIZE (64)  /// CUDA AMD6800xt 32  DCU 64   TODO
 #else
-#define MIN_NBNUM (128)
-#define WARP_SIZE (64)
+#define MIN_NBNUM (96)
+#define WARP_SIZE (32)
 #endif
+
+// #define MIN_NBNUM (96)
+// #define WARP_SIZE (32)
 
 #if USE_DOUBLE
     #if defined(__ROCM)
@@ -55,6 +58,42 @@
     #endif
 typedef double3 Real3;
 typedef double2 Real2;
+
+// double7 定义
+struct double7 {
+  double4 a;  // x, y, z, w
+  double3 b;  // u, v, t
+
+  // 支持下标访问
+  __host__ __device__ float& operator[](int idx) {
+    switch (idx) {
+      case 0: return a.x;
+      case 1: return a.y;
+      case 2: return a.z;
+      case 3: return a.w;
+      case 4: return b.x;
+      case 5: return b.y;
+      case 6: return b.z;
+      default: return a.x; // 越界返回第一个元素（或抛出异常）
+    }
+  }
+
+  // const 版本
+  __host__ __device__ const float& operator[](int idx) const {
+    switch (idx) {
+      case 0: return a.x;
+      case 1: return a.y;
+      case 2: return a.z;
+      case 3: return a.w;
+      case 4: return b.x;
+      case 5: return b.y;
+      case 6: return b.z;
+      default: return a.x;
+    }
+  }
+};
+typedef double7 Real7;
+
 #define make_Real3 make_double3
 #define make_Real2 make_double2
 #define POW pow
@@ -62,6 +101,7 @@ typedef double2 Real2;
 #define FLOOR floor
 #define SQRT sqrt
 #define ERF erf
+#define ERFC erfc
 #define EXP exp
 #define COS cos
 #define SIN sin
@@ -80,6 +120,41 @@ typedef double2 Real2;
 typedef float3 Real3;
 typedef float2 Real2;
 
+// float7 定义
+struct float7 {
+  float4 a;  // x, y, z, w
+  float3 b;  // u, v, t
+
+  // 支持下标访问
+  __host__ __device__ float& operator[](int idx) {
+    switch (idx) {
+      case 0: return a.x;
+      case 1: return a.y;
+      case 2: return a.z;
+      case 3: return a.w;
+      case 4: return b.x;
+      case 5: return b.y;
+      case 6: return b.z;
+      default: return a.x; // 越界返回第一个元素（或抛出异常）
+    }
+  }
+
+  // const 版本
+  __host__ __device__ const float& operator[](int idx) const {
+    switch (idx) {
+      case 0: return a.x;
+      case 1: return a.y;
+      case 2: return a.z;
+      case 3: return a.w;
+      case 4: return b.x;
+      case 5: return b.y;
+      case 6: return b.z;
+      default: return a.x;
+    }
+  }
+};
+typedef float7 Real7;
+
 #define make_Real3 make_float3
 #define make_Real2 make_float2
 #define POW powf
@@ -87,6 +162,7 @@ typedef float2 Real2;
 #define FLOOR floorf
 #define SQRT sqrtf
 #define ERF erff
+#define ERFC erfcf
 #define EXP expf
 #define COS cosf
 #define SIN sinf
@@ -110,6 +186,7 @@ typedef longlong3 Int3;
 
 typedef int3 Id3;
 typedef int3 Int3;
+typedef int2 Id2;
 #define make_Int3 make_int3
 #endif
 

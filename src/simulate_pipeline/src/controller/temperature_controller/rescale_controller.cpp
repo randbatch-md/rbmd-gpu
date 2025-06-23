@@ -33,7 +33,10 @@ void RescaleController::Init() {
       _mvv2e = UnitFactor<UNIT::LJ>::_mvv2e;
       _kB = UnitFactor<UNIT::LJ>::_kb;
       break;
-
+    case UNIT::METAL:
+      _mvv2e = UnitFactor<UNIT::METAL>::_mvv2e;
+      _kB = UnitFactor<UNIT::METAL>::_kb;
+      break;
     case UNIT::REAL:
       _mvv2e = UnitFactor<UNIT::REAL>::_mvv2e;
       _kB = UnitFactor<UNIT::REAL>::_kb;
@@ -44,9 +47,7 @@ void RescaleController::Init() {
   }
 
   ThermoStats::Instance().AddThermoData("temperature",_temperature_start);
-  auto pressure_array=DataManager::getInstance().getConfigData()->
-    GetArray<rbmd::Real>("pressure", "execution");
-  ThermoStats::Instance().AddThermoData("pressure",pressure_array[0]);
+  ThermoStats::Instance().AddThermoData("pressure",0.0);
 }
 
 void RescaleController::Update() {
@@ -72,7 +73,8 @@ void RescaleController::ComputeTemperature() {
 
     if (available_shake)  // H2O
     {
-        bool shake = DataManager::getInstance().getConfigData()->GetJudge<bool>( "fix_shake", "hyper_parameters", "extend");
+        bool shake = DataManager::getInstance().getConfigData()->GetJudge<bool>
+             ( "fix_shake", "hyper_parameters", "extend");
         if (shake) {
             _temperature = 0.5 * _temp_sum / ((3 * num_atoms - num_atoms - 3) * _kB / 2.0);
         }
@@ -85,16 +87,42 @@ void RescaleController::ComputeTemperature() {
         _temperature = 0.5 * _temp_sum / ((3 * num_atoms - 3) * _kB / 2.0);
     }
 
-    ThermoStats::Instance().AddThermoData("temperature",_temperature);
-    // out
+  //
+
+  ThermoStats::Instance().AddThermoData("temperature",_temperature);
+  ThermoStats::Instance().AddThermoData("pressure",0.0);
+
+    if (std::isnan(_temperature)) {
+      Logger::Instance().error( "\033[31mFATAL ERROR: The temperature of the MD simulation is NaN"
+                               ". Please check the initial model and the force field parameters. "
+      "is invalid.\033[0m");
+      exit(EXIT_FAILURE); //
+    }
+
+  //out
+  auto ensemble_type =DataManager::getInstance().getConfigData()->
+    Get<std::string>("ensemble", "execution");
+  if ("NVT" == ensemble_type)
+  {
+    auto interval = DataManager::getInstance().getConfigData()->Get<rbmd::Id>(
+"interval", "outputs", "thermo_out");
     std::ofstream outfile("temperature.txt", std::ios::app);
-    outfile << test_current_step << " " << _temperature << std::endl;
+    if (outfile.tellp() == 0) {
+      outfile << "step temperature" << std::endl;
+    }
+    if (test_current_step % interval == 0) {
+      outfile << test_current_step << " " << _temperature << std::endl;
+    }
     outfile.close();
+  }
 
     // CHECK_RUNTIME(FREE(temp_contrib));
 }
 
 void RescaleController::UpdataVelocity() {
+  //
+  ComputeTempTargetInit();
+  //
   rbmd::Real coeff_rescale = SQRT(_temperature_start / _temperature);
 
   op::UpdataVelocityRescaleOp<device::DEVICE_GPU>()(

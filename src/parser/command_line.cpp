@@ -1,5 +1,5 @@
 #include "command_line.h"
-
+#include "output/include/Logger.hpp"
 #include <iostream>
 
 CommandLine::CommandLine(int argc, char* argv[])
@@ -14,12 +14,18 @@ CommandLine::CommandLine(int argc, char* argv[])
   try {
     //_opts.add_options()("j", "json file", cxxopts::value<std::string>());
     _co = _opts.parse(argc, argv);
+
+    for (int i = 1; i < argc; ++i) {
+      if (strcmp(argv[i], "-j") == 0 || strcmp(argv[i], "--json") == 0) {
+        if (i + 1 >= argc || argv[i+1][0] == '-') {
+          Logger::Instance().error("\033[31m Missing value for -j parameter {}\033[0m", GetHelpText() );
+        }
+      }
+    }
+
     ParseCommand();
 
-  } catch (const std::exception&) {
-    std::cerr << "Error parsing options: "  << "\n"
-              << GetHelpText() << std::endl;
-    throw std::runtime_error("Invalid command line");
+  } catch (const std::exception& e) {
   }
 }
 
@@ -34,9 +40,7 @@ void CommandLine::ParseCommand() {
     exit(0);
   }
   //
-  if (!_co.count("j") && !_co.count("h") && !_co.count("v")) {
-    std::cerr << "Error: Missing required parameter -j\n"
-              << GetHelpText() << std::endl;
-    throw std::runtime_error("Missing required parameter");
+  if (!_co.count("j")) {
+    Logger::Instance().error("\033[31m Missing required parameter -j: {}\033[0m", GetHelpText() );
   }
 }

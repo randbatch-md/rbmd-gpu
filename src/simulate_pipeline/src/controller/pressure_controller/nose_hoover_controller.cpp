@@ -68,6 +68,12 @@ void NoseHooverController::Init() {
       _kB = UnitFactor<UNIT::LJ>::_kb;
       _fmt2v = UnitFactor<UNIT::LJ>::_fmt2v;
       break;
+    case UNIT::METAL:
+      _nktv2p = UnitFactor<UNIT::METAL>::_nktv2p;
+      _mvv2e = UnitFactor<UNIT::METAL>::_mvv2e;
+      _kB = UnitFactor<UNIT::METAL>::_kb;
+      _fmt2v = UnitFactor<UNIT::METAL>::_fmt2v;
+      break;
     case UNIT::REAL:
       _nktv2p = UnitFactor<UNIT::REAL>::_nktv2p;
       _mvv2e = UnitFactor<UNIT::REAL>::_mvv2e;
@@ -156,8 +162,7 @@ void NoseHooverController::Init() {
   //Nose-Hoover parameters init
   SetUp();
 
-  ThermoStats::Instance().AddThermoData("temperature",temperature_array[0]);
-
+  ThermoStats::Instance().AddThermoData("temperature",_t_start);
   ThermoStats::Instance().AddThermoData("pressure",_pressure_start);
 }
 
@@ -181,8 +186,10 @@ void NoseHooverController::ComputeTemperature(){
   _temperature = 0.5 * _temp_sum / (_tdof * _kB / 2.0);
 
   if (std::isnan(_temperature)) {
-    std::cerr << "FATAL ERROR: Temperature is infinite" << std::endl;
-    exit(EXIT_FAILURE);
+    Logger::Instance().error( "\033[31mFATAL ERROR: The temperature of the MD simulation is NaN"
+                             ". Please check the initial model and the force field parameters. "
+    "is invalid.\033[0m");
+    exit(EXIT_FAILURE); //
   }
 }
 
@@ -471,13 +478,13 @@ void NoseHooverController::FinalIntegrate()
     NHCPressIntegrate();
   }
 
+  //
   ThermoStats::Instance().AddThermoData("temperature",_temperature);
   ThermoStats::Instance().AddThermoData("pressure",_pressure);
 
   //out
   auto interval = DataManager::getInstance().getConfigData()->Get<rbmd::Id>(
 "interval", "outputs", "thermo_out");
-
   std::ofstream outfile("temperature.txt", std::ios::app);
   if (outfile.tellp() == 0) {
     outfile << "step temperature pressure" << std::endl;
@@ -515,16 +522,21 @@ void NoseHooverController::NHCTempIntegrate()
   rbmd::Real ncfac = 1.0 / _nc_tchain;
   for (int iloop = 0; iloop < _nc_tchain; iloop++)
   {
-    for (int ich = _mtchain - 1; ich > 0; ich--) // 反向传播,为了正确传播影响，必须从最后一个链节开始，逐步向前传播至第一个链节。
-                                                //这样可以确保上游链节（更靠近粒子的链节）的更新能准确反映下游链节的影响。
+    for (int ich = _mtchain - 1; ich > 0; ich--) //This must be done starting from the last link and proceeding forward to the first link.
+                                                //This ensures that the updates of the upstream links (those closer to the particles)
+                                                //can accurately reflect the influence of the downstream links.
 
     {
-      expfac = EXP(-ncfac * _dt8 * _eta_dot[ich + 1]);  // 使用 exp(-dt/8) 对速度进行指数更新, 第 ich 链节会受到后续链节 𝜂(ich + 1)的影响.
+      expfac = EXP(-ncfac * _dt8 * _eta_dot[ich + 1]);  //The velocity is updated exponentially using exp(-dt/8),
+                                             //and the ith link segment will be influenced by the subsequent link segment 𝜂(ih + 1).
       _eta_dot[ich] *= expfac;
-      _eta_dot[ich] += _eta_dotdot[ich] * ncfac * _dt4;  // 基于当前链节的加速度 eta_dotdot 更新链的速度，时间步长为 dt/4
-      _eta_dot[ich] *= _tdrag_factor;                  // 乘以阻尼因子
-      _eta_dot[ich] *= expfac;                        // 再次使用 exp(-dt/8) 进行指数更新,完成另一个半步更新,这一步确保动量的完整更新，使其演化符合时间反演对称性。
-    }                                                //两次应用指数缩放因子是为了模拟 Nose-Hoover 链系统的哈密顿力学方程。
+      _eta_dot[ich] += _eta_dotdot[ich] * ncfac * _dt4;  // Based on the current link acceleration eta_dotdot,
+                                                      //  the speed of the chain is updated. The time step is dt/4.
+      _eta_dot[ich] *= _tdrag_factor;                  //
+      _eta_dot[ich] *= expfac;                        // Once again, use exp(-dt/8) for exponential update to complete another half-step update.
+                                                     //This step ensures the complete update of momentum, making the evolution conform to the time-reversal symmetry.
+    }                                                //The application of the exponential scaling factor twice is
+                                                          //to simulate the Hamiltonian equations of the Nose-Hoover chain system.
 
     expfac = EXP(-ncfac * _dt8 * _eta_dot[1]);
     _eta_dot[0] *= expfac;
@@ -533,7 +545,7 @@ void NoseHooverController::NHCTempIntegrate()
     _eta_dot[0] *= expfac;
 
     _factor_eta = EXP(-ncfac * _dthalf * _eta_dot[0]);
-    //nh_v_temp();  dt/2的更新
+    //nh_v_temp();  Update of dt/2
     op::UpdataVelocityRescaleOp<device::DEVICE_GPU>()(
       *(_structure_info_data->_num_atoms), _factor_eta,
       thrust::raw_pointer_cast(_device_data->_d_vx.data()),
@@ -553,14 +565,14 @@ void NoseHooverController::NHCTempIntegrate()
     }
 
     for (int ich = 0; ich < _mtchain; ich++) {
-      _eta[ich] += ncfac * _dthalf * _eta_dot[ich];   //链的位置
+      _eta[ich] += ncfac * _dthalf * _eta_dot[ich];   //The position of the chain
     }
 
     _eta_dot[0] *= expfac;
     _eta_dot[0] += _eta_dotdot[0] * ncfac * _dt4;
     _eta_dot[0] *= expfac;
 
-    for (int ich = 1; ich < _mtchain; ich++) //正向循环（从头到尾）：用于更新加速度
+    for (int ich = 1; ich < _mtchain; ich++) //Forward loop (from beginning to end): Used for updating acceleration
     {
       expfac = EXP(-ncfac * _dt8 * _eta_dot[ich + 1]);
       _eta_dot[ich] *= expfac;
@@ -592,14 +604,14 @@ void NoseHooverController::NHCPressIntegrate()
 
   //
   lkt_press = kt;  //iso
-  _etap_dotdot[0] = (ke_current - lkt_press) / _etap_mass[0]; //压力浴链的加速度
+  _etap_dotdot[0] = (ke_current - lkt_press) / _etap_mass[0]; // dotdot :  the pressure bath chain
 
   //
   rbmd::Real ncfac = 1.0 / _nc_pchain;
   for (int iloop = 0; iloop < _nc_pchain; iloop++)
   {
 
-    for (int ich = _mpchain - 1; ich > 0; ich--) //反向传播
+    for (int ich = _mpchain - 1; ich > 0; ich--) //counterpropagation
     {
       expfac = EXP(-ncfac * _dt8 * _etap_dot[ich + 1]);
       _etap_dot[ich] *= expfac;
@@ -612,11 +624,11 @@ void NoseHooverController::NHCPressIntegrate()
     _etap_dot[0] *= expfac;
     _etap_dot[0] += _etap_dotdot[0] * ncfac * _dt4;
     _etap_dot[0] *= _pdrag_factor;
-    _etap_dot[0] *= expfac;              //压力浴链的速度
+    _etap_dot[0] *= expfac;              //The speed of the pressure bath chain
 
     for (int ich = 0; ich < _mpchain; ich++)
     {
-      _etap[ich] += ncfac * _dthalf * _etap_dot[ich];  //压力浴链的位置
+      _etap[ich] += ncfac * _dthalf * _etap_dot[ich];
     }
 
 
@@ -644,7 +656,7 @@ void NoseHooverController::NHCPressIntegrate()
     _etap_dot[0] += _etap_dotdot[0] * ncfac * _dt4;
     _etap_dot[0] *= expfac;
 
-    for (int ich = 1; ich < _mpchain; ich++) //正向循环（从头到尾）：用于更新加速度
+    for (int ich = 1; ich < _mpchain; ich++) //Forward loop (from beginning to end): Used for updating acceleration
     {
       expfac = EXP(-ncfac * _dt8 * _etap_dot[ich + 1]);
       _etap_dot[ich] *= expfac;

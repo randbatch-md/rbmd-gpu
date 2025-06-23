@@ -8,7 +8,7 @@ class CVFFForceFieldData : public ForceFieldData {
   bool checkForceField() const override { return true; }
 
   /// mass
-  rbmd::Real* _h_mass;
+  //rbmd::Real* _h_mass;
 
   /// eps
   rbmd::Real* _h_eps;

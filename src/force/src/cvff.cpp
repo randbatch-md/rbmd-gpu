@@ -7,6 +7,7 @@
 #include "../../common/types.h"
 #include "../common/RBEPSample.h"
 #include "../common/unit_factor.h"
+#include "force_op/force_op.h"
 #include "cvff_op/cvff_op.h"
 #include "lj_cut_coul_kspace_op/lj_cut_coul_kspace_op.h"
 #include "lj_op/lj_op.h"
@@ -34,7 +35,9 @@ CVFF::CVFF()
     case UNIT::LJ:
       _qqr2e = UnitFactor<UNIT::LJ>::_qqr2e;
     break;
-
+    case UNIT::METAL:
+      _qqr2e = UnitFactor<UNIT::METAL>::_qqr2e;
+      break;
     case UNIT::REAL:
       _qqr2e = UnitFactor<UNIT::REAL>::_qqr2e;
     break;
@@ -43,20 +46,7 @@ CVFF::CVFF()
       break;
   }
 
-//   _accuracy = DataManager::getInstance().getConfigData()->Get<rbmd::Real>(
-// "accuracy", "hyper_parameters", "coulomb");
-//
-//   auto box =  DataManager::getInstance().getMDData()->_box;
-//   auto volue = CalculateVolume(*box);
-//   auto num_atoms = *(_structure_info_data->_num_atoms);
-//   //  sum q_sq
-//   ComputeQsqSum(); //q2
-//
-//   //compute g_ewald
-//   _g_ewald = _accuracy*SQRT(num_atoms*_cut_off*volue) / (2.0*_sum_sq_charge);
-//   if (_g_ewald >= 1.0) _g_ewald = (1.35 - 0.15*LOG(_accuracy))/_cut_off;
-//   else _g_ewald = SQRT(-LOG(_g_ewald)) / _cut_off;
-//   _alpha = _g_ewald*_g_ewald;
+
 //
 //   //automatically compute kmax
 //   SetKspacePara(); //kmax
@@ -72,13 +62,54 @@ CVFF::~CVFF(){}
 void CVFF::Init()
 {
   const auto& config = DataManager::getInstance().getConfigData();
+
+  //neighbor
   _cut_off = config->Get<rbmd::Real>("cut_off", "hyper_parameters", "neighbor");
   _neighbor_type = config->Get<std::string>("type", "hyper_parameters", "neighbor");
+  if("RBL" == _neighbor_type) {
+    bool energy_rbl_flag = config->PathExists({"hyper_parameters", "neighbor" ,"energy_rbl_flag"});
+    if (energy_rbl_flag) {
+      _energy_rbl_flag = config->Get<std::string>("energy_rbl_flag", "hyper_parameters", "neighbor");
+    }
+    else {
+      Logger::Instance().error( "\033[31m When using RBL for the neighbor type, "
+                   "the key 'energy_rbl_flag' must be defined.\033[0m");
+      exit(EXIT_FAILURE); //
+    }
+  }
 
+  //coulomb
   _coulomb_type = "NULL"; // default
   if (config->PathExists({"hyper_parameters", "coulomb"}))
   {
-    _alpha = config->Get<rbmd::Real>("alpha", "hyper_parameters", "coulomb");
+    //accuracy
+    if (config->PathExists({"hyper_parameters", "coulomb" ,"accuracy"})) {
+      _accuracy = DataManager::getInstance().getConfigData()->Get<rbmd::Real>(
+"accuracy", "hyper_parameters", "coulomb");
+
+      auto box =  DataManager::getInstance().getMDData()->_box;
+      auto volue = CalculateVolume(*box);
+      auto num_atoms = *(_structure_info_data->_num_atoms);
+      //  sum q_sq
+      ComputeQsqSum(); //q2
+
+      //compute g_ewald
+      _g_ewald = _accuracy*SQRT(num_atoms*_cut_off*volue) / (2.0*_sum_sq_charge);
+      if (_g_ewald >= 1.0) _g_ewald = (1.35 - 0.15*LOG(_accuracy))/_cut_off;
+      else _g_ewald = SQRT(-LOG(_g_ewald)) / _cut_off;
+      _alpha = _g_ewald*_g_ewald;
+      std::cout << "accuracy : " <<_accuracy  << ",  alpha= " <<  _alpha <<std::endl;
+    }
+
+    //alpha
+    if (config->PathExists({"hyper_parameters", "coulomb" ,"alpha"})) {
+      _alpha = config->Get<rbmd::Real>("alpha", "hyper_parameters", "coulomb");
+
+      auto accuracy_test = ERFC(_cut_off * SQRT(_alpha));
+      //std::cout << "accuracy_test= " <<  accuracy_test <<std::endl;
+    }
+
+    //Kmax
     auto Kmax =config->GetArray<rbmd::Id>("kmax", "hyper_parameters", "coulomb");
     _kmax_array.x = Kmax[0];
     _kmax_array.y = Kmax[1];
@@ -86,12 +117,22 @@ void CVFF::Init()
     _num_k =  (2*_kmax_array.x +1)  * (2*_kmax_array.y +1)
               * (2*_kmax_array.z +1) - 1;
 
+    //RBE
     _coulomb_type = config->Get<std::string>("type", "hyper_parameters", "coulomb");
     if("RBE" == _coulomb_type) {
       _RBE_P = config->Get<rbmd::Id>("coulomb_sample_num", "hyper_parameters", "coulomb");
       GetPsampleKey();
 
-      _energy_rbe_flag = config->Get<std::string>("energy_rbe_flag", "hyper_parameters", "coulomb");
+      //
+      bool energy_rbe_flag = config->PathExists({"hyper_parameters", "coulomb" ,"energy_rbe_flag"});
+      if (energy_rbe_flag) {
+        _energy_rbe_flag = config->Get<std::string>("energy_rbe_flag", "hyper_parameters", "coulomb");
+      }
+      else {
+        Logger::Instance().error( "\033[31m When using RBE for the coulomb type, "
+                     "the key 'energy_rbe_flag' must be defined.\033[0m");
+        exit(EXIT_FAILURE); //
+      }
     }
   }
 }
@@ -204,11 +245,9 @@ void CVFF::ComputeLJRBL()
   TimingStatistics::Instance().record("Short-Range",duration_rbl_force.count());
 
     //energy
-  _energy_rbl_flag = DataManager::getInstance().getConfigData()->Get<std::string>
-      ("energy_rbl_flag", "hyper_parameters", "neighbor");
-  if ("yes" == _energy_rbl_flag ) {
-    ComputeLJCoulEnergy();
-  }
+    if ("yes" == _energy_rbl_flag ) {
+      ComputeLJCoulEnergy();
+    }
 }
 
 void CVFF::ComputeLJVerlet()
@@ -297,6 +336,32 @@ void CVFF::SumForces()
     _device_data->_d_force_kspace_z,_device_data->_d_force_bond_z,
     _device_data->_d_force_angle_z,_device_data->_d_force_dihedral_z,
     _device_data->_d_force_improper_z);
+
+//   auto num_atoms = *(_structure_info_data->_num_atoms);
+//   auto atom_id_to_idx =
+// LinkedCellLocator::GetInstance().GetLinkedCell()->_atom_id_to_idx;
+//
+//   thrust::host_vector<rbmd::Real> h_fx(num_atoms);
+//   thrust::host_vector<rbmd::Real> h_fy(num_atoms);
+//   thrust::host_vector<rbmd::Real> h_fz(num_atoms);
+//
+//
+//   thrust::copy(_device_data->_d_fx.begin(),_device_data->_d_fx.end(),
+//     h_fx.begin());
+//   thrust::copy(_device_data->_d_fy.begin(),_device_data->_d_fy.end(),
+//     h_fy.begin());
+//   thrust::copy(_device_data->_d_fz.begin(),_device_data->_d_fz.end(),
+//   h_fz.begin());
+
+  // std::ofstream fx("f_cvff.txt");
+  // if (fx.is_open()) {
+  //   for (rbmd::Id i = 0; i < num_atoms; ++i) {
+  //     auto idx = atom_id_to_idx[i];
+  //     fx << i  << " " << h_fx[idx] << " " << h_fy[idx]
+  //       << " " << h_fz[idx]  << "\n";
+  //   }
+  //   fx.close();
+  // }
 }
 
 void CVFF::ComputeChargeStructureFactorEwald(
@@ -486,7 +551,8 @@ void CVFF::ComputeChargeStructureFactorRBE(
     thrust::equal_to<rbmd::Id>(),thrust::plus<rbmd::Real>());
 
   //energy
-  if ("yes" == _energy_rbe_flag ) {
+  if ("yes" == _energy_rbe_flag )
+  {
     //charge self energy//
     ComputeSelfEnergy(alpha,qqr2e,_e_self_energy);
 

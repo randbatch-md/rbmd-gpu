@@ -6,24 +6,34 @@
 #include "lj.h"
 #include "lj_cut_coul_kspace.h"
 #include "cvff.h"
+#include "eam.h"
 #include "tersoff.h"
 #include "energy_stable_scheme_controller.h"
 #include "shake_controller.h"
-
+#include "output/include/Logger.hpp"
 NVEensemble::NVEensemble() {
   _position_controller = std::make_shared<DefaultPositionController>();
   _velocity_controller = std::make_shared<DefaultVelocityController>();
 
+  // Unified  Force Field Controller
+  static const std::unordered_map<std::string, std::function<std::shared_ptr<Force>()>>
+  force_map = {
+    {"CVFF", [&]() { return std::make_shared<CVFF>(); }},
+    {"LJ/CUT", [&]() { return std::make_shared<LJ>(); }},
+    {"LJ/CUT/COUL/LONG", [&]() { return std::make_shared<LJCutCoulKspace>(); }},
+    {"EAM", [&]() { return std::make_shared<EAM>(); }},
+    {"Tersoff", [&]() { return std::make_shared<TerSoff>(); }}
+  };
+
+  //force_type
   auto force_type = DataManager::getInstance().getConfigData()->Get<std::string>
   ("type", "hyper_parameters", "force_field");
-  if ("CVFF" == force_type) {
-    _force_controller = std::make_shared<CVFF>(); // TODO: json file forcetype
+  if (auto it = force_map.find(force_type); it != force_map.end())
+  {
+    _force_controller = it->second();
   }
-  else if ("LJ/CUT" == force_type){
-    _force_controller = std::make_shared<LJ>(); // TODO: json file forcetype
-  }
-  else if ("LJ/CUT/COUL/LONG" == force_type){
-    _force_controller = std::make_shared<LJCutCoulKspace>(); // TODO: json file forcetype
+  else {
+    Logger::Instance().error("Unsupported force field type: {}", force_type);
   }
 
   _energy_stable_scheme_controller = std::make_shared<EnergyStableSchemeController>();
@@ -75,7 +85,6 @@ void NVEensemble::Solve() {
   auto end = std::chrono::high_resolution_clock::now();
   std::chrono::duration<rbmd::Real> duration = end - start;
 
-  std::cout << "time pre step "<< duration.count() << "秒" << std::endl;
 }
 
 void NVEensemble::Postsolve() {}
