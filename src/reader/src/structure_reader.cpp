@@ -190,7 +190,7 @@ int StructureReder::ReadMass(const rbmd::Id& numAtomTypes) {
     auto force_filed =
         std::dynamic_pointer_cast<ForceFieldData>(_md_data._force_field_data);
     auto& mass = force_filed->_h_mass;
-    CHECK_RUNTIME(MALLOCHOST(&mass, numAtomTypes * sizeof(rbmd::Id)));
+    CHECK_RUNTIME(MALLOCHOST(&mass, numAtomTypes * sizeof(rbmd::Real)));
     rbmd::Id atom_type;
     rbmd::Real value;
 
