@@ -2,6 +2,7 @@
 
 #include <spdlog/sinks/basic_file_sink.h>
 #include <spdlog/sinks/stdout_color_sinks.h>
+
 #include <memory>
 
 #include "../common/json.hpp"
@@ -11,12 +12,13 @@
 #include "atomic_reader.h"
 #include "command_line.h"
 #include "cvff_memory_scheduler.h"
-#include "lj_memory_scheduler.h"
 #include "eam_memory_scheduler.h"
+#include "lj_memory_scheduler.h"
 #include "memory_scheduler.h"
+#include "output/include/Logger.hpp"
 #include "output/include/TrajectoryOutput.h"
 #include "output/include/linux_pipe_sink.hpp"
-#include "output/include/Logger.hpp"
+#include "tersoff_memory_scheduler.h"
 MDApplication::MDApplication(int argc, char* argv[])
   : Application(argc, argv),
   _cmd(std::make_shared<CommandLine>(argc, argv))
@@ -146,6 +148,10 @@ int MDApplication::ReadMDData() {
   else if ("EAM" == force_type)
   {
     memory_scheduler = std::make_shared<EAMMemoryScheduler>();
+  }
+  else if ("Tersoff" == force_type)
+  {
+    memory_scheduler = std::make_shared<TersoffMemoryScheduler>();
   }
   else {
     Logger::Instance().error("\033[31m Unsupported force_field type: {}\033[0m", force_type );

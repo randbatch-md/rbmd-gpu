@@ -5,6 +5,18 @@
 #include "../common/erf_table.h"
 #include "neighbor_list/include/neighbor_list/neighbor_list.h"
 #include "neighbor_list/include/neighbor_list_builder/full_neighbor_list_builder.h"
+
+struct TersoffParams
+{
+  rbmd::Real m, gamma, lambda3, c, d, costheta0, n, beta;
+  rbmd::Real lambda2, B, R, D, lambda1, A;
+  rbmd::Real cut, cutsq;
+  rbmd::Real c1, c2, c3, c4;
+  rbmd::Id ielement, jelement, kelement;
+  rbmd::Id m_int;
+  //std::string iname ,jname ,kname;
+};
+
 class TerSoff : public Force
 {
 public:
@@ -21,17 +33,9 @@ public:
   void ReadPotentialFile_fix(std::ifstream& file);
   void  SetupParams();
 
-  struct TersoffParams
-  {
-    rbmd::Id ielement, jelement, kelement;
-    rbmd::Real m, gamma, lambda3, c, d, costheta0, n, beta;
-    rbmd::Real lambda2, B, R, D, lambda1, A;
+  void ComputeTersoff();
 
-    rbmd::Real cut, cutsq;
-    rbmd::Real c1, c2, c3, c4;
-    rbmd::Id m_int;
-    std::string iname ,jname ,kname;
-  };
+
 
   // struct TersoffParams {
   //   double m, gamma, lambda3, c, d, costheta0, n, beta;
@@ -69,7 +73,7 @@ private:
   std::string, std::string>, TersoffParams> TersoffData;
   std::ifstream _potential_file;
 
-  TersoffParams*  _params;
+  TersoffParams*  _h_params;
   rbmd::Id _nelements;        // # of unique elements
   char**    _elements;      // names of unique elements
   std::vector<rbmd::Id> _map;             // mapping from atom types to elements
@@ -87,5 +91,12 @@ private:
   rbmd::Id _maxparam;         // max # of parameter sets
 
   rbmd::Real _cutmax;   //max cutoff for all elements
+
+  //
+  thrust::device_vector<rbmd::Id> _d_elem3param;
+  thrust::device_vector<rbmd::Id>  _d_map;
+
+  //
+  rbmd::Id  _interval;
 };
 
