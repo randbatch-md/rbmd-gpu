@@ -17,6 +17,4 @@ class LJForceFieldData : public ForceFieldData {
   /// sigma
   rbmd::Real* _h_sigma;
 
-  // charge
-  rbmd::Real* _h_charge;
 };

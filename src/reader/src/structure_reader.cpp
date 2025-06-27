@@ -49,7 +49,6 @@ int StructureReder::ReadHeader() {
     CHECK_RUNTIME(MALLOCHOST(&(info->_num_angles_type), sizeof(rbmd::Id)));
     CHECK_RUNTIME(MALLOCHOST(&(info->_num_dihedrals_type), sizeof(rbmd::Id)));
     CHECK_RUNTIME(MALLOCHOST(&(info->_num_impropers_type), sizeof(rbmd::Id)));
-    CHECK_RUNTIME(MALLOCHOST(&(info->_range), sizeof(rbmd::Range)));
     auto& box = _md_data._box;
     rbmd::Real coord_min[3];
     rbmd::Real coord_max[3];
@@ -94,20 +93,16 @@ int StructureReder::ReadHeader() {
             iss >> coord_min[0] >> coord_max[0];
             // std::cout << coord_min[0] << " " << coord_max[0] << "xlo xhi" <<
             // std::endl;
-            (*info->_range)[0][0] = coord_min[0];
-            (*info->_range)[0][1] = coord_max[0];
           } else if (line.find("ylo yhi") != std::string::npos) {
             iss >> coord_min[1] >> coord_max[1];
             // std::cout << coord_min[1] << " " << coord_max[1] << "ylo yhi" <<
             // std::endl;
-            (*info->_range)[1][0] = coord_min[1];
-            (*info->_range)[1][1] = coord_max[1];
+           
           } else if (line.find("zlo zhi") != std::string::npos) {
             iss >> coord_min[2] >> coord_max[2];
             // std::cout << coord_min[2] << " " << coord_max[2] << "zlo zhi" <<
             // std::endl;
-            (*info->_range)[2][0] = coord_min[2];
-            (*info->_range)[2][1] = coord_max[2];
+
             bool pbc[3] = {1, 1, 1};
             box->Setup(box->_type, coord_min, coord_max, pbc);
             // 计算盒子边长
@@ -195,7 +190,7 @@ int StructureReder::ReadMass(const rbmd::Id& numAtomTypes) {
     auto force_filed =
         std::dynamic_pointer_cast<ForceFieldData>(_md_data._force_field_data);
     auto& mass = force_filed->_h_mass;
-    CHECK_RUNTIME(MALLOCHOST(&mass, numAtomTypes * sizeof(rbmd::Id)));
+    CHECK_RUNTIME(MALLOCHOST(&mass, numAtomTypes * sizeof(rbmd::Real)));
     rbmd::Id atom_type;
     rbmd::Real value;
 
