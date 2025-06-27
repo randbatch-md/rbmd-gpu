@@ -12,6 +12,7 @@ class BaseNeighborListBuilder : public Object {
   ~BaseNeighborListBuilder() override;
 
   virtual std::shared_ptr<NeighborList> Build() = 0;
+  virtual std::shared_ptr<NeighborList> Build(rbmd::Real custom_cut_off) = 0;
 
  protected:
   std::shared_ptr<LinkedCell> _linked_cell;

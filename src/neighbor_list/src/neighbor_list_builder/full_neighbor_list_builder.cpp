@@ -45,6 +45,25 @@ std::shared_ptr<NeighborList> FullNeighborListBuilder::Build() {
   return _neighbor_list;
 }
 
+std::shared_ptr<NeighborList> FullNeighborListBuilder::Build(
+    rbmd::Real custom_cutoff) {
+  this->_trunc_distance_power_2 = custom_cutoff * custom_cutoff;
+  _linked_cell->AssignAtomsToCell();
+  _linked_cell->SortAtomsByCellKey();
+  _linked_cell->ComputeCellRangesIndices();
+  if (should_realloc) {
+    // 好像就第一入口调用了  todo move to init?
+    EstimateNeighborsList();
+  }
+  // 索引没有问题
+  if (GenerateNeighborsList()==RBMD_TRUE) {
+    EstimateNeighborsList();
+    GenerateNeighborsList();
+  }
+  return _neighbor_list;
+}
+
+
 void FullNeighborListBuilder::ComputeNeighborCells() {
   _linked_cell->_neighbor_cell.resize(
       (_linked_cell->_total_cells * this->_neighbor_cell_num));
