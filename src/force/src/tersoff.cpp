@@ -145,24 +145,24 @@ thrust::raw_pointer_cast(d_total_energy.data()));
   std::chrono::duration<rbmd::Real> duration_f = end_f - start_f;
   TimingStatistics::Instance().record("Short-Range",duration_f.count());
 
-  // thrust::host_vector<rbmd::Real> h_fx;
-  // thrust::host_vector<rbmd::Real> h_fy;
-  // thrust::host_vector<rbmd::Real> h_fz;
-  // h_fx.reserve(num_atoms);
-  // h_fy.reserve(num_atoms);
-  // h_fz.reserve(num_atoms);
-  // h_fx = _device_data->_d_fx;
-  // h_fy = _device_data->_d_fy;
-  // h_fz = _device_data->_d_fz;
-  //
-  // std::ofstream force("force.txt");
-  // if (force.is_open()) {
-  //   for (rbmd::Id i = 0; i <h_fx.size(); ++i) {
-  //     auto idx = atom_id_to_idx[i];
-  //     force << i  << " " << h_fx[idx]  << " "<< h_fy[idx]  << " " << h_fz[idx] << "\n";
-  //   }
-  //   force.close();
-  // }
+  thrust::host_vector<rbmd::Real> h_fx;
+  thrust::host_vector<rbmd::Real> h_fy;
+  thrust::host_vector<rbmd::Real> h_fz;
+  h_fx.reserve(num_atoms);
+  h_fy.reserve(num_atoms);
+  h_fz.reserve(num_atoms);
+  h_fx = _device_data->_d_fx;
+  h_fy = _device_data->_d_fy;
+  h_fz = _device_data->_d_fz;
+
+  std::ofstream force("force.txt");
+  if (force.is_open()) {
+    for (rbmd::Id i = 0; i <h_fx.size(); ++i) {
+      auto idx = atom_id_to_idx[i];
+      force << i  << " " << h_fx[idx]  << " "<< h_fy[idx]  << " " << h_fz[idx] << "\n";
+    }
+    force.close();
+  }
 }
 
 void TerSoff::ReadPotentialElements(const std::string& potential_elements,
@@ -385,6 +385,110 @@ void TerSoff::ReadPotentialFile_fix(std::ifstream& file)
         exit(EXIT_FAILURE);
     }
     std::cout << "_nparams: " << _nparams << std::endl;
+}
+
+void TerSoff::ReadPotentialFile(std::ifstream& file)
+{
+
+    _nparams = _maxparam = 0;
+
+    std::string line;
+    while (std::getline(file, line))
+    {
+      //
+      line = line.substr(line.find_first_not_of(" \t"), line.find_last_not_of(" \t") + 1);
+
+      //
+      if (line.empty() || line[0] == '#'){
+        continue;
+      }
+
+      std::istringstream iss(line);
+      try {
+            //
+            std::string iname, jname, kname;
+            iss >> iname >> jname >> kname;
+
+            //
+            int ielement, jelement, kelement;
+            for (ielement = 0; ielement < _nelements; ++ielement)
+                if (iname == _elements[ielement]) break;
+            if (ielement == _nelements) continue;
+
+            for (jelement = 0; jelement < _nelements; ++jelement)
+                if (jname == _elements[jelement]) break;
+            if (jelement == _nelements) continue;
+
+            for (kelement = 0; kelement < _nelements; ++kelement)
+                if (kname == _elements[kelement]) break;
+            if (kelement == _nelements) continue;
+
+            rbmd::Id  DELTA =4;
+            if (_nparams == _maxparam)
+            {
+              _maxparam += DELTA;
+              _h_params = (TersoffParams *) realloc(_h_params,_maxparam*sizeof(TersoffParams));
+              memset(_h_params + _nparams, 0, DELTA*sizeof(TersoffParams));
+           }
+
+            //
+            _h_params[_nparams].ielement = ielement;
+            _h_params[_nparams].jelement = jelement;
+            _h_params[_nparams].kelement = kelement;
+
+            //
+            //auto key = std::make_tuple(iname, jname, kname);
+            //TersoffParams params;
+
+            iss >> _h_params[_nparams].m >> _h_params[_nparams].gamma >> _h_params[_nparams].lambda3
+                >> _h_params[_nparams].c >> _h_params[_nparams].d>> _h_params[_nparams].costheta0 >>
+          _h_params[_nparams].n >>_h_params[_nparams].beta>> _h_params[_nparams].lambda2>>
+          _h_params[_nparams].B >> _h_params[_nparams].R >>_h_params[_nparams].D >>
+          _h_params[_nparams].lambda1 >> _h_params[_nparams].A;
+
+          _h_params[_nparams].m_int = rbmd::Id(_h_params[_nparams].m);//
+
+            std::cout << "Read parameters: "
+            << "m = " << _h_params[_nparams].m << ", "
+            << "gamma = " << _h_params[_nparams].gamma << ", "
+            << "lambda3 = " << _h_params[_nparams].lambda3 << ", "
+            << "c = " << _h_params[_nparams].c << ", "
+            << "d = " << _h_params[_nparams].d << ", "
+            << "costheta0 = " << _h_params[_nparams].costheta0 << ", "
+            << "n = " << _h_params[_nparams].n << ", "
+            << "beta = " << _h_params[_nparams].beta << ", "
+            << "lambda2 = " << _h_params[_nparams].lambda2 << ", "
+            << "B = " << _h_params[_nparams].B << ", "
+            << "R = " << _h_params[_nparams].R << ", "
+            << "D = " << _h_params[_nparams].D << ", "
+            << "lambda1 = " << _h_params[_nparams].lambda1 << ", "
+            << "A = " << _h_params[_nparams].A
+            << std::endl;
+
+            //
+            bool unit_convert_flag =true;
+            rbmd::Real conversion_factor=1.0;
+            if (unit_convert_flag) {
+                _h_params[_nparams].A *= conversion_factor;
+                _h_params[_nparams].B *= conversion_factor;
+            }
+
+            //
+            //TersoffData[key] = params;
+           //++_nparams;
+         } catch (const std::exception& e) {
+           std::cerr << "Error parsing line [" << _nparams << "]: " << line << "\n"
+                        << "Error: " << e.what() << std::endl;
+         }
+         ++_nparams;
+    }
+    //
+    if (_nparams == 0) {
+      Logger::Instance().error("\033[31m No valid parameters found in the potential file\033[0m" );
+      exit(EXIT_FAILURE); //
+    }
+
+  std::cout<< "_nparams: " <<_nparams<<std::endl;
 }
 
 void TerSoff::SetupParams()
