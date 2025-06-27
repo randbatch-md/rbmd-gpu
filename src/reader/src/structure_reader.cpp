@@ -230,8 +230,8 @@ int StructureReder::ReadPairCoeffs(const rbmd::Id& numAtomTypes) {
                 std::dynamic_pointer_cast<CVFFForceFieldData>(_md_data._force_field_data);
             auto& eps = force_filed->_h_eps;
             auto& sigma = force_filed->_h_sigma;
-            CHECK_RUNTIME(MALLOCHOST(&eps, numAtomTypes * sizeof(rbmd::Id)));
-            CHECK_RUNTIME(MALLOCHOST(&sigma, numAtomTypes * sizeof(rbmd::Id)));
+            CHECK_RUNTIME(MALLOCHOST(&eps, numAtomTypes * sizeof(rbmd::Real)));
+            CHECK_RUNTIME(MALLOCHOST(&sigma, numAtomTypes * sizeof(rbmd::Real)));
             rbmd::Id atom_type;
             rbmd::Real eps_value;
             rbmd::Real sigma_value;
@@ -264,8 +264,8 @@ int StructureReder::ReadPairCoeffs(const rbmd::Id& numAtomTypes) {
                 std::dynamic_pointer_cast<LJForceFieldData>(_md_data._force_field_data);
             auto& eps = force_filed->_h_eps;
             auto& sigma = force_filed->_h_sigma;
-            CHECK_RUNTIME(MALLOCHOST(&eps, numAtomTypes * sizeof(rbmd::Id)));
-            CHECK_RUNTIME(MALLOCHOST(&sigma, numAtomTypes * sizeof(rbmd::Id)));
+            CHECK_RUNTIME(MALLOCHOST(&eps, numAtomTypes * sizeof(rbmd::Real)));
+            CHECK_RUNTIME(MALLOCHOST(&sigma, numAtomTypes * sizeof(rbmd::Real)));
             rbmd::Id atom_type;
             rbmd::Real eps_value;
             rbmd::Real sigma_value;
