@@ -7,6 +7,7 @@ class FullNeighborListBuilder : public BaseNeighborListBuilder {
   explicit FullNeighborListBuilder();
 
   std::shared_ptr<NeighborList> Build() override;
+  std::shared_ptr<NeighborList> Build(rbmd::Real custom_cutoff) override;
 
  protected:
   void ComputeNeighborCells() override;
