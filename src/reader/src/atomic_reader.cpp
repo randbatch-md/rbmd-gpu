@@ -67,17 +67,17 @@ void AtomicReader::AllocateDataSpace() {
     CHECK_RUNTIME(MALLOCHOST(&(data->_h_atoms_type),
                          *(info->_num_atoms) * sizeof(rbmd::Id)));
     CHECK_RUNTIME(
-        MALLOCHOST(&(data->_h_px), *(info->_num_atoms) * sizeof(rbmd::Id)));
+        MALLOCHOST(&(data->_h_px), *(info->_num_atoms) * sizeof(rbmd::Real)));
     CHECK_RUNTIME(
-        MALLOCHOST(&(data->_h_py), *(info->_num_atoms) * sizeof(rbmd::Id)));
+        MALLOCHOST(&(data->_h_py), *(info->_num_atoms) * sizeof(rbmd::Real)));
     CHECK_RUNTIME(
-        MALLOCHOST(&(data->_h_pz), *(info->_num_atoms) * sizeof(rbmd::Id)));
+        MALLOCHOST(&(data->_h_pz), *(info->_num_atoms) * sizeof(rbmd::Real)));
     CHECK_RUNTIME(
-        MALLOCHOST(&(data->_h_vx), *(info->_num_atoms) * sizeof(rbmd::Id)));
+        MALLOCHOST(&(data->_h_vx), *(info->_num_atoms) * sizeof(rbmd::Real)));
     CHECK_RUNTIME(
-        MALLOCHOST(&(data->_h_vy), *(info->_num_atoms) * sizeof(rbmd::Id)));
+        MALLOCHOST(&(data->_h_vy), *(info->_num_atoms) * sizeof(rbmd::Real)));
     CHECK_RUNTIME(
-        MALLOCHOST(&(data->_h_vz), *(info->_num_atoms) * sizeof(rbmd::Id)));
+        MALLOCHOST(&(data->_h_vz), *(info->_num_atoms) * sizeof(rbmd::Real)));
 
   } else if ("charge" == atom_style) {
     auto& charge_structure_data = _md_data._structure_data;
@@ -88,19 +88,19 @@ void AtomicReader::AllocateDataSpace() {
     CHECK_RUNTIME(MALLOCHOST(&(data->_h_atoms_type),
                          *(info->_num_atoms) * sizeof(rbmd::Id)));
     CHECK_RUNTIME(
-        MALLOCHOST(&(data->_h_px), *(info->_num_atoms) * sizeof(rbmd::Id)));
+        MALLOCHOST(&(data->_h_px), *(info->_num_atoms) * sizeof(rbmd::Real)));
     CHECK_RUNTIME(
-        MALLOCHOST(&(data->_h_py), *(info->_num_atoms) * sizeof(rbmd::Id)));
+        MALLOCHOST(&(data->_h_py), *(info->_num_atoms) * sizeof(rbmd::Real)));
     CHECK_RUNTIME(
-        MALLOCHOST(&(data->_h_pz), *(info->_num_atoms) * sizeof(rbmd::Id)));
+        MALLOCHOST(&(data->_h_pz), *(info->_num_atoms) * sizeof(rbmd::Real)));
     CHECK_RUNTIME(
-        MALLOCHOST(&(data->_h_vx), *(info->_num_atoms) * sizeof(rbmd::Id)));
+        MALLOCHOST(&(data->_h_vx), *(info->_num_atoms) * sizeof(rbmd::Real)));
     CHECK_RUNTIME(
-        MALLOCHOST(&(data->_h_vy), *(info->_num_atoms) * sizeof(rbmd::Id)));
+        MALLOCHOST(&(data->_h_vy), *(info->_num_atoms) * sizeof(rbmd::Real)));
     CHECK_RUNTIME(
-        MALLOCHOST(&(data->_h_vz), *(info->_num_atoms) * sizeof(rbmd::Id)));
+        MALLOCHOST(&(data->_h_vz), *(info->_num_atoms) * sizeof(rbmd::Real)));
     CHECK_RUNTIME(
-        MALLOCHOST(&(data->_h_charge), *(info->_num_atoms) * sizeof(rbmd::Id)));
+        MALLOCHOST(&(data->_h_charge), *(info->_num_atoms) * sizeof(rbmd::Real)));
   } else if ("full" == atom_style) {
       auto& full_structure_data = _md_data._structure_data;
       FullStructureData* data =
@@ -110,19 +110,19 @@ void AtomicReader::AllocateDataSpace() {
       CHECK_RUNTIME(MALLOCHOST(&(data->_h_atoms_type),
           *(info->_num_atoms) * sizeof(rbmd::Id)));
       CHECK_RUNTIME(
-          MALLOCHOST(&(data->_h_px), *(info->_num_atoms) * sizeof(rbmd::Id)));
+          MALLOCHOST(&(data->_h_px), *(info->_num_atoms) * sizeof(rbmd::Real)));
       CHECK_RUNTIME(
-          MALLOCHOST(&(data->_h_py), *(info->_num_atoms) * sizeof(rbmd::Id)));
+          MALLOCHOST(&(data->_h_py), *(info->_num_atoms) * sizeof(rbmd::Real)));
       CHECK_RUNTIME(
-          MALLOCHOST(&(data->_h_pz), *(info->_num_atoms) * sizeof(rbmd::Id)));
+          MALLOCHOST(&(data->_h_pz), *(info->_num_atoms) * sizeof(rbmd::Real)));
       CHECK_RUNTIME(
-          MALLOCHOST(&(data->_h_vx), *(info->_num_atoms) * sizeof(rbmd::Id)));
+          MALLOCHOST(&(data->_h_vx), *(info->_num_atoms) * sizeof(rbmd::Real)));
       CHECK_RUNTIME(
-          MALLOCHOST(&(data->_h_vy), *(info->_num_atoms) * sizeof(rbmd::Id)));
+          MALLOCHOST(&(data->_h_vy), *(info->_num_atoms) * sizeof(rbmd::Real)));
       CHECK_RUNTIME(
-          MALLOCHOST(&(data->_h_vz), *(info->_num_atoms) * sizeof(rbmd::Id)));
+          MALLOCHOST(&(data->_h_vz), *(info->_num_atoms) * sizeof(rbmd::Real)));
       CHECK_RUNTIME(
-          MALLOCHOST(&(data->_h_charge), *(info->_num_atoms) * sizeof(rbmd::Id)));
+          MALLOCHOST(&(data->_h_charge), *(info->_num_atoms) * sizeof(rbmd::Real)));
       CHECK_RUNTIME(
           MALLOCHOST(&(data->_h_molecules_id), *(info->_num_atoms) * sizeof(rbmd::Id)));
 
