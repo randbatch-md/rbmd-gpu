@@ -29,18 +29,24 @@ TerSoff::TerSoff():
   _neighbor_list_builder = std::make_shared<FullNeighborListBuilder>();
   _h_params = nullptr;
 
-  _interval = DataManager::getInstance().getConfigData()->Get<rbmd::Id>(
-"interval", "hyper_parameters", "neighbor");
+  const auto& config = DataManager::getInstance().getConfigData();
+  if (config->PathExists({"hyper_parameters", "neighbor","interval" }))
+  {
+    _interval = config->Get<rbmd::Id>(
+  "interval", "hyper_parameters", "neighbor");
+  }
 
-  //
+  //map resize
   auto atoms_type = *(_structure_info_data->_num_atoms_type);
   _map.resize(atoms_type +1 ,-1);
   _setflag.resize(atoms_type + 1,std::vector<rbmd::Id>(atoms_type + 1, 0));
+  std::remove("thermo.txt");
 }
 
 TerSoff::~TerSoff()
 {
   free(_h_params);
+  FREE(d_params);
 
   if (_elements) {
     for (int i = 0; i < _nelements; i++) {delete[] _elements[i];}
@@ -51,9 +57,14 @@ TerSoff::~TerSoff()
 
 void TerSoff::Init()
 {
-  //
-  _list = _neighbor_list_builder->Build();
+  const auto& config = DataManager::getInstance().getConfigData();
+  auto shift_flag =config->PathExists({"hyper_parameters", "shift_value" });
+  if (shift_flag) {
+    _shift.shift_flag =1;
+    _shift.shift_value= config->Get<rbmd::Real>("shift_value", "hyper_parameters");
+  }
 
+  //_cut_off = config->Get<rbmd::Real>("cut_off", "hyper_parameters", "neighbor");
   //
   int narg = 0;
   char** arg = nullptr;
@@ -63,10 +74,10 @@ void TerSoff::Init()
   ReadPotentialElements(potential_elements, narg, &arg);
   Element2Type(narg-2,arg+2,update_setflag);
   //
-  // std::cout << "narg: " << narg << std::endl;
-  // for (int i = 0; i < narg; ++i) {
-  //   std::cout << "arg[" << i << "]: " << arg[i] << std::endl;
-  // }
+  std::cout << "narg: " << narg << std::endl;
+  for (int i = 0; i < narg; ++i) {
+    std::cout << "arg[" << i << "]: " << arg[i] << std::endl;
+  }
 
 
   //
@@ -85,30 +96,36 @@ void TerSoff::Init()
   _potential_file.close();
 
   SetupParams();
+
+  //
+  cudaMalloc((void**)&d_params, _nparams * sizeof(TersoffParams));
+  cudaMemcpy(d_params, _h_params, _nparams * sizeof(TersoffParams), cudaMemcpyHostToDevice);
 }
 
 void TerSoff::Execute()
 {
   ComputeTersoff();
 
+  EvaluatePotentialenergy();
 }
 
 void TerSoff::ComputeTersoff() {
   //neighbor_list_build
-  if (test_current_step  % _interval == 0) {
-    auto start = std::chrono::high_resolution_clock::now();
-    _list = _neighbor_list_builder->Build();
-
-    auto end = std::chrono::high_resolution_clock::now();
-    std::chrono::duration<rbmd::Real> duration = end - start;
-    TimingStatistics::Instance().record("Neighbor-List",duration.count());
+  auto start = std::chrono::high_resolution_clock::now();
+  if (test_current_step == 0) {
+    _list = _neighbor_list_builder->Build(_cutmax);
   }
+  if (test_current_step>0) {
+    if (test_current_step  % _interval == 0) {
+      _list = _neighbor_list_builder->Build(_cutmax);
+    }
+  }
+  auto end = std::chrono::high_resolution_clock::now();
+  std::chrono::duration<rbmd::Real> duration = end - start;
+  TimingStatistics::Instance().record("Neighbor-List",duration.count());
 
   //Tersoff
   auto start_f = std::chrono::high_resolution_clock::now();
-  TersoffParams* d_params;
-  cudaMalloc((void**)&d_params, _nparams * sizeof(TersoffParams));
-  cudaMemcpy(d_params, _h_params, _nparams * sizeof(TersoffParams), cudaMemcpyHostToDevice);
 
   auto num_atoms = *(_structure_info_data->_num_atoms);
   thrust::device_vector<rbmd::Real> d_total_energy(1, 0.0);
@@ -123,7 +140,7 @@ void TerSoff::ComputeTersoff() {
     _device_data->_d_fz.end(), 0.0f);
 
   op::TerSoff<device::DEVICE_GPU>()(
-    *_box,d_params,_cutmax,num_atoms,_nelements,
+    *_box,d_params,_shift,_cutmax,num_atoms,_nelements,
     thrust::raw_pointer_cast(atom_id_to_idx.data()),
     thrust::raw_pointer_cast(_device_data->_d_atoms_id.data()),
     thrust::raw_pointer_cast(_device_data->_d_atoms_type.data()),
@@ -141,28 +158,32 @@ thrust::raw_pointer_cast(_device_data->_d_fz.data()),
 thrust::raw_pointer_cast(_device_data->_d_flat_virial_lj.data()),
 thrust::raw_pointer_cast(d_total_energy.data()));
 
+
   auto end_f = std::chrono::high_resolution_clock::now();
   std::chrono::duration<rbmd::Real> duration_f = end_f - start_f;
   TimingStatistics::Instance().record("Short-Range",duration_f.count());
+  // D2H
+  thrust::host_vector<rbmd::Real> h_total_evdwl(d_total_energy);
+  _e_vdwl = h_total_evdwl[0]/num_atoms;
+  // thrust::host_vector<rbmd::Real> h_fx;
+  // thrust::host_vector<rbmd::Real> h_fy;
+  // thrust::host_vector<rbmd::Real> h_fz;
+  // h_fx.reserve(num_atoms);
+  // h_fy.reserve(num_atoms);
+  // h_fz.reserve(num_atoms);
+  // h_fx = _device_data->_d_fx;
+  // h_fy = _device_data->_d_fy;
+  // h_fz = _device_data->_d_fz;
+  //
+  // std::ofstream force("force.txt");
+  // if (force.is_open()) {
+  //   for (rbmd::Id i = 0; i <h_fx.size(); ++i) {
+  //     auto idx = atom_id_to_idx[i];
+  //     force << i  << " " << h_fx[idx]  << " "<< h_fy[idx]  << " " << h_fz[idx] << "\n";
+  //   }
+  //   force.close();
+  // }
 
-  thrust::host_vector<rbmd::Real> h_fx;
-  thrust::host_vector<rbmd::Real> h_fy;
-  thrust::host_vector<rbmd::Real> h_fz;
-  h_fx.reserve(num_atoms);
-  h_fy.reserve(num_atoms);
-  h_fz.reserve(num_atoms);
-  h_fx = _device_data->_d_fx;
-  h_fy = _device_data->_d_fy;
-  h_fz = _device_data->_d_fz;
-
-  std::ofstream force("force.txt");
-  if (force.is_open()) {
-    for (rbmd::Id i = 0; i <h_fx.size(); ++i) {
-      auto idx = atom_id_to_idx[i];
-      force << i  << " " << h_fx[idx]  << " "<< h_fy[idx]  << " " << h_fz[idx] << "\n";
-    }
-    force.close();
-  }
 }
 
 void TerSoff::ReadPotentialElements(const std::string& potential_elements,
@@ -203,9 +224,6 @@ void TerSoff::Element2Type(rbmd::Id narg, char **arg, bool update_setflag)
     exit(EXIT_FAILURE); //
   }
 
-  // unordered_map
-  std::unordered_map<std::string, int> element_to_index;
-
   // //
   if (_elements) {
     for (i = 0; i < _nelements; i++) {
@@ -229,10 +247,13 @@ void TerSoff::Element2Type(rbmd::Id narg, char **arg, bool update_setflag)
       _map[i] = -1;
       continue;
     }
-    for (j = 0; j < _nelements; j++)
-      if (strcmp(entry.c_str(), _elements[j]) == 0)
+    for (j = 0; j < _nelements; j++) {
+      //if (strcmp(entry.c_str(), _elements[j]) == 0)
+      if (entry == _elements[j])
         break;
+    }
     _map[i] = j;
+
     if (j == _nelements) {
       _elements[j] = StrDup(entry);
       _nelements++;
@@ -241,9 +262,9 @@ void TerSoff::Element2Type(rbmd::Id narg, char **arg, bool update_setflag)
   // for (int i = 0; i < _map.size(); ++i) {
   //     std::cout << "map: "   <<  i   << "  "<< _map[i] << " " << std::endl;
   // }
-  for (i = 0; i < ntypes; i++) {
-   std::cout <<"elements: " << i << " "<< _elements[i]  << std::endl;
-  }
+  // for (i = 0; i < ntypes; i++) {
+  //  std::cout <<"elements: " << i << " "<< _elements[i]  << std::endl;
+  // }
 
   _d_map = _map;
   //
@@ -298,21 +319,35 @@ void TerSoff::ReadPotentialFile_fix(std::ifstream& file)
 
             //
             std::string iname, jname, kname;
-            if (!(iss >> iname >> jname >> kname))
-              continue;
+          if (!(iss >> iname >> jname >> kname))
+             continue;
             //
-            int ielement = -1, jelement = -1, kelement = -1;
-            for (int i = 0; i < _nelements; ++i) {
-                if (iname == _elements[i]) ielement = i;
-                if (jname == _elements[i]) jelement = i;
-                if (kname == _elements[i]) kelement = i;
-            }
+            // int ielement = -1, jelement = -1, kelement = -1;
+            // for (int i = 0; i < _nelements; ++i) {
+            //     if (iname == _elements[i]) ielement = i;
+            //     if (jname == _elements[i]) jelement = i;
+            //     if (kname == _elements[i]) kelement = i;
+            // }
 
-            if (ielement == -1 || jelement == -1 || kelement == -1) {
-                //
-                accumulatedLine.clear();
-                continue;
-            }
+          //
+          int ielement, jelement, kelement;
+          for (ielement = 0; ielement < _nelements; ++ielement)
+            if (iname == _elements[ielement]) break;
+          if (ielement == _nelements) continue;
+
+          for (jelement = 0; jelement < _nelements; ++jelement)
+            if (jname == _elements[jelement]) break;
+          if (jelement == _nelements) continue;
+
+          for (kelement = 0; kelement < _nelements; ++kelement)
+            if (kname == _elements[kelement]) break;
+          if (kelement == _nelements) continue;
+
+          if (ielement == -1 || jelement == -1 || kelement == -1) {
+              //
+              accumulatedLine.clear();
+              continue;
+          }
 
             //
             rbmd::Id DELTA = 4;
@@ -337,7 +372,6 @@ void TerSoff::ReadPotentialFile_fix(std::ifstream& file)
             //
             _h_params[_nparams].m_int = rbmd::Id(_h_params[_nparams].m);
 
-            // std::cout << "Successfully parsed accumulated line: " << accumulatedLine << std::endl;
             // std::cout << "Read parameters: "
             //           << "m = " << _h_params[_nparams].m << ", "
             //           << "gamma = " << _h_params[_nparams].gamma << ", "
@@ -366,14 +400,14 @@ void TerSoff::ReadPotentialFile_fix(std::ifstream& file)
             //
             parseSuccess = true;
             accumulatedLine.clear();
-            ++_nparams;
+           //++_nparams;
 
         } catch (const std::exception& e) {
             std::cerr << "Error parsing accumulated line: " << accumulatedLine << "\n"
                       << "Error: " << e.what() << std::endl;
             accumulatedLine.clear(); //
         }
-
+        _nparams++;
         //
         if (!parseSuccess && accumulatedLine.length() > 1000) {
             accumulatedLine.clear();
@@ -437,9 +471,6 @@ void TerSoff::ReadPotentialFile(std::ifstream& file)
             _h_params[_nparams].kelement = kelement;
 
             //
-            //auto key = std::make_tuple(iname, jname, kname);
-            //TersoffParams params;
-
             iss >> _h_params[_nparams].m >> _h_params[_nparams].gamma >> _h_params[_nparams].lambda3
                 >> _h_params[_nparams].c >> _h_params[_nparams].d>> _h_params[_nparams].costheta0 >>
           _h_params[_nparams].n >>_h_params[_nparams].beta>> _h_params[_nparams].lambda2>>
@@ -474,8 +505,6 @@ void TerSoff::ReadPotentialFile(std::ifstream& file)
             }
 
             //
-            //TersoffData[key] = params;
-           //++_nparams;
          } catch (const std::exception& e) {
            std::cerr << "Error parsing line [" << _nparams << "]: " << line << "\n"
                         << "Error: " << e.what() << std::endl;
@@ -488,13 +517,12 @@ void TerSoff::ReadPotentialFile(std::ifstream& file)
       exit(EXIT_FAILURE); //
     }
 
-  std::cout<< "_nparams: " <<_nparams<<std::endl;
+  //std::cout<< "_nparams: " <<_nparams<<std::endl;
 }
 
 void TerSoff::SetupParams()
 {
     int i, j, k, m, n;
-    //TersoffData params;
     //
   _elem3param = std::vector<std::vector<std::vector<rbmd::Id>>>(
       _nelements,
@@ -530,33 +558,31 @@ void TerSoff::SetupParams()
         }
     }
 
-  for (int i = 0; i <_nelements; ++i) {
-    for (int j = 0; j < _nelements; ++j) {
-      for (int k = 0; k < _nelements; ++k) {
-        std::cout << "_elem3param[" << i << "][" << j << "][" << k << "] = "
-                  << _elem3param[i][j][k] << std::endl;
-      }
-    }
-  }
+  // for (int i = 0; i <_nelements; i++) {
+  //   for (int j = 0; j < _nelements; j++) {
+  //     for (int k = 0; k < _nelements; k++) {
+  //       std::cout << "_elem3param[" << i << "][" << j << "][" << k << "] = "
+  //                 << _elem3param[i][j][k] << std::endl;
+  //     }
+  //   }
+  // }
 
   //h_elem3param_flat
   std::vector<rbmd::Id> _h_elem3param_flat(_nelements * _nelements * _nelements, -1);
-  for (int i = 0; i < _nelements; ++i) {
-    for (int j = 0; j < _nelements; ++j) {
-      for (int k = 0; k < _nelements; ++k) {
+  for (int i = 0; i < _nelements; i++) {
+    for (int j = 0; j < _nelements; j++) {
+      for (int k = 0; k < _nelements; k++) {
         int flat_idx = i * _nelements * _nelements + j * _nelements + k;
         _h_elem3param_flat[flat_idx] = _elem3param[i][j][k];
       }
     }
   }
-  // for (int i = 0; i <_h_elem3param_flat.size(); ++i) {
-  //   std::cout <<"_h_elem3param_flat= "  << i << " ,"<<_h_elem3param_flat[i]  << std::endl;
-  // }
+
    _d_elem3param = thrust::device_vector<rbmd::Id>(_h_elem3param_flat.begin(), _h_elem3param_flat.end());
 
 
   //c1  c2 c3  c4
-  for (int i = 0; i < _nparams; ++i) {
+  for (int i = 0; i < _nparams; i++) {
     _h_params[i].cut = _h_params[i].R + _h_params[i].D;
     _h_params[i].cutsq = _h_params[i].cut * _h_params[i].cut;
 
@@ -572,8 +598,28 @@ void TerSoff::SetupParams()
 
   //cutmax
   _cutmax = 0.0;
-  for (int i = 0; i < _nparams; ++i) {
+  for (int i = 0; i < _nparams; i++) {
     if (_h_params[i].cut > _cutmax) _cutmax = _h_params[i].cut;
   }
   Logger::Instance().info(" max cut_off= {}", _cutmax);
  }
+
+void TerSoff::EvaluatePotentialenergy()
+{
+  _e_pe = _e_vdwl;
+
+  ThermoStats::Instance().AddThermoData("total-potential-energy",_e_pe);
+
+  //out
+  auto interval = DataManager::getInstance().getConfigData()->Get<rbmd::Id>(
+"interval", "outputs", "thermo_out");
+
+  std::ofstream outfile("thermo.txt", std::ios::app);
+  if (outfile.tellp() == 0) {
+    outfile << "step  e_vdwl  e_pe" << std::endl;
+  }
+  if (test_current_step % interval == 0) {
+    outfile << test_current_step << " " << _e_vdwl  << " " <<  _e_pe << std::endl;
+  }
+  outfile.close();
+}

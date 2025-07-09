@@ -1,7 +1,7 @@
 #pragma once
 
 #include "../common/types.h"
-
+#include  "../common/rbmd_define.h"
 class StructureInfoData {
 public:
   ~StructureInfoData();

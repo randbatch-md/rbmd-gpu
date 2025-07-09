@@ -133,6 +133,12 @@ bool MemoryScheduler::asyncMemoryH2D() {
   _device_data->_d_force_improper_y.resize(num_atoms);
   _device_data->_d_force_improper_z.resize(num_atoms);
 
+  _device_data->_d_f2_x.resize(num_atoms);
+  _device_data->_d_f2_y.resize(num_atoms);
+  _device_data->_d_f2_z.resize(num_atoms);
+  _device_data->_d_f3_x.resize(num_atoms);
+  _device_data->_d_f3_y.resize(num_atoms);
+  _device_data->_d_f3_z.resize(num_atoms);
   //copy virial
   _device_data->_d_flat_virial.resize(6*num_atoms);
   _device_data->_d_flat_virial_lj.resize(6*num_atoms);

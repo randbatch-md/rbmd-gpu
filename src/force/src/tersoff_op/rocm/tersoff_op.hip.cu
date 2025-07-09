@@ -43,7 +43,7 @@ namespace op{
 
 //---------device---------//
   // inlined functions for efficiency
-  __device__ rbmd::Real device_gijk(const rbmd::Real costheta, const TersoffParams* TersoffParams)
+  __device__ rbmd::Real device_gijk(const rbmd::Real costheta, const TersoffParams *const  TersoffParams)
     {
       const rbmd::Real ters_c = TersoffParams->c * TersoffParams->c;
       const rbmd::Real ters_d = TersoffParams->d * TersoffParams->d;
@@ -52,7 +52,7 @@ namespace op{
       return TersoffParams->gamma * (1.0 + ters_c / ters_d - ters_c / (ters_d + hcth * hcth));
     }
 
-  __device__ rbmd::Real device_gijk_d(const rbmd::Real costheta, const TersoffParams*TersoffParams)
+  __device__ rbmd::Real device_gijk_d(const rbmd::Real costheta, const TersoffParams *const TersoffParams)
     {
       const rbmd::Real ters_c = TersoffParams->c * TersoffParams->c;
       const rbmd::Real ters_d = TersoffParams->d * TersoffParams->d;
@@ -277,7 +277,7 @@ __device__ void attractive(TersoffParams* TersoffParams, rbmd::Real prefactor,
 
 ////////////////////////////
 __global__ void ComputeTerSoff(
-    Box box,TersoffParams* params,const rbmd::Real cutmax,
+    Box box,TersoffParams* params, ShiftFlag shift,const rbmd::Real cutmax,
     const rbmd::Id num_atoms,const rbmd::Id nelements,const rbmd::Id* atom_id_to_idx,
     const rbmd::Id* atoms_id, const rbmd::Id* atoms_type,const rbmd::Id* map,
     const rbmd::Id* elem3param,
@@ -286,9 +286,15 @@ __global__ void ComputeTerSoff(
     const rbmd::Real* pz, rbmd::Real* fx, rbmd::Real* fy, rbmd::Real* fz,
     rbmd::Real* flat_virial,rbmd::Real* energy)
 {
-  rbmd::Real fxtmp,fytmp, fztmp;
-  rbmd::Real fjtmp_x_f,fjtmp_y_f,fjtmp_z_f;
+    __shared__ typename BLOCKREDUCE<rbmd::Real, BLOCK_SIZE>::TempStorage
+    temp_storage_elj;
+    rbmd::Real sum_elj = 0;
 
+    rbmd::Real forceshiftfac;
+  rbmd::Real zeta_ij;
+  rbmd::Real fforce, prefactor, fpair,eng;
+  rbmd::Real fxtmp,fytmp, fztmp;
+  rbmd::Real eng_repul,eng_zeta;
   rbmd::Real fi[3], fj[3], fk[3];
   rbmd::Real r1_hat[3],r2_hat[3];
   for (int i = 0; i < 3; ++i) {
@@ -301,39 +307,31 @@ __global__ void ComputeTerSoff(
   if (tid1 < num_atoms)
   {
     rbmd::Id type1 = atoms_type[tid1];
-    //printf("type1   %i\n",type1);
     rbmd::Id itag = atoms_id[tid1];
     rbmd::Id itype = map[type1+1];
-    //printf("type1  itype itag %i   %i  %i\n",type1,itype,itag);
+
     rbmd::Real x1 = px[tid1];
     rbmd::Real y1 = py[tid1];
     rbmd::Real z1 = pz[tid1];
     fxtmp = fytmp = fztmp = 0.0;
-    fjtmp_x_f = fjtmp_y_f = fjtmp_z_f = 0.0;
-
+    eng_repul= 0.0;
+    eng_zeta= 0.0;
     // two-body interactions,
     for (int j1 = start_id[tid1]; j1 < end_id[tid1]; ++j1)
     {
       rbmd::Id tid2 = id_verletlist[j1];
-      rbmd::Id type2 = atoms_type[tid2];
+      //rbmd::Id type2 = atoms_type[tid2];
       rbmd::Id jtag = atoms_id[tid2];
       rbmd::Real x2 = px[tid2];
       rbmd::Real y2 = py[tid2];
       rbmd::Real z2 = pz[tid2];
 
-      rbmd::Real x12 = x1 - x2;
-      rbmd::Real y12 = y1 - y2;
-      rbmd::Real z12 = z1 - z2;
-      MinImageDistance(box, x12, y12, z12);
-      rbmd::Real r12_2 = x12 * x12 + y12 * y12 + z12 * z12;
-      //printf("r12_2:  %f\n",r12_2);
-
-      // 处理排序保证力计算唯一性
-      if (itag > jtag) {
-        if ((itag + jtag) % 2 == 0) continue;
+      //
+      if (tid1 > tid2) {
+        if ((tid1 + tid2) % 2 == 0) continue;
       }
-      else if (itag < jtag) {
-        if ((itag + jtag) % 2 == 1) continue;
+      else if (tid1 < tid2) {
+        if ((tid1 + tid2) % 2 == 1) continue;
       }
       else {
         if (z2 < z1) continue;
@@ -342,53 +340,61 @@ __global__ void ComputeTerSoff(
       }
 
 
+    //
+      rbmd::Real x12 = x1 - x2;
+      rbmd::Real y12 = y1 - y2;
+      rbmd::Real z12 = z1 - z2;
+      MinImageDistance(box, x12, y12, z12);
+      rbmd::Real r12_2 = x12 * x12 + y12 * y12 + z12 * z12;
+
+      // shift rsq and store correction for force
+      if (shift.shift_flag) {
+        rbmd::Real  rsqtmp = r12_2 + shift.shift_value*shift.shift_value
+        + 2*sqrt(r12_2)*shift.shift_value;
+        forceshiftfac = SQRT(rsqtmp/r12_2);
+        r12_2 = rsqtmp;
+      }
+
+      // //
+      // if (tid1 > tid2) {
+      //   if ((tid1 + tid2) % 2 == 0) continue;
+      // }
+      // else if (tid1 < tid2) {
+      //   if ((tid1 + tid2) % 2 == 1) continue;
+      // }
+      // else {
+      //   if (z2 < z1) continue;
+      //   if (z2 == z1 && y2 < y1) continue;
+      //   if (z2 == z1 && y2 == y1 && x2 < x1) continue;
+      // }
+
+      rbmd::Id type2 = atoms_type[tid2];
       rbmd::Id jtype = map[type2+1];
       rbmd::Id iparam_ij = elem3param[itype * nelements * nelements + jtype * nelements + jtype];
-     // printf("jtype iparam_ij   %i  %i\n",jtype, iparam_ij);
-     // printf("test1--- %f\n",params[iparam_ij].cutsq);
 
       if (r12_2 >= params[iparam_ij].cutsq)
         continue;
 
-      rbmd::Real fpair,eng;
       repulsive(&params[iparam_ij],r12_2,fpair,eng);
+      // correct force for shift in rsq
+      if (shift.shift_flag) fpair *= forceshiftfac;
       //printf("fpair eng %f %f\n",fpair,eng);
       fxtmp += x12*fpair;
       fytmp += y12*fpair;
       fztmp += z12*fpair;
+      eng_repul += eng;
 
-      // fxtmp  =  x12*fpair;
-      // fytmp  =  y12*fpair;
-      // fztmp  =  z12*fpair;
-
-      // fjtmp_x_f -= x12*fpair;
-      // fjtmp_y_f -= y12*fpair;
-      // fjtmp_z_f -= z12*fpair;
-      // fx[tid2]=  fjtmp_x_f;
-      // fy[tid2]=  fjtmp_y_f;
-      // fz[tid2]=  fjtmp_z_f;
-
-      rbmd::Real jforce_x = -x12 * fpair;
-      rbmd::Real jforce_y = -y12 * fpair;
-      rbmd::Real jforce_z = -z12 * fpair;
-      atomicAdd(&fx[tid2], jforce_x);
-      atomicAdd(&fy[tid2], jforce_y);
-      atomicAdd(&fz[tid2], jforce_z);
-      //printf("test2----fytmp itag %i %f %f %f\n",itag, fx[tid2],fy[tid2],fz[tid2]);
+      atomicAdd(&fx[tid2], -x12 * fpair);
+      atomicAdd(&fy[tid2], -y12 * fpair);
+      atomicAdd(&fz[tid2], -z12 * fpair);
     }
-
-    // // 二体力统一更新i原子
-    // atomicAdd(&fx[tid1], fxtmp);
-    // atomicAdd(&fy[tid1], fytmp);
-    // atomicAdd(&fz[tid1], fztmp);
-    // fxtmp = fytmp = fztmp = 0.0;  // 清零用于三体力
 
     //
     rbmd::Real fjxtmp,fjytmp, fjztmp;
     for (int jj = start_id[tid1]; jj < end_id[tid1]; ++jj)
     {
       rbmd::Id tid_j = id_verletlist[jj];
-      rbmd::Id jtype = map[atoms_type[tid_j] + 1];
+      rbmd::Id jtype = map[atoms_type[tid_j]+1];
       rbmd::Id jtag = atoms_id[tid_j];
       rbmd::Real x21 = px[tid_j] - x1;
       rbmd::Real y21 = py[tid_j] - y1;
@@ -396,11 +402,11 @@ __global__ void ComputeTerSoff(
 
       MinImageDistance(box, x21, y21, z21);
       rbmd::Real rsq1 = x21*x21 + y21*y21 + z21*z21;
-
+      if (shift.shift_flag)
+        rsq1 += shift.shift_value*shift.shift_value + 2*SQRT(rsq1)*shift.shift_value;
       rbmd::Id iparam_ij = elem3param[itype * nelements * nelements + jtype * nelements + jtype];
-      TersoffParams param_ij = params[iparam_ij];
 
-      if (rsq1 >= param_ij.cutsq)
+      if (rsq1 >= params[iparam_ij].cutsq)
         continue;
 
       const rbmd::Real r1inv = 1 / SQRT(rsq1);
@@ -408,20 +414,20 @@ __global__ void ComputeTerSoff(
       r1_hat[1] = y21 * r1inv;
       r1_hat[2] = z21 * r1inv;
 
-      fjxtmp = 0.0;
-      fjytmp = 0.0;
-      fjztmp = 0.0;
-      rbmd::Real zeta_ij = 0.0;
+      fjxtmp =fjytmp = fjztmp = 0.0;
+      zeta_ij = 0.0;
 
       // Loop over k neighbors
       for (int kk = start_id[tid1]; kk < end_id[tid1]; ++kk)
       {
-        rbmd::Id tid_k = id_verletlist[kk];
-        rbmd::Id ktag = atoms_id[tid_k];
         if (kk == jj)
           continue;
 
-        rbmd::Id ktype = map[atoms_type[tid_k] + 1];
+        rbmd::Id tid_k = id_verletlist[kk];
+        rbmd::Id ktag = atoms_id[tid_k];
+
+        rbmd::Id ktype = map[atoms_type[tid_k]+1];
+        rbmd::Id iparam_ijk = elem3param[itype * nelements * nelements + jtype * nelements + ktype];
 
         rbmd::Real x31 = px[tid_k] - x1;
         rbmd::Real y31 = py[tid_k] - y1;
@@ -429,11 +435,10 @@ __global__ void ComputeTerSoff(
 
         MinImageDistance(box, x31, y31, z31);
         rbmd::Real rsq2 = x31*x31 + y31*y31 + z31*z31;
+        if (shift.shift_flag)
+          rsq2 += shift.shift_value*shift.shift_value + 2*SQRT(rsq2)*shift.shift_value;
 
-        rbmd::Id iparam_ijk = elem3param[itype * nelements * nelements + jtype * nelements + ktype];
-        TersoffParams param_ijk = params[iparam_ijk];
-
-        if (rsq2 >= param_ijk.cutsq)
+        if (rsq2 >= params[iparam_ij].cutsq)
           continue;
 
         rbmd::Real r2inv = 1/ SQRT(rsq2);
@@ -441,13 +446,12 @@ __global__ void ComputeTerSoff(
         r2_hat[1] = y31 * r2inv;
         r2_hat[2] = z31 * r2inv;
 
-        zeta_ij += zeta(&param_ijk, rsq1, rsq2, r1_hat, r2_hat);
+        zeta_ij += zeta(&params[iparam_ijk], rsq1, rsq2, r1_hat, r2_hat);
       }
 
-      // zeta 力项
-      rbmd::Real fforce, prefactor, eng;
+      // zeta
       force_zeta(&params[iparam_ij], rsq1, zeta_ij, fforce, prefactor, eng);
-      rbmd::Real fpair = fforce * r1inv;
+      fpair = fforce * r1inv;
 
       fxtmp += x21 * fpair;
       fytmp += y21 * fpair;
@@ -455,26 +459,29 @@ __global__ void ComputeTerSoff(
       fjxtmp -= x21 * fpair;
       fjytmp -= y21 * fpair;
       fjztmp -= z21 * fpair;
+      eng_zeta += eng;
 
-      // attractive 部分
+      // attractive
       for (int kk = start_id[tid1]; kk < end_id[tid1]; ++kk)
       {
-        rbmd::Id tid_k = id_verletlist[kk];
-        rbmd::Id ktag = atoms_id[tid_k];
         if (kk == jj)
           continue;
 
-        rbmd::Id ktype = map[atoms_type[tid_k] + 1];
+        rbmd::Id tid_k = id_verletlist[kk];
+        rbmd::Id ktag = atoms_id[tid_k];
+
+        rbmd::Id ktype = map[atoms_type[tid_k]+1];
+        rbmd::Id iparam_ijk = elem3param[itype * nelements * nelements + jtype * nelements + ktype];
 
         rbmd::Real x31 = px[tid_k] - x1;
         rbmd::Real y31 = py[tid_k] - y1;
         rbmd::Real z31  = pz[tid_k] - z1;
         MinImageDistance(box, x31, y31, z31);
         rbmd::Real rsq2 = x31*x31 + y31*y31 + z31*z31;
+        if (shift.shift_flag)
+          rsq2 += shift.shift_value*shift.shift_value + 2*SQRT(rsq2)*shift.shift_value;
 
-        rbmd::Id iparam_ijk = elem3param[itype * nelements * nelements + jtype * nelements + ktype];
-        TersoffParams param_ijk = params[iparam_ijk];
-        if (rsq2 >= param_ijk.cutsq)
+        if (rsq2 >= params[iparam_ij].cutsq)
           continue;
 
         rbmd::Real r2inv = 1 / SQRT(rsq2);
@@ -482,7 +489,7 @@ __global__ void ComputeTerSoff(
         r2_hat[1] = y31 * r2inv;
         r2_hat[2] = z31 * r2inv;
 
-        attractive(&param_ijk, prefactor, rsq1, rsq2, r1_hat, r2_hat, fi, fj, fk);
+        attractive(&params[iparam_ijk], prefactor, rsq1, rsq2, r1_hat, r2_hat, fi, fj, fk);
 
         fxtmp += fi[0];
         fytmp += fi[1];
@@ -490,24 +497,29 @@ __global__ void ComputeTerSoff(
         fjxtmp += fj[0];
         fjytmp += fj[1];
         fjztmp += fj[2];
-        // fx[tid_k]=  fk[0];
-        // fj[tid_k]=  fk[1];
-        // fk[tid_k]=  fk[2];
+
         atomicAdd(&fx[tid_k], fk[0]);
         atomicAdd(&fy[tid_k], fk[1]);
         atomicAdd(&fz[tid_k], fk[2]);
       }
-
       atomicAdd(&fx[tid_j], fjxtmp);
       atomicAdd(&fy[tid_j], fjytmp);
       atomicAdd(&fz[tid_j], fjztmp);
     }
-
-    // 对 i 原子加上最终力
+    //
     atomicAdd(&fx[tid1], fxtmp);
     atomicAdd(&fy[tid1], fytmp);
     atomicAdd(&fz[tid1], fztmp);
+    sum_elj = eng_repul + eng_zeta;
+
   }
+    rbmd::Real block_sum_elj =
+    BLOCKREDUCE<rbmd::Real, BLOCK_SIZE>(temp_storage_elj)
+        .Sum(sum_elj);
+
+    if (threadIdx.x == 0) {
+      atomicAdd(energy, block_sum_elj);
+    }
 }
 
 __global__ void ComputeTwoBodyTerSoff(
@@ -543,24 +555,22 @@ __global__ void ComputeTwoBodyTerSoff(
       rbmd::Real x12 = x1 - x2;
       rbmd::Real y12 = y1 - y2;
       rbmd::Real z12 = z1 - z2;
-      // rbmd::Real x12 = x2 - x1;
-      // rbmd::Real y12 = y2 - y1;
-      // rbmd::Real z12 = z2 - z1;
+
       MinImageDistance(box, x12, y12, z12);
       rbmd::Real r12_2 = x12 * x12 + y12 * y12 + z12 * z12;
 
       // Unique pair check
-      // if (itag > jtag) {
-      //   if ((itag + jtag) % 2 == 0) continue;
-      // }
-      // else if (itag < jtag) {
-      //   if ((itag + jtag) % 2 == 1) continue;
-      // }
-      // else {
-      //   if (z2 < z1) continue;
-      //   if (z2 == z1 && y2 < y1) continue;
-      //   if (z2 == z1 && y2 == y1 && x2 < x1) continue;
-      // }
+      if (itag > jtag) {
+        if ((itag + jtag) % 2 == 0) continue;
+      }
+      else if (itag < jtag) {
+        if ((itag + jtag) % 2 == 1) continue;
+      }
+      else {
+        if (z2 < z1) continue;
+        if (z2 == z1 && y2 < y1) continue;
+        if (z2 == z1 && y2 == y1 && x2 < x1) continue;
+      }
 
       rbmd::Id jtype = map[type2+1];
       rbmd::Id iparam_ij = elem3param[itype * nelements * nelements + jtype * nelements + jtype];
@@ -588,12 +598,12 @@ __global__ void ComputeTwoBodyTerSoff(
       // atomicAdd(&fy[tid2], -fy_ij);
       // atomicAdd(&fz[tid2], -fz_ij);
     }
-    // fx[tid1]=  fxtmp;
-    // fy[tid1] = fytmp;
-    // fz[tid1] = fztmp;
-    atomicAdd(&fx[tid1], fxtmp);
-    atomicAdd(&fy[tid1], fytmp);
-    atomicAdd(&fz[tid1], fztmp);
+    fx[tid1]=  fxtmp;
+    fy[tid1] = fytmp;
+    fz[tid1] = fztmp;
+    // atomicAdd(&fx[tid1], fxtmp);
+    // atomicAdd(&fy[tid1], fytmp);
+    // atomicAdd(&fz[tid1], fztmp);
   }
 
 }
@@ -639,9 +649,7 @@ __global__ void ComputeThreeBodyTerSoff(
       rbmd::Real rsq1 = x21*x21 + y21*y21 + z21*z21;
 
       rbmd::Id iparam_ij = elem3param[itype * nelements * nelements + jtype * nelements + jtype];
-      TersoffParams param_ij = params[iparam_ij];
-
-      if (rsq1 >= param_ij.cutsq) continue;
+      if (rsq1 >= params[iparam_ij].cutsq) continue;
 
       const rbmd::Real r1inv = 1 / SQRT(rsq1);
       r1_hat[0] = x21 * r1inv;
@@ -651,7 +659,7 @@ __global__ void ComputeThreeBodyTerSoff(
       rbmd::Real zeta_ij = 0.0;
       rbmd::Real fj_force[3] = {0.0, 0.0, 0.0};
 
-      // 计算zeta
+      // zeta
       for (int kk = start_id[tid1]; kk < end_id[tid1]; ++kk) {
         if (kk == jj) continue;
 
@@ -666,19 +674,17 @@ __global__ void ComputeThreeBodyTerSoff(
         rbmd::Real rsq2 = x31*x31 + y31*y31 + z31*z31;
 
         rbmd::Id iparam_ijk = elem3param[itype * nelements * nelements + jtype * nelements + ktype];
-        TersoffParams param_ijk = params[iparam_ijk];
-
-        if (rsq2 >= param_ijk.cutsq) continue;
+        if (rsq2 >= params[iparam_ijk].cutsq) continue;
 
         rbmd::Real r2inv = 1 / SQRT(rsq2);
         r2_hat[0] = x31 * r2inv;
         r2_hat[1] = y31 * r2inv;
         r2_hat[2] = z31 * r2inv;
 
-        zeta_ij += zeta(&param_ijk, rsq1, rsq2, r1_hat, r2_hat);
+        zeta_ij += zeta(&params[iparam_ijk], rsq1, rsq2, r1_hat, r2_hat);
       }
 
-      // 计算zeta相关力
+      //
       rbmd::Real fforce, prefactor, eng;
       force_zeta(&params[iparam_ij], rsq1, zeta_ij, fforce, prefactor, eng);
 
@@ -702,7 +708,7 @@ __global__ void ComputeThreeBodyTerSoff(
       // atomicAdd(&fy[tid_j], -fy_ij);
       // atomicAdd(&fz[tid_j], -fz_ij);
 
-      // 计算吸引力部分
+      //
       for (int kk = start_id[tid1]; kk < end_id[tid1]; ++kk) {
         if (kk == jj) continue;
 
@@ -730,12 +736,12 @@ __global__ void ComputeThreeBodyTerSoff(
         attractive(&param_ijk, prefactor, rsq1, rsq2, r1_hat, r2_hat,
                    fi_tmp, fj_tmp, fk_tmp);
 
-        // // 累加到i原子力
+        // //
         // fi[0] += fi_tmp[0];
         // fi[1] += fi_tmp[1];
         // fi[2] += fi_tmp[2];
         //
-        // // 更新j原子力
+        // //
         // atomicAdd(&fx[tid_j], fj_tmp[0]);
         // atomicAdd(&fy[tid_j], fj_tmp[1]);
         // atomicAdd(&fz[tid_j], fj_tmp[2]);
@@ -747,7 +753,11 @@ __global__ void ComputeThreeBodyTerSoff(
         fjytmp_a += fj_tmp[1];
         fjztmp_a += fj_tmp[2];
 
-        // 更新k原子力
+        // atomicAdd(&fx[tid_j], fj_tmp[0]);
+        // atomicAdd(&fy[tid_j], fj_tmp[1]);
+        // atomicAdd(&fz[tid_j], fj_tmp[2]);
+
+        //
         atomicAdd(&fx[tid_k], fk_tmp[0]);
         atomicAdd(&fy[tid_k], fk_tmp[1]);
         atomicAdd(&fz[tid_k], fk_tmp[2]);
@@ -761,7 +771,7 @@ __global__ void ComputeThreeBodyTerSoff(
       atomicAdd(&fz[tid_j], fjztmp);
     }
 
-    // 更新中心原子i的力
+    //
     auto fxtmp = fxtmp_z + fxtmp_a;
     auto fytmp = fytmp_z + fytmp_a;
     auto fztmp = fztmp_z + fztmp_a;
@@ -773,7 +783,7 @@ __global__ void ComputeThreeBodyTerSoff(
 
 
 void TerSoff<device::DEVICE_GPU>::operator()(
-    Box box, TersoffParams* params, const rbmd::Real cutmax,
+    Box box, TersoffParams* params, ShiftFlag shift,const rbmd::Real cutmax,
     const rbmd::Id num_atoms, const rbmd::Id nelements, const rbmd::Id* atom_id_to_idx,
     const rbmd::Id* atoms_id, const rbmd::Id* atoms_type, const rbmd::Id* map,
     const rbmd::Id* elem3param,
@@ -785,27 +795,48 @@ void TerSoff<device::DEVICE_GPU>::operator()(
     unsigned int blocks_per_grid = (num_atoms + BLOCK_SIZE - 1) / BLOCK_SIZE;
 
     CHECK_KERNEL(ComputeTerSoff<<<blocks_per_grid, BLOCK_SIZE, 0, 0>>>(
-        box,params,cutmax,num_atoms,nelements, atom_id_to_idx,atoms_id, atoms_type,
+        box,params,shift,cutmax,num_atoms,nelements, atom_id_to_idx,atoms_id, atoms_type,
         map,elem3param,
         start_id,end_id, id_verletlist,
         px, py, pz,fx, fy, fz,
         flat_virial,energy));
 
-  // // 首先计算两体相互作用
+  // //
   // CHECK_KERNEL(ComputeTwoBodyTerSoff<<<blocks_per_grid, BLOCK_SIZE>>>(
   //     box, params, cutmax, num_atoms, nelements, atoms_id, atoms_type,
   //     map, elem3param, start_id, end_id, id_verletlist,
   //     px, py, pz, fx, fy, fz));
   //
-  // cudaDeviceSynchronize();  // 确保两体力计算完成
+  // cudaDeviceSynchronize();  //
   //
-  // // 然后计算三体相互作用
+  // //
   // CHECK_KERNEL(ComputeThreeBodyTerSoff<<<blocks_per_grid, BLOCK_SIZE>>>(
   //     box, params, cutmax, num_atoms, nelements, atoms_id, atoms_type,
   //     map, elem3param, start_id, end_id, id_verletlist,
   //     px, py, pz, fx, fy, fz));
 
  }
+
+void ThreeBodyTerSoff<device::DEVICE_GPU>::operator()(
+    Box box, TersoffParams* params, const rbmd::Real cutmax,
+    const rbmd::Id num_atoms, const rbmd::Id nelements, const rbmd::Id* atom_id_to_idx,
+    const rbmd::Id* atoms_id, const rbmd::Id* atoms_type, const rbmd::Id* map,
+    const rbmd::Id* elem3param,
+    const rbmd::Id* start_id, const rbmd::Id* end_id,
+    const rbmd::Id* id_verletlist, const rbmd::Real* px, const rbmd::Real* py,
+    const rbmd::Real* pz, rbmd::Real* fx, rbmd::Real* fy, rbmd::Real* fz,
+    rbmd::Real* flat_virial, rbmd::Real* energy)
+  {
+    unsigned int blocks_per_grid = (num_atoms + BLOCK_SIZE - 1) / BLOCK_SIZE;
+
+    //
+    CHECK_KERNEL(ComputeThreeBodyTerSoff<<<blocks_per_grid, BLOCK_SIZE>>>(
+        box, params, cutmax, num_atoms, nelements, atoms_id, atoms_type,
+        map, elem3param, start_id, end_id, id_verletlist,
+        px, py, pz, fx, fy, fz));
+
+  }
+
 }
 
 
