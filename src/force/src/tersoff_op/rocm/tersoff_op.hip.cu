@@ -286,15 +286,17 @@ __global__ void ComputeTerSoff(
     const rbmd::Real* pz, rbmd::Real* fx, rbmd::Real* fy, rbmd::Real* fz,
     rbmd::Real* flat_virial,rbmd::Real* energy)
 {
-    __shared__ typename BLOCKREDUCE<rbmd::Real, BLOCK_SIZE>::TempStorage
-    temp_storage_elj;
-    rbmd::Real sum_elj = 0;
+  __shared__ typename BLOCKREDUCE<rbmd::Real, BLOCK_SIZE>::TempStorage
+  temp_storage_elj;
+  rbmd::Real sum_elj = 0;
 
-    rbmd::Real forceshiftfac;
+  rbmd::Real forceshiftfac;
   rbmd::Real zeta_ij;
   rbmd::Real fforce, prefactor, fpair,eng;
   rbmd::Real fxtmp,fytmp, fztmp;
   rbmd::Real eng_repul,eng_zeta;
+    rbmd::Real x21,y21,z21;
+    rbmd::Real x31,y31,z31;
   rbmd::Real fi[3], fj[3], fk[3];
   rbmd::Real r1_hat[3],r2_hat[3];
   for (int i = 0; i < 3; ++i) {
@@ -306,8 +308,8 @@ __global__ void ComputeTerSoff(
   unsigned int tid1 = blockIdx.x * blockDim.x + threadIdx.x;
   if (tid1 < num_atoms)
   {
-    rbmd::Id type1 = atoms_type[tid1];
     rbmd::Id itag = atoms_id[tid1];
+    rbmd::Id type1 = atoms_type[tid1];
     rbmd::Id itype = map[type1+1];
 
     rbmd::Real x1 = px[tid1];
@@ -320,27 +322,14 @@ __global__ void ComputeTerSoff(
     for (int j1 = start_id[tid1]; j1 < end_id[tid1]; ++j1)
     {
       rbmd::Id tid2 = id_verletlist[j1];
-      //rbmd::Id type2 = atoms_type[tid2];
       rbmd::Id jtag = atoms_id[tid2];
+      rbmd::Id type2 = atoms_type[tid2];
+
       rbmd::Real x2 = px[tid2];
       rbmd::Real y2 = py[tid2];
       rbmd::Real z2 = pz[tid2];
 
       //
-      if (tid1 > tid2) {
-        if ((tid1 + tid2) % 2 == 0) continue;
-      }
-      else if (tid1 < tid2) {
-        if ((tid1 + tid2) % 2 == 1) continue;
-      }
-      else {
-        if (z2 < z1) continue;
-        if (z2 == z1 && y2 < y1) continue;
-        if (z2 == z1 && y2 == y1 && x2 < x1) continue;
-      }
-
-
-    //
       rbmd::Real x12 = x1 - x2;
       rbmd::Real y12 = y1 - y2;
       rbmd::Real z12 = z1 - z2;
@@ -356,19 +345,18 @@ __global__ void ComputeTerSoff(
       }
 
       // //
-      // if (tid1 > tid2) {
-      //   if ((tid1 + tid2) % 2 == 0) continue;
-      // }
-      // else if (tid1 < tid2) {
-      //   if ((tid1 + tid2) % 2 == 1) continue;
-      // }
-      // else {
-      //   if (z2 < z1) continue;
-      //   if (z2 == z1 && y2 < y1) continue;
-      //   if (z2 == z1 && y2 == y1 && x2 < x1) continue;
-      // }
+      if (tid1 > tid2) {
+        if ((tid1 + tid2) % 2 == 0) continue;
+      }
+      else if (tid1 < tid2) {
+        if ((tid1 + tid2) % 2 == 1) continue;
+      }
+      else {
+        if (z2 < z1) continue;
+        if (z2 == z1 && y2 < y1) continue;
+        if (z2 == z1 && y2 == y1 && x2 < x1) continue;
+      }
 
-      rbmd::Id type2 = atoms_type[tid2];
       rbmd::Id jtype = map[type2+1];
       rbmd::Id iparam_ij = elem3param[itype * nelements * nelements + jtype * nelements + jtype];
 
@@ -396,9 +384,9 @@ __global__ void ComputeTerSoff(
       rbmd::Id tid_j = id_verletlist[jj];
       rbmd::Id jtype = map[atoms_type[tid_j]+1];
       rbmd::Id jtag = atoms_id[tid_j];
-      rbmd::Real x21 = px[tid_j] - x1;
-      rbmd::Real y21 = py[tid_j] - y1;
-      rbmd::Real z21 = pz[tid_j] - z1;
+       x21 = px[tid_j] - x1;
+       y21 = py[tid_j] - y1;
+       z21 = pz[tid_j] - z1;
 
       MinImageDistance(box, x21, y21, z21);
       rbmd::Real rsq1 = x21*x21 + y21*y21 + z21*z21;
@@ -429,9 +417,9 @@ __global__ void ComputeTerSoff(
         rbmd::Id ktype = map[atoms_type[tid_k]+1];
         rbmd::Id iparam_ijk = elem3param[itype * nelements * nelements + jtype * nelements + ktype];
 
-        rbmd::Real x31 = px[tid_k] - x1;
-        rbmd::Real y31 = py[tid_k] - y1;
-        rbmd::Real z31  = pz[tid_k] - z1;
+         x31 = px[tid_k] - x1;
+         y31 = py[tid_k] - y1;
+         z31  = pz[tid_k] - z1;
 
         MinImageDistance(box, x31, y31, z31);
         rbmd::Real rsq2 = x31*x31 + y31*y31 + z31*z31;
@@ -448,6 +436,7 @@ __global__ void ComputeTerSoff(
 
         zeta_ij += zeta(&params[iparam_ijk], rsq1, rsq2, r1_hat, r2_hat);
       }
+      // printf("d_zeta_ij  %f\n",zeta_ij);
 
       // zeta
       force_zeta(&params[iparam_ij], rsq1, zeta_ij, fforce, prefactor, eng);
@@ -473,9 +462,9 @@ __global__ void ComputeTerSoff(
         rbmd::Id ktype = map[atoms_type[tid_k]+1];
         rbmd::Id iparam_ijk = elem3param[itype * nelements * nelements + jtype * nelements + ktype];
 
-        rbmd::Real x31 = px[tid_k] - x1;
-        rbmd::Real y31 = py[tid_k] - y1;
-        rbmd::Real z31  = pz[tid_k] - z1;
+         x31 = px[tid_k] - x1;
+         y31 = py[tid_k] - y1;
+         z31  = pz[tid_k] - z1;
         MinImageDistance(box, x31, y31, z31);
         rbmd::Real rsq2 = x31*x31 + y31*y31 + z31*z31;
         if (shift.shift_flag)
@@ -501,6 +490,48 @@ __global__ void ComputeTerSoff(
         atomicAdd(&fx[tid_k], fk[0]);
         atomicAdd(&fy[tid_k], fk[1]);
         atomicAdd(&fz[tid_k], fk[2]);
+        //
+        rbmd::Real v[6];
+        v[0] = x21*fj[0] + x31* fk[0];
+        v[1] = y21*fj[1] + y31*fk[1];
+        v[2] = z21*fj[2] + z31*fk[2];
+        v[3] = x21*fj[1] + x31*fk[1];
+        v[4] = x21*fj[2] + x31*fk[2];
+        v[5] = y21*fj[2] + y31*fk[2];
+
+        rbmd::Real local_virial[6];
+        rbmd::Real THIRD = 1.0 / 3.0;
+
+        local_virial[0] = THIRD* v[0];
+        local_virial[1] = THIRD* v[1];
+        local_virial[2] = THIRD* v[2];
+        local_virial[3] = THIRD* v[3];
+        local_virial[4] = THIRD* v[4];
+        local_virial[5] = THIRD* v[5];
+
+      //
+        atomicAdd(&flat_virial[0 * num_atoms + tid1], local_virial[0]);
+        atomicAdd(&flat_virial[1 * num_atoms + tid1], local_virial[1]);
+        atomicAdd(&flat_virial[2 * num_atoms + tid1], local_virial[2]);
+        atomicAdd(&flat_virial[3 * num_atoms + tid1], local_virial[3]);
+        atomicAdd(&flat_virial[4 * num_atoms + tid1], local_virial[4]);
+        atomicAdd(&flat_virial[5 * num_atoms + tid1], local_virial[5]);
+
+        atomicAdd(&flat_virial[0 * num_atoms + tid_j], local_virial[0]);
+        atomicAdd(&flat_virial[1 * num_atoms + tid_j], local_virial[1]);
+        atomicAdd(&flat_virial[2 * num_atoms + tid_j], local_virial[2]);
+        atomicAdd(&flat_virial[3 * num_atoms + tid_j], local_virial[3]);
+        atomicAdd(&flat_virial[4 * num_atoms + tid_j], local_virial[4]);
+        atomicAdd(&flat_virial[5 * num_atoms + tid_j], local_virial[5]);
+
+        atomicAdd(&flat_virial[0 * num_atoms + tid_k], local_virial[0]);
+        atomicAdd(&flat_virial[1 * num_atoms + tid_k], local_virial[1]);
+        atomicAdd(&flat_virial[2 * num_atoms + tid_k], local_virial[2]);
+        atomicAdd(&flat_virial[3 * num_atoms + tid_k], local_virial[3]);
+        atomicAdd(&flat_virial[4 * num_atoms + tid_k], local_virial[4]);
+        atomicAdd(&flat_virial[5 * num_atoms + tid_k], local_virial[5]);
+
+
       }
       atomicAdd(&fx[tid_j], fjxtmp);
       atomicAdd(&fy[tid_j], fjytmp);
@@ -522,320 +553,256 @@ __global__ void ComputeTerSoff(
     }
 }
 
-__global__ void ComputeTwoBodyTerSoff(
-    Box box, TersoffParams* params, const rbmd::Real cutmax,
-    const rbmd::Id num_atoms, const rbmd::Id nelements, const rbmd::Id* atoms_id,
-    const rbmd::Id* atoms_type, const rbmd::Id* map, const rbmd::Id* elem3param,
-    const rbmd::Id* start_id, const rbmd::Id* end_id, const rbmd::Id* id_verletlist,
+__global__ void ComputeTwoBody(
+    Box box, TersoffParams* params, ShiftFlag shift,
+    const rbmd::Real cutmax,
+    const rbmd::Id num_atoms, const rbmd::Id nelements,
+    const rbmd::Id* atoms_type, const rbmd::Id* map,
+    const rbmd::Id* elem3param, const rbmd::Id* start_id, const rbmd::Id* end_id,
+    const rbmd::Id* id_verletlist,
     const rbmd::Real* px, const rbmd::Real* py, const rbmd::Real* pz,
-    rbmd::Real* fx, rbmd::Real* fy, rbmd::Real* fz)
+    rbmd::Real* fx, rbmd::Real* fy, rbmd::Real* fz,
+    rbmd::Real* energy,
+    rbmd::Id* d_is_short_neighbor)
 {
-    rbmd::Real fxtmp,fytmp, fztmp;
+    rbmd::Real  fxtmp,fytmp,fztmp;
+    const rbmd::Real cutshortsq = cutmax*cutmax;
+    const unsigned int tid1 = blockIdx.x * blockDim.x + threadIdx.x;
+    if (tid1 >= num_atoms) return;
 
-  unsigned int tid1 = blockIdx.x * blockDim.x + threadIdx.x;
-  if (tid1 < num_atoms) {
-    rbmd::Id itag = atoms_id[tid1];
-    rbmd::Id type1 = atoms_type[tid1];
-    rbmd::Id itype = map[type1+1];
-    rbmd::Real x1 = px[tid1];
-    rbmd::Real y1 = py[tid1];
-    rbmd::Real z1 = pz[tid1];
+    fxtmp = fytmp = fztmp = 0.0;
+    const rbmd::Id itype = map[atoms_type[tid1] + 1];
+    const rbmd::Real x1 = px[tid1], y1 = py[tid1], z1 = pz[tid1];
 
-     fxtmp = fytmp = fztmp = 0.0;
+    // Traverse all the neighbors j of atom i
+    for (int j_idx = start_id[tid1]; j_idx < end_id[tid1]; ++j_idx) {
+      d_is_short_neighbor[j_idx] = 0;
 
-    for (int j1 = start_id[tid1]; j1 < end_id[tid1]; ++j1) {
-      rbmd::Id tid2 = id_verletlist[j1];
-      rbmd::Id jtag = atoms_id[tid2];
-      rbmd::Id type2 = atoms_type[tid2];
-      rbmd::Real x2 = px[tid2];
-      rbmd::Real y2 = py[tid2];
-      rbmd::Real z2 = pz[tid2];
+      const rbmd::Id tid_j = id_verletlist[j_idx];
+      rbmd::Real x2 = px[tid_j];
+      rbmd::Real y2 = py[tid_j];
+      rbmd::Real z2 = pz[tid_j];
 
-      // Distance calculation with PBC
-      rbmd::Real x12 = x1 - x2;
-      rbmd::Real y12 = y1 - y2;
-      rbmd::Real z12 = z1 - z2;
-
+      rbmd::Real x12 = x1- x2, y12 = y1- y2, z12 = z1 - z2;
       MinImageDistance(box, x12, y12, z12);
-      rbmd::Real r12_2 = x12 * x12 + y12 * y12 + z12 * z12;
+      rbmd::Real rsq1 = x12*x12 + y12*y12 + z12*z12;
 
-      // Unique pair check
-      if (itag > jtag) {
-        if ((itag + jtag) % 2 == 0) continue;
-      }
-      else if (itag < jtag) {
-        if ((itag + jtag) % 2 == 1) continue;
-      }
-      else {
-        if (z2 < z1) continue;
-        if (z2 == z1 && y2 < y1) continue;
-        if (z2 == z1 && y2 == y1 && x2 < x1) continue;
+      //
+      rbmd::Real rsq_shifted = 0.0;
+      rbmd::Real forceshiftfac = 1.0;
+      if (shift.shift_flag) {
+        rsq_shifted = rsq1 + POW(shift.shift_value,2.0) + 2*SQRT(rsq1)*shift.shift_value;
+        forceshiftfac = SQRT(rsq_shifted / rsq1);
+        rsq1 = rsq_shifted;
       }
 
-      rbmd::Id jtype = map[type2+1];
-      rbmd::Id iparam_ij = elem3param[itype * nelements * nelements + jtype * nelements + jtype];
+        if (rsq1 < cutshortsq) {
+          d_is_short_neighbor[j_idx] = 1;
+        }
+        //
+        if (tid1 > tid_j) {
+          if ((tid1 + tid_j) % 2 == 0) continue;
+        }
+        else if (tid1 < tid_j) {
+          if ((tid1 + tid_j) % 2 == 1) continue;
+        }
+        else {
+          if (z2 < z1) continue;
+          if (z2 == z1 && y2 < y1) continue;
+          if (z2 == z1 && y2 == y1 && x2 < x1) continue;
+        }
 
-      if (r12_2 >= params[iparam_ij].cutsq) continue;
+        const rbmd::Id jtype = map[atoms_type[tid_j] + 1];
+        const rbmd::Id iparam_ij = elem3param[itype * nelements * nelements + jtype * nelements + jtype];
+        if (rsq1 >= params[iparam_ij].cutsq)
+          continue;
 
-      // Calculate repulsive force
-      rbmd::Real fpair, eng;
-      repulsive(&params[iparam_ij], r12_2, fpair, eng);
+        rbmd::Real fpair_rep, eng_rep;
+        repulsive(&params[iparam_ij], rsq1, fpair_rep, eng_rep);
+        if (shift.shift_flag)
+          fpair_rep *= forceshiftfac;
 
-      // Update forces with atomic operations
-      rbmd::Real fx_ij = x12 * fpair;
-      rbmd::Real fy_ij = y12 * fpair;
-      rbmd::Real fz_ij = z12 * fpair;
-
-      fxtmp += fx_ij;
-      fytmp += fy_ij;
-      fztmp += fz_ij;
-
-      // atomicAdd(&fx[tid1], fx_ij);
-      // atomicAdd(&fy[tid1], fy_ij);
-      // atomicAdd(&fz[tid1], fz_ij);
-
-      // atomicAdd(&fx[tid2], -fx_ij);
-      // atomicAdd(&fy[tid2], -fy_ij);
-      // atomicAdd(&fz[tid2], -fz_ij);
+         atomicAdd(&fx[tid1], x12 * fpair_rep);
+         atomicAdd(&fy[tid1], y12 * fpair_rep);
+         atomicAdd(&fz[tid1], z12 * fpair_rep);
+         atomicAdd(&fx[tid_j], -x12 * fpair_rep);
+         atomicAdd(&fy[tid_j], -y12 * fpair_rep);
+         atomicAdd(&fz[tid_j], -z12 * fpair_rep);
+         atomicAdd(energy, eng_rep);
     }
-    fx[tid1]=  fxtmp;
-    fy[tid1] = fytmp;
-    fz[tid1] = fztmp;
-    // atomicAdd(&fx[tid1], fxtmp);
-    // atomicAdd(&fy[tid1], fytmp);
-    // atomicAdd(&fz[tid1], fztmp);
-  }
-
 }
 
-__global__ void ComputeThreeBodyTerSoff(
-    Box box, TersoffParams* params, const rbmd::Real cutmax,
-    const rbmd::Id num_atoms, const rbmd::Id nelements, const rbmd::Id* atoms_id,
-    const rbmd::Id* atoms_type, const rbmd::Id* map, const rbmd::Id* elem3param,
-    const rbmd::Id* start_id, const rbmd::Id* end_id, const rbmd::Id* id_verletlist,
+__global__ void ComputeThreeBody(
+    Box box, TersoffParams* params, ShiftFlag shift,
+    const rbmd::Id num_atoms, const rbmd::Id nelements,
+    const rbmd::Id* atoms_type, const rbmd::Id* map,
+    const rbmd::Id* elem3param, const rbmd::Id* start_id, const rbmd::Id* end_id,
+    const rbmd::Id* id_verletlist,
     const rbmd::Real* px, const rbmd::Real* py, const rbmd::Real* pz,
-    rbmd::Real* fx, rbmd::Real* fy, rbmd::Real* fz)
+    const rbmd::Id* d_is_short_neighbor,
+    rbmd::Real* fx, rbmd::Real* fy, rbmd::Real* fz,
+    rbmd::Real* energy)
 {
-    rbmd::Real fxtmp_z,fytmp_z, fztmp_z;
-    rbmd::Real fxtmp_a,fytmp_a, fztmp_a;
-  unsigned int tid1 = blockIdx.x * blockDim.x + threadIdx.x;
-  if (tid1 < num_atoms) {
-    fxtmp_z = fytmp_z = fztmp_z = 0.0;
-    fxtmp_a = fytmp_a = fztmp_a = 0.0;
+    rbmd::Real  fxtmp,fytmp,fztmp;
+    const unsigned int tid1 = blockIdx.x * blockDim.x + threadIdx.x;
+    if (tid1 >= num_atoms) return;
 
-    rbmd::Id itag = atoms_id[tid1];
-    rbmd::Id type1 = atoms_type[tid1];
-    rbmd::Id itype = map[type1+1];
-    rbmd::Real x1 = px[tid1];
-    rbmd::Real y1 = py[tid1];
-    rbmd::Real z1 = pz[tid1];
+    fxtmp = fytmp = fztmp = 0.0;
 
-    rbmd::Real fi[3] = {0.0, 0.0, 0.0};
-    rbmd::Real r1_hat[3], r2_hat[3];
+    const rbmd::Id itype = map[atoms_type[tid1] + 1];
+    const rbmd::Real x1 = px[tid1], y1 = py[tid1], z1 = pz[tid1];
 
-    rbmd::Real fjxtmp_z,fjytmp_z, fjztmp_z;
-    rbmd::Real fjxtmp_a,fjytmp_a, fjztmp_a;
-    for (int jj = start_id[tid1]; jj < end_id[tid1]; ++jj) {
-      fjxtmp_z = fjytmp_z = fjztmp_z = 0.0;
-      fjxtmp_a = fjytmp_a = fjztmp_a = 0.0;
-
-      rbmd::Id tid_j = id_verletlist[jj];
-      rbmd::Id jtype = map[atoms_type[tid_j] + 1];
-      rbmd::Real x21 = px[tid_j] - x1;
-      rbmd::Real y21 = py[tid_j] - y1;
-      rbmd::Real z21 = pz[tid_j] - z1;
-
-      MinImageDistance(box, x21, y21, z21);
-      rbmd::Real rsq1 = x21*x21 + y21*y21 + z21*z21;
-
-      rbmd::Id iparam_ij = elem3param[itype * nelements * nelements + jtype * nelements + jtype];
-      if (rsq1 >= params[iparam_ij].cutsq) continue;
-
-      const rbmd::Real r1inv = 1 / SQRT(rsq1);
-      r1_hat[0] = x21 * r1inv;
-      r1_hat[1] = y21 * r1inv;
-      r1_hat[2] = z21 * r1inv;
-
-      rbmd::Real zeta_ij = 0.0;
-      rbmd::Real fj_force[3] = {0.0, 0.0, 0.0};
-
-      // zeta
-      for (int kk = start_id[tid1]; kk < end_id[tid1]; ++kk) {
-        if (kk == jj) continue;
-
-        rbmd::Id tid_k = id_verletlist[kk];
-        rbmd::Id ktype = map[atoms_type[tid_k] + 1];
-
-        rbmd::Real x31 = px[tid_k] - x1;
-        rbmd::Real y31 = py[tid_k] - y1;
-        rbmd::Real z31  = pz[tid_k] - z1;
-
-        MinImageDistance(box, x31, y31, z31);
-        rbmd::Real rsq2 = x31*x31 + y31*y31 + z31*z31;
-
-        rbmd::Id iparam_ijk = elem3param[itype * nelements * nelements + jtype * nelements + ktype];
-        if (rsq2 >= params[iparam_ijk].cutsq) continue;
-
-        rbmd::Real r2inv = 1 / SQRT(rsq2);
-        r2_hat[0] = x31 * r2inv;
-        r2_hat[1] = y31 * r2inv;
-        r2_hat[2] = z31 * r2inv;
-
-        zeta_ij += zeta(&params[iparam_ijk], rsq1, rsq2, r1_hat, r2_hat);
-      }
-
-      //
-      rbmd::Real fforce, prefactor, eng;
-      force_zeta(&params[iparam_ij], rsq1, zeta_ij, fforce, prefactor, eng);
-
-      rbmd::Real fpair = fforce * r1inv;
-      rbmd::Real fx_ij = x21 * fpair;
-      rbmd::Real fy_ij = y21 * fpair;
-      rbmd::Real fz_ij = z21 * fpair;
-
-      // fi[0] += fx_ij;
-      // fi[1] += fy_ij;
-      // fi[2] += fz_ij;
-      fxtmp_z += fx_ij;
-      fytmp_z += fy_ij;
-      fztmp_z += fz_ij;
-      fjxtmp_z -= fx_ij;
-      fjytmp_z -= fy_ij;
-      fjztmp_z -= fz_ij;
-
-
-      // atomicAdd(&fx[tid_j], -fx_ij);
-      // atomicAdd(&fy[tid_j], -fy_ij);
-      // atomicAdd(&fz[tid_j], -fz_ij);
-
-      //
-      for (int kk = start_id[tid1]; kk < end_id[tid1]; ++kk) {
-        if (kk == jj) continue;
-
-        rbmd::Id tid_k = id_verletlist[kk];
-        rbmd::Id ktype = map[atoms_type[tid_k] + 1];
-
-        rbmd::Real x31 = px[tid_k] - x1;
-        rbmd::Real y31 = py[tid_k] - y1;
-        rbmd::Real z31  = pz[tid_k] - z1;
-
-        MinImageDistance(box, x31, y31, z31);
-        rbmd::Real rsq2 = x31*x31 + y31*y31 + z31*z31;
-
-        rbmd::Id iparam_ijk = elem3param[itype * nelements * nelements + jtype * nelements + ktype];
-        TersoffParams param_ijk = params[iparam_ijk];
-
-        if (rsq2 >= param_ijk.cutsq) continue;
-
-        rbmd::Real r2inv = 1 / SQRT(rsq2);
-        r2_hat[0] = x31 * r2inv;
-        r2_hat[1] = y31 * r2inv;
-        r2_hat[2] = z31 * r2inv;
-
-        rbmd::Real fi_tmp[3], fj_tmp[3], fk_tmp[3];
-        attractive(&param_ijk, prefactor, rsq1, rsq2, r1_hat, r2_hat,
-                   fi_tmp, fj_tmp, fk_tmp);
-
-        // //
-        // fi[0] += fi_tmp[0];
-        // fi[1] += fi_tmp[1];
-        // fi[2] += fi_tmp[2];
+    rbmd::Real  fjxtmp,fjytmp,fjztmp;
+    for (int j_idx = start_id[tid1]; j_idx < end_id[tid1]; ++j_idx) {
         //
-        // //
-        // atomicAdd(&fx[tid_j], fj_tmp[0]);
-        // atomicAdd(&fy[tid_j], fj_tmp[1]);
-        // atomicAdd(&fz[tid_j], fj_tmp[2]);
+        if (d_is_short_neighbor[j_idx] == 0) continue;
 
-        fxtmp_a += fi_tmp[0];
-        fytmp_a += fi_tmp[1];
-        fztmp_a += fi_tmp[2];
-        fjxtmp_a += fj_tmp[0];
-        fjytmp_a += fj_tmp[1];
-        fjztmp_a += fj_tmp[2];
+        const rbmd::Id tid_j = id_verletlist[j_idx];
+        const rbmd::Id jtype = map[atoms_type[tid_j] + 1];
+        const rbmd::Id iparam_ij = elem3param[itype * nelements * nelements + jtype * nelements + jtype];
 
-        // atomicAdd(&fx[tid_j], fj_tmp[0]);
-        // atomicAdd(&fy[tid_j], fj_tmp[1]);
-        // atomicAdd(&fz[tid_j], fj_tmp[2]);
+        rbmd::Real x21 = px[tid_j] - x1, y21 = py[tid_j] - y1, z21 = pz[tid_j] - z1;
+        MinImageDistance(box, x21, y21, z21);
+        rbmd::Real rsq1 = x21*x21 + y21*y21 + z21*z21;
 
+        if (shift.shift_flag) {
+          rsq1 = POW(shift.shift_value,2.0) + 2*SQRT(rsq1)*shift.shift_value;
+        }
+        if (rsq1 >= params[iparam_ij].cutsq)
+          continue;
+
+        const rbmd::Real r1inv= 1.0 / SQRT(rsq1);
+        rbmd::Real r1_hat[3] = {x21 * r1inv, y21 * r1inv, z21 * r1inv};
+
+        // --- Zeta
+        rbmd::Real zeta_ij = 0.0;
+        fjxtmp =fjytmp = fjztmp = 0.0;
+        // Inner loop: Only traverse the short-range neighbors k of atom i.
+        for (int k_idx = start_id[tid1]; k_idx < end_id[tid1]; ++k_idx) {
+            if (d_is_short_neighbor[k_idx] == 0) continue; // Only consider k as a short-range neighbor.
+            if (j_idx == k_idx) continue;
+
+            const rbmd::Id tid_k = id_verletlist[k_idx];
+            const rbmd::Id ktype = map[atoms_type[tid_k] + 1];
+            const rbmd::Id iparam_ik = elem3param[itype * nelements * nelements + ktype * nelements + ktype];
+
+            rbmd::Real x31 = px[tid_k] - x1, y31 = py[tid_k] - y1, z31 = pz[tid_k] - z1;
+            MinImageDistance(box, x31, y31, z31);
+            rbmd::Real rsq2 = x31*x31 + y31*y31 + z31*z31;
+            if (shift.shift_flag) {
+              rsq2 += POW(shift.shift_value,2.0) + 2*SQRT(rsq2)*shift.shift_value;
+            }
+
+            if (rsq2 >= params[iparam_ik].cutsq) continue;
+            rbmd::Real r2inv = 1.0 / SQRT(rsq2);
+            rbmd::Real r2_hat[3] = {x31 * r2inv, y31 * r2inv, z31 * r2inv};
+            zeta_ij += zeta(&params[iparam_ik], rsq1, rsq2, r1_hat, r2_hat);
+        }
         //
-        atomicAdd(&fx[tid_k], fk_tmp[0]);
-        atomicAdd(&fy[tid_k], fk_tmp[1]);
-        atomicAdd(&fz[tid_k], fk_tmp[2]);
-      }
-      auto fjxtmp = fjxtmp_z + fjxtmp_a;
-      auto fjytmp = fjytmp_z + fjytmp_a;
-      auto fjztmp = fjztmp_z + fjztmp_a;
+        rbmd::Real fforce_attr, prefactor, eng_zeta;
+        force_zeta(&params[iparam_ij], rsq1, zeta_ij, fforce_attr, prefactor, eng_zeta);
+        atomicAdd(energy, eng_zeta);
 
-      atomicAdd(&fx[tid_j], fjxtmp);
-      atomicAdd(&fy[tid_j], fjytmp);
-      atomicAdd(&fz[tid_j], fjztmp);
+        rbmd::Real fpair_attr = fforce_attr * r1inv;
+        fxtmp +=x21 * fpair_attr;
+        fytmp +=y21 * fpair_attr;
+        fztmp +=z21 * fpair_attr;
+        fjxtmp -=x21 * fpair_attr;
+        fjytmp -=y21 * fpair_attr;
+        fjztmp -=z21 * fpair_attr;
+
+        // Reiterate the traversal of the short-range neighbors k
+        for (int k_idx = start_id[tid1]; k_idx < end_id[tid1]; ++k_idx)
+        {
+          if (d_is_short_neighbor[k_idx] == 0) continue;
+          if (j_idx == k_idx) continue;
+
+          const rbmd::Id tid_k = id_verletlist[k_idx];
+          const rbmd::Id ktype = map[atoms_type[tid_k] + 1];
+          const rbmd::Id iparam_ijk = elem3param[itype * nelements * nelements + jtype * nelements + ktype];
+
+          rbmd::Real x31 = px[tid_k] - x1, y31 = py[tid_k] - y1, z31 = pz[tid_k] - z1;
+          MinImageDistance(box, x31, y31, z31);
+          rbmd::Real rsq2 = x31*x31 + y31*y31 + z31*z31;
+
+          if (shift.shift_flag) {
+            rsq2 += POW(shift.shift_value,2.0) + 2*SQRT(rsq2)*shift.shift_value;
+          }
+
+          if (rsq2 >= params[iparam_ijk].cutsq) continue;
+
+          rbmd::Real r2inv = 1.0 / SQRT(rsq2);
+          rbmd::Real r2_hat[3] = {x31 * r2inv, y31 * r2inv, z31 * r2inv};
+
+          rbmd::Real fi[3] = {0.0}, fj[3] = {0.0}, fk[3] = {0.0};
+          attractive(&params[iparam_ijk], prefactor, rsq1, rsq2, r1_hat, r2_hat, fi, fj, fk);
+
+          fxtmp += fi[0];
+          fytmp += fi[1];
+          fztmp += fi[2];
+          fjxtmp += fj[0];
+          fjytmp += fj[1];
+          fjztmp += fj[2];
+
+          atomicAdd(&fx[tid_k], fk[0]);
+          atomicAdd(&fy[tid_k], fk[1]);
+          atomicAdd(&fz[tid_k], fk[2]);
+        }
+        atomicAdd(&fx[tid_j], fjxtmp);
+        atomicAdd(&fy[tid_j], fjytmp);
+        atomicAdd(&fz[tid_j], fjztmp);
     }
-
-    //
-    auto fxtmp = fxtmp_z + fxtmp_a;
-    auto fytmp = fytmp_z + fytmp_a;
-    auto fztmp = fztmp_z + fztmp_a;
     atomicAdd(&fx[tid1], fxtmp);
     atomicAdd(&fy[tid1], fytmp);
     atomicAdd(&fz[tid1], fztmp);
-  }
 }
 
-
 void TerSoff<device::DEVICE_GPU>::operator()(
-    Box box, TersoffParams* params, ShiftFlag shift,const rbmd::Real cutmax,
+    Box box, TersoffParams* params, ShiftFlag shift, const rbmd::Real cutmax,
     const rbmd::Id num_atoms, const rbmd::Id nelements, const rbmd::Id* atom_id_to_idx,
     const rbmd::Id* atoms_id, const rbmd::Id* atoms_type, const rbmd::Id* map,
     const rbmd::Id* elem3param,
     const rbmd::Id* start_id, const rbmd::Id* end_id,
     const rbmd::Id* id_verletlist, const rbmd::Real* px, const rbmd::Real* py,
     const rbmd::Real* pz, rbmd::Real* fx, rbmd::Real* fy, rbmd::Real* fz,
-    rbmd::Real* flat_virial, rbmd::Real* energy)
+     rbmd::Real* flat_virial, rbmd::Real* energy)
 {
     unsigned int blocks_per_grid = (num_atoms + BLOCK_SIZE - 1) / BLOCK_SIZE;
-
     CHECK_KERNEL(ComputeTerSoff<<<blocks_per_grid, BLOCK_SIZE, 0, 0>>>(
         box,params,shift,cutmax,num_atoms,nelements, atom_id_to_idx,atoms_id, atoms_type,
         map,elem3param,
         start_id,end_id, id_verletlist,
         px, py, pz,fx, fy, fz,
         flat_virial,energy));
+}
 
-  // //
-  // CHECK_KERNEL(ComputeTwoBodyTerSoff<<<blocks_per_grid, BLOCK_SIZE>>>(
-  //     box, params, cutmax, num_atoms, nelements, atoms_id, atoms_type,
-  //     map, elem3param, start_id, end_id, id_verletlist,
-  //     px, py, pz, fx, fy, fz));
-  //
-  // cudaDeviceSynchronize();  //
-  //
-  // //
-  // CHECK_KERNEL(ComputeThreeBodyTerSoff<<<blocks_per_grid, BLOCK_SIZE>>>(
-  //     box, params, cutmax, num_atoms, nelements, atoms_id, atoms_type,
-  //     map, elem3param, start_id, end_id, id_verletlist,
-  //     px, py, pz, fx, fy, fz));
-
- }
-
-void ThreeBodyTerSoff<device::DEVICE_GPU>::operator()(
-    Box box, TersoffParams* params, const rbmd::Real cutmax,
+void TerSoffModify<device::DEVICE_GPU>::operator()(
+    Box box, TersoffParams* params, ShiftFlag shift, const rbmd::Real cutmax,
     const rbmd::Id num_atoms, const rbmd::Id nelements, const rbmd::Id* atom_id_to_idx,
     const rbmd::Id* atoms_id, const rbmd::Id* atoms_type, const rbmd::Id* map,
     const rbmd::Id* elem3param,
     const rbmd::Id* start_id, const rbmd::Id* end_id,
     const rbmd::Id* id_verletlist, const rbmd::Real* px, const rbmd::Real* py,
     const rbmd::Real* pz, rbmd::Real* fx, rbmd::Real* fy, rbmd::Real* fz,
-    rbmd::Real* flat_virial, rbmd::Real* energy)
+     rbmd::Real* flat_virial, rbmd::Real* energy, rbmd::Id* d_is_short_neighbor)
   {
+
     unsigned int blocks_per_grid = (num_atoms + BLOCK_SIZE - 1) / BLOCK_SIZE;
+    CHECK_KERNEL(ComputeTwoBody<<<blocks_per_grid, BLOCK_SIZE, 0, 0>>>(
+      box,params,shift,cutmax,num_atoms,nelements, atoms_type,
+      map,elem3param,
+      start_id,end_id, id_verletlist,
+      px, py, pz,fx, fy, fz,energy,d_is_short_neighbor));
 
-    //
-    CHECK_KERNEL(ComputeThreeBodyTerSoff<<<blocks_per_grid, BLOCK_SIZE>>>(
-        box, params, cutmax, num_atoms, nelements, atoms_id, atoms_type,
-        map, elem3param, start_id, end_id, id_verletlist,
-        px, py, pz, fx, fy, fz));
-
+    cudaDeviceSynchronize();
+    CHECK_KERNEL(ComputeThreeBody<<<blocks_per_grid, BLOCK_SIZE, 0, 0>>>(
+      box,params,shift,num_atoms,nelements, atoms_type,
+      map,elem3param,
+      start_id,end_id, id_verletlist,
+      px, py, pz,d_is_short_neighbor,fx, fy, fz,energy));
+    cudaDeviceSynchronize();
   }
+
 
 }
 

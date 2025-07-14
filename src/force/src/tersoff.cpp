@@ -64,7 +64,7 @@ void TerSoff::Init()
     _shift.shift_value= config->Get<rbmd::Real>("shift_value", "hyper_parameters");
   }
 
-  //_cut_off = config->Get<rbmd::Real>("cut_off", "hyper_parameters", "neighbor");
+  _cut_off = config->Get<rbmd::Real>("cut_off", "hyper_parameters", "neighbor");
   //
   int narg = 0;
   char** arg = nullptr;
@@ -98,8 +98,18 @@ void TerSoff::Init()
   SetupParams();
 
   //
-  cudaMalloc((void**)&d_params, _nparams * sizeof(TersoffParams));
-  cudaMemcpy(d_params, _h_params, _nparams * sizeof(TersoffParams), cudaMemcpyHostToDevice);
+  CHECK_RUNTIME(MALLOC(&d_params, _nparams * sizeof(TersoffParams)));
+  MEMCPY(d_params,_h_params,_nparams * sizeof(TersoffParams),H2D);
+
+
+  //
+  auto start_list = std::chrono::high_resolution_clock::now();
+  if (test_current_step == 0) {
+    _list = _neighbor_list_builder->Build(_cutmax);
+  }
+  auto end_list = std::chrono::high_resolution_clock::now();
+  _duration_list_init = end_list - start_list;
+
 }
 
 void TerSoff::Execute()
@@ -112,9 +122,6 @@ void TerSoff::Execute()
 void TerSoff::ComputeTersoff() {
   //neighbor_list_build
   auto start = std::chrono::high_resolution_clock::now();
-  if (test_current_step == 0) {
-    _list = _neighbor_list_builder->Build(_cutmax);
-  }
   if (test_current_step>0) {
     if (test_current_step  % _interval == 0) {
       _list = _neighbor_list_builder->Build(_cutmax);
@@ -122,6 +129,7 @@ void TerSoff::ComputeTersoff() {
   }
   auto end = std::chrono::high_resolution_clock::now();
   std::chrono::duration<rbmd::Real> duration = end - start;
+  duration = _duration_list_init + duration;
   TimingStatistics::Instance().record("Neighbor-List",duration.count());
 
   //Tersoff
@@ -158,13 +166,17 @@ thrust::raw_pointer_cast(_device_data->_d_fz.data()),
 thrust::raw_pointer_cast(_device_data->_d_flat_virial_lj.data()),
 thrust::raw_pointer_cast(d_total_energy.data()));
 
-
   auto end_f = std::chrono::high_resolution_clock::now();
   std::chrono::duration<rbmd::Real> duration_f = end_f - start_f;
   TimingStatistics::Instance().record("Short-Range",duration_f.count());
   // D2H
   thrust::host_vector<rbmd::Real> h_total_evdwl(d_total_energy);
   _e_vdwl = h_total_evdwl[0]/num_atoms;
+
+  //sum virial_special_lj on host
+  ReduceVirial(num_atoms,_device_data->_d_flat_virial_lj,
+_device_data->_d_virial_lj);
+
   // thrust::host_vector<rbmd::Real> h_fx;
   // thrust::host_vector<rbmd::Real> h_fy;
   // thrust::host_vector<rbmd::Real> h_fz;
@@ -322,27 +334,14 @@ void TerSoff::ReadPotentialFile_fix(std::ifstream& file)
           if (!(iss >> iname >> jname >> kname))
              continue;
             //
-            // int ielement = -1, jelement = -1, kelement = -1;
-            // for (int i = 0; i < _nelements; ++i) {
-            //     if (iname == _elements[i]) ielement = i;
-            //     if (jname == _elements[i]) jelement = i;
-            //     if (kname == _elements[i]) kelement = i;
-            // }
+            int ielement = -1, jelement = -1, kelement = -1;
+            for (int i = 0; i < _nelements; ++i) {
+                if (iname == _elements[i]) ielement = i;
+                if (jname == _elements[i]) jelement = i;
+                if (kname == _elements[i]) kelement = i;
+            }
 
           //
-          int ielement, jelement, kelement;
-          for (ielement = 0; ielement < _nelements; ++ielement)
-            if (iname == _elements[ielement]) break;
-          if (ielement == _nelements) continue;
-
-          for (jelement = 0; jelement < _nelements; ++jelement)
-            if (jname == _elements[jelement]) break;
-          if (jelement == _nelements) continue;
-
-          for (kelement = 0; kelement < _nelements; ++kelement)
-            if (kname == _elements[kelement]) break;
-          if (kelement == _nelements) continue;
-
           if (ielement == -1 || jelement == -1 || kelement == -1) {
               //
               accumulatedLine.clear();

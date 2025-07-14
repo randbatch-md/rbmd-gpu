@@ -82,5 +82,6 @@ private:
   TersoffParams* d_params;
   //
   rbmd::Id  _interval = 2E10;
+  std::chrono::duration<rbmd::Real> _duration_list_init;
 };
 
