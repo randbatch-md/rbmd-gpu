@@ -57,23 +57,28 @@ class maceload  : public Force
         torch::Tensor atomenergy(c10::impl::GenericDict ouput);
         torch::Tensor vir;
         c10::TensorOptions torch_float_dtype = torch::dtype(torch::kF64);
+        c10::TensorOptions torch_int_dtype = torch::dtype(torch::kInt64);
         double mace_r_max;
         torch::jit::script::Module model;
         int n_nodes, n_edges;
-        bool vflag_global;
+        bool vflag_global=false;
         float tokcalmol = 23.0605;
         //double eng_vdwl;
         //ContPointLocator _locator;
     private:
-
+        std::shared_ptr<LinkedCell> _linked_cell;
         c10::Device device = torch::Device(torch::DeviceType::CUDA);
+        //caffe2::TypeMeta model_type =double;
+        torch::Tensor r_max;
         std::vector<int> atoms_table;
+        torch::Tensor d_atoms_table;
         std::vector<std::string> mace_feats_table;
         std::vector<float> mace_feats_mass_table;//thrust::device_vector<float>这个类型
         int64_t n_node_feats;
-        torch::Tensor cell = torch::zeros({ 3,3 }, torch_float_dtype);
-        torch::Tensor weight = torch::empty({ 1 }, torch_float_dtype);
-        torch::Tensor energy = torch::empty({ 1 }, torch_float_dtype);
+        torch::Tensor cell;
+        torch::Tensor weight;
+        torch::TensorOptions options;
+        torch::Tensor energy;
         torch::Tensor positions;
         torch::Tensor positionx,positiony,positionz;
         torch::TensorOptions optsint32 = torch::TensorOptions().dtype(torch::kInt32);

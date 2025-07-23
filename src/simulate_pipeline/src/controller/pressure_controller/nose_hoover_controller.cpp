@@ -68,6 +68,12 @@ void NoseHooverController::Init() {
       _kB = UnitFactor<UNIT::LJ>::_kb;
       _fmt2v = UnitFactor<UNIT::LJ>::_fmt2v;
       break;
+    case UNIT::METAL:
+      _nktv2p = UnitFactor<UNIT::METAL>::_nktv2p;
+    _mvv2e = UnitFactor<UNIT::METAL>::_mvv2e;
+    _kB = UnitFactor<UNIT::METAL>::_kb;
+    _fmt2v = UnitFactor<UNIT::METAL>::_fmt2v;
+    break;
     case UNIT::REAL:
       _nktv2p = UnitFactor<UNIT::REAL>::_nktv2p;
       _mvv2e = UnitFactor<UNIT::REAL>::_mvv2e;

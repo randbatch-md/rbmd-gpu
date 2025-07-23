@@ -20,6 +20,7 @@ MACENeighborListBuilder::MACENeighborListBuilder() {
                  "for PBC to be effective.\033[0m"
               << std::endl;
     this->MACENeighborListBuilder::ComputeNeighborCellsWithoutPBC();
+    //this->MACENeighborListBuilder::ComputeNeighborCells();
   } else {
     this->MACENeighborListBuilder::ComputeNeighborCells();
   }
