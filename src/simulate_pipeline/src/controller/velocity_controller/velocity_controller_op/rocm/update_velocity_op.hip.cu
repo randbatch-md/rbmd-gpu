@@ -27,6 +27,25 @@ __global__ void UpdateVelocity(const rbmd::Id num_atoms, const rbmd::Real dt,
   }
 }
 
+__global__ void UpdateVelocityFull(
+    const rbmd::Id num_atoms, const rbmd::Real dt,
+    const rbmd::Real fmt2v, const rbmd::Id* atoms_type,
+    const rbmd::Real* mass, const rbmd::Real* fx,
+    const rbmd::Real* fy, const rbmd::Real* fz,
+    rbmd::Real* vx, rbmd::Real* vy, rbmd::Real* vz) {
+  int tid = threadIdx.x + blockIdx.x * blockDim.x;
+
+  if (tid < num_atoms) {
+    rbmd::Id typei = atoms_type[tid];
+
+    // Update velocity with force for a full time step
+    // The 0.5 factor is removed compared to the Velocity-Verlet kernel
+    vx[tid] += fx[tid] / mass[typei] * dt * fmt2v;
+    vy[tid] += fy[tid] / mass[typei] * dt * fmt2v;
+    vz[tid] += fz[tid] / mass[typei] * dt * fmt2v;
+  }
+}
+
 void UpdateVelocityOp<device::DEVICE_GPU>::operator()(
     const rbmd::Id num_atoms, const rbmd::Real dt, const rbmd::Real fmt2v,
     const rbmd::Id* atoms_type, const rbmd::Real* mass, const rbmd::Real* fx,

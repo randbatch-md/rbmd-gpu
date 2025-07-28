@@ -681,8 +681,92 @@ inline __device__ void CoulCutForce(rbmd::Real cut_off, rbmd::Real alpha,
     }
   }
 
+//  Warp-level
+__device__ __forceinline__ rbmd::Real warpReduceSum(rbmd::Real val) {
+  // #pragma unroll
+  for (int offset = WARP_SIZE / 2; offset > 0; offset /= 2) {
+    val += __shfl_down_sync(0xFFFFFFFF, val, offset);
+  }
+  return val;
+}
+
+//  Block-level
+__device__ __forceinline__ rbmd::Real blockReduceSum(rbmd::Real val) {
+
+  __shared__ rbmd::Real shared[WARP_SIZE];
+
+  int lane = threadIdx.x % WARP_SIZE;
+  int wid = threadIdx.x / WARP_SIZE;
+
+  // 1.
+  val = warpReduceSum(val);
+
+  // 2.
+  if (lane == 0) {
+    shared[wid] = val;
+  }
+  __syncthreads(); //
+
+  // 3.
+  val = (threadIdx.x < blockDim.x / WARP_SIZE) ? shared[lane] : 0.0;
+  if (wid == 0) {
+    val = warpReduceSum(val);
+  }
+
+  return val;
+}
+
+
+__global__ void ComputePnumberChargeStructureFactor(
+    Box   box, const rbmd::Id num_atoms, const rbmd::Id p_number,
+    const rbmd::Real* __restrict__ charge, const rbmd::Real* __restrict__ p_sample_x,
+    const rbmd::Real* __restrict__ p_sample_y, const rbmd::Real* __restrict__ p_sample_z,
+    const rbmd::Real* __restrict__ px, const rbmd::Real* __restrict__ py, const rbmd::Real* __restrict__ pz,
+    rbmd::Real* __restrict__ rhok_real_final, rbmd::Real* __restrict__ rhok_image_final) {
+
+  // 1.
+  const rbmd::Id P_index = blockIdx.x;
+  if (P_index >= p_number) return;
+
+  // 2.
+  rbmd::Real k_x = p_sample_x[P_index] * 2 * M_PI / box._length[0];
+  rbmd::Real k_y = p_sample_y[P_index] * 2 * M_PI / box._length[1];
+  rbmd::Real k_z = p_sample_z[P_index] * 2 * M_PI / box._length[2];
+
+  // 3.
+  rbmd::Real local_real_sum = 0.0;
+  rbmd::Real local_image_sum = 0.0;
+
+  // 4. (Grid-Stride Loop)
+  for (rbmd::Id N_index = threadIdx.x; N_index < num_atoms; N_index += blockDim.x) {
+      //
+      rbmd::Real chargei = charge[N_index];
+      rbmd::Real p_x = px[N_index];
+      rbmd::Real p_y = py[N_index];
+      rbmd::Real p_z = pz[N_index];
+
+      //
+      rbmd::Real dot_product = k_x * p_x + k_y * p_y + k_z * p_z;
+
+      //
+      local_real_sum  += chargei * COS(dot_product);
+      local_image_sum += chargei * SIN(dot_product);
+  }
+
+  // 5.
+  rbmd::Real total_real  = blockReduceSum(local_real_sum);
+  rbmd::Real total_image = blockReduceSum(local_image_sum);
+
+  // 6.
+  if (threadIdx.x == 0) {
+      rhok_real_final[P_index] = total_real;
+      rhok_image_final[P_index] = total_image;
+  }
+}
+
+
   // Charge Structure  Factor on Pnumber
-  __global__ void ComputePnumberChargeStructureFactor(
+  __global__ void ComputePnumberChargeStructureFactor0(
       Box   box, const rbmd::Id num_atoms, const rbmd::Id p_number,
       const rbmd::Real* __restrict__ charge, const rbmd::Real* __restrict__ p_sample_x,
       const rbmd::Real* __restrict__ p_sample_y, const rbmd::Real* __restrict__ p_sample_z,
@@ -1319,6 +1403,95 @@ __global__ void EwaldForceFix(const rbmd::Id num_atoms,const rbmd::Id kcount,
     }
   }
 
+__global__ void ComputeRBEForce1(
+    Box   box, const rbmd::Id num_atoms, const rbmd::Id p_number,
+    const rbmd::Real alpha, const rbmd::Real qqr2e,
+    const rbmd::Real* __restrict__ real_array, const rbmd::Real* __restrict__ imag_array,
+    const rbmd::Real* __restrict__ charge, const rbmd::Real* __restrict__ p_sample_x,
+    const rbmd::Real* __restrict__ p_sample_y, const rbmd::Real* __restrict__ p_sample_z,
+    const rbmd::Real* __restrict__ px, const rbmd::Real* __restrict__ py, const rbmd::Real* __restrict__ pz,
+    rbmd::Real* __restrict__ fx, rbmd::Real* __restrict__ fy, rbmd::Real* __restrict__ fz,
+    rbmd::Real* flat_virial) {
+
+  // --- 1. 初始化 ---
+
+  // Block-per-Atom 策略：每个块负责一个原子
+  const rbmd::Id atom_id = blockIdx.x;
+  if (atom_id >= num_atoms) return;
+
+  // 加载本块负责的单个原子的数据
+  const rbmd::Real p_x = px[atom_id];
+  const rbmd::Real p_y = py[atom_id];
+  const rbmd::Real p_z = pz[atom_id];
+  const rbmd::Real charge_i = charge[atom_id];
+
+  // 初始化每个线程私有的累加器
+  rbmd::Real sum_fx = 0.0;
+  rbmd::Real sum_fy = 0.0;
+  rbmd::Real sum_fz = 0.0;
+  rbmd::Real sum_virial[6] = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
+
+  // --- 2. [核心] 块内并行循环计算 ---
+
+  // 块内所有线程合作，使用 Grid-Stride-Loop 并行处理 P 个 k 向量
+  for (rbmd::Id i = threadIdx.x; i < p_number; i += blockDim.x) {
+    const Real3 M = make_Real3(p_sample_x[i], p_sample_y[i], p_sample_z[i]);
+    const rbmd::Real rhok_real_i = real_array[i];
+    const rbmd::Real rhok_imag_i = imag_array[i];
+
+    rbmd::Real force_rbe_x, force_rbe_y, force_rbe_z, force_rbe_single;
+
+    // 调用物理计算函数
+    RBEForce(box, M, qqr2e, rhok_real_i, rhok_imag_i, charge_i, p_x, p_y, p_z,
+             force_rbe_single, force_rbe_x, force_rbe_y, force_rbe_z);
+
+    // 累加到私有累加器
+    sum_fx += force_rbe_x;
+    sum_fy += force_rbe_y;
+    sum_fz += force_rbe_z;
+
+    // 计算维里贡献
+    Real3 K;
+    K.x = 2.0 * M_PI * M.x / box._length[0];
+    K.y = 2.0 * M_PI * M.y / box._length[1];
+    K.z = 2.0 * M_PI * M.z / box._length[2];
+    sum_virial[0] += (p_x * K.x + p_x * K.x) * force_rbe_single;
+    sum_virial[1] += (p_y * K.y + p_y * K.y) * force_rbe_single;
+    sum_virial[2] += (p_z * K.z + p_z * K.z) * force_rbe_single;
+    sum_virial[3] += (p_x * K.y + p_y * K.x) * force_rbe_single;
+    sum_virial[4] += (p_x * K.z + p_z * K.x) * force_rbe_single;
+    sum_virial[5] += (p_y * K.z + p_z * K.y) * force_rbe_single;
+  }
+
+  // --- 3. 最终块内规约 ---
+
+  // 对块内所有线程的私有累加值进行求和
+  sum_fx = blockReduceSum(sum_fx);
+  sum_fy = blockReduceSum(sum_fy);
+  sum_fz = blockReduceSum(sum_fz);
+  for(int i = 0; i < 6; ++i) {
+      sum_virial[i] = blockReduceSum(sum_virial[i]);
+  }
+
+  // --- 4. 写回最终结果 ---
+
+  // 只有块内的 0 号线程负责最后的计算和写回
+  if (threadIdx.x == 0) {
+    rbmd::Real sum_gauss;
+    ComputeS(box, alpha, sum_gauss); // 假设 ComputeS 是一个已有的 __device__ 函数
+
+    // 缩放并写入最终的力
+    fx[atom_id] = sum_fx * sum_gauss / p_number;
+    fy[atom_id] = sum_fy * sum_gauss / p_number;
+    fz[atom_id] = sum_fz * sum_gauss / p_number;
+
+    // 缩放并写入最终的维里 (virial)
+    for(int i = 0; i < 6; ++i) {
+      flat_virial[i * num_atoms + atom_id] = sum_virial[i] * sum_gauss / p_number;
+    }
+  }
+}
+
 
 
   __global__ void AddForce(const rbmd::Id num_atoms, const rbmd::Real* input_fx,
@@ -1441,12 +1614,20 @@ __global__ void EwaldForceFix(const rbmd::Id num_atoms,const rbmd::Id kcount,
       const rbmd::Real* p_sample_y, const rbmd::Real* p_sample_z,
       const rbmd::Real* px, const rbmd::Real* py, const rbmd::Real* pz,
       rbmd::Real* density_real, rbmd::Real* density_imag) {
-    unsigned int blocks_per_grid = (num_atoms + BLOCK_SIZE - 1) / BLOCK_SIZE;
+    // unsigned int blocks_per_grid = (num_atoms + BLOCK_SIZE - 1) / BLOCK_SIZE;
+    //
+    // CHECK_KERNEL(ComputePnumberChargeStructureFactor<<<blocks_per_grid,
+    //                                                    BLOCK_SIZE, 0, 0>>>(
+    //     box, num_atoms, p_number, charge, p_sample_x, p_sample_y, p_sample_z, px,
+    //     py, pz, density_real, density_imag));
 
+    //  p_number
+    const unsigned int blocks_per_grid = p_number;
     CHECK_KERNEL(ComputePnumberChargeStructureFactor<<<blocks_per_grid,
                                                        BLOCK_SIZE, 0, 0>>>(
         box, num_atoms, p_number, charge, p_sample_x, p_sample_y, p_sample_z, px,
         py, pz, density_real, density_imag));
+
   }
 
   // RBE: RBE Force

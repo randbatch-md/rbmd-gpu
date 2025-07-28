@@ -92,7 +92,7 @@ struct RBEPSAMPLE
   rbmd::Real Distribution_q(const rbmd::Real& x, const rbmd::Id dimension) const
   {
     rbmd::Real q_m;
-    if (x == 0)
+    if (x == 0 || fabs(x) < 1.0e-13 )
     {
       q_m = ERF((1.0 / 2) /(SQRT(_alpha * POW(_box._length[dimension], 2) /
         POW(M_PI, 2))));

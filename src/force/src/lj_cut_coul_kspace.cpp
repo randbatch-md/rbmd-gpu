@@ -459,10 +459,10 @@ void LJCutCoulKspace::RBEInit(Box box,rbmd::Real alpha,rbmd::Id RBE_P)
   _P_Sample_z = h_P_Sample_z;
 
   //index key
-  _psample_key.resize(num_atoms * RBE_P);
-  op::GenerateIndexArrayOp<device::DEVICE_GPU>()(
-    num_atoms,RBE_P,
-    thrust::raw_pointer_cast(_psample_key.data()));
+  // _psample_key.resize(num_atoms * RBE_P);
+  // op::GenerateIndexArrayOp<device::DEVICE_GPU>()(
+  //   num_atoms,RBE_P,
+  //   thrust::raw_pointer_cast(_psample_key.data()));
 }
 
 void LJCutCoulKspace::GetPsampleKey()
@@ -487,10 +487,10 @@ void LJCutCoulKspace::ComputeChargeStructureFactorRBE(
   //get P_Sample
   RBEInit(*_box,_alpha,_RBE_P);
 
-  thrust::device_vector<rbmd::Real>  rhok_real_atom;
-  thrust::device_vector<rbmd::Real>  rhok_image_atom;
-  rhok_real_atom.resize(num_atoms* RBE_P);
-  rhok_image_atom.resize(num_atoms* RBE_P);
+  // thrust::device_vector<rbmd::Real>  rhok_real_atom;
+  // thrust::device_vector<rbmd::Real>  rhok_image_atom;
+  // rhok_real_atom.resize(num_atoms* RBE_P);
+  // rhok_image_atom.resize(num_atoms* RBE_P);
   auto p_number= RBE_P;
 
   //Charge Structure Factor
@@ -503,20 +503,20 @@ void LJCutCoulKspace::ComputeChargeStructureFactorRBE(
       thrust::raw_pointer_cast(_device_data->_d_px.data()),
       thrust::raw_pointer_cast(_device_data->_d_py.data()),
       thrust::raw_pointer_cast(_device_data->_d_pz.data()),
-      thrust::raw_pointer_cast(rhok_real_atom.data()),
-      thrust::raw_pointer_cast(rhok_image_atom.data()));
+      thrust::raw_pointer_cast(rhok_real_redue.data()),
+      thrust::raw_pointer_cast(rhok_image_redue.data()));
 
   // reduce_by_key for rhok
-  thrust::device_vector<rbmd::Id>  psamplekey_out;
-  psamplekey_out.resize(RBE_P);
-
-   reduce_by_key(_psample_key.begin(), _psample_key.end(),
-    rhok_real_atom.begin(),psamplekey_out.begin(), rhok_real_redue.begin(),
-    thrust::equal_to<rbmd::Id>(),thrust::plus<rbmd::Real>());
-
-   reduce_by_key(_psample_key.begin(), _psample_key.end(),
-    rhok_image_atom.begin(),psamplekey_out.begin(), rhok_image_redue.begin(),
-    thrust::equal_to<rbmd::Id>(),thrust::plus<rbmd::Real>());
+  // thrust::device_vector<rbmd::Id>  psamplekey_out;
+  // psamplekey_out.resize(RBE_P);
+  //
+  //  reduce_by_key(_psample_key.begin(), _psample_key.end(),
+  //   rhok_real_atom.begin(),psamplekey_out.begin(), rhok_real_redue.begin(),
+  //   thrust::equal_to<rbmd::Id>(),thrust::plus<rbmd::Real>());
+  //
+  //  reduce_by_key(_psample_key.begin(), _psample_key.end(),
+  //   rhok_image_atom.begin(),psamplekey_out.begin(), rhok_image_redue.begin(),
+  //   thrust::equal_to<rbmd::Id>(),thrust::plus<rbmd::Real>());
 
   //energy
   const auto& config = DataManager::getInstance().getConfigData();
@@ -542,8 +542,10 @@ void LJCutCoulKspace::ComputeRBE()
   auto num_atoms = *(_structure_info_data->_num_atoms);
   _rhok_real_redue.resize(_RBE_P);
   _rhok_image_redue.resize(_RBE_P);
+
   ComputeChargeStructureFactorRBE(*_box, num_atoms, _kmax_array,
       _alpha,_RBE_P,_qqr2e,_rhok_real_redue,_rhok_image_redue);
+
 
    //RBE Force
   op::ComputeRBEForceOp<device::DEVICE_GPU>()(
