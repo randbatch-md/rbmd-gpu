@@ -58,4 +58,5 @@ class Ensemble : public Object {
   std::shared_ptr<EnergyStableSchemeController> _energy_stable_scheme_controller;
 
   std::string _temp_ctrl_type, _press_ctrl_type;
+  std::string  _integration_type;
 };

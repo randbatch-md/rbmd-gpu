@@ -19,6 +19,11 @@ class PositionController {
    * @brief Update Position
    */
   virtual void Update() = 0;
+  virtual void Update1() = 0;
+  virtual void Update2() = 0;
+  virtual void Update3() = 0;
+  virtual void Update4() = 0;
+  virtual void Update_vv() = 0;
 
   /**
    * @brief Parameters and objects required for initializing the Position

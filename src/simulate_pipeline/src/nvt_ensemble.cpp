@@ -71,6 +71,8 @@ NVTensemble::NVTensemble()
 
   //shake
   _shake_controller = std::make_shared<ShakeController>();
+  _integration_type = DataManager::getInstance().getConfigData()->Get
+<std::string>("integration_type", "execution");
 }
 
 void NVTensemble::Init() {
@@ -96,67 +98,176 @@ void NVTensemble::Solve() {
    bool use_shake = DataManager::getInstance().getConfigData()->GetJudge
     <bool>("fix_shake", "hyper_parameters", "extend");
 
-  if("NOSE_HOOVER" == _temp_ctrl_type)
-  {
-    _NoseHoover_controller->InitialIntegrate();//_velocity_controller->Update();
-                                  //_position_controller->Update();
-    if (true == use_shake)
+  if ("leapfrog" ==_integration_type ) {
+    if("NOSE_HOOVER" == _temp_ctrl_type)
     {
-      _shake_controller->ShakeA();
+      _NoseHoover_controller->InitialIntegrate();//_velocity_controller->Update();
+      //_position_controller->Update();
+      if (true == use_shake)
+      {
+        _shake_controller->ShakeA();
+      }
+
+      _force_controller->Execute();
+
+      _NoseHoover_controller->FinalIntegrate(); //_velocity_controller->Update();
+
+      if (true == use_shake)
+      {
+        _shake_controller->ShakeB();
+      }
     }
-
-    _force_controller->Execute();
-
-    _NoseHoover_controller->FinalIntegrate(); //_velocity_controller->Update();
-
-    if (true == use_shake)
+    else
     {
-      _shake_controller->ShakeB();
+      auto start = std::chrono::high_resolution_clock::now();
+
+      _velocity_controller->Update();
+      _position_controller->Update();
+      bool use_shake = DataManager::getInstance().getConfigData()->GetJudge<bool>
+      ( "fix_shake", "hyper_parameters", "extend");; //TODO: json file
+      if (use_shake)
+      {
+        _shake_controller->ShakeA();
+      }
+
+      _force_controller->Execute();
+
+      if ("LANGEVIN"==DataManager::getInstance().getConfigData()->Get<std::string>
+        ("temp_ctrl_type", "execution"))
+      {
+        _temperature_controller->Update();
+      }
+
+      _velocity_controller->Update();
+
+      if (use_shake)
+      {
+        _shake_controller->ShakeB();
+      }
+
+      _temperature_controller->ComputeTemperature();
+
+      if ("LANGEVIN" == DataManager::getInstance().getConfigData()->Get<std::string>
+        ("temp_ctrl_type", "execution"))
+        return;
+
+      _temperature_controller->Update();
+
+      CHECK_RUNTIME(DEVICESYNC());
+      auto end = std::chrono::high_resolution_clock::now();
+      std::chrono::duration<rbmd::Real> duration = end - start;
+
     }
   }
- else
- {
-   auto start = std::chrono::high_resolution_clock::now();
-
-   _velocity_controller->Update();
-
-   _position_controller->Update();
-
-   bool use_shake = DataManager::getInstance().getConfigData()->GetJudge<bool>
-   ( "fix_shake", "hyper_parameters", "extend");; //TODO: json file
-   if (use_shake)
-   {
-     _shake_controller->ShakeA();
-   }
-
-   _force_controller->Execute();
-
-   if ("LANGEVIN"==DataManager::getInstance().getConfigData()->Get<std::string>
-     ("temp_ctrl_type", "execution"))
-   {
-     _temperature_controller->Update();
-   }
-
-   _velocity_controller->Update();
-
-    if (use_shake)
-    {
-      _shake_controller->ShakeB();
-    }
+  else if ("vv" ==_integration_type) {
+    _position_controller->Update_vv();
+    _velocity_controller->Update_vv();
+    _force_controller->Execute();
+    _velocity_controller->Update_vv();
 
     _temperature_controller->ComputeTemperature();
+    _temperature_controller->Update();
+  }
+  else if ("prk4" ==_integration_type) {
 
-    if ("LANGEVIN" == DataManager::getInstance().getConfigData()->Get<std::string>
-      ("temp_ctrl_type", "execution"))
-      return;
+    _velocity_controller->Update1();
+    _position_controller->Update1();
+    _force_controller->Execute();
 
+    _velocity_controller->Update2();
+    _position_controller->Update2();
+    _force_controller->Execute();
+
+    _velocity_controller->Update3();
+    _position_controller->Update3();
+    _force_controller->Execute();
+
+    _velocity_controller->Update4();
+    _position_controller->Update4();
+    _force_controller->Execute();
+
+    _temperature_controller->ComputeTemperature();
     _temperature_controller->Update();
 
-    CHECK_RUNTIME(DEVICESYNC());
-    auto end = std::chrono::high_resolution_clock::now();
-    std::chrono::duration<rbmd::Real> duration = end - start;
+  }
+  else if ("fr4" ==_integration_type) {
 
- }
+    _velocity_controller->Update1();
+    _position_controller->Update1();
+    _force_controller->Execute();
+
+    _velocity_controller->Update2();
+    _position_controller->Update2();
+    _force_controller->Execute();
+
+    _velocity_controller->Update3();
+    _position_controller->Update3();
+    _force_controller->Execute();
+
+    _velocity_controller->Update4();
+    _position_controller->Update4();
+    _force_controller->Execute();
+
+    _temperature_controller->ComputeTemperature();
+    _temperature_controller->Update();
+
+  }
+  else if ("rkn2" == _integration_type) {
+    _position_controller->Update1();
+    _force_controller->Execute();
+    _velocity_controller->Update1();
+
+    _position_controller->Update2();
+    _force_controller->Execute();
+    _velocity_controller->Update2();
+
+    _position_controller->Update3();
+    _force_controller->Execute();
+    // _velocity_controller->Update3();
+
+    _temperature_controller->ComputeTemperature();
+    _temperature_controller->Update();
+  }
+  else if ("rkn3a" == _integration_type) {
+    _position_controller->Update1();
+    _force_controller->Execute();
+    _velocity_controller->Update1();
+
+    _position_controller->Update2();
+    _force_controller->Execute();
+    _velocity_controller->Update2();
+
+    _position_controller->Update3();
+    _force_controller->Execute();
+    _velocity_controller->Update3();
+
+    _position_controller->Update4();
+    _force_controller->Execute();
+    // _velocity_controller->Update4();
+
+    _temperature_controller->ComputeTemperature();
+    _temperature_controller->Update();
+  }
+  else if ("rkn3b" == _integration_type) {
+    _position_controller->Update1();
+    _force_controller->Execute();
+    _velocity_controller->Update1();
+
+    _position_controller->Update2();
+    _force_controller->Execute();
+    _velocity_controller->Update2();
+
+    _position_controller->Update3();
+    _force_controller->Execute();
+    _velocity_controller->Update3();
+
+    _position_controller->Update4();
+    _force_controller->Execute();
+    // _velocity_controller->Update4();
+
+    _temperature_controller->ComputeTemperature();
+    _temperature_controller->Update();
+  }
 }
 
 void NVTensemble::Postsolve() {}
