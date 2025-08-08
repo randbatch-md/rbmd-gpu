@@ -152,22 +152,6 @@ void NVTensemble::Solve() {
 
     _temperature_controller->Update();
 
-   // // 1. Update positions by a half time step (dt/2)
-   // _position_controller->Update();
-   //
-   // // 2. Calculate forces at the new half-step positions
-   // _force_controller->Execute();
-   //
-   // // 3. Update velocities by a full time step (dt)
-   // _velocity_controller->Update();
-   //
-   // // 4. Update positions by another half time step (dt/2)
-   // _position_controller->Update();
-   //
-   // // --- Thermostat and other updates follow ---
-   // _temperature_controller->ComputeTemperature();
-   // _temperature_controller->Update();
-
     CHECK_RUNTIME(DEVICESYNC());
     auto end = std::chrono::high_resolution_clock::now();
     std::chrono::duration<rbmd::Real> duration = end - start;

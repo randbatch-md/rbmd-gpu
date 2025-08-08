@@ -1,12 +1,15 @@
+#include <spdlog/spdlog.h>
+
 #include <chrono>
+#include <cmath>
 #include <iomanip>
+#include <limits>
+#include <sstream>
 #include <string>
 #include <unordered_map>
-#include <cmath>
-#include <limits>
 #include <vector>
-#include <sstream>
-#include <spdlog/spdlog.h>
+
+#include "output/include/Logger.hpp"
 
 class TimingStatistics {
 private:

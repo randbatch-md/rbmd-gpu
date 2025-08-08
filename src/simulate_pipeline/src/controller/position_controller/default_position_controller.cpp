@@ -47,20 +47,6 @@ void DefaultPositionController::Update() {
                        thrust::raw_pointer_cast(_device_data->_d_flagX.data()),
                        thrust::raw_pointer_cast(_device_data->_d_flagY.data()),
                        thrust::raw_pointer_cast(_device_data->_d_flagZ.data()));
-
-      // const rbmd::Real half_dt = 0.5 * _dt;
-      // op::UpdatePositionFlagOp<device::DEVICE_GPU>()(
-      //     *(_structure_info_data->_num_atoms), half_dt, *_box,
-      //     thrust::raw_pointer_cast(_device_data->_d_vx.data()),
-      //     thrust::raw_pointer_cast(_device_data->_d_vy.data()),
-      //     thrust::raw_pointer_cast(_device_data->_d_vz.data()),
-      //     thrust::raw_pointer_cast(_device_data->_d_px.data()),
-      //     thrust::raw_pointer_cast(_device_data->_d_py.data()),
-      //     thrust::raw_pointer_cast(_device_data->_d_pz.data()),
-      //     thrust::raw_pointer_cast(_device_data->_d_flagX.data()),
-      //     thrust::raw_pointer_cast(_device_data->_d_flagY.data()),
-      //     thrust::raw_pointer_cast(_device_data->_d_flagZ.data()));
-
   }
 }
 

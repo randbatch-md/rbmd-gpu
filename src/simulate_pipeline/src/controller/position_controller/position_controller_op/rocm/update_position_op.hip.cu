@@ -52,24 +52,6 @@ __global__ void UpdatePosition(const rbmd::Id num_atoms, const rbmd::Real dt, Bo
   }
 }
 
-__global__ void UpdatePositionHalf(
-    const rbmd::Id num_atoms, const rbmd::Real half_dt, Box box,
-    const rbmd::Real* vx, const rbmd::Real* vy, const rbmd::Real* vz,
-    rbmd::Real* px, rbmd::Real* py, rbmd::Real* pz, rbmd::Id* flag_px,
-    rbmd::Id* flag_py, rbmd::Id* flag_pz) {
-  int tid = threadIdx.x + blockIdx.x * blockDim.x;
-
-  if (tid < num_atoms) {
-    // Update position with velocity for a half time step
-    px[tid] += vx[tid] * half_dt;
-    py[tid] += vy[tid] * half_dt;
-    pz[tid] += vz[tid] * half_dt;
-
-    // Apply Periodic Boundary Conditions
-    ApplyPBC(box, px[tid], py[tid], pz[tid],
-      flag_px[tid], flag_py[tid],flag_pz[tid]);
-  }
-}
 
 void UpdatePositionFlagOp<device::DEVICE_GPU>::operator()(
     const rbmd::Id num_atoms, const rbmd::Real dt, Box  box  ,
