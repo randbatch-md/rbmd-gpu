@@ -14,7 +14,7 @@ public:
 
   void Init() override;
   void  Execute() override;
-  void EvaluatePotentialenergy() override;
+  void EvaluatePotentialEnergy() override;
 
   void ComputeLJCutCoulForce();
   void ComputeLJVerlet();

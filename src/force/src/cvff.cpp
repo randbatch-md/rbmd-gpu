@@ -27,7 +27,6 @@ CVFF::CVFF()
   _rbl_neighbor_list_builder = std::make_shared<RblFullNeighborListBuilder>();
   _neighbor_list_builder = std::make_shared<FullNeighborListBuilder>();
 
-  // 创建 K-Space 计算器实例，并将自身所需的数据和指针传进去
   _kspace_calculator = std::make_unique<KSpaceCalculator>();
 
   auto unit = DataManager::getInstance().getConfigData()->Get
@@ -72,7 +71,7 @@ void CVFF::Init()
     }
   }
 
-  // 2. 初始化 K-Space 组件
+  //
   _alpha = config->Get<rbmd::Real>("alpha", "hyper_parameters", "coulomb");
   _kspace_calculator->Init();
 }
@@ -82,7 +81,6 @@ void CVFF::Execute() {
 
   ComputeLJCutCoulForce();
   if(config->PathExists({"hyper_parameters", "coulomb"})) {
-    // 2. 委托 K-Space 组件计算长程力
     _kspace_calculator->Execute();
   }
 
@@ -97,7 +95,7 @@ void CVFF::Execute() {
 
   SumForces();
 
-  EvaluatePotentialenergy();
+  EvaluatePotentialEnergy();
 }
 
 void CVFF::ComputeLJCutCoulForce()
@@ -240,8 +238,8 @@ void CVFF::ComputeLJVerlet()
   // D2H
   thrust::host_vector<rbmd::Real> h_total_evdwl(_d_total_evdwl);
   thrust::host_vector<rbmd::Real> h_total_ecoul(_d_total_ecoul);
-  _e_vdwl = h_total_evdwl[0]/num_atoms;
-  _e_coul = h_total_ecoul[0]/num_atoms;
+  _e_vdwl = h_total_evdwl[0];
+  _e_coul = h_total_ecoul[0];
 
 //sum virial_special_lj on host
   ReduceVirial(num_atoms,_device_data->_d_flat_virial_lj,
@@ -289,8 +287,8 @@ void CVFF::ComputeLJCoulEnergy()
   // D2H
   thrust::host_vector<rbmd::Real> h_total_evdwl(_d_total_evdwl);
   thrust::host_vector<rbmd::Real> h_total_ecoul(_d_total_ecoul);
-  _e_vdwl = h_total_evdwl[0]/num_atoms;
-  _e_coul = h_total_ecoul[0]/num_atoms;
+  _e_vdwl = h_total_evdwl[0];
+  _e_coul = h_total_ecoul[0];
 
   //sum virial on host
   ReduceVirial(num_atoms,_device_data->_d_flat_virial_lj,
@@ -359,7 +357,7 @@ void CVFF::ComputeBondForce()
 
   // D2H
   thrust::host_vector<rbmd::Real> h_total_ebond(d_total_ebond);
-  _e_bond = h_total_ebond[0]/num_bonds;
+  _e_bond = h_total_ebond[0];
 
   ThermoStats::Instance().AddThermoData("bond",_e_bond);
 
@@ -412,7 +410,7 @@ void CVFF::ComputeAngleForce()
   TimingStatistics::Instance().record("Angle",duration.count());
   // D2H
   thrust::host_vector<rbmd::Real> h_total_eangle(d_total_eangle);
-  _e_angle = h_total_eangle[0]/num_angles;
+  _e_angle = h_total_eangle[0];
 
   ThermoStats::Instance().AddThermoData("angle",_e_angle);
 
@@ -484,7 +482,7 @@ void CVFF::DihedralHarmonic() {
 
   // D2H
   thrust::host_vector<rbmd::Real> h_total_edihedral(d_total_edihedral);
-  _e_dihedral = h_total_edihedral[0]/num_dihedrals;
+  _e_dihedral = h_total_edihedral[0];
 
   //sum virial_dihedral on host
   ReduceVirial(num_atoms,_device_data->_d_flat_virial_dihedral_atom,
@@ -538,7 +536,7 @@ void CVFF::DihedralOPLS() {
   TimingStatistics::Instance().record("Dihedral",duration.count());
   // D2H
   thrust::host_vector<rbmd::Real> h_total_edihedral(d_total_edihedral);
-  _e_dihedral = h_total_edihedral[0]/num_dihedrals;
+  _e_dihedral = h_total_edihedral[0];
 
   //sum virial_dihedral on host
   ReduceVirial(num_atoms,_device_data->_d_flat_virial_dihedral_atom,
@@ -602,7 +600,7 @@ void CVFF::ImproperHarmonic() {
 
   // D2H
   thrust::host_vector<rbmd::Real> h_total_eimproper(d_total_eimproper);
-  _e_improper = h_total_eimproper[0]/num_impropers;
+  _e_improper = h_total_eimproper[0];
 
   ReduceVirial(num_atoms,_device_data->_d_flat_virial_improper_atom,
   _device_data->_d_virial_improper);
@@ -651,14 +649,17 @@ void CVFF::ImproperCVFF()
 
   // D2H
   thrust::host_vector<rbmd::Real> h_total_eimproper(d_total_eimproper);
-  _e_improper = h_total_eimproper[0]/num_impropers;
+  _e_improper = h_total_eimproper[0];
 
   ReduceVirial(num_atoms,_device_data->_d_flat_virial_improper_atom,
 _device_data->_d_virial_improper);
 }
 
-void CVFF::EvaluatePotentialenergy()
+void CVFF::EvaluatePotentialEnergy()
 {
+  _e_kspace = _kspace_calculator->GetKspacEnergy();
+  ThermoStats::Instance().AddThermoData("kspace",_e_kspace);
+
   _e_pe_rbl = _e_vdwl_rbl + _e_coul_rbl+_e_kspace+
                   _e_bond + _e_angle+_e_dihedral+_e_improper;
 

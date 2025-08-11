@@ -14,13 +14,13 @@ public:
 
   virtual ~KSpaceCalculator() = default;
 
-  // --- 公共接口 ---
-  void Init() override;       // 用于初始化 alpha, RBE_P 等参数
-  void Execute() override;    // 执行主要的力计算
-  void EvaluatePotentialEnergy() ; // 计算能量
+  void Init() override;
+  void Execute() override;
+  void EvaluatePotentialEnergy() override ;
+
+  rbmd::Real GetKspacEnergy() const { return _e_kspace; }
 
 private:
-  // --- 辅助函数 ---
   void ComputeQsqSum();
   void GetPsampleKey();
   rbmd::Real ComputeRMS(rbmd::Id kmax,rbmd::Real box_length,rbmd::Real q2);
@@ -68,6 +68,7 @@ private:
   rbmd::Real _accuracy;
   rbmd::Real _g_ewald;
   rbmd::Real _alpha;
+  rbmd::Real _q2;
   rbmd::Real _sum_sq_charge;
   rbmd::Real  _sum_charge;
   rbmd::Real* _h_Re_array;
@@ -94,7 +95,7 @@ private:
   thrust::device_vector<rbmd::Id>  _psample_key;
   thrust::device_vector<rbmd::Real> _rhok_real_redue;
   thrust::device_vector<rbmd::Real> _rhok_image_redue;
-  // 能量
+  //
   rbmd::Real _e_kspace = 0;
   rbmd::Real _e_self_energy = 0;
 

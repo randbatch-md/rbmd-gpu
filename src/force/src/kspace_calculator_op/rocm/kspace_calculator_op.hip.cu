@@ -5,13 +5,14 @@
 
 static const double MY_PIS=1.77245385090551602729;
 static const double MY_PI2=1.57079632679489661923;
+const int  warpSize  = 32;
 
 namespace op {
 
 //  Warp-level
 __device__ __forceinline__ rbmd::Real warpReduceSum(rbmd::Real val) {
   // #pragma unroll
-  for (int offset = WARP_SIZE / 2; offset > 0; offset /= 2) {
+  for (int offset = warpSize / 2; offset > 0; offset /= 2) {
     val += __shfl_down_sync(0xFFFFFFFF, val, offset);
   }
   return val;
@@ -20,10 +21,10 @@ __device__ __forceinline__ rbmd::Real warpReduceSum(rbmd::Real val) {
 //  Block-level
 __device__ __forceinline__ rbmd::Real blockReduceSum(rbmd::Real val) {
 
-  __shared__ rbmd::Real shared[WARP_SIZE];
+  __shared__ rbmd::Real shared[warpSize];
 
-  int lane = threadIdx.x % WARP_SIZE;
-  int wid = threadIdx.x / WARP_SIZE;
+  int lane = threadIdx.x % warpSize;
+  int wid = threadIdx.x / warpSize;
 
   // 1.
   val = warpReduceSum(val);
@@ -35,7 +36,7 @@ __device__ __forceinline__ rbmd::Real blockReduceSum(rbmd::Real val) {
   __syncthreads(); //
 
   // 3.
-  val = (threadIdx.x < blockDim.x / WARP_SIZE) ? shared[lane] : 0.0;
+  val = (threadIdx.x < blockDim.x / warpSize) ? shared[lane] : 0.0;
   if (wid == 0) {
     val = warpReduceSum(val);
   }
@@ -199,53 +200,58 @@ __global__ void ComputePnumberChargeStructureFactor(
     }
   }
 
-__global__ void ComputePnumberChargeStructureFactor1(
-    Box   box, const rbmd::Id num_atoms, const rbmd::Id p_number,
-    const rbmd::Real* __restrict__ charge, const rbmd::Real* __restrict__ p_sample_x,
-    const rbmd::Real* __restrict__ p_sample_y, const rbmd::Real* __restrict__ p_sample_z,
-    const rbmd::Real* __restrict__ px, const rbmd::Real* __restrict__ py, const rbmd::Real* __restrict__ pz,
-    rbmd::Real* __restrict__ rhok_real_final, rbmd::Real* __restrict__ rhok_image_final) {
+__global__ void ComputePnumberChargeStructureFactorOpt(
+    Box box, const rbmd::Id num_atoms, const rbmd::Id p_number,
+    const rbmd::Real* __restrict__ charge,
+    const rbmd::Real* __restrict__ p_sample_x,
+    const rbmd::Real* __restrict__ p_sample_y,
+    const rbmd::Real* __restrict__ p_sample_z,
+    const rbmd::Real* __restrict__ px,
+    const rbmd::Real* __restrict__ py,
+    const rbmd::Real* __restrict__ pz,
+    rbmd::Real* __restrict__ rhok_real,
+    rbmd::Real* __restrict__ rhok_image)
+{
+  const rbmd::Id P_index = blockIdx.x;
+  if (P_index >= p_number) return;
 
-    // 1.
-    const rbmd::Id P_index = blockIdx.x;
-    if (P_index >= p_number) return;
+  //
+  rbmd::Real m_x = __ldg(&p_sample_x[P_index]);
+  rbmd::Real m_y = __ldg(&p_sample_y[P_index]);
+  rbmd::Real m_z = __ldg(&p_sample_z[P_index]);
 
-    // 2.
-    rbmd::Real k_x = p_sample_x[P_index] * 2 * M_PI / box._length[0];
-    rbmd::Real k_y = p_sample_y[P_index] * 2 * M_PI / box._length[1];
-    rbmd::Real k_z = p_sample_z[P_index] * 2 * M_PI / box._length[2];
+  rbmd::Real k_x = 2 * M_PI * m_x / box._length[0];
+  rbmd::Real k_y = 2 * M_PI * m_y / box._length[1];
+  rbmd::Real k_z = 2 * M_PI * m_z / box._length[2];
 
-    // 3.
-    rbmd::Real local_real_sum = 0.0;
-    rbmd::Real local_image_sum = 0.0;
+  rbmd::Real local_real_sum = 0.0;
+  rbmd::Real local_image_sum = 0.0;
 
-    // 4. (Grid-Stride Loop)
-    for (rbmd::Id N_index = threadIdx.x; N_index < num_atoms; N_index += blockDim.x) {
-      //
-      rbmd::Real chargei = charge[N_index];
-      rbmd::Real p_x = px[N_index];
-      rbmd::Real p_y = py[N_index];
-      rbmd::Real p_z = pz[N_index];
+  // Grid-stride
+  for (rbmd::Id N_index = threadIdx.x; N_index < num_atoms; N_index += blockDim.x) {
+    if (N_index >= num_atoms) continue;
 
-      //
-      rbmd::Real dot_product = k_x * p_x + k_y * p_y + k_z * p_z;
+    rbmd::Real chargei = __ldg(&charge[N_index]);
+    rbmd::Real p_x = __ldg(&px[N_index]);
+    rbmd::Real p_y = __ldg(&py[N_index]);
+    rbmd::Real p_z = __ldg(&pz[N_index]);
 
-      //
-      local_real_sum  += chargei * COS(dot_product);
-      local_image_sum += chargei * SIN(dot_product);
-    }
+    rbmd::Real dot_product = k_x * p_x + k_y * p_y + k_z * p_z;
 
-    // 5.
-    rbmd::Real total_real  = blockReduceSum(local_real_sum);
-    rbmd::Real total_image = blockReduceSum(local_image_sum);
-
-    // 6.
-    if (threadIdx.x == 0) {
-      rhok_real_final[P_index] = total_real;
-      rhok_image_final[P_index] = total_image;
-    }
+    local_real_sum += chargei * COS(dot_product);
+    local_image_sum += chargei * SIN(dot_product);
   }
 
+  //
+  rbmd::Real total_real = blockReduceSum(local_real_sum);
+  rbmd::Real total_image = blockReduceSum(local_image_sum);
+
+  //
+  if (threadIdx.x == 0) {
+    rhok_real[P_index] = total_real;
+    rhok_image[P_index] = total_image;
+  }
+}
 
 
 __global__ void EwaldForceFix(const rbmd::Id num_atoms,const rbmd::Id kcount,
@@ -375,26 +381,26 @@ __global__ void GenerateIndexArray(const rbmd::Id num_atoms,
   }
 
 __global__ void ComputeRBEVirial(
-      const Box box,
-      const rbmd::Id P,             // 随机采样波矢数量
-      const rbmd::Real alpha,       // Ewald参数
-      const rbmd::Real qqrd2e,      // 电荷转换系数
-      const rbmd::Real qsqsum,      // 电荷平方和
-      const rbmd::Real qsum,        // 电荷总和
-      const rbmd::Real* real_array, // ρ(k)实部数组
-      const rbmd::Real* imag_array, // ρ(k)虚部数组
-      const rbmd::Real* p_sample_x, // 采样波矢x分量
-      const rbmd::Real* p_sample_y, // 采样波矢y分量
-      const rbmd::Real* p_sample_z, // 采样波矢z分量
-      rbmd::Real* virial_tensor,     // 输出维里张量[6]
-      rbmd::Real* energy)         // 输出能量
-    {
+    const Box box,
+    const rbmd::Id P,
+    const rbmd::Real alpha,
+    const rbmd::Real qqrd2e,
+    const rbmd::Real qsqsum,
+    const rbmd::Real qsum,
+    const rbmd::Real* real_array,
+    const rbmd::Real* imag_array,
+    const rbmd::Real* p_sample_x,
+    const rbmd::Real* p_sample_y,
+    const rbmd::Real* p_sample_z,
+    rbmd::Real* virial_tensor,
+    rbmd::Real* energy
+) {
 
-    // 共享内存存放中间结果
+    //
     __shared__ rbmd::Real shared_virial[6];
     __shared__ rbmd::Real shared_energy;
 
-    // 初始化共享内存
+    //
     if (threadIdx.x < 6) {
         shared_virial[threadIdx.x] = 0.0;
     }
@@ -403,38 +409,38 @@ __global__ void ComputeRBEVirial(
     }
     __syncthreads();
 
-    // 计算重要性采样缩放因子S和体积V
+    //
     rbmd::Real S, V;
     ComputeS(box, alpha, S);
     V = box._length[0] * box._length[1] * box._length[2];
 
-    // 计算能量和维里的公共系数
+    //
     const rbmd::Real energy_coef = (2 * M_PI * S) / (P * V);
     const rbmd::Real virial_coef = - (S / P) * M_PI / V;
 
     for (rbmd::Id i = threadIdx.x; i < P; i += blockDim.x){
-        // 获取采样波矢
+        //
         const rbmd::Real m_x = __ldg(&p_sample_x[i]);
         const rbmd::Real m_y = __ldg(&p_sample_y[i]);
         const rbmd::Real m_z = __ldg(&p_sample_z[i]);
         //printf("test---  %f %f  %f ", m_x ,m_y,m_z);
 
-        // 计算波矢k的分量 (2πm/L)
+        // (2πm/L)
         const rbmd::Real k_x = 2 * M_PI * m_x / box._length[0];
         const rbmd::Real k_y = 2 * M_PI * m_y / box._length[1];
         const rbmd::Real k_z = 2 * M_PI * m_z / box._length[2];
 
-        // 计算波矢模平方|k|²
+        // |k|²
         const rbmd::Real k2 = k_x * k_x + k_y * k_y + k_z * k_z;
 
-        // 获取结构因子
+        //
         const rbmd::Real rho_real = __ldg(&real_array[i]);
         const rbmd::Real rho_imag = __ldg(&imag_array[i]);
 
-        // 计算|ρ(k)|²
+        // |ρ(k)|²
         const rbmd::Real rho2 = rho_real * rho_real + rho_imag * rho_imag;
 
-      // ========== 能量计算 ==========
+      //
         const rbmd::Real energy_contribution = energy_coef * rho2 / k2;
         atomicAdd(&shared_energy, energy_contribution);
 
@@ -442,11 +448,11 @@ __global__ void ComputeRBEVirial(
         const rbmd::Real base = virial_coef * rho2 / k2;
 
 
-        // 括号内部系数 (1/4α² + 1/|k|²)
-        const rbmd::Real inner_coef = (1.0 / (4 * alpha * alpha)) + (1.0 / k2);
+        // (1/4α² + 1/|k|²)
+        const rbmd::Real inner_coef = (1.0 / (4 * alpha)) + (1.0 / k2);
 
-        // 计算张量元素 (δ_βγ - 2k_βk_γ inner_coef)
-        const rbmd::Real delta_term = 1.0; // δ_βγ项
+        //  (δ_βγ - 2k_βk_γ inner_coef)
+        const rbmd::Real delta_term = 1.0; // δ_βγ
         const rbmd::Real kterm_xx = 2 * k_x * k_x * inner_coef;
         const rbmd::Real kterm_yy = 2 * k_y * k_y * inner_coef;
         const rbmd::Real kterm_zz = 2 * k_z * k_z * inner_coef;
@@ -454,7 +460,7 @@ __global__ void ComputeRBEVirial(
         const rbmd::Real kterm_xz = 2 * k_x * k_z * inner_coef;
         const rbmd::Real kterm_yz = 2 * k_y * k_z * inner_coef;
 
-        // 原子操作累加到共享内存
+        //
         atomicAdd(&shared_virial[0], base * (delta_term - kterm_xx)); // xx
         atomicAdd(&shared_virial[1], base * (delta_term - kterm_yy)); // yy
         atomicAdd(&shared_virial[2], base * (delta_term - kterm_zz)); // zz
@@ -465,13 +471,13 @@ __global__ void ComputeRBEVirial(
 
     __syncthreads();
 
-    // 第一个线程将结果复制到全局内存
+    //
     if (threadIdx.x == 0) {
-      // 1. 处理能量结果
+      // 1.
       shared_energy -= SQRT(alpha) * qsqsum / MY_PIS + MY_PI2 * qsum * qsum / (alpha * V);
       *energy = shared_energy * qqrd2e;
 
-      // 2. 处理维里张量
+      // 2.
       for (int j = 0; j < 6; j++) {
         virial_tensor[j] = shared_virial[j] * qqrd2e;
       }
@@ -637,9 +643,9 @@ void ComputePnumberChargeStructureFactorOp<device::DEVICE_GPU>::operator()(
         box, num_atoms, p_number, charge, p_sample_x, p_sample_y, p_sample_z, px,
         py, pz, density_real, density_imag));
 
-    //  p_number
+    //Opt::
     // const unsigned int blocks_per_grid = p_number;
-    // CHECK_KERNEL(ComputePnumberChargeStructureFactor1<<<blocks_per_grid,
+    // CHECK_KERNEL(ComputePnumberChargeStructureFactorOpt<<<blocks_per_grid,
     //                                                    BLOCK_SIZE, 0, 0>>>(
     //     box, num_atoms, p_number, charge, p_sample_x, p_sample_y, p_sample_z, px,
     //     py, pz, density_real, density_imag));

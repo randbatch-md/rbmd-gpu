@@ -25,7 +25,6 @@ LJCutCoulKspace::LJCutCoulKspace()
   _rbl_neighbor_list_builder = std::make_shared<RblFullNeighborListBuilder>();
   _neighbor_list_builder = std::make_shared<FullNeighborListBuilder>();
 
-  // 创建 K-Space 计算器实例，并将自身所需的数据和指针传进去
   _kspace_calculator = std::make_unique<KSpaceCalculator>();
 
   auto unit = DataManager::getInstance().getConfigData()->Get
@@ -71,7 +70,7 @@ void LJCutCoulKspace::Init()
     }
   }
 
-  // 2. 初始化 K-Space 组件
+  // 2.
   _alpha = config->Get<rbmd::Real>("alpha", "hyper_parameters", "coulomb");
   _kspace_calculator->Init();
 }
@@ -79,11 +78,10 @@ void LJCutCoulKspace::Init()
 void LJCutCoulKspace::Execute()
 {
   ComputeLJCutCoulForce();
-  // 2. 委托 K-Space 组件计算长程力
   _kspace_calculator->Execute();
   SumForces();
 
-  EvaluatePotentialenergy();
+  EvaluatePotentialEnergy();
 }
 
 void LJCutCoulKspace::ComputeLJCutCoulForce()
@@ -219,8 +217,15 @@ void LJCutCoulKspace::ComputeLJVerlet()
   // 
   thrust::host_vector<rbmd::Real> h_total_evdwl(d_total_evdwl);
   thrust::host_vector<rbmd::Real> h_total_ecoul(d_total_ecoul);
-  _e_vdwl = h_total_evdwl[0]/num_atoms;
-  _e_coul = h_total_ecoul[0]/num_atoms;
+  _e_vdwl = h_total_evdwl[0];
+  _e_coul = h_total_ecoul[0];
+
+  auto unit = DataManager::getInstance().getConfigData()->Get
+<std::string>("unit", "init_configuration", "read_data");
+  if ("LJ" == unit) {
+    _e_vdwl = _e_vdwl/num_atoms;
+    _e_coul = _e_coul/num_atoms;
+  }
 
   //sum virial_lj on host
   ReduceVirial(num_atoms,_device_data->_d_flat_virial_lj,
@@ -270,16 +275,26 @@ void LJCutCoulKspace::ComputeLJCoulEnergy()
   // D2H
   thrust::host_vector<rbmd::Real> h_total_evdwl(_d_total_evdwl);
   thrust::host_vector<rbmd::Real> h_total_ecoul(_d_total_ecoul);
-  _e_vdwl = h_total_evdwl[0]/num_atoms;
-  _e_coul = h_total_ecoul[0]/num_atoms;
+  _e_vdwl = h_total_evdwl[0];
+  _e_coul = h_total_ecoul[0];
+
+  auto unit = DataManager::getInstance().getConfigData()->Get
+<std::string>("unit", "init_configuration", "read_data");
+  if ("LJ" == unit) {
+    _e_vdwl = _e_vdwl/num_atoms;
+    _e_coul = _e_coul/num_atoms;
+  }
 
   //sum virial_lj on host
   ReduceVirial(num_atoms,_device_data->_d_flat_virial_lj,
 _device_data->_d_virial_lj);
 }
 
-void LJCutCoulKspace::EvaluatePotentialenergy()
+void LJCutCoulKspace::EvaluatePotentialEnergy()
 {
+  _e_kspace = _kspace_calculator->GetKspacEnergy();
+  ThermoStats::Instance().AddThermoData("kspace",_e_kspace);
+
   _e_pe_rbl = _e_vdwl_rbl + _e_coul_rbl +_e_kspace;
   //test_ave_pe_rbl = _ave_pe_rbl;
 

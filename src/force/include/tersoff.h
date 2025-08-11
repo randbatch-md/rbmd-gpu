@@ -41,7 +41,7 @@ public:
   void ComputeTersoff();
   void SumForces();
 
-  void EvaluatePotentialenergy();
+  void EvaluatePotentialEnergy() override;
 
 private:
   std::shared_ptr<BaseNeighborListBuilder> _rbl_neighbor_list_builder;

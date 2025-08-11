@@ -116,7 +116,7 @@ void TerSoff::Execute()
 {
   ComputeTersoff();
 
-  EvaluatePotentialenergy();
+  EvaluatePotentialEnergy();
 }
 
 void TerSoff::ComputeTersoff() {
@@ -171,7 +171,7 @@ thrust::raw_pointer_cast(d_total_energy.data()));
   TimingStatistics::Instance().record("Short-Range",duration_f.count());
   // D2H
   thrust::host_vector<rbmd::Real> h_total_evdwl(d_total_energy);
-  _e_vdwl = h_total_evdwl[0]/num_atoms;
+  _e_vdwl = h_total_evdwl[0];
 
   //sum virial_special_lj on host
   ReduceVirial(num_atoms,_device_data->_d_flat_virial_lj,
@@ -603,7 +603,7 @@ void TerSoff::SetupParams()
   Logger::Instance().info(" max cut_off= {}", _cutmax);
  }
 
-void TerSoff::EvaluatePotentialenergy()
+void TerSoff::EvaluatePotentialEnergy()
 {
   _e_pe = _e_vdwl;
 
@@ -615,10 +615,10 @@ void TerSoff::EvaluatePotentialenergy()
 
   std::ofstream outfile("thermo.txt", std::ios::app);
   if (outfile.tellp() == 0) {
-    outfile << "step  e_vdwl  e_pe" << std::endl;
+    outfile << "step  e_pe" << std::endl;
   }
   if (test_current_step % interval == 0) {
-    outfile << test_current_step << " " << _e_vdwl  << " " <<  _e_pe << std::endl;
+    outfile << test_current_step   << " " <<  _e_pe << std::endl;
   }
   outfile.close();
 }

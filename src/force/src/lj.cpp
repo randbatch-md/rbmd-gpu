@@ -59,7 +59,7 @@ void LJ::Execute()
   //add thermo
   ThermoStats::Instance().AddThermoData("vdwl",_e_vdwl);
   //
-  EvaluatePotentialenergy();
+  EvaluatePotentialEnergy();
 }
 
 void LJ::ComputeLJRBL()
@@ -209,7 +209,7 @@ void LJ::ComputeLJEnergy()
 _device_data->_d_virial_lj);
 }
 
-void LJ::EvaluatePotentialenergy()
+void LJ::EvaluatePotentialEnergy()
 {
   _e_pe_rbl = _e_vdwl_rbl;
   test_e_pe_rbl = _e_pe_rbl;
