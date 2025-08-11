@@ -1,6 +1,7 @@
 #pragma once
 #include "../common/object.h"
 #include "../common/types.h"
+#include "../common/rbmd_define.h"
 
 // 内存泄漏
 class StructureData : public Object {

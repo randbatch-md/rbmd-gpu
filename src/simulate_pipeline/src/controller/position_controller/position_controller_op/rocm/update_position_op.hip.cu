@@ -52,6 +52,7 @@ __global__ void UpdatePosition(const rbmd::Id num_atoms, const rbmd::Real dt, Bo
   }
 }
 
+
 void UpdatePositionFlagOp<device::DEVICE_GPU>::operator()(
     const rbmd::Id num_atoms, const rbmd::Real dt, Box  box  ,
     const rbmd::Real* vx, const rbmd::Real* vy, const rbmd::Real* vz,

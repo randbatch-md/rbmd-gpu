@@ -51,7 +51,9 @@ void TrajectoryOutput::Execute()
             thrust::host_vector<rbmd::Real> h_vz(_device_data->_d_vz);
 
             //charge
-            thrust::host_vector<rbmd::Real> h_charge(_device_data->_d_charge);
+            //thrust::host_vector<rbmd::Real> h_charge(_device_data->_d_charge);
+            thrust::host_vector<rbmd::Real> h_charge;
+             h_charge.resize(_num_atoms);
 
             auto box =  DataManager::getInstance().getMDData()->_box;
 

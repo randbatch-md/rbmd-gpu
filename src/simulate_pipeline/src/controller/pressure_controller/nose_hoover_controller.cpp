@@ -195,6 +195,7 @@ void NoseHooverController::ComputeTemperature(){
 
 void NoseHooverController::ComputeVirial()
 {
+  //need to modify....
   TransformForces(_device_data->_d_virial,_device_data->_d_virial_lj,
     _device_data->_d_virial_kspace,_device_data->_d_virial_bond,
     _device_data->_d_virial_angle,_device_data->_d_virial_dihedral);

@@ -26,7 +26,8 @@ FullNeighborListBuilder::FullNeighborListBuilder() {
     this->FullNeighborListBuilder::ComputeNeighborCells();
   }
   _trunc_distance_power_2 =
-      _linked_cell->_cutoff * _linked_cell->_cutoff - EPSILON;
+      //_linked_cell->_cutoff * _linked_cell->_cutoff - EPSILON;
+      _linked_cell->_cutoff * _linked_cell->_cutoff;
 }
 
 std::shared_ptr<NeighborList> FullNeighborListBuilder::Build() {

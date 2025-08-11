@@ -1,0 +1,81 @@
+﻿{
+  "init_configuration": {
+
+    "read_data": {
+      "file": "Si_v0.data",
+      "unit": "METAL", 				//LJ ,REAL
+      "atom_style": "atomic", 		//atomic，charge,full
+      "velocity_type": "GAUSS"
+    }
+
+    //"inbuild": {
+    //  "dims": [ 10, 10, 10 ],
+    //  "x_range": [ 0.0, 10 ],
+    //  "y_range": [ 0.0, 10 ],
+    //  "z_range": [ 0.0, 10 ],
+    //  "velocity_type": "GAUSS",
+    //  "unit": "LJ"
+    //}
+  },
+
+  "hyper_parameters": {
+    "force_field": {
+      "type": "Tersoff",  
+      "potential_file": "Si.tersoff",
+	  "potential_elements": "* *  Si Si Si Si Si Si Si Si"
+    },
+
+    "neighbor": {
+      "type": "VERLETLIST", //RBL,VERLET-LIST
+	  "interval": 10,
+      "cut_off": 3.2,
+      "r_core": 1.0,
+      "neighbor_sample_num": 50
+    },
+
+    "extend": {
+    }
+  },
+
+  "execution": {
+    "ensemble": "NVT", // "NVE","NVT" ,"NPT"
+    "temperature":[ 1800, 1800, 0.1],  // 5= 20*dt;
+	"pressure" :[1.0,1.0,1000],
+    "temp_ctrl_type": "NOSE_HOOVER", //BERENDSEN, NOSE_HOOVER                                      
+    "press_ctrl_type": "NOSE_HOOVER", //NOSE_HOOVER ,  
+    "timestep": 0.001,
+    "num_steps": 10000 //run 
+  },
+
+  "outputs": {
+
+    "thermo_out": { 
+      "interval": 1
+    },
+
+    "rdf_out": {
+      "interval": 10,
+      "radius": 12,
+      "dr": 0.1,
+      "statistics_rdf_steps": 1,
+      "atoms_pair": [[ 0, 0 ]]
+    },
+    
+    "msd_out": {
+      "interval": 1,
+      "start_step": 0,
+      "end_step": 1
+    },
+    
+    "vacf_out": {
+      "interval": 1,
+      "start_step": 0,
+      "end_step": 1
+    },
+    
+    "trajectory_out": {
+      "interval": 100
+    }
+
+  }
+}

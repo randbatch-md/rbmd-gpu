@@ -11,7 +11,7 @@ class LJ : public Force {
 
  void Init() override;
  void  Execute() override;
- void EvaluatePotentialenergy() override;
+ void EvaluatePotentialEnergy() override;
 
  void ComputeLJVerlet();
  void ComputeLJRBL() ;

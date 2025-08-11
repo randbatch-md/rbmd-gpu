@@ -20,7 +20,7 @@ class Force {
   // virtual void Update()=0;
   virtual void Init() {};
   virtual void Execute() = 0;
-  virtual void EvaluatePotentialenergy(){};
+  virtual void EvaluatePotentialEnergy(){};
   void ReduceVirial(
     rbmd::Id num_atoms,
     const  thrust::device_vector<rbmd::Real>& d_flat_virial_atom,

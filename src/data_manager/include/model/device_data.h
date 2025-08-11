@@ -190,6 +190,13 @@ class DeviceData {
   //charge
   thrust::device_vector<rbmd::Real> _d_charge;
 
+  thrust::device_vector<rbmd::Real> _d_f2_x;
+  thrust::device_vector<rbmd::Real> _d_f2_y;
+  thrust::device_vector<rbmd::Real> _d_f2_z;
+  thrust::device_vector<rbmd::Real> _d_f3_x;
+  thrust::device_vector<rbmd::Real> _d_f3_y;
+  thrust::device_vector<rbmd::Real> _d_f3_z;
+
   // ERFTable in device
   ERFTable* _d_erf_table;
 

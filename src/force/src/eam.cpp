@@ -59,7 +59,7 @@ void EAM::Init() {
 
 void EAM::Execute() {
   SumForces();
-  EvaluatePotentialenergy();
+  EvaluatePotentialEnergy();
 }
 
 void EAM::ReadPotentialFile(const std::string& filename) {
@@ -305,8 +305,8 @@ thrust::raw_pointer_cast(d_energy_pair.data()));
   // D2H
   thrust::host_vector<rbmd::Real> h_energy_embedding(d_energy_embedding);
   thrust::host_vector<rbmd::Real> h_energy_pair(d_energy_pair);
-  _e_embedding = h_energy_embedding[0] / num_atoms;
-  _e_pair = ( h_energy_pair[0]) / num_atoms;
+  _e_embedding = h_energy_embedding[0];
+  _e_pair =  h_energy_pair[0];
 
   auto end_f = std::chrono::high_resolution_clock::now();
   std::chrono::duration<rbmd::Real> duration_f = end_f - start_f;
@@ -348,7 +348,7 @@ thrust::raw_pointer_cast(eam_fp.data()),
 thrust::raw_pointer_cast(d_energy_embedding.data()));
 
   thrust::host_vector<rbmd::Real> h_energy_embedding(d_energy_embedding);
-  _e_embedding = h_energy_embedding[0] / num_atoms;
+  _e_embedding = h_energy_embedding[0];
 
  //2: compute EAM_RBL
   const auto r_core =
@@ -437,7 +437,7 @@ thrust::raw_pointer_cast(d_energy_pair.data()));
 
   // D2H
   thrust::host_vector<rbmd::Real> h_energy_pair(d_energy_pair);
-  _e_pair = h_energy_pair[0] / num_atoms;
+  _e_pair = h_energy_pair[0];
 }
 
 void EAM::SumForces() {
@@ -471,7 +471,7 @@ void EAM::SumForces() {
 
 }
 
-void EAM::EvaluatePotentialenergy() {
+void EAM::EvaluatePotentialEnergy() {
 
   _e_pe = _e_embedding + _e_pair;
   //std::cout<<  "energy:  "<< _e_embedding   <<  ", "<<   _e_pair   <<   std::endl;
