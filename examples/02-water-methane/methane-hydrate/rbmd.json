@@ -1,0 +1,86 @@
+﻿{
+  "init_configuration": {
+
+    "read_data": {
+      "file": "TIP3P-CH4_supercell_4_v.data",
+      "unit": "REAL", 
+      "atom_style": "full",   //atomic，charge,full
+      "velocity_type": "GAUSS"
+    }
+
+  },
+
+  "hyper_parameters": {
+    "force_field": {
+      "type": "CVFF",
+	   //"potential_file": "/path/to/"
+	  "bond_type": "harmonic",  		// harmonic 
+	  "angle_type": "harmonic"  		// harmonic 
+	  //"dihedral_type": "harmonic"		// harmonic , opls
+	  //"improper_type": "harmonic"  	  	// harmonic , cvff
+    },
+
+    "neighbor": {
+      "type": "RBL", //RBL,Verlet-List
+      "cut_off": 12,
+      "r_core": 6,
+      "neighbor_sample_num": 800,
+	  "energy_rbl_flag":  "no"    //yes ,no 
+    },
+
+    "coulomb": {
+      "type": "RBE", //  RBE,EWALD
+      "coulomb_sample_num": 100,
+      "alpha": 0.0432,
+      "kmax": [ 4 ,4 ,4],
+	  "energy_rbe_flag":  "no"   //yes ,no 
+    },
+
+    "extend": {
+      //"fix_shake": null,
+      "special_bonds": [ 0, 0, 0 ]
+    }
+  },
+
+  "execution": {
+    "ensemble": "NVT", 					// "NVE","NVT" ,"NPT"
+    "temperature":[ 260, 260, 100 ],    //50 =100* dt;
+    //"pressure": [ 1.0, 1.0, 1000 ], 
+    "temp_ctrl_type": "NOSE_HOOVER",       //BERENDSEN ,NOSE_HOOVER  
+    //"press_ctrl_type": "NOSE_HOOVER",  	 //BERENDSEN ,NOSE_HOOVER
+    "timestep": 1.0,
+    "num_steps": 10000
+  },
+
+  "outputs": {
+
+    "thermo_out": { 
+      "interval": 1
+    },
+
+    "rdf_out": {
+      "interval": 10,
+      "radius": 10,
+      "dr": 0.1,
+      "statistics_rdf_steps": 1000,
+      "atoms_pair": [[ 0, 0 ]]
+    },
+    
+    "msd_out": {
+      "interval": 10,
+      "start_step": 0,
+      "end_step": 10000
+    },
+    
+    "vacf_out": {
+      "interval": 10,
+      "start_step": 0,
+      "end_step": 10000
+    },
+    
+    "trajectory_out": {
+      "interval": 100
+    }
+
+  }
+}

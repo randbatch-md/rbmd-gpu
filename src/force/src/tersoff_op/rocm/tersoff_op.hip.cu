@@ -794,13 +794,13 @@ void TerSoffModify<device::DEVICE_GPU>::operator()(
       start_id,end_id, id_verletlist,
       px, py, pz,fx, fy, fz,energy,d_is_short_neighbor));
 
-    cudaDeviceSynchronize();
+    DEVICESYNC();
     CHECK_KERNEL(ComputeThreeBody<<<blocks_per_grid, BLOCK_SIZE, 0, 0>>>(
       box,params,shift,num_atoms,nelements, atoms_type,
       map,elem3param,
       start_id,end_id, id_verletlist,
       px, py, pz,d_is_short_neighbor,fx, fy, fz,energy));
-    cudaDeviceSynchronize();
+    DEVICESYNC();
   }
 
 

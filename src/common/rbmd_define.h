@@ -248,6 +248,11 @@ typedef int2 Id2;
     #define BLOCKREDUCE cub::BlockReduce
     #define DEVICESYNC cudaDeviceSynchronize
     #define MEMGETINFO cudaMemGetInfo
+
+    #define SHFL_DOWN_SYNC(mask, var, delta, width) __shfl_down_sync(mask, var, delta, width)
+    #define SHFL_UP_SYNC(mask, var, delta, width) __shfl_up_sync(mask, var, delta, width)
+    #define SHFL_XOR_SYNC(mask, var, lane_mask, width) __shfl_xor_sync(mask, var, lane_mask, width)
+    #define SYNCWARP(mask) __syncwarp(mask)
 #elif defined (__ROCM)
     #define MALLOC hipMalloc
     #define MALLOCHOST hipHostMalloc
@@ -271,6 +276,11 @@ typedef int2 Id2;
     #define BLOCKREDUCE hipcub::BlockReduce
     #define DEVICESYNC hipDeviceSynchronize
     #define MEMGETINFO hipMemGetInfo
+
+    #define SHFL_DOWN_SYNC(mask, var, delta, width) __shfl_down(var, delta, width)
+    #define SHFL_UP_SYNC(mask, var, delta, width) __shfl_up(var, delta, width)
+    #define SHFL_XOR_SYNC(mask, var, lane_mask, width) __shfl_xor(var, lane_mask, width)
+    #define SYNCWARP(mask) __builtin_amdgcn_wave_barrier()
 #endif
 
 

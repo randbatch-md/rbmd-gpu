@@ -169,8 +169,8 @@ void KSpaceCalculator::ComputeChargeStructureFactorEwald(
     thrust::host_vector<rbmd::Real>& value_Re_array,
     thrust::host_vector<rbmd::Real>& value_Im_array)
 {
-    // 性能提示: 在三重循环中为每个k向量启动CUDA核并进行reduce效率较低。
-    // 更优化的方法是编写一个单独的CUDA核来并行处理所有k向量。
+    // Performance tip:  Launching a CUDA kernel for each k vector in the triple loop and performing reduce is inefficient.
+    // A more optimized approach is to write a single CUDA kernel to process all k vectors in parallel.
 
     thrust::device_vector<rbmd::Real> density_real_atom(num_atoms);
     thrust::device_vector<rbmd::Real> density_imag_atom(num_atoms);
