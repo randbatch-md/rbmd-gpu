@@ -5,7 +5,6 @@
 
 static const double MY_PIS=1.77245385090551602729;
 static const double MY_PI2=1.57079632679489661923;
-const int  warpSize  = 32;
 
 namespace op {
 
@@ -13,7 +12,7 @@ namespace op {
 __device__ __forceinline__ rbmd::Real warpReduceSum(rbmd::Real val) {
   // #pragma unroll
   for (int offset = warpSize / 2; offset > 0; offset /= 2) {
-    val += __shfl_down_sync(0xFFFFFFFF, val, offset);
+    val += SHFL_DOWN_SYNC(0xFFFFFFFF, val, offset,warpSize);
   }
   return val;
 }
