@@ -800,6 +800,7 @@ void TerSoffModify<device::DEVICE_GPU>::operator()(
       map,elem3param,
       start_id,end_id, id_verletlist,
       px, py, pz,d_is_short_neighbor,fx, fy, fz,energy));
+
     DEVICESYNC();
   }
 
