@@ -21,14 +21,14 @@ Simulate::Simulate(std::shared_ptr<Ensemble>& simulate_pipeline,
 
 void Simulate::Init() {
   _simulate_pipeline->Init();
-  _output->Init();
+  _output->Init(*(DataManager::getInstance().getMDData()->_structure_info_data->_num_atoms),1);
 
 }
 
 int Simulate::Execute() {
   while (KeepGoing()) {
     ThermoStats::Instance().OutputRow();
-    _output->Execute();
+    _output->Execute(test_current_step);
     _current_step++;
     ThermoStats::Instance().SetStep(_current_step);
     _current_time += _time_step;
