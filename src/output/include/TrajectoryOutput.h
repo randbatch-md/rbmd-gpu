@@ -48,7 +48,7 @@ public:
   TrajectoryOutput& operator=(TrajectoryOutput&&) = delete;
 
   // Initializes the object: calculates buffer size, allocates resources, and starts the I/O thread
-  void Init(size_t num_atoms, rbmd::Id interval) override;
+  void Init() override;
 
   // Main execution function, called by the main simulation loop.
   void Execute(int current_timestep) override;

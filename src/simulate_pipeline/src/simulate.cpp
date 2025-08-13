@@ -21,7 +21,7 @@ Simulate::Simulate(std::shared_ptr<Ensemble>& simulate_pipeline,
 
 void Simulate::Init() {
   _simulate_pipeline->Init();
-  _output->Init(*(DataManager::getInstance().getMDData()->_structure_info_data->_num_atoms),1);
+  _output->Init();
 
 }
 

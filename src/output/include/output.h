@@ -20,7 +20,7 @@ public:
    * @brief Parameters and objects required for initializing the output
    * controller
    */
-  virtual void  Init(size_t num_atoms, rbmd::Id interval) = 0;
+  virtual void  Init() = 0;
 
 protected:
   std::shared_ptr<StructureInfoData> _structure_info_data;

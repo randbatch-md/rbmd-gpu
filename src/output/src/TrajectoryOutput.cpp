@@ -23,9 +23,10 @@ TrajectoryOutput::~TrajectoryOutput() {
   }
 }
 
-void TrajectoryOutput::Init(size_t num_atoms, rbmd::Id interval) {
-  _num_atoms = num_atoms;
-  _interval = interval;
+void TrajectoryOutput::Init() {
+  _num_atoms = *(_structure_info_data->_num_atoms);
+  _interval =  DataManager::getInstance().getConfigData()->Get<rbmd::Id>
+  ("interval", "outputs", "trajectory_out");
 
   if (_num_atoms == 0) {
     Logger::Instance().warn(
