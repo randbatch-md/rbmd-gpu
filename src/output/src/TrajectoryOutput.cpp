@@ -185,22 +185,17 @@ size_t TrajectoryOutput::CalculateSingleFrameMemory(size_t num_atoms) const {
 }
 
 size_t EstimateOptimalBufferSize(size_t single_frame_memory) {
-  // 至少容纳 2 帧数据，以便批量输出
   size_t ideal_size = single_frame_memory * 2;
 
-  // 设置上下限
-  const size_t min_buffer = 32 * 1024 * 1024;   // 最小 32MB
-  const size_t max_buffer = 512 * 1024 * 1024;  // 最大 512MB
+  const size_t min_buffer = 32 * 1024 * 1024;   // min 32MB
+  const size_t max_buffer = 512 * 1024 * 1024;  // max 512MB
 
-  // 手动实现 clamp
   if (ideal_size < min_buffer) {
     ideal_size = min_buffer;
   } else if (ideal_size > max_buffer) {
     ideal_size = max_buffer;
   }
 
-  // 向上对齐到最接近的 2 的幂
-  // 找到大于等于 ideal_size 的最小的 2 的幂
   size_t aligned_size = 1;
   while (aligned_size < ideal_size) {
     aligned_size <<= 1;
@@ -378,7 +373,7 @@ void TrajectoryOutput::OutputWorker() {
     _cv_not_full.notify_one();
   }
 
-  // 最终刷新缓冲区
+  // Finally flush the buffer
   flush_buffer();
   trj_file.close();
 }

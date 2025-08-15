@@ -234,6 +234,8 @@ typedef int2 Id2;
     #define D2H cudaMemcpyDeviceToHost
     #define D2D cudaMemcpyDeviceToDevice
     #define FREE cudaFree
+    #define FREE_PINNED_HOST cudaFreeHost
+
     #define MEMSET cudaMemset
     #define REDUCE cub::DeviceReduce::Sum
     #define ERROR_T cudaError_t
@@ -274,6 +276,7 @@ typedef int2 Id2;
     #define D2H hipMemcpyDeviceToHost
     #define D2D hipMemcpyDeviceToDevice
     #define FREE hipFree
+    #define FREE_PINNED_HOST hipFreeHost
     #define MEMSET hipMemset
     #define REDUCE hipcub::DeviceReduce::Sum
     #define ERROR_T hipError_t
