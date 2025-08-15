@@ -5,35 +5,35 @@
 #include <mutex>
 #include <condition_variable>
 #include <atomic>
-
 #include "output.h"
 #include "rbmd_define.h"
 
 // A wrapper for device pointers to clarify intent
 struct DeviceDataPointers {
-  const rbmd::Real* d_px;
-  const rbmd::Real* d_py;
-  const rbmd::Real* d_pz;
-  const rbmd::Real* d_vx;
-  const rbmd::Real* d_vy;
-  const rbmd::Real* d_vz;
-  const rbmd::Id* d_atoms_type;
+  const rbmd::Real* d_px{};
+  const rbmd::Real* d_py{};
+  const rbmd::Real* d_pz{};
+  const rbmd::Real* d_vx{};
+  const rbmd::Real* d_vy{};
+  const rbmd::Real* d_vz{};
+  const rbmd::Id* d_atoms_type{};
 };
 
 // Internal frame data, stored as a raw pointer to fixed memory
 struct TrajectoryFrame {
-  rbmd::Real* h_px;
-  rbmd::Real* h_py;
-  rbmd::Real* h_pz;
-  rbmd::Real* h_vx;
-  rbmd::Real* h_vy;
-  rbmd::Real* h_vz;
-  rbmd::Id* h_atoms_type;
-
-  int timestep;
-  size_t num_atoms;
+  rbmd::Real* h_px{};
+  rbmd::Real* h_py{};
+  rbmd::Real* h_pz{};
+  rbmd::Real* h_vx{};
+  rbmd::Real* h_vy{};
+  rbmd::Real* h_vz{};
+  rbmd::Id* h_atoms_type{};
+  rbmd::Real* h_charge{};
+  rbmd::Id* h_atom_id_to_idx{};
+  int timestep{};
+  size_t num_atoms{};
   Box box_snapshot;
-  EVENT_T copy_complete_event;
+  EVENT_T copy_complete_event{};
 };
 
 class TrajectoryOutput:public Output {
@@ -57,7 +57,8 @@ private:
   void OutputWorker();
   void AllocateRingBuffer(size_t num_atoms);
   void DeallocateRingBuffer();
-  [[nodiscard]] size_t CalculateSingleFrameMemory(size_t num_atoms) const;
+  [[nodiscard]]  size_t CalculateSingleFrameMemory(size_t num_atoms) const;
+  [[nodiscard]]     bool _initialized = false;
 
   // A ring buffer.
   std::vector<TrajectoryFrame> _ring_buffer;
