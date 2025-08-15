@@ -37,7 +37,10 @@ set(src
 ./src/common/unit_factor.cpp
 ./src/common/RBEPSample.h
 ./src/common/erf_table.h
-${output_srcs})
+${output_srcs}
+		src/simulate_pipeline/src/controller/velocity_controller/velocity_controller_op/rocm/update_velocity_op1.hip.cu
+		src/simulate_pipeline/src/controller/position_controller/position_controller_op/rocm/update_position_op1.hip.cu
+)
 
 include_directories("${CMAKE_CURRENT_LIST_DIR}/src")
 include_directories("${CMAKE_CURRENT_LIST_DIR}/src/Utilities")

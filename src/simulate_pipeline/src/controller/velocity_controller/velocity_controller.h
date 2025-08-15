@@ -6,6 +6,8 @@
 #include "data_manager.h"
 #include "model/md_data.h"
 
+extern int test_current_step;
+
 class VelocityController {
  public:
   VelocityController() {
@@ -31,6 +33,12 @@ class VelocityController {
    * controller
    */
   virtual void Init() = 0;
+  virtual void Update1() = 0;
+  virtual void Update2() = 0;
+  virtual void Update3() = 0;
+  virtual void Update4() = 0;
+  virtual void Updatevl() = 0;
+  virtual void Updatebm() = 0;
 
  protected:
   std::shared_ptr<StructureInfoData> _structure_info_data;

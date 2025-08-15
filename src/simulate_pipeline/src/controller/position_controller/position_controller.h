@@ -5,6 +5,7 @@
 #include "model/md_data.h"
 #include "model/structure_info_data.h"
 #include "shake_controller.h"
+extern int test_current_step;
 class PositionController {
  public:
   PositionController()
@@ -25,6 +26,12 @@ class PositionController {
    * controller
    */
   virtual void Init() = 0;
+  virtual void Update1() = 0;
+  virtual void Update2() = 0;
+  virtual void Update3() = 0;
+  virtual void Update4() = 0;
+  virtual void Updatevl() = 0;
+  virtual void Updatebm() = 0;
 
  protected:
   std::shared_ptr<StructureInfoData> _structure_info_data;

@@ -58,4 +58,9 @@ class Ensemble : public Object {
   std::shared_ptr<EnergyStableSchemeController> _energy_stable_scheme_controller;
 
   std::string _temp_ctrl_type, _press_ctrl_type;
+  std::string  _integration_type;
+  size_t _total_steps = 0;            // 累计总步数
+  double _total_time_vv = 0.0;        // VV算法总耗时
+  double _total_time_beeman = 0.0;    // Beeman算法总耗时
+  double _total_time_prk3c = 0.0;     // PRK3C算法总耗时
 };

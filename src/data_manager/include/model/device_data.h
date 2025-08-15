@@ -15,7 +15,14 @@ class DeviceData {
   thrust::device_vector<rbmd::Real> _d_shake_px;
   thrust::device_vector<rbmd::Real> _d_shake_py;
   thrust::device_vector<rbmd::Real> _d_shake_pz;
+  /// prev
+  // thrust::device_vector<rbmd::Real> _d_prev_px;
+  // thrust::device_vector<rbmd::Real> _d_prev_py;
+  // thrust::device_vector<rbmd::Real> _d_prev_pz;
 
+  // thrust::device_vector<rbmd::Real> _d_prev_fx;
+  // thrust::device_vector<rbmd::Real> _d_prev_fy;
+  // thrust::device_vector<rbmd::Real> _d_prev_fz;
   /// atoms id
   thrust::device_vector<rbmd::Id> _d_atoms_id;
 
