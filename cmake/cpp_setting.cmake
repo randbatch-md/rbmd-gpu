@@ -35,19 +35,19 @@ macro(get_src_include)
 	#Recursive search method
     # Recursively find all .cpp and .cxx files
     file(GLOB_RECURSE SRC ${CMAKE_CURRENT_LIST_DIR}/*.cpp ${CMAKE_CURRENT_LIST_DIR}/*.cxx)
-    message("${name} SRC: " ${SRC})
+    # message("${name} SRC: " ${SRC})
 	
     # Find interface headers in the include directories
     file(GLOB_RECURSE H_FILE_I ${CMAKE_CURRENT_LIST_DIR}/include/*.h)
-    message("${name} H_FILE_I: " ${H_FILE_I})
+    # message("${name} H_FILE_I: " ${H_FILE_I})
 
 	# Recursively find all src .h files
     file(GLOB_RECURSE H_FILE ${CMAKE_CURRENT_LIST_DIR}/src/*.h)
-    message("${name} H_FILE: " ${H_FILE})
+    # message("${name} H_FILE: " ${H_FILE})
 	
 	# Recursively find all .cu files
     file(GLOB_RECURSE CU_FILE ${CMAKE_CURRENT_LIST_DIR}/src/*.cu)
-    message("${name} CU_FILE: " ${CU_FILE})
+    # message("${name} CU_FILE: " ${CU_FILE})
 endmacro()
 
 #default static library

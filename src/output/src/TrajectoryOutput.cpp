@@ -48,43 +48,43 @@ TrajectoryOutput::~TrajectoryOutput() {
   _cv_not_empty.notify_all();
   _cv_not_full.notify_all();
   auto t1 = Clock::now();
-  double notify_ms = std::chrono::duration<double, std::milli>(t1 - t0).count();
+  double notify_s = std::chrono::duration<double>(t1 - t0).count();
 
-  double join_ms = 0.0;
+  double join_s = 0.0;
   if (_output_thread.joinable()) {
     auto tj0 = Clock::now();
     _output_thread.join();
     auto tj1 = Clock::now();
-    join_ms = std::chrono::duration<double, std::milli>(tj1 - tj0).count();
+    join_s = std::chrono::duration<double>(tj1 - tj0).count();
   }
 
-  double stream_sync_ms = 0.0;
+  double stream_sync_s = 0.0;
   if (_stream) {
     auto ts0 = Clock::now();
     CHECK_RUNTIME(STREAM_SYNC(_stream));
     auto ts1 = Clock::now();
-    stream_sync_ms = std::chrono::duration<double, std::milli>(ts1 - ts0).count();
+    stream_sync_s = std::chrono::duration<double>(ts1 - ts0).count();
   }
 
   auto td0 = Clock::now();
   DeallocateRingBuffer();
   auto td1 = Clock::now();
-  double dealloc_ms = std::chrono::duration<double, std::milli>(td1 - td0).count();
+  double dealloc_s = std::chrono::duration<double>(td1 - td0).count();
 
-  double destroy_ms = 0.0;
+  double destroy_s = 0.0;
   if (_stream) {
     auto tx0 = Clock::now();
     CHECK_RUNTIME(STREAM_DESTORY(_stream));
     auto tx1 = Clock::now();
-    destroy_ms = std::chrono::duration<double, std::milli>(tx1 - tx0).count();
+    destroy_s = std::chrono::duration<double>(tx1 - tx0).count();
   }
 
   auto t_all1 = Clock::now();
-  double total_ms = std::chrono::duration<double, std::milli>(t_all1 - t_all0).count();
+  double total_s = std::chrono::duration<double>(t_all1 - t_all0).count();
 
   Logger::Instance().info(
-      "TrajectoryOutput dtor timing: notify={:.3f} ms, join={:.3f} ms, stream_sync={:.3f} ms, deallocate={:.3f} ms, destroy_stream={:.3f} ms, total={:.3f} ms",
-      notify_ms, join_ms, stream_sync_ms, dealloc_ms, destroy_ms, total_ms);
+      "TrajectoryOutput dtor timing: notify={:.3f} s, join={:.3f} s, stream_sync={:.3f} s, deallocate={:.3f} s, destroy_stream={:.3f} s, total={:.3f} s",
+      notify_s, join_s, stream_sync_s, dealloc_s, destroy_s, total_s);
 }
 
 
@@ -274,7 +274,6 @@ void TrajectoryOutput::OutputWorker() {
   }
   // Set buffer size to 64MB (adjustable as needed)
   const size_t buffer_size = EstimateOptimalBufferSize(CalculateSingleFrameMemory(_num_atoms));
-  std::cout << "BUFFER SIZE " << buffer_size/(1024*1024) << " MB "<< std::endl;
   std::unique_ptr<char[]> write_buffer(new char[buffer_size]);
   size_t buffer_pos = 0;
 
