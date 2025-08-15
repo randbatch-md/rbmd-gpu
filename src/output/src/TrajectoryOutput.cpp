@@ -160,16 +160,16 @@ void TrajectoryOutput::AllocateRingBuffer(size_t num_atoms) {
 
 void TrajectoryOutput::DeallocateRingBuffer() {
   for (auto& frame : _ring_buffer) {
-    CHECK_RUNTIME(FREE(frame.h_px));
-    CHECK_RUNTIME(FREE(frame.h_py));
-    CHECK_RUNTIME(FREE(frame.h_pz));
-    CHECK_RUNTIME(FREE(frame.h_vx));
-    CHECK_RUNTIME(FREE(frame.h_vy));
-    CHECK_RUNTIME(FREE(frame.h_vz));
-    CHECK_RUNTIME(FREE(frame.h_atoms_type));
+    CHECK_RUNTIME(FREE_PINNED_HOST(frame.h_px));
+    CHECK_RUNTIME(FREE_PINNED_HOST(frame.h_py));
+    CHECK_RUNTIME(FREE_PINNED_HOST(frame.h_pz));
+    CHECK_RUNTIME(FREE_PINNED_HOST(frame.h_vx));
+    CHECK_RUNTIME(FREE_PINNED_HOST(frame.h_vy));
+    CHECK_RUNTIME(FREE_PINNED_HOST(frame.h_vz));
+    CHECK_RUNTIME(FREE_PINNED_HOST(frame.h_atoms_type));
     CHECK_RUNTIME(EVENT_DESTORY(frame.copy_complete_event));
-    CHECK_RUNTIME(FREE(frame.h_charge));
-    CHECK_RUNTIME(FREE(frame.h_atom_id_to_idx));
+    CHECK_RUNTIME(FREE_PINNED_HOST(frame.h_charge));
+    CHECK_RUNTIME(FREE_PINNED_HOST(frame.h_atom_id_to_idx));
   }
   _ring_buffer.clear();
 }
