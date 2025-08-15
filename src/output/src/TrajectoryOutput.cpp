@@ -187,7 +187,7 @@ size_t TrajectoryOutput::CalculateSingleFrameMemory(size_t num_atoms) const {
 size_t EstimateOptimalBufferSize(size_t single_frame_memory) {
   size_t ideal_size = single_frame_memory * 2;
 
-  const size_t min_buffer = 32 * 1024 * 1024;   // min 32MB
+  const size_t min_buffer = 2 * 1024 * 1024;   // min 2MB
   const size_t max_buffer = 512 * 1024 * 1024;  // max 512MB
 
   if (ideal_size < min_buffer) {
@@ -267,7 +267,6 @@ void TrajectoryOutput::OutputWorker() {
     Logger::Instance().error("Failed to open trajectory file: rbmd.trj");
     return;
   }
-  // Set buffer size to 64MB (adjustable as needed)
   const size_t buffer_size = EstimateOptimalBufferSize(CalculateSingleFrameMemory(_num_atoms));
   std::unique_ptr<char[]> write_buffer(new char[buffer_size]);
   size_t buffer_pos = 0;
