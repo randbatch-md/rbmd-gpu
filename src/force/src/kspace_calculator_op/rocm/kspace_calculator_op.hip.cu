@@ -5,14 +5,14 @@
 
 static const double MY_PIS=1.77245385090551602729;
 static const double MY_PI2=1.57079632679489661923;
-
+static const int  OffSet_warpSize = 32;
 namespace op {
 
 //  Warp-level
 __device__ __forceinline__ rbmd::Real warpReduceSum(rbmd::Real val) {
   // #pragma unroll
-  for (int offset = warpSize / 2; offset > 0; offset /= 2) {
-    val += SHFL_DOWN_SYNC(0xFFFFFFFF, val, offset,warpSize);
+  for (int offset = OffSet_warpSize / 2; offset > 0; offset /= 2) {
+    val += SHFL_DOWN_SYNC(0xFFFFFFFF, val, offset,OffSet_warpSize);
   }
   return val;
 }
@@ -20,10 +20,10 @@ __device__ __forceinline__ rbmd::Real warpReduceSum(rbmd::Real val) {
 //  Block-level
 __device__ __forceinline__ rbmd::Real blockReduceSum(rbmd::Real val) {
 
-  __shared__ rbmd::Real shared[warpSize];
+  __shared__ rbmd::Real shared[OffSet_warpSize];
 
-  int lane = threadIdx.x % warpSize;
-  int wid = threadIdx.x / warpSize;
+  int lane = threadIdx.x % OffSet_warpSize;
+  int wid = threadIdx.x / OffSet_warpSize;
 
   // 1.
   val = warpReduceSum(val);

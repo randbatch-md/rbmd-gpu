@@ -41,7 +41,7 @@
 #ifndef TARGET_DCU
 #define MIN_NBNUM \
 (128)  /// CUDA AMD6800xt 96 DCU 128   TODO kernel us it  can use warpSize?
-#define WARP_SIZE (64)  /// CUDA AMD6800xt 32  DCU 64   TODO
+#define WARP_SIZE (32)  /// CUDA AMD6800xt 32  DCU 64   TODO
 #else
 #define MIN_NBNUM (96)
 #define WARP_SIZE (32)
@@ -234,6 +234,8 @@ typedef int2 Id2;
     #define D2H cudaMemcpyDeviceToHost
     #define D2D cudaMemcpyDeviceToDevice
     #define FREE cudaFree
+    #define FREE_PINNED_HOST cudaFreeHost
+
     #define MEMSET cudaMemset
     #define REDUCE cub::DeviceReduce::Sum
     #define ERROR_T cudaError_t
@@ -248,6 +250,18 @@ typedef int2 Id2;
     #define BLOCKREDUCE cub::BlockReduce
     #define DEVICESYNC cudaDeviceSynchronize
     #define MEMGETINFO cudaMemGetInfo
+    #define STREAM cudaStream_t
+    #define STREAM_CREATE  cudaStreamCreate
+    #define MEMCPY_ASYNC cudaMemcpyAsync
+    #define STREAM_SYNC    cudaStreamSynchronize
+    #define STREAM_DESTORY cudaStreamDestroy
+    #define NEW_FLAG_EVENT cudaEventCreateWithFlags
+    #define EVENT_DISABLE cudaEventDisableTiming
+    #define EVENT_DESTORY cudaEventDestroy
+    #define EVENT_RECORD cudaEventRecord
+    #define EVENT_SYNC cudaEventSynchronize
+    #define EVENT_T cudaEvent_t
+
 
     #define SHFL_DOWN_SYNC(mask, var, delta, width) __shfl_down_sync(mask, var, delta, width)
     #define SHFL_UP_SYNC(mask, var, delta, width) __shfl_up_sync(mask, var, delta, width)
@@ -262,6 +276,7 @@ typedef int2 Id2;
     #define D2H hipMemcpyDeviceToHost
     #define D2D hipMemcpyDeviceToDevice
     #define FREE hipFree
+    #define FREE_PINNED_HOST hipFreeHost
     #define MEMSET hipMemset
     #define REDUCE hipcub::DeviceReduce::Sum
     #define ERROR_T hipError_t
@@ -276,6 +291,18 @@ typedef int2 Id2;
     #define BLOCKREDUCE hipcub::BlockReduce
     #define DEVICESYNC hipDeviceSynchronize
     #define MEMGETINFO hipMemGetInfo
+    #define STREAM hipStream_t
+    #define STREAM_CREATE  hipStreamCreate
+    #define MEMCPY_ASYNC hipMemcpyAsync
+    #define STREAM_SYNC hipStreamSynchronize
+    #define STREAM_DESTORY hipStreamDestroy
+    #define NEW_FLAG_EVENT hipEventCreateWithFlags
+    #define EVENT_DISABLE hipEventDisableTiming
+    #define EVENT_DESTORY hipEventDestroy
+    #define EVENT_RECORD hipEventRecord
+    #define EVENT_SYNC hipEventSynchronize
+    #define EVENT_T hipEvent_t
+
 
     #define SHFL_DOWN_SYNC(mask, var, delta, width) __shfl_down(var, delta, width)
     #define SHFL_UP_SYNC(mask, var, delta, width) __shfl_up(var, delta, width)

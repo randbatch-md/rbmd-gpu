@@ -28,7 +28,7 @@ void Simulate::Init() {
 int Simulate::Execute() {
   while (KeepGoing()) {
     ThermoStats::Instance().OutputRow();
-    _output->Execute();
+    _output->Execute(test_current_step);
     _current_step++;
     ThermoStats::Instance().SetStep(_current_step);
     _current_time += _time_step;
