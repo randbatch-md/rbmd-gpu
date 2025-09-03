@@ -2,23 +2,22 @@
 
 #include <chrono>  //
 
+#include "berendsen_controller.h"
+#include "cvff.h"
 #include "data_manager.h"
-#include "model/md_data.h"
-
 #include "default_position_controller.h"
 #include "default_velocity_controller.h"
-#include "berendsen_controller.h"
-#include "langevin_controller.h"
-#include "rescale_controller.h"
-#include "nose_hoover_controller.h"
-#include "cvff.h"
-#include "lj_cut_coul_kspace.h"
-#include "lj.h"
-#include "tersoff.h"
 #include "eam.h"
-
-#include "shake_controller.h"
+#include "langevin_controller.h"
+#include "lj.h"
+#include "lj_cut_coul_kspace.h"
+#include "model/md_data.h"
+#include "neighbor_list/include/linked_cell/linked_cell_locator.h"
+#include "nose_hoover_controller.h"
 #include "output/include/Logger.hpp"
+#include "rescale_controller.h"
+#include "shake_controller.h"
+#include "tersoff.h"
 NVTensemble::NVTensemble()
 {
   _position_controller = std::make_shared<DefaultPositionController>();
@@ -73,6 +72,8 @@ NVTensemble::NVTensemble()
   _shake_controller = std::make_shared<ShakeController>();
   _integration_type = DataManager::getInstance().getConfigData()->Get
 <std::string>("integration_type", "execution");
+  std::remove("output_force1.txt");
+  std::remove("output_force2.txt");
 }
 
 void NVTensemble::Init() {
@@ -98,7 +99,7 @@ void NVTensemble::Solve() {
    bool use_shake = DataManager::getInstance().getConfigData()->GetJudge
     <bool>("fix_shake", "hyper_parameters", "extend");
 
-  if ("leapfrog" ==_integration_type ) {
+  if ("leapfrog" == _integration_type) {
     if("NOSE_HOOVER" == _temp_ctrl_type)
     {
       _NoseHoover_controller->InitialIntegrate();//_velocity_controller->Update();
@@ -159,58 +160,13 @@ void NVTensemble::Solve() {
 
     }
   }
-  else if ("vv" ==_integration_type) {
+  else if ("vv" == _integration_type) {
     _position_controller->Update_vv();
-    _velocity_controller->Update_vv();
     _force_controller->Execute();
     _velocity_controller->Update_vv();
 
     _temperature_controller->ComputeTemperature();
     _temperature_controller->Update();
-  }
-  else if ("prk4" ==_integration_type) {
-
-    _velocity_controller->Update1();
-    _position_controller->Update1();
-    _force_controller->Execute();
-
-    _velocity_controller->Update2();
-    _position_controller->Update2();
-    _force_controller->Execute();
-
-    _velocity_controller->Update3();
-    _position_controller->Update3();
-    _force_controller->Execute();
-
-    _velocity_controller->Update4();
-    _position_controller->Update4();
-    _force_controller->Execute();
-
-    _temperature_controller->ComputeTemperature();
-    _temperature_controller->Update();
-
-  }
-  else if ("fr4" ==_integration_type) {
-
-    _velocity_controller->Update1();
-    _position_controller->Update1();
-    _force_controller->Execute();
-
-    _velocity_controller->Update2();
-    _position_controller->Update2();
-    _force_controller->Execute();
-
-    _velocity_controller->Update3();
-    _position_controller->Update3();
-    _force_controller->Execute();
-
-    _velocity_controller->Update4();
-    _position_controller->Update4();
-    _force_controller->Execute();
-
-    _temperature_controller->ComputeTemperature();
-    _temperature_controller->Update();
-
   }
   else if ("rkn2" == _integration_type) {
     _position_controller->Update1();
@@ -228,43 +184,113 @@ void NVTensemble::Solve() {
     _temperature_controller->ComputeTemperature();
     _temperature_controller->Update();
   }
-  else if ("rkn3a" == _integration_type) {
+  else if ("prk4" == _integration_type) {
+    _velocity_controller->Update1();
     _position_controller->Update1();
     _force_controller->Execute();
-    _velocity_controller->Update1();
 
+    _velocity_controller->Update2();
     _position_controller->Update2();
     _force_controller->Execute();
-    _velocity_controller->Update2();
 
+    _velocity_controller->Update3();
     _position_controller->Update3();
     _force_controller->Execute();
-    _velocity_controller->Update3();
 
+    _velocity_controller->Update4();
     _position_controller->Update4();
     _force_controller->Execute();
-    // _velocity_controller->Update4();
+
+    _temperature_controller->ComputeTemperature();
+    _temperature_controller->Update();
+
+  }
+  else if ("fr4" == _integration_type) {
+
+    _velocity_controller->Update1();
+    _position_controller->Update1();
+    _force_controller->Execute();
+
+    _velocity_controller->Update2();
+    _position_controller->Update2();
+    _force_controller->Execute();
+
+    _velocity_controller->Update3();
+    _position_controller->Update3();
+    _force_controller->Execute();
+
+    _velocity_controller->Update4();
+    _position_controller->Update4();
+    _force_controller->Execute();
+
+    _temperature_controller->ComputeTemperature();
+    _temperature_controller->Update();
+
+  }
+  else if ("rkn3a" == _integration_type) {
+    _velocity_controller->Update1();
+    _position_controller->Update1();
+    _force_controller->Execute();
+
+    _velocity_controller->Update2();
+    _position_controller->Update2();
+    _force_controller->Execute();
+
+    _velocity_controller->Update3();
+    _position_controller->Update3();
+    _force_controller->Execute();
+
+    _velocity_controller->Update4();
+    _position_controller->Update4();
+    _force_controller->Execute();
 
     _temperature_controller->ComputeTemperature();
     _temperature_controller->Update();
   }
   else if ("rkn3b" == _integration_type) {
+    _velocity_controller->Update1();
     _position_controller->Update1();
     _force_controller->Execute();
-    _velocity_controller->Update1();
 
+    _velocity_controller->Update2();
     _position_controller->Update2();
     _force_controller->Execute();
-    _velocity_controller->Update2();
 
+    _velocity_controller->Update3();
     _position_controller->Update3();
     _force_controller->Execute();
-    _velocity_controller->Update3();
 
+    _velocity_controller->Update4();
     _position_controller->Update4();
     _force_controller->Execute();
-    // _velocity_controller->Update4();
 
+    _temperature_controller->ComputeTemperature();
+    _temperature_controller->Update();
+  }
+  else if ("rkn3c" == _integration_type) {
+    _velocity_controller->Update1();
+    _position_controller->Update1();
+    _force_controller->Execute();
+
+    _velocity_controller->Update2();
+    _position_controller->Update2();
+    _force_controller->Execute();
+
+    _velocity_controller->Update3();
+    _position_controller->Update3();
+    _force_controller->Execute();
+
+    _velocity_controller->Update4();
+    _position_controller->Update4();
+    _force_controller->Execute();
+
+    _temperature_controller->ComputeTemperature();
+    _temperature_controller->Update();
+  }
+  else if ("Beeman" == _integration_type) {
+    _position_controller->Update_Beeman();
+    _force_controller->Execute();
+    _velocity_controller->Update_Beeman();
     _temperature_controller->ComputeTemperature();
     _temperature_controller->Update();
   }

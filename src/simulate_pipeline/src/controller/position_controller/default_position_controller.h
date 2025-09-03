@@ -15,7 +15,7 @@ class DefaultPositionController : public PositionController {
   void Update3() override;
   void Update4() override;
   void Update_vv() override;
-
+  void Update_Beeman() override;
 
   /**
    * Fill in the center particle coordinates and target particle coordinates of
@@ -32,4 +32,10 @@ class DefaultPositionController : public PositionController {
   rbmd::Real _d2 = 0.0;
   rbmd::Real _d3 = 0.0;
   rbmd::Real _d4 = 0.0;
+  thrust::device_vector<rbmd::Real> _d_prev_fx;
+  thrust::device_vector<rbmd::Real> _d_prev_fy;
+  thrust::device_vector<rbmd::Real> _d_prev_fz;
+  thrust::device_vector<rbmd::Real>_d_prev_px;
+  thrust::device_vector<rbmd::Real>_d_prev_py;
+  thrust::device_vector<rbmd::Real>_d_prev_pz;
 };

@@ -370,8 +370,8 @@ void CVFF::ComputeChargeStructureFactorEwald(
     Int3 Kmax_array,
     rbmd::Real alpha,
     rbmd::Real qqr2e,
-    thrust::host_vector<rbmd::Real> value_Re_array,
-    thrust::host_vector<rbmd::Real> value_Im_array)
+    thrust::host_vector<rbmd::Real>& value_Re_array,
+    thrust::host_vector<rbmd::Real>& value_Im_array)
 {
     //thrust::fill(density_real.begin(), density_real.end(), 0.0f);
     //thrust::fill(density_imag.begin(), density_imag.end(), 0.0f);
@@ -513,8 +513,8 @@ void CVFF::ComputeChargeStructureFactorRBE(
    rbmd::Real alpha,
    rbmd::Id RBE_P,
    rbmd::Real qqr2e,
-   thrust::device_vector<rbmd::Real> rhok_real_redue,
-   thrust::device_vector<rbmd::Real> rhok_image_redue)
+   thrust::device_vector<rbmd::Real>& rhok_real_redue,
+   thrust::device_vector<rbmd::Real>& rhok_image_redue)
 {
   //get P_Sample at each step
   RBEInit(*_box,_alpha,_RBE_P);

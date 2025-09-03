@@ -12,7 +12,10 @@
 DefaultVelocityController::DefaultVelocityController(){};
 
 void DefaultVelocityController::Init() {
-
+  auto& num_atoms = *(_structure_info_data->_num_atoms);
+  _d_prev_fx.resize(num_atoms,0.0);
+  _d_prev_fy.resize(num_atoms,0.0);
+  _d_prev_fz.resize(num_atoms,0.0);
   _dt = DataManager::getInstance().getConfigData()->Get<rbmd::Real>(
           "timestep", "execution");//0.001
   auto unit  = DataManager::getInstance().getConfigData()->Get
@@ -71,26 +74,6 @@ void DefaultVelocityController::Update() {
 
 //vv
 void DefaultVelocityController::Update_vv() {
-  // // 获取力的设备指针
-  // auto* d_fx = thrust::raw_pointer_cast(_device_data->_d_fx.data());
-  // auto* d_fy = thrust::raw_pointer_cast(_device_data->_d_fy.data());
-  // auto* d_fz = thrust::raw_pointer_cast(_device_data->_d_fz.data());
-  //
-  // // 复制前N个力的值到主机内存（例如前5个原子）
-  // const int N = 5;
-  // std::vector<rbmd::Real> h_fx(N), h_fy(N), h_fz(N);
-  //
-  // cudaMemcpy(h_fx.data(), d_fx, sizeof(rbmd::Real) * N, cudaMemcpyDeviceToHost);
-  // cudaMemcpy(h_fy.data(), d_fy, sizeof(rbmd::Real) * N, cudaMemcpyDeviceToHost);
-  // cudaMemcpy(h_fz.data(), d_fz, sizeof(rbmd::Real) * N, cudaMemcpyDeviceToHost);
-  //
-  // // 打印结果
-  // std::cout << "First " << N << " force values:" << std::endl;
-  // for (int i = 0; i < N; ++i) {
-  //   std::cout << "Atom " << i << ": fx=" << h_fx[i]
-  //             << ", fy=" << h_fy[i]
-  //             << ", fz=" << h_fz[i] << std::endl;
-  // }
   op::UpdateVelocityOpvv<device::DEVICE_GPU>()
   (
       *(_structure_info_data->_num_atoms), _dt, _fmt2v,
@@ -99,6 +82,9 @@ void DefaultVelocityController::Update_vv() {
       thrust::raw_pointer_cast(_device_data->_d_fx.data()),
       thrust::raw_pointer_cast(_device_data->_d_fy.data()),
       thrust::raw_pointer_cast(_device_data->_d_fz.data()),
+      thrust::raw_pointer_cast(_d_prev_fx.data()),
+      thrust::raw_pointer_cast(_d_prev_fy.data()),
+      thrust::raw_pointer_cast(_d_prev_fz.data()),
       thrust::raw_pointer_cast(_device_data->_d_vx.data()),
       thrust::raw_pointer_cast(_device_data->_d_vy.data()),
       thrust::raw_pointer_cast(_device_data->_d_vz.data()));
@@ -118,7 +104,6 @@ void DefaultVelocityController::Update1() {
         thrust::raw_pointer_cast(_device_data->_d_vy.data()),
         thrust::raw_pointer_cast(_device_data->_d_vz.data()));
 }
-
 void DefaultVelocityController::Update2() {
     op::UpdateVelocityOp2<device::DEVICE_GPU>()
     (
@@ -154,6 +139,24 @@ void DefaultVelocityController::Update4() {
         thrust::raw_pointer_cast(_device_data->_d_fx.data()),
         thrust::raw_pointer_cast(_device_data->_d_fy.data()),
         thrust::raw_pointer_cast(_device_data->_d_fz.data()),
+        thrust::raw_pointer_cast(_device_data->_d_vx.data()),
+        thrust::raw_pointer_cast(_device_data->_d_vy.data()),
+        thrust::raw_pointer_cast(_device_data->_d_vz.data()));
+}
+
+//Beeman
+void DefaultVelocityController::Update_Beeman() {
+  op::UpdateVelocityOpBeeman<device::DEVICE_GPU>()
+    (
+        *(_structure_info_data->_num_atoms), _dt, test_current_step, _fmt2v,
+        thrust::raw_pointer_cast(_device_data->_d_atoms_type.data()),
+        thrust::raw_pointer_cast(_device_data->_d_mass.data()),
+        thrust::raw_pointer_cast(_device_data->_d_fx.data()),
+        thrust::raw_pointer_cast(_device_data->_d_fy.data()),
+        thrust::raw_pointer_cast(_device_data->_d_fz.data()),
+        thrust::raw_pointer_cast(_d_prev_fx.data()),
+        thrust::raw_pointer_cast(_d_prev_fy.data()),
+        thrust::raw_pointer_cast(_d_prev_fz.data()),
         thrust::raw_pointer_cast(_device_data->_d_vx.data()),
         thrust::raw_pointer_cast(_device_data->_d_vy.data()),
         thrust::raw_pointer_cast(_device_data->_d_vz.data()));

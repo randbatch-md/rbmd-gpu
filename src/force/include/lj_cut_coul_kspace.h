@@ -40,8 +40,8 @@ public:
           Int3 Kmax_array,
           rbmd::Real alpha,
           rbmd::Real qqr2e,
-          thrust::host_vector<rbmd::Real> value_Re_array,
-          thrust::host_vector<rbmd::Real> value_Im_array);
+          thrust::host_vector<rbmd::Real>& value_Re_array,
+          thrust::host_vector<rbmd::Real>& value_Im_array);
   void ComputeEwlad();//Ewald
 
   void RBEInit(Box box,rbmd::Real alpha,rbmd::Id RBE_P);
@@ -53,8 +53,8 @@ public:
          rbmd::Real alpha,
          rbmd::Id RBE_P,
          rbmd::Real qqr2e,
-         thrust::device_vector<rbmd::Real> rhok_real_redue,
-         thrust::device_vector<rbmd::Real> rhok_image_redue);
+         thrust::device_vector<rbmd::Real>& rhok_real_redue,
+         thrust::device_vector<rbmd::Real>& rhok_image_redue);
   void ComputeRBE();//RBE
 
 

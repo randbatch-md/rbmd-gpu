@@ -16,6 +16,25 @@ class DeviceData {
   thrust::device_vector<rbmd::Real> _d_shake_py;
   thrust::device_vector<rbmd::Real> _d_shake_pz;
 
+  // /// --- 新增：用于存储上一步位置的 device_vector ---
+  // thrust::device_vector<rbmd::Real> _d_prev_px;
+  // thrust::device_vector<rbmd::Real> _d_prev_py;
+  // thrust::device_vector<rbmd::Real> _d_prev_pz;
+  // /// 新增存储上一步的速度
+  // // thrust::device_vector<rbmd::Real> _d_pre1_vx;
+  // // thrust::device_vector<rbmd::Real> _d_pre1_vy;
+  // // thrust::device_vector<rbmd::Real> _d_pre1_vz;
+  //
+  // /// 新增：用于暂存当前力的缓冲区 F(t)
+  // thrust::device_vector<rbmd::Real> _d_f_t_x;
+  // thrust::device_vector<rbmd::Real> _d_f_t_y;
+  // thrust::device_vector<rbmd::Real> _d_f_t_z;
+  //
+  // /// --- VVVVVV  新增：用于存储上一步的力  VVVVVV ---
+  // thrust::device_vector<rbmd::Real> _d_fx_pre;
+  // thrust::device_vector<rbmd::Real> _d_fy_pre;
+  // thrust::device_vector<rbmd::Real> _d_fz_pre;
+
   /// atoms id
   thrust::device_vector<rbmd::Id> _d_atoms_id;
 

@@ -25,6 +25,7 @@ struct UpdatePositionFlagOpvv {
                   rbmd::Id* flag_pz);
 };
 
+
 //PRK
 template <typename DEVICE>
 struct UpdatePositionFlagOp1 {
@@ -55,6 +56,15 @@ struct UpdatePositionFlagOp3 {
 
 template <typename DEVICE>
 struct UpdatePositionFlagOp4 {
+  void operator()(const rbmd::Id num_atoms, const rbmd::Real dt, Box box,
+                  const rbmd::Real* vx, const rbmd::Real* vy,
+                  const rbmd::Real* vz, rbmd::Real* px, rbmd::Real* py,
+                  rbmd::Real* pz, rbmd::Id* flag_px, rbmd::Id* flag_py,
+                  rbmd::Id* flag_pz);
+};
+
+template <typename DEVICE>
+struct UpdatePositionFlagOpBeeman {
   void operator()(const rbmd::Id num_atoms, const rbmd::Real dt, Box box,
                   const rbmd::Real* vx, const rbmd::Real* vy,
                   const rbmd::Real* vz, rbmd::Real* px, rbmd::Real* py,
@@ -153,6 +163,18 @@ struct UpdatePositionOp<device::DEVICE_GPU> {
                   const rbmd::Real* vx, const rbmd::Real* vy,
                   const rbmd::Real* vz, rbmd::Real* px, rbmd::Real* py,
                   rbmd::Real* pz);
+};
+
+//Beeman
+template <>
+struct UpdatePositionFlagOpBeeman<device::DEVICE_GPU> {
+  void operator()(const rbmd::Id num_atoms, const rbmd::Real dt, rbmd::Id test_current_step ,const rbmd::Real fmt2v,
+ const rbmd::Id* atoms_type, const rbmd::Real* mass, Box box,
+ rbmd::Real* vx, rbmd::Real* vy, rbmd::Real* vz,
+ const rbmd::Real* fx, const rbmd::Real* fy, const rbmd::Real* fz,                 // F(t)
+ rbmd::Real* f_pre1_x, rbmd::Real* f_pre1_y, rbmd::Real* f_pre1_z, // F(t-Δt)
+ rbmd::Real* px, rbmd::Real* py, rbmd::Real* pz,
+ rbmd::Id* flag_px, rbmd::Id* flag_py, rbmd::Id* flag_pz);
 };
 
 }  // namespace op

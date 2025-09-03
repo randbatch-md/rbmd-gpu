@@ -5,6 +5,7 @@
 
 #include "data_manager.h"
 #include "model/md_data.h"
+extern int test_current_step;
 
 class VelocityController {
  public:
@@ -31,6 +32,7 @@ class VelocityController {
   virtual void Update3() = 0;
   virtual void Update4() = 0;
   virtual void Update_vv() = 0;
+  virtual void Update_Beeman() = 0;
   /**
    * @brief Parameters and objects required for initializing the speed
    * controller

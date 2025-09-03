@@ -5,6 +5,8 @@
 #include "model/md_data.h"
 #include "model/structure_info_data.h"
 #include "shake_controller.h"
+extern int test_current_step;
+
 class PositionController {
  public:
   PositionController()
@@ -24,6 +26,7 @@ class PositionController {
   virtual void Update3() = 0;
   virtual void Update4() = 0;
   virtual void Update_vv() = 0;
+  virtual void Update_Beeman() = 0;
 
   /**
    * @brief Parameters and objects required for initializing the Position

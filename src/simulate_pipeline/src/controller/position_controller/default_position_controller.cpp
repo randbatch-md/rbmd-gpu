@@ -23,6 +23,16 @@ void DefaultPositionController::Init()
   _d2 = d_type_array[1];
   _d3 = d_type_array[2];
   _d4 = d_type_array[3];
+
+  // ... 您已有的代码 ...
+  auto num_atoms = *(_structure_info_data->_num_atoms);
+
+  // VVVV 在这里添加 VVVV
+  // 为这个控制器私有的历史向量分配内存
+  _d_prev_fx.resize(num_atoms,0.0);
+  _d_prev_fy.resize(num_atoms,0.0);
+  _d_prev_fz.resize(num_atoms,0.0);
+  // ^^^^ 添加结束 ^^^^
 }
 
 //leapfrog
@@ -163,6 +173,29 @@ void DefaultPositionController::Update4() {
                        thrust::raw_pointer_cast(_device_data->_d_fx.data()),
                        thrust::raw_pointer_cast(_device_data->_d_fy.data()),
                        thrust::raw_pointer_cast(_device_data->_d_fz.data()));
+}
+
+void DefaultPositionController::Update_Beeman() {
+  op::UpdatePositionFlagOpBeeman<device::DEVICE_GPU>()(
+                      *(_structure_info_data->_num_atoms),_dt, test_current_step,_fmt2v,
+                     thrust::raw_pointer_cast(_device_data->_d_atoms_type.data()),
+                     thrust::raw_pointer_cast(_device_data->_d_mass.data()),
+                      *_box,
+                     thrust::raw_pointer_cast(_device_data->_d_vx.data()),
+                     thrust::raw_pointer_cast(_device_data->_d_vy.data()),
+                     thrust::raw_pointer_cast(_device_data->_d_vz.data()),
+                     thrust::raw_pointer_cast(_device_data->_d_fx.data()),
+                     thrust::raw_pointer_cast(_device_data->_d_fy.data()),
+                     thrust::raw_pointer_cast(_device_data->_d_fz.data()),
+                     thrust::raw_pointer_cast(_d_prev_fx.data()),
+                     thrust::raw_pointer_cast(_d_prev_fy.data()),
+                     thrust::raw_pointer_cast(_d_prev_fz.data()),
+                     thrust::raw_pointer_cast(_device_data->_d_px.data()),
+                     thrust::raw_pointer_cast(_device_data->_d_py.data()),
+                     thrust::raw_pointer_cast(_device_data->_d_pz.data()),
+                     thrust::raw_pointer_cast(_device_data->_d_flagX.data()),
+                     thrust::raw_pointer_cast(_device_data->_d_flagY.data()),
+                     thrust::raw_pointer_cast(_device_data->_d_flagZ.data()));
 }
 
 void DefaultPositionController::SetCenterTargetPositions() {

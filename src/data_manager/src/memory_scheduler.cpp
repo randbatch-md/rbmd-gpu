@@ -59,6 +59,29 @@ bool MemoryScheduler::asyncMemoryH2D() {
   thrust::copy(h_py, h_py + num_atoms, _device_data->_d_py.begin());
   thrust::copy(h_pz, h_pz + num_atoms, _device_data->_d_pz.begin());
 
+  // /// copy pre1 position
+  // _device_data->_d_prev_px.resize(num_atoms);
+  // _device_data->_d_prev_py.resize(num_atoms);
+  // _device_data->_d_prev_pz.resize(num_atoms);
+  //
+  // thrust::copy(h_px, h_px + num_atoms, _device_data->_d_prev_px.begin());
+  // thrust::copy(h_py, h_py + num_atoms, _device_data->_d_prev_py.begin());
+  // thrust::copy(h_pz, h_pz + num_atoms, _device_data->_d_prev_pz.begin());
+
+  // _device_data->_d_pre1_vx.resize(num_atoms);
+  // _device_data->_d_pre1_vy.resize(num_atoms);
+  // _device_data->_d_pre1_vz.resize(num_atoms);
+  //
+  // // --- VVVVVV  新增：为 F(t) 缓冲区分配空间  VVVVVV ---
+  // _device_data->_d_f_t_x.resize(num_atoms,0.0);
+  // _device_data->_d_f_t_y.resize(num_atoms,0.0);
+  // _device_data->_d_f_t_z.resize(num_atoms,0.0);
+  //
+  // // --- VVVVVV  新增：为上一步的力分配空间  VVVVVV ---
+  // _device_data->_d_fx_pre.resize(num_atoms,0.0);
+  // _device_data->_d_fy_pre.resize(num_atoms,0.0);
+  // _device_data->_d_fz_pre.resize(num_atoms,0.0);
+
   /// copy flag
   _device_data->_d_flagX.resize(num_atoms);
   _device_data->_d_flagY.resize(num_atoms);

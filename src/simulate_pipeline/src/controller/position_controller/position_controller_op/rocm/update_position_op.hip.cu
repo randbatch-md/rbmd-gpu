@@ -53,10 +53,15 @@ void UpdatePositionFlagOp<device::DEVICE_GPU>::operator()(
      rbmd::Real sum_px = px[tid];
      rbmd::Real sum_py = py[tid];
      rbmd::Real sum_pz = pz[tid];
+     rbmd::Real const_half = 0.5000;
 
-     sum_px += vx[tid] * dt + 0.5 * fx[tid] / mass[typei] * dt * dt * fmt2v;
-     sum_py += vy[tid] * dt + 0.5 * fy[tid] / mass[typei] * dt * dt * fmt2v;
-     sum_pz += vz[tid] * dt + 0.5 * fz[tid] / mass[typei] * dt * dt * fmt2v;
+     sum_px += vx[tid] * dt + const_half * fx[tid] / mass[typei] * dt * dt * fmt2v;
+     sum_py += vy[tid] * dt + const_half * fy[tid] / mass[typei] * dt * dt * fmt2v;
+     sum_pz += vz[tid] * dt + const_half * fz[tid] / mass[typei] * dt * dt * fmt2v;
+
+     // sum_px += vx[tid] * dt;
+     // sum_py += vy[tid] * dt;
+     // sum_pz += vz[tid] * dt;
 
      px[tid] = sum_px;
      py[tid] = sum_py;
@@ -251,5 +256,109 @@ void UpdatePositionOp<device::DEVICE_GPU>::operator()(
   CHECK_KERNEL(UpdatePosition<<<blocks_per_grid, BLOCK_SIZE, 0, 0>>>(
       num_atoms, dt, box, vx, vy, vz, px,py, pz));
 }
+
+// Beeman
+__global__ void UpdatePositionFlagBeeman(
+    const rbmd::Id num_atoms, const rbmd::Real dt,rbmd::Id test_current_step, const rbmd::Real fmt2v,
+    const rbmd::Id* atoms_type, const rbmd::Real* mass, Box box,
+    rbmd::Real* vx, rbmd::Real* vy, rbmd::Real* vz,
+    const rbmd::Real* fx, const rbmd::Real* fy, const rbmd::Real* fz,                 // F(t)
+    rbmd::Real* f_pre1_x, rbmd::Real* f_pre1_y, rbmd::Real* f_pre1_z, // F(t-Δt)
+    rbmd::Real* px, rbmd::Real* py, rbmd::Real* pz,
+    rbmd::Id* flag_px, rbmd::Id* flag_py, rbmd::Id* flag_pz)
+{
+  int tid = threadIdx.x + blockIdx.x * blockDim.x;
+  if (tid < num_atoms) {
+    if (test_current_step < 2){
+      rbmd::Id typei = atoms_type[tid];
+      rbmd::Real sum_px = px[tid];
+      rbmd::Real sum_py = py[tid];
+      rbmd::Real sum_pz = pz[tid];
+      rbmd::Real sum_vx = vx[tid];
+      rbmd::Real sum_vy = vy[tid];
+      rbmd::Real sum_vz = vz[tid];
+      rbmd::Real cont1 = 0.50000;
+
+      sum_px += vx[tid] * dt + cont1 * fx[tid] / mass[typei] * dt * dt * fmt2v;
+      sum_py += vy[tid] * dt + cont1 * fy[tid] / mass[typei] * dt * dt * fmt2v;
+      sum_pz += vz[tid] * dt + cont1 * fz[tid] / mass[typei] * dt * dt * fmt2v;
+
+      f_pre1_x[tid] = fx[tid];
+      f_pre1_y[tid] = fy[tid];
+      f_pre1_z[tid] = fz[tid];
+
+      sum_vx +=  cont1 * f_pre1_x[tid] / mass[typei] * dt * fmt2v;
+      sum_vy +=  cont1 * f_pre1_y[tid] / mass[typei] * dt * fmt2v;
+      sum_vz +=  cont1 * f_pre1_z[tid] / mass[typei] * dt * fmt2v;
+
+      px[tid] = sum_px;
+      py[tid] = sum_py;
+      pz[tid] = sum_pz;
+
+      vx[tid] = sum_vx;
+      vy[tid] = sum_vy;
+      vz[tid] = sum_vz;
+
+      ApplyPBC(box, px[tid], py[tid], pz[tid],
+        flag_px[tid], flag_py[tid],flag_pz[tid]);
+    }
+    else{
+      rbmd::Id typei = atoms_type[tid];
+      rbmd::Real sum_px = px[tid];
+      rbmd::Real sum_py = py[tid];
+      rbmd::Real sum_pz = pz[tid];
+      rbmd::Real sum_vx = vx[tid];
+      rbmd::Real sum_vy = vy[tid];
+      rbmd::Real sum_vz = vz[tid];
+      rbmd::Real const_one_sixth = 0.16666667;
+
+
+      sum_px += vx[tid] * dt + const_one_sixth * (4 * fx[tid] - f_pre1_x[tid]) / mass[typei] * dt * dt * fmt2v;
+      sum_py += vy[tid] * dt + const_one_sixth * (4 * fy[tid] - f_pre1_y[tid]) / mass[typei] * dt * dt * fmt2v;
+      sum_pz += vz[tid] * dt + const_one_sixth * (4 * fz[tid] - f_pre1_z[tid]) / mass[typei] * dt * dt * fmt2v;
+
+      sum_vx +=  const_one_sixth * (5 * fx[tid] - f_pre1_x[tid]) / mass[typei] * dt * fmt2v;
+      sum_vy +=  const_one_sixth * (5 * fy[tid] - f_pre1_y[tid]) / mass[typei] * dt * fmt2v;
+      sum_vz +=  const_one_sixth * (5 * fz[tid] - f_pre1_z[tid]) / mass[typei] * dt * fmt2v;
+
+      // sum_vx +=  const_one_sixth * (4 * fx[tid] - f_pre1_x[tid]) / mass[typei] * dt * fmt2v;
+      // sum_vy +=  const_one_sixth * (4 * fy[tid] - f_pre1_y[tid]) / mass[typei] * dt * fmt2v;
+      // sum_vz +=  const_one_sixth * (4 * fz[tid] - f_pre1_z[tid]) / mass[typei] * dt * fmt2v;
+
+      f_pre1_x[tid] = fx[tid];
+      f_pre1_y[tid] = fy[tid];
+      f_pre1_z[tid] = fz[tid];
+
+      px[tid] = sum_px;
+      py[tid] = sum_py;
+      pz[tid] = sum_pz;
+
+      vx[tid] = sum_vx;
+      vy[tid] = sum_vy;
+      vz[tid] = sum_vz;
+
+      ApplyPBC(box, px[tid], py[tid], pz[tid],
+        flag_px[tid], flag_py[tid],flag_pz[tid]);
+    }
+  }
+}
+// ... 相应地创建 UpdatePositionOpBeeman ...
+void UpdatePositionFlagOpBeeman<device::DEVICE_GPU>::operator()(
+ const rbmd::Id num_atoms, const rbmd::Real dt, rbmd::Id test_current_step ,const rbmd::Real fmt2v,
+ const rbmd::Id* atoms_type, const rbmd::Real* mass, Box box,
+ rbmd::Real* vx, rbmd::Real* vy,rbmd::Real* vz,
+ const rbmd::Real* fx, const rbmd::Real* fy, const rbmd::Real* fz,
+ rbmd::Real* f_pre1_x,rbmd::Real* f_pre1_y,rbmd::Real* f_pre1_z,
+ rbmd::Real* px, rbmd::Real* py, rbmd::Real* pz,
+ rbmd::Id* flag_px, rbmd::Id* flag_py, rbmd::Id* flag_pz)
+{ unsigned int blocks_per_grid = (num_atoms + BLOCK_SIZE - 1) / BLOCK_SIZE;
+  CHECK_KERNEL(UpdatePositionFlagBeeman<<<blocks_per_grid, BLOCK_SIZE, 0, 0>>>(
+  num_atoms, dt,test_current_step, fmt2v, atoms_type, mass, box,
+  vx, vy, vz,
+  fx, fy, fz,
+  f_pre1_x, f_pre1_y, f_pre1_z,
+  px, py, pz, flag_px, flag_py, flag_pz))
+}
+
 
 }  // namespace op
