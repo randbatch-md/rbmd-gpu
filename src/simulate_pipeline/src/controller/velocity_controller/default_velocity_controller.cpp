@@ -16,8 +16,15 @@ void DefaultVelocityController::Init() {
   _d_prev_fx.resize(num_atoms, 0.0);
   _d_prev_fy.resize(num_atoms, 0.0);
   _d_prev_fz.resize(num_atoms, 0.0);
+  _d_pr_prev_fx.resize(num_atoms, 0.0);
+  _d_pr_prev_fy.resize(num_atoms, 0.0);
+  _d_pr_prev_fz.resize(num_atoms, 0.0);
   _dt = DataManager::getInstance().getConfigData()->Get<rbmd::Real>(
           "timestep", "execution");//0.001
+  _par_a = DataManager::getInstance().getConfigData()->Get<rbmd::Real>(
+          "par_a", "execution");
+  _par_b = DataManager::getInstance().getConfigData()->Get<rbmd::Real>(
+          "par_b", "execution");
   auto unit  = DataManager::getInstance().getConfigData()->Get
     <std::string>("unit", "init_configuration", "read_data");
   UNIT unit_factor = unit_factor_map[unit];
@@ -169,15 +176,15 @@ void DefaultVelocityController::Update4(){
 void DefaultVelocityController::Updatevl() {
   // std::cout << c4 << std::endl;
   op::UpdateVelocityOpvl<device::DEVICE_GPU>()(
-    *(_structure_info_data->_num_atoms), _dt, _fmt2v,
+    *(_structure_info_data->_num_atoms), _dt, test_current_step, _fmt2v,_par_a,_par_b,
     thrust::raw_pointer_cast(_device_data->_d_atoms_type.data()),
     thrust::raw_pointer_cast(_device_data->_d_mass.data()),
     thrust::raw_pointer_cast(_device_data->_d_fx.data()),
     thrust::raw_pointer_cast(_device_data->_d_fy.data()),
     thrust::raw_pointer_cast(_device_data->_d_fz.data()),
-    thrust::raw_pointer_cast(_device_data->_d_px.data()),
-    thrust::raw_pointer_cast(_device_data->_d_py.data()),
-    thrust::raw_pointer_cast(_device_data->_d_pz.data()),
+    thrust::raw_pointer_cast(_d_prev_fx.data()),
+    thrust::raw_pointer_cast(_d_prev_fy.data()),
+    thrust::raw_pointer_cast(_d_prev_fz.data()),
     thrust::raw_pointer_cast(_device_data->_d_vx.data()),
     thrust::raw_pointer_cast(_device_data->_d_vy.data()),
     thrust::raw_pointer_cast(_device_data->_d_vz.data()));
@@ -186,7 +193,7 @@ void DefaultVelocityController::Updatebm(){
      //_current_step += 1;
      // std::cout << _current_step << std::endl;
   op::UpdateVelocityOpbm<device::DEVICE_GPU>()(
-      *(_structure_info_data->_num_atoms), _dt, test_current_step, _fmt2v,
+      *(_structure_info_data->_num_atoms), _par_a,_par_b, _dt, test_current_step, _fmt2v,
       thrust::raw_pointer_cast(_device_data->_d_atoms_type.data()),
       thrust::raw_pointer_cast(_device_data->_d_mass.data()),
       thrust::raw_pointer_cast(_device_data->_d_fx.data()),
@@ -195,6 +202,9 @@ void DefaultVelocityController::Updatebm(){
       thrust::raw_pointer_cast(_d_prev_fx.data()),
       thrust::raw_pointer_cast(_d_prev_fy.data()),
       thrust::raw_pointer_cast(_d_prev_fz.data()),
+      thrust::raw_pointer_cast(_d_pr_prev_fx.data()),
+      thrust::raw_pointer_cast(_d_pr_prev_fy.data()),
+      thrust::raw_pointer_cast(_d_pr_prev_fz.data()),
       thrust::raw_pointer_cast(_device_data->_d_vx.data()),
       thrust::raw_pointer_cast(_device_data->_d_vy.data()),
       thrust::raw_pointer_cast(_device_data->_d_vz.data()));

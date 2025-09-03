@@ -16,17 +16,16 @@ struct UpdatePositionFlagOp {
 
 template <typename DEVICE>
 struct UpdatePositionFlagOpvl {
-  void operator()(const rbmd::Id num_atoms, const rbmd::Real fmt2v,const rbmd::Real dt,  rbmd::Id test_current_step, Box  box  ,const rbmd::Id* atoms_type,
+  void operator()(const rbmd::Id num_atoms, const rbmd::Real fmt2v, const rbmd::Real par_a,const rbmd::Real par_b,const rbmd::Real dt,  rbmd::Id test_current_step, Box  box  ,const rbmd::Id* atoms_type,
    const rbmd::Real* fx, const rbmd::Real* fy, const rbmd::Real* fz,const rbmd::Real* mass,
    rbmd::Real* vx, rbmd::Real* vy, rbmd::Real* vz,
    rbmd::Real* px, rbmd::Real* py, rbmd::Real* pz,
-   rbmd::Real* prev_px,rbmd::Real* prev_py,rbmd::Real* prev_pz,
    rbmd::Id* flag_px,rbmd::Id* flag_py, rbmd::Id* flag_pz);
 };
 
 template <typename DEVICE>
 struct UpdatePositionFlagOpbm {
-  void operator()(const rbmd::Id num_atoms,const rbmd::Real fmt2v, const rbmd::Real dt, rbmd::Id test_current_step,Box  box  , const rbmd::Id* atoms_type,
+  void operator()(const rbmd::Id num_atoms,const rbmd::Real fmt2v, const rbmd::Real par_a,const rbmd::Real par_b, const rbmd::Real dt, rbmd::Id test_current_step,Box  box  , const rbmd::Id* atoms_type,
  const rbmd::Real* fx, const rbmd::Real* fy, const rbmd::Real* fz,const rbmd::Real* mass,
  rbmd::Real* prev_fx, rbmd::Real* prev_fy, rbmd::Real* prev_fz,
  rbmd::Real* vx, rbmd::Real* vy, rbmd::Real* vz,
@@ -124,17 +123,16 @@ struct UpdatePositionFlagOp4<device::DEVICE_GPU> {
 
 template <>
 struct UpdatePositionFlagOpvl<device::DEVICE_GPU> {
-  void operator()(const rbmd::Id num_atoms, const rbmd::Real fmt2v,const rbmd::Real dt, rbmd::Id test_current_step, Box  box  ,const rbmd::Id* atoms_type,
+  void operator()(const rbmd::Id num_atoms, const rbmd::Real fmt2v, const rbmd::Real par_a,const rbmd::Real par_b,const rbmd::Real dt, rbmd::Id test_current_step, Box  box  ,const rbmd::Id* atoms_type,
    const rbmd::Real* fx, const rbmd::Real* fy, const rbmd::Real* fz,const rbmd::Real* mass,
    rbmd::Real* vx, rbmd::Real* vy, rbmd::Real* vz,
    rbmd::Real* px, rbmd::Real* py, rbmd::Real* pz,
-   rbmd::Real* prev_px,rbmd::Real* prev_py,rbmd::Real* prev_pz,
    rbmd::Id* flag_px,rbmd::Id* flag_py, rbmd::Id* flag_pz);
 };
 
 template <>
 struct UpdatePositionFlagOpbm<device::DEVICE_GPU> {
-  void operator()(const rbmd::Id num_atoms,const rbmd::Real fmt2v, const rbmd::Real dt, rbmd::Id test_current_step,Box  box  , const rbmd::Id* atoms_type,
+  void operator()(const rbmd::Id num_atoms,const rbmd::Real fmt2v, const rbmd::Real par_a,const rbmd::Real par_b, const rbmd::Real dt, rbmd::Id test_current_step,Box  box  , const rbmd::Id* atoms_type,
  const rbmd::Real* fx, const rbmd::Real* fy, const rbmd::Real* fz,const rbmd::Real* mass,
  rbmd::Real* prev_fx, rbmd::Real* prev_fy, rbmd::Real* prev_fz,
  rbmd::Real* vx, rbmd::Real* vy, rbmd::Real* vz,

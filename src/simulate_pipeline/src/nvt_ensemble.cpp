@@ -160,8 +160,8 @@ void NVTensemble::Solve() {
        std::chrono::duration<rbmd::Real> duration = end - start;
        _total_time_vv += duration.count();
        _total_steps++;
-       std::cout << "VV单步耗时: " << duration.count() << "秒 | 平均耗时: " << (
-         _total_time_vv / _total_steps) << "秒" << std::endl;
+       // std::cout << "VV单步耗时: " << duration.count() << "秒 | 平均耗时: " << (
+       //   _total_time_vv / _total_steps) << "秒" << std::endl;
      }
    }
    else if ("test" ==_integration_type) {
@@ -182,12 +182,12 @@ void NVTensemble::Solve() {
      _temperature_controller->ComputeTemperature();
      _temperature_controller->Update();
      CHECK_RUNTIME(DEVICESYNC());
-     auto end = std::chrono::high_resolution_clock::now();
-     std::chrono::duration<rbmd::Real> duration = end - start;
-     _total_time_prk3c += duration.count();
-     _total_steps++;
-     std::cout << "PRK3C单步耗时: " << duration.count() << "秒 | 平均耗时: " << (
-       _total_time_prk3c / _total_steps) << "秒" << std::endl;
+     // auto end = std::chrono::high_resolution_clock::now();
+     // std::chrono::duration<rbmd::Real> duration = end - start;
+     // _total_time_prk3c += duration.count();
+     // _total_steps++;
+     // std::cout << "PRK3C单步耗时: " << duration.count() << "秒 | 平均耗时: " << (
+     //   _total_time_prk3c / _total_steps) << "秒" << std::endl;
     }
    else if ("vl" ==_integration_type) {
      // auto _device_data = DataManager::getInstance().getDeviceData();
@@ -246,7 +246,6 @@ void NVTensemble::Solve() {
    //     output_file1 << i << " " << h_f_x[id] << " "<<h_prev_fx[id] << std::endl;
    //   }
    //   output_file1.close();
-
 
      _force_controller->Execute();
 

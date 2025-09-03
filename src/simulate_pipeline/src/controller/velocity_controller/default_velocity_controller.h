@@ -27,9 +27,14 @@ class DefaultVelocityController : public VelocityController {
   rbmd::Real _c2 = 0.0;
   rbmd::Real _c3 = 0.0;
   rbmd::Real _c4 = 0.0;
+  rbmd::Real _par_a = 0.0;
+  rbmd::Real _par_b = 0.0;
   thrust::device_vector<rbmd::Real> _d_prev_fx;
   thrust::device_vector<rbmd::Real> _d_prev_fy;
   thrust::device_vector<rbmd::Real> _d_prev_fz;
+  thrust::device_vector<rbmd::Real> _d_pr_prev_fx;
+  thrust::device_vector<rbmd::Real> _d_pr_prev_fy;
+  thrust::device_vector<rbmd::Real> _d_pr_prev_fz;
   rbmd::Id _current_step;
   std::string _init_type;
   std::string  _integration_type;

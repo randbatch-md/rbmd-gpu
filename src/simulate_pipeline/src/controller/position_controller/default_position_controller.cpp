@@ -20,6 +20,10 @@ void DefaultPositionController::Init()
   _d_prev_pz.resize(num_atoms, 0.0);
   _dt = DataManager::getInstance().getConfigData()->
     Get<rbmd::Real>("timestep", "execution");//0.001
+  _par_a = DataManager::getInstance().getConfigData()->Get<rbmd::Real>(
+          "par_a", "execution");
+  _par_b = DataManager::getInstance().getConfigData()->Get<rbmd::Real>(
+          "par_b", "execution");
   auto unit  = DataManager::getInstance().getConfigData()->Get
     <std::string>("unit", "init_configuration", "read_data");
   UNIT unit_factor = unit_factor_map[unit];
@@ -178,7 +182,7 @@ void DefaultPositionController::Updatevl() {
   // _current_step += 1;
   // std::cout << _current_step << std::endl;
     op::UpdatePositionFlagOpvl<device::DEVICE_GPU>()(
-         *(_structure_info_data->_num_atoms),_fmt2v, _dt,test_current_step,*_box,
+         *(_structure_info_data->_num_atoms),_fmt2v,_par_a,_par_b, _dt,test_current_step,*_box,
          thrust::raw_pointer_cast(_device_data->_d_atoms_type.data()),
          thrust::raw_pointer_cast(_device_data->_d_fx.data()),
          thrust::raw_pointer_cast(_device_data->_d_fy.data()),
@@ -190,9 +194,6 @@ void DefaultPositionController::Updatevl() {
          thrust::raw_pointer_cast(_device_data->_d_px.data()),
          thrust::raw_pointer_cast(_device_data->_d_py.data()),
          thrust::raw_pointer_cast(_device_data->_d_pz.data()),
-         thrust::raw_pointer_cast(_d_prev_px.data()),
-         thrust::raw_pointer_cast(_d_prev_py.data()),
-         thrust::raw_pointer_cast(_d_prev_pz.data()),
          thrust::raw_pointer_cast(_device_data->_d_flagX.data()),
          thrust::raw_pointer_cast(_device_data->_d_flagY.data()),
          thrust::raw_pointer_cast(_device_data->_d_flagZ.data()));
@@ -203,7 +204,7 @@ void DefaultPositionController::Updatebm() {
   // _current_step += 1;
   // std::cout << _current_step << std::endl;
   op::UpdatePositionFlagOpbm<device::DEVICE_GPU>()(
-       *(_structure_info_data->_num_atoms),_fmt2v, _dt, test_current_step,*_box,
+       *(_structure_info_data->_num_atoms),_fmt2v, _par_a,_par_b, _dt, test_current_step,*_box,
        thrust::raw_pointer_cast(_device_data->_d_atoms_type.data()),
        thrust::raw_pointer_cast(_device_data->_d_fx.data()),
        thrust::raw_pointer_cast(_device_data->_d_fy.data()),

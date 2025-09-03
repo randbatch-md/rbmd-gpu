@@ -30,6 +30,8 @@ class DefaultPositionController : public PositionController {
   rbmd::Real _d2 = 0.0;
   rbmd::Real _d3 = 0.0;
   rbmd::Real _d4 = 0.0;
+  rbmd::Real _par_a = 0.0;
+  rbmd::Real _par_b = 0.0;
   rbmd::Id _current_step;
   thrust::device_vector<rbmd::Real> _d_prev_fx;
   thrust::device_vector<rbmd::Real> _d_prev_fy;
