@@ -37,4 +37,9 @@ protected:
   std::shared_ptr<Box>  _box;
 
   rbmd::Real _pressure;
+
+  bool _com_bias = false;
+
+  std::string _group_name;
+  Real3 _vbias;
 };

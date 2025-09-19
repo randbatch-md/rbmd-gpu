@@ -12,6 +12,10 @@ class DeviceData {
   thrust::device_vector<rbmd::Real> _d_py;
   thrust::device_vector<rbmd::Real> _d_pz;
 
+  thrust::device_vector<rbmd::Real> _d_unwarp_px;
+  thrust::device_vector<rbmd::Real> _d_unwarp_py;
+  thrust::device_vector<rbmd::Real> _d_unwarp_pz;
+
   thrust::device_vector<rbmd::Real> _d_shake_px;
   thrust::device_vector<rbmd::Real> _d_shake_py;
   thrust::device_vector<rbmd::Real> _d_shake_pz;
@@ -124,6 +128,12 @@ class DeviceData {
   thrust::device_vector<rbmd::Real> _d_fx;
   thrust::device_vector<rbmd::Real> _d_fy;
   thrust::device_vector<rbmd::Real> _d_fz;
+  // thrust::device_vector<rbmd::Real> _d_prev_fx;
+  // thrust::device_vector<rbmd::Real> _d_prev_fy;
+  // thrust::device_vector<rbmd::Real> _d_prev_fz;
+  // thrust::device_vector<rbmd::Real> _d_pr_prev_fx;
+  // thrust::device_vector<rbmd::Real> _d_pr_prev_fy;
+  // thrust::device_vector<rbmd::Real> _d_pr_prev_fz;
   //lj_cut + coul_cut
   thrust::device_vector<rbmd::Real> _d_force_ljcoul_x;
   thrust::device_vector<rbmd::Real> _d_force_ljcoul_y;

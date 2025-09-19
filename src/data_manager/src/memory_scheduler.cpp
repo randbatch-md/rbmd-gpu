@@ -63,6 +63,10 @@ bool MemoryScheduler::asyncMemoryH2D() {
   _device_data->_d_flagX.resize(num_atoms);
   _device_data->_d_flagY.resize(num_atoms);
   _device_data->_d_flagZ.resize(num_atoms);
+  _device_data->_d_unwarp_px.resize(num_atoms);
+  _device_data->_d_unwarp_py.resize(num_atoms);
+  _device_data->_d_unwarp_pz.resize(num_atoms);
+
   _device_data->_d_shake_vx.resize(num_atoms);
   _device_data->_d_shake_vy.resize(num_atoms);
   _device_data->_d_shake_vz.resize(num_atoms);
@@ -97,6 +101,14 @@ bool MemoryScheduler::asyncMemoryH2D() {
   // thrust::copy(h_fx, h_fx + num_atoms, _device_data->_d_fx.begin());
   // thrust::copy(h_fy, h_fy + num_atoms, _device_data->_d_fy.begin());
   // thrust::copy(h_fz, h_fz + num_atoms, _device_data->_d_fz.begin());
+
+  // _device_data->_d_prev_fx.resize(num_atoms);
+  // _device_data->_d_prev_fy.resize(num_atoms);
+  // _device_data->_d_prev_fz.resize(num_atoms);
+  // _device_data->_d_pr_prev_fx.resize(num_atoms);
+  // _device_data->_d_pr_prev_fy.resize(num_atoms);
+  // _device_data->_d_pr_prev_fz.resize(num_atoms);
+
 
   _device_data->_d_force_ljcoul_x.resize(num_atoms);
   _device_data->_d_force_ljcoul_y.resize(num_atoms);

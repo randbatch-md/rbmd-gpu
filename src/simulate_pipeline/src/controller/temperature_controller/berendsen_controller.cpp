@@ -4,10 +4,11 @@
 
 #include <cmath>
 
+#include "common/thermo_stats.hpp"
 #include "device_types.h"
+#include "src/controller/group_controller/group_controller.h"
 #include "unit_factor.h"
 #include "update_temperature_op.h"
-#include "common/thermo_stats.hpp"
 
 rbmd::Real test_temperature;
 extern int test_current_step;
@@ -51,6 +52,21 @@ void BerendsenController::Init() {
   }
   ThermoStats::Instance().AddThermoData("temperature",_temperature_start);
   ThermoStats::Instance().AddThermoData("pressure",0.0);
+
+  //读取group并初始化GroupController
+  _group_name = DataManager::getInstance().getConfigData()->Get<std::string>(
+      "group", "execution"); // 假设配置在 execution -> group = "all"
+  if (_group_name.empty()) {
+    _group_name = "all"; // 默认使用"all"组
+  }
+  GroupController::GetInstance().Init();
+
+  //
+   auto com_bias = DataManager::getInstance().getConfigData()->Get<std::string>(
+    "com_bias", "execution"); // 假设配置在 execution -> com_bias
+   if ("yes" == com_bias ) {
+     _com_bias = true;
+   }
 }
 
 void BerendsenController::Update() {
@@ -62,13 +78,24 @@ void BerendsenController::Update() {
 void BerendsenController::ComputeTemperature() {
   rbmd::Id num_atoms = *(_structure_info_data->_num_atoms);
   CHECK_RUNTIME(MEMSET(_d_temp_contrib, 0, sizeof(rbmd::Real)));
-
-  op::ComputeTemperatureOp<device::DEVICE_GPU>()(num_atoms, _mvv2e,
-      thrust::raw_pointer_cast(_device_data->_d_atoms_type.data()),
-      thrust::raw_pointer_cast(_device_data->_d_mass.data()),
-      thrust::raw_pointer_cast(_device_data->_d_vx.data()),
-      thrust::raw_pointer_cast(_device_data->_d_vy.data()),
-      thrust::raw_pointer_cast(_device_data->_d_vz.data()), _d_temp_contrib);
+  if (_com_bias) {
+    //  计算质心速度 (vbias)
+    GroupController::GetInstance().ComputeVCM(_group_name, _vbias);
+    op::ComputeTemperatureCOMOp<device::DEVICE_GPU>()(num_atoms, _mvv2e,_vbias,
+        thrust::raw_pointer_cast(_device_data->_d_atoms_type.data()),
+        thrust::raw_pointer_cast(_device_data->_d_mass.data()),
+        thrust::raw_pointer_cast(_device_data->_d_vx.data()),
+        thrust::raw_pointer_cast(_device_data->_d_vy.data()),
+        thrust::raw_pointer_cast(_device_data->_d_vz.data()), _d_temp_contrib);
+  }
+  else {
+    op::ComputeTemperatureOp<device::DEVICE_GPU>()(num_atoms, _mvv2e,
+        thrust::raw_pointer_cast(_device_data->_d_atoms_type.data()),
+        thrust::raw_pointer_cast(_device_data->_d_mass.data()),
+        thrust::raw_pointer_cast(_device_data->_d_vx.data()),
+        thrust::raw_pointer_cast(_device_data->_d_vy.data()),
+        thrust::raw_pointer_cast(_device_data->_d_vz.data()), _d_temp_contrib);
+  }
 
   CHECK_RUNTIME(MEMCPY(&_temp_sum, _d_temp_contrib, sizeof(rbmd::Real), D2H));
 
@@ -129,10 +156,21 @@ void BerendsenController::UpdataVelocity() {
   // coeff_berendsen
   rbmd::Real coeff_berendsen =
       SQRT(1.0 + (_dt / _temperature_damp) * (_t_target/ _temperature - 1.0));
-
-  op::UpdataVelocityRescaleOp<device::DEVICE_GPU>()(
-                    *(_structure_info_data->_num_atoms), coeff_berendsen,
-                     thrust::raw_pointer_cast(_device_data->_d_vx.data()),
-                     thrust::raw_pointer_cast(_device_data->_d_vy.data()),
-                     thrust::raw_pointer_cast(_device_data->_d_vz.data()));
+  //
+  if (_com_bias) {
+    // 这个新Op在一个内核里完成 remove-bias -> scale -> restore-bias
+    op::UpdateVelocityBerendsenCOMOp<device::DEVICE_GPU>()(
+        *(_structure_info_data->_num_atoms),
+        coeff_berendsen,_vbias,
+        thrust::raw_pointer_cast(_device_data->_d_vx.data()),
+        thrust::raw_pointer_cast(_device_data->_d_vy.data()),
+        thrust::raw_pointer_cast(_device_data->_d_vz.data()));
+  }
+  else {
+    op::UpdataVelocityRescaleOp<device::DEVICE_GPU>()(
+                  *(_structure_info_data->_num_atoms), coeff_berendsen,
+                   thrust::raw_pointer_cast(_device_data->_d_vx.data()),
+                   thrust::raw_pointer_cast(_device_data->_d_vy.data()),
+                   thrust::raw_pointer_cast(_device_data->_d_vz.data()));
+  }
 }

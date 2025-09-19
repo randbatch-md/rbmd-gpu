@@ -61,6 +61,9 @@ NPTensemble::NPTensemble() {
 
   //shake
   _shake_controller = std::make_shared<ShakeController>();
+
+  _integration_type = DataManager::getInstance().getConfigData()->Get
+  <std::string>("integration_type", "execution");
 }
 
 void NPTensemble::Init() {
@@ -93,50 +96,61 @@ void NPTensemble::Solve() {
   bool use_shake = DataManager::getInstance().getConfigData()->GetJudge
     <bool>("fix_shake", "hyper_parameters", "extend");
 
-  if("NOSE_HOOVER" == _press_ctrl_type && "NOSE_HOOVER" == _temp_ctrl_type)
-  {
-    _NoseHoover_controller->InitialIntegrate();//_velocity_controller->Update();
-                                           //_position_controller->Update();
-    if (true == use_shake)
+  if ("vv" ==_integration_type) {
+    if("NOSE_HOOVER" == _press_ctrl_type && "NOSE_HOOVER" == _temp_ctrl_type)
     {
-      _shake_controller->ShakeA();
+      _NoseHoover_controller->InitialIntegrate();//_velocity_controller->Update();
+      //_position_controller->Update();
+      if (true == use_shake)
+      {
+        _shake_controller->ShakeA();
+      }
+
+      _force_controller->Execute();
+
+      _NoseHoover_controller->FinalIntegrate(); //_velocity_controller->Update();
+
+      if (true == use_shake)
+      {
+        _shake_controller->ShakeB();
+      }
     }
-
-    _force_controller->Execute();
-
-    _NoseHoover_controller->FinalIntegrate(); //_velocity_controller->Update();
-
-    if (true == use_shake)
+    else
     {
-      _shake_controller->ShakeB();
+      _velocity_controller->Update();     //
+
+      _position_controller->Update();       //
+
+      bool use_shake = false; //TODO: json file
+      if (true == use_shake)
+      {
+        _shake_controller->ShakeA();
+      }
+
+      _force_controller->Execute();       //
+
+      _velocity_controller->Update();       //
+
+      if (true == use_shake)
+      {
+        _shake_controller->ShakeB();
+      }
+
+      _temperature_controller->ComputeTemperature();       //
+
+      _temperature_controller->Update();        //
+      //
+      _pressure_controller->Update();       //
     }
   }
-  else
-  {
-     _velocity_controller->Update();     //
+  else if ("bm" ==_integration_type) {
+    _position_controller->Updatebm();
+    _force_controller->Execute();
+    _velocity_controller->Updatebm();
 
-     _position_controller->Update();       //
-
-     bool use_shake = false; //TODO: json file
-     if (true == use_shake)
-     {
-       _shake_controller->ShakeA();
-     }
-
-     _force_controller->Execute();       //
-
-     _velocity_controller->Update();       //
-
-     if (true == use_shake)
-     {
-       _shake_controller->ShakeB();
-     }
-
-     _temperature_controller->ComputeTemperature();       //
-
-     _temperature_controller->Update();        //
-     //
-     _pressure_controller->Update();       //
+    _temperature_controller->ComputeTemperature();
+    _temperature_controller->Update();
+    _pressure_controller->Update();       //
   }
 
   CHECK_RUNTIME(DEVICESYNC());

@@ -25,6 +25,7 @@ class PositionController {
    * controller
    */
   virtual void Init() = 0;
+  virtual void Updatebm() = 0;
 
  protected:
   std::shared_ptr<StructureInfoData> _structure_info_data;

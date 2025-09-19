@@ -1,17 +1,38 @@
 #include "default_velocity_controller.h"
 
+#include <thrust/copy.h>
 #include <thrust/device_ptr.h>
 
 #include "data_manager.h"
 #include "device_types.h"
 #include "neighbor_list/include/linked_cell/linked_cell_locator.h"
+#include "simulate.h"
 #include "unit_factor.h"
 #include "update_velocity_op.h"
-#include <thrust/copy.h>
 
 DefaultVelocityController::DefaultVelocityController(){};
 
 void DefaultVelocityController::Init() {
+
+  auto& num_atoms = *(_structure_info_data->_num_atoms);
+  _d_prev_fx.resize(num_atoms, 0.0);
+  _d_prev_fy.resize(num_atoms, 0.0);
+  _d_prev_fz.resize(num_atoms, 0.0);
+  _d_pr_prev_fx.resize(num_atoms, 0.0);
+  _d_pr_prev_fy.resize(num_atoms, 0.0);
+  _d_pr_prev_fz.resize(num_atoms, 0.0);
+
+  // _d_prev_fx =_device_data->_d_fx;
+  // _d_prev_fy =_device_data->_d_fy;
+  // _d_prev_fz =_device_data->_d_fz;
+  // _d_pr_prev_fx = _d_prev_fx;
+  // _d_pr_prev_fy = _d_prev_fy;
+  // _d_pr_prev_fz = _d_prev_fz;
+
+  _par_a = DataManager::getInstance().getConfigData()->Get<rbmd::Real>(
+          "par_a", "execution");
+  _par_b = DataManager::getInstance().getConfigData()->Get<rbmd::Real>(
+          "par_b", "execution");
 
   _dt = DataManager::getInstance().getConfigData()->Get<rbmd::Real>(
           "timestep", "execution");//0.001
@@ -57,4 +78,24 @@ void DefaultVelocityController::Update() {
       thrust::raw_pointer_cast(_device_data->_d_vy.data()),
       thrust::raw_pointer_cast(_device_data->_d_vz.data()));
 
+}
+
+void DefaultVelocityController::Updatebm(){
+   //std::cout << "test_current_step--v: "  << test_current_step <<  std::endl;
+  op::UpdateVelocityOpbm<device::DEVICE_GPU>()(
+      *(_structure_info_data->_num_atoms), _par_a,_par_b, _dt, test_current_step, _fmt2v,
+      thrust::raw_pointer_cast(_device_data->_d_atoms_type.data()),
+      thrust::raw_pointer_cast(_device_data->_d_mass.data()),
+      thrust::raw_pointer_cast(_device_data->_d_fx.data()),
+      thrust::raw_pointer_cast(_device_data->_d_fy.data()),
+      thrust::raw_pointer_cast(_device_data->_d_fz.data()),
+      thrust::raw_pointer_cast(_d_prev_fx.data()),
+      thrust::raw_pointer_cast(_d_prev_fy.data()),
+      thrust::raw_pointer_cast(_d_prev_fz.data()),
+      thrust::raw_pointer_cast(_d_pr_prev_fx.data()),
+      thrust::raw_pointer_cast(_d_pr_prev_fy.data()),
+      thrust::raw_pointer_cast(_d_pr_prev_fz.data()),
+      thrust::raw_pointer_cast(_device_data->_d_vx.data()),
+      thrust::raw_pointer_cast(_device_data->_d_vy.data()),
+      thrust::raw_pointer_cast(_device_data->_d_vz.data()));
 }

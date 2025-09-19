@@ -1,17 +1,19 @@
 #include "nose_hoover_controller.h"
-#include "temperature_controller.h"
-#include "update_temperature_op.h"
-#include <thrust/device_ptr.h>
 
-#include <cmath>
-
-#include "device_types.h"
-#include "unit_factor.h"
-#include "update_pressure_op.h"
-#include "simulate.h"
+// #include <thrust/device_ptr.h>
+//
+// #include <cmath>
+//
+#include "common/thermo_stats.hpp"
 #include "default_position_controller.h"
 #include "default_velocity_controller.h"
-#include "common/thermo_stats.hpp"
+// #include "device_types.h"
+#include "../simulate_pipeline/src/controller/group_controller/group_controller.h"
+// #include "simulate.h"
+//
+#include "unit_factor.h"
+#include "update_pressure_op.h"
+#include "update_temperature_op.h"
 extern int test_current_step;
 
 NoseHooverController::NoseHooverController() {
@@ -159,6 +161,21 @@ void NoseHooverController::Init() {
     _etap[ich] = _etap_dot[ich] = _etap_dotdot[ich] = 0.0;
   }
 
+  //读取group并初始化GroupController
+  _group_name = DataManager::getInstance().getConfigData()->Get<std::string>(
+      "group", "execution"); // 假设配置在 execution -> group = "all"
+  if (_group_name.empty()) {
+    _group_name = "all"; // 默认使用"all"组
+  }
+  GroupController::GetInstance().Init();
+
+  //
+  auto com_bias = DataManager::getInstance().getConfigData()->Get<std::string>(
+   "com_bias", "execution"); // 假设配置在 execution -> com_bias
+  if ("yes" == com_bias ) {
+    _com_bias = true;
+  }
+
   //Nose-Hoover parameters init
   SetUp();
 
@@ -174,12 +191,25 @@ void NoseHooverController::ComputeTemperature(){
   rbmd::Id num_atoms = *(_structure_info_data->_num_atoms);
   CHECK_RUNTIME(MEMSET(_d_temp_contrib, 0, sizeof(rbmd::Real)));
 
-  op::ComputeTemperatureOp<device::DEVICE_GPU>()(num_atoms, _mvv2e,
-      thrust::raw_pointer_cast(_device_data->_d_atoms_type.data()),
-      thrust::raw_pointer_cast(_device_data->_d_mass.data()),
-      thrust::raw_pointer_cast(_device_data->_d_vx.data()),
-      thrust::raw_pointer_cast(_device_data->_d_vy.data()),
-      thrust::raw_pointer_cast(_device_data->_d_vz.data()), _d_temp_contrib);
+  if (_com_bias) {
+    //  计算质心速度 (vbias)
+    GroupController::GetInstance().ComputeVCM(_group_name, _vbias);
+    op::ComputeTemperatureCOMOp<device::DEVICE_GPU>()(num_atoms, _mvv2e,_vbias,
+        thrust::raw_pointer_cast(_device_data->_d_atoms_type.data()),
+        thrust::raw_pointer_cast(_device_data->_d_mass.data()),
+        thrust::raw_pointer_cast(_device_data->_d_vx.data()),
+        thrust::raw_pointer_cast(_device_data->_d_vy.data()),
+        thrust::raw_pointer_cast(_device_data->_d_vz.data()), _d_temp_contrib);
+  }
+  else {
+    op::ComputeTemperatureOp<device::DEVICE_GPU>()(num_atoms, _mvv2e,
+    thrust::raw_pointer_cast(_device_data->_d_atoms_type.data()),
+    thrust::raw_pointer_cast(_device_data->_d_mass.data()),
+    thrust::raw_pointer_cast(_device_data->_d_vx.data()),
+    thrust::raw_pointer_cast(_device_data->_d_vy.data()),
+    thrust::raw_pointer_cast(_device_data->_d_vz.data()), _d_temp_contrib);
+  }
+
 
   CHECK_RUNTIME(MEMCPY(&_temp_sum, _d_temp_contrib, sizeof(rbmd::Real), D2H));
 
@@ -546,13 +576,23 @@ void NoseHooverController::NHCTempIntegrate()
     _eta_dot[0] *= expfac;
 
     _factor_eta = EXP(-ncfac * _dthalf * _eta_dot[0]);
-    //nh_v_temp();  Update of dt/2
-    op::UpdataVelocityRescaleOp<device::DEVICE_GPU>()(
-      *(_structure_info_data->_num_atoms), _factor_eta,
-      thrust::raw_pointer_cast(_device_data->_d_vx.data()),
-      thrust::raw_pointer_cast(_device_data->_d_vy.data()),
-      thrust::raw_pointer_cast(_device_data->_d_vz.data()));
 
+    //nh_v_temp();  Update of dt/2
+    if (_com_bias) {
+      // 这个新Op在一个内核里完成 remove-bias -> scale -> restore-bias
+      op::UpdateVelocityBerendsenCOMOp<device::DEVICE_GPU>()(
+          *(_structure_info_data->_num_atoms),_factor_eta,_vbias,
+          thrust::raw_pointer_cast(_device_data->_d_vx.data()),
+          thrust::raw_pointer_cast(_device_data->_d_vy.data()),
+          thrust::raw_pointer_cast(_device_data->_d_vz.data()));
+    }
+    else {
+      op::UpdataVelocityRescaleOp<device::DEVICE_GPU>()(
+        *(_structure_info_data->_num_atoms), _factor_eta,
+        thrust::raw_pointer_cast(_device_data->_d_vx.data()),
+        thrust::raw_pointer_cast(_device_data->_d_vy.data()),
+        thrust::raw_pointer_cast(_device_data->_d_vz.data()));
+    }
     // rescale temperature due to velocity scaling
      _temperature = _temperature * _factor_eta * _factor_eta;
 
@@ -766,5 +806,81 @@ void NoseHooverController::Computedof()
   if (shake == true)
   {
     _tdof = _tdof - num_atoms;
+  }
+}
+
+void NoseHooverController::InitialBM() {
+    // ---------------------------------------------------------------------------------
+    //  步骤 1: 恒温器/恒压器演化 & 第一次速度/位置缩放 (Operator A: for dt/2)
+    // ---------------------------------------------------------------------------------
+    // 演化恒温器链 (thermostat chain) for dt/2
+    ComputeTempTarget();
+    NHCTempIntegrate(); // 该函数应包含半步积分逻辑 (内部使用 _dthalf)
+
+    // 如果是NPT，演化恒压器链 (barostat chain) for dt/2
+    if (_pressure_flag)
+    {
+      //ComputeTempe();     //current temperature
+      ComputePressure();  //current pressure
+      Couple();
+
+      //
+      ComputePressTarget(); // target pressure
+      NHOmegaDot();
+      NH_V_Press();
+    }
+
+    if (_pressure_flag)
+    {
+      ResetBox();    // reset box in the first half-step
+    }
+
+    // ---------------------------------------------------------------------------------
+    //  步骤 2: 核心 Beeman 积分 (Operator B: for dt)
+    // ---------------------------------------------------------------------------------
+    // 2a. Beeman 位置更新
+    _position_controller->Updatebm();
+
+    if (_pressure_flag)
+    {
+      ResetBox(); // Reset the box in the second half-step
+    }
+}
+
+void NoseHooverController::FinalBM() {
+  // 2c. Beeman 速度更新 (校正步)
+  // 使用新力 F(t+dt), 中间力 F(t), 和上一步的力 F(t-dt)
+  _velocity_controller->Updatebm();
+
+  if (_pressure_flag)
+  {
+    NH_V_Press();
+  }
+
+  // need to compute new temperature and pressure after velocities rescaled
+  ComputeTemperature(); // current temperature
+
+  if (_pressure_flag)
+  {
+    ComputePressure(); // current pressure
+    Couple();
+    NHOmegaDot();
+  }
+
+  // update eta_dot
+  // update eta_press_dot
+  NHCTempIntegrate();
+
+  if (_pressure_flag)
+  {
+    NHCPressIntegrate();
+  }
+
+  // ---------------------------------------------------------------------------------
+  //  步骤 3: 输出热力学统计信息
+  // ---------------------------------------------------------------------------------
+  ThermoStats::Instance().AddThermoData("temperature", _temperature);
+  if (_pressure_flag) {
+    ThermoStats::Instance().AddThermoData("pressure", _pressure);
   }
 }

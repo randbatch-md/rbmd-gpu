@@ -39,6 +39,9 @@ public:
   void X2Lamda();
   void Lamda2X();
 
+  void InitialBM();
+  void FinalBM();
+
 protected:
   std::shared_ptr<PositionController> _position_controller;
   std::shared_ptr<VelocityController> _velocity_controller;

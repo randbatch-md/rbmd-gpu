@@ -2,6 +2,7 @@
 #include "device_types.h"
 #include "types.h"
 #include "common/device_types.h"
+#include  "../common/rbmd_define.h"
 
 namespace op {
 template <typename DEVICE>
@@ -53,6 +54,22 @@ struct UpdataForceLangevinOp
 			            rbmd::Real* fz);
 };
 
+template <typename DEVICE>
+struct ComputeTemperatureCOMOp {
+  void operator()(const int num_atoms,
+  const rbmd::Real mvv2e,const Real3 vbias,const int* atoms_type,
+  const rbmd::Real* mass,const rbmd::Real* vx, const rbmd::Real* vy,
+  const rbmd::Real* vz,rbmd::Real* temp_contrib);
+};
+
+template <typename DEVICE>
+struct UpdateVelocityBerendsenCOMOp {
+  void operator()(const int num_atoms,
+    const rbmd::Real coeff, const Real3 vbias,
+    rbmd:: Real* vx,rbmd::Real* vy,  rbmd::Real* vz);
+};
+
+/////////////////////////////////
 template <>
 struct ComputeTemperatureOp<device::DEVICE_GPU>
 {
@@ -106,4 +123,19 @@ struct UpdataVelocityBerendsenOp<device::DEVICE_GPU> {
 			            rbmd::Real* fy,
 			            rbmd::Real* fz);
 	};
+
+template <>
+struct ComputeTemperatureCOMOp<device::DEVICE_GPU> {
+  void operator()(const int num_atoms,
+  const rbmd::Real mvv2e,const Real3 vbias,const int* atoms_type,
+  const rbmd::Real* mass,const rbmd::Real* vx, const rbmd::Real* vy,
+  const rbmd::Real* vz,rbmd::Real* temp_contrib);
+};
+
+template <>
+struct UpdateVelocityBerendsenCOMOp<device::DEVICE_GPU> {
+  void operator()(const int num_atoms,
+    const rbmd::Real coeff, const Real3 vbias,
+    rbmd:: Real* vx,rbmd::Real* vy,  rbmd::Real* vz);
+};
 }

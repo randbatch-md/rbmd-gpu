@@ -20,8 +20,8 @@ class Simulate : public Object {
   // Json::Value _exec_node;
   std::shared_ptr<Ensemble>& _simulate_pipeline;
   std::shared_ptr<Output>& _output;
-  float _time_step;
-  float _current_time;
+   float _time_step;
+   float _current_time;
 
   int _num_steps;
   int _current_step;

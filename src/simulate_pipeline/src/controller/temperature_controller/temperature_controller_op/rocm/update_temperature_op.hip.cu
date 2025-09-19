@@ -101,6 +101,49 @@ __global__
 	}
 
 
+// 新增的带COM移除的温度计算内核
+__global__ void compute_temperature_com_kernel(const int num_atoms,
+  const rbmd::Real mvv2e,const Real3 vbias,const int* atoms_type,
+  const rbmd::Real* mass,const rbmd::Real* vx, const rbmd::Real* vy,
+  const rbmd::Real* vz,rbmd::Real* temp_contrib)
+{
+  __shared__ typename BLOCKREDUCE<rbmd::Real, BLOCK_SIZE>::TempStorage
+    temp_storage;
+
+  rbmd::Real local_temp = 0;
+
+  int tid = threadIdx.x + blockIdx.x * blockDim.x;
+  if (tid < num_atoms) {
+    rbmd::Real dvx = vx[tid] - vbias.x;
+    rbmd::Real dvy = vy[tid] - vbias.y;
+    rbmd::Real dvz = vz[tid] - vbias.z;
+
+    local_temp = mvv2e * mass[atoms_type[tid]] *
+                 (dvx * dvx + dvy * dvy + dvz * dvz);
+    //printf("local_temp: %f\n",local_temp);
+  }
+
+  rbmd::Real block_sum =
+      BLOCKREDUCE<rbmd::Real, BLOCK_SIZE>(temp_storage).Sum(local_temp);
+  if (threadIdx.x == 0) {
+    atomicAdd(temp_contrib, block_sum);
+  }
+}
+
+// 新增的带COM处理的Berendsen速度更新内核
+__global__ void update_velocity_berendsen_com_kernel(const int num_atoms,
+    const rbmd::Real coeff, const Real3 vbias,
+    rbmd:: Real* vx,rbmd::Real* vy,  rbmd::Real* vz)
+{
+  int i = blockIdx.x * blockDim.x + threadIdx.x;
+  if (i < num_atoms) {
+    // Remove bias, scale, restore bias
+    vx[i] = (vx[i] - vbias.x) * coeff + vbias.x;
+    vy[i] = (vy[i] - vbias.y) * coeff + vbias.y;
+    vz[i] = (vz[i] - vbias.z) * coeff + vbias.z;
+  }
+}
+
 void ComputeTemperatureOp<device::DEVICE_GPU>::operator()(const rbmd::Id num_atoms,
 		                                                  const rbmd::Real mvv2e,
 														  const rbmd::Id* atoms_type,
@@ -161,5 +204,24 @@ void UpdataForceLangevinOp<device::DEVICE_GPU>::operator()(const rbmd::Id num_at
 		unsigned int blocks_per_grid = (num_atoms + BLOCK_SIZE - 1) / BLOCK_SIZE;
 		CHECK_KERNEL(UpdataForceLangevin <<<blocks_per_grid, BLOCK_SIZE, 0, 0 >>> (num_atoms, gaussian_x, gaussian_y, gaussian_z, kbT, gamma, dt, mass, vx, vy, vz, fx, fy, fz));
 	}
+
+void ComputeTemperatureCOMOp<device::DEVICE_GPU>::operator()(const int num_atoms,
+  const rbmd::Real mvv2e,const Real3 vbias,const int* atoms_type,
+  const rbmd::Real* mass,const rbmd::Real* vx, const rbmd::Real* vy,
+  const rbmd::Real* vz,rbmd::Real* temp_contrib) {
+  // ... 计算blocks和threads ...
+  unsigned int blocks_per_grid = (num_atoms + BLOCK_SIZE - 1) / BLOCK_SIZE;
+  CHECK_KERNEL(compute_temperature_com_kernel<<<blocks_per_grid, BLOCK_SIZE, 0, 0 >>>
+    (num_atoms,mvv2e,vbias,atoms_type,mass,vx,vy,vz,temp_contrib));
+}
+
+void UpdateVelocityBerendsenCOMOp<device::DEVICE_GPU>::operator()(const int num_atoms,
+    const rbmd::Real coeff, const Real3 vbias,
+    rbmd:: Real* vx,rbmd::Real* vy,  rbmd::Real* vz) {
+  // ... 计算blocks和threads ...
+  unsigned int blocks_per_grid = (num_atoms + BLOCK_SIZE - 1) / BLOCK_SIZE;
+  CHECK_KERNEL(update_velocity_berendsen_com_kernel<<<blocks_per_grid, BLOCK_SIZE, 0, 0 >>>
+    (num_atoms,coeff,vbias,vx,vy,vz));
+}
 
 }  // namespace op
