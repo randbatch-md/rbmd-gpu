@@ -19,6 +19,9 @@
 #include "output/include/TrajectoryOutput.h"
 #include "output/include/linux_pipe_sink.hpp"
 #include "tersoff_memory_scheduler.h"
+#if USE_MACE
+   #include "mace_memory_scheduler.h"
+#endif
 MDApplication::MDApplication(int argc, char* argv[])
   : Application(argc, argv),
   _cmd(std::make_shared<CommandLine>(argc, argv))
@@ -152,6 +155,13 @@ int MDApplication::ReadMDData() {
   else if ("Tersoff" == force_type)
   {
     memory_scheduler = std::make_shared<TersoffMemoryScheduler>();
+  }
+  else  if ("MACE" == force_type) {
+    #if USE_MACE
+    memory_scheduler = std::make_shared<MACEMemoryScheduler>();
+    #else
+    std::cout<<"MACE support was not compiled in. Please rebuild with USE_MACE=ON"<<std::endl;
+    #endif
   }
   else {
     Logger::Instance().error("\033[31m Unsupported force_field type: {}\033[0m", force_type );

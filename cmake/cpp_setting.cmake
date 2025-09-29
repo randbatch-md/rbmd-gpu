@@ -7,8 +7,8 @@ macro(config_cpp name)
 	${CMAKE_CURRENT_LIST_DIR}/../
 	${CMAKE_CURRENT_LIST_DIR}/include/)
 
-	#target_compile_features(${name} PRIVATE cxx_std_17)
-	target_compile_features(${name} PRIVATE cxx_std_14)
+	target_compile_features(${name} PRIVATE cxx_std_17)
+	#target_compile_features(${name} PRIVATE cxx_std_14)
 
 	#default release
 	if(CMAKE_BUILD_TYPE STREQUAL "")
@@ -48,6 +48,27 @@ macro(get_src_include)
 	# Recursively find all .cu files
     file(GLOB_RECURSE CU_FILE ${CMAKE_CURRENT_LIST_DIR}/src/*.cu)
     # message("${name} CU_FILE: " ${CU_FILE})
+    if(NOT USE_MACE)
+        set(MACE_FILES
+         "${CMAKE_CURRENT_LIST_DIR}/src/mace_memory_scheduler.cpp"
+         "${CMAKE_CURRENT_LIST_DIR}/src/op/rocm/mace_neighbor_list_op.hip.cu"
+         "${CMAKE_CURRENT_LIST_DIR}/include/maceload.h"
+         "${CMAKE_CURRENT_LIST_DIR}/src/maceload.cpp"
+         "${CMAKE_CURRENT_LIST_DIR}/src/op/mace_neighbor_list_op.h"
+         "${CMAKE_CURRENT_LIST_DIR}/include/neighbor_list_builder/mace_neighbor_list_builder.h"
+         "${CMAKE_CURRENT_LIST_DIR}/src/neighbor_list_builder/mace_neighbor_list_builder.cpp"
+         "${CMAKE_CURRENT_LIST_DIR}/include/scheduler/mace_memory_scheduler.h"
+         "${CMAKE_CURRENT_LIST_DIR}/include/force_field/mace_force_field_data.h"
+        )
+
+        foreach(file ${MACE_FILES})
+            list(REMOVE_ITEM SRC ${file})
+            list(REMOVE_ITEM CU_FILE ${file})
+            list(REMOVE_ITEM H_FILE ${file})
+            list(REMOVE_ITEM H_FILE_I ${file})
+        endforeach()
+    endif()
+
 endmacro()
 
 #default static library
@@ -81,8 +102,11 @@ function(cpp_library)
 	#depends
 	target_include_directories(${lib_name} PRIVATE ${lib_depends_include})
 	target_link_directories(${lib_name} PRIVATE ${lib_depends_link_dir})
-	target_link_libraries(${lib_name} ${lib_depends_name})
-
+        if(USE_MACE)  
+	target_link_libraries(${lib_name} PRIVATE ${lib_depends_name})
+        else()
+        target_link_libraries(${lib_name} ${lib_depends_name})
+        endif()
 	#install
 	#to do
 
