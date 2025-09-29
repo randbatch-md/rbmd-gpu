@@ -57,10 +57,10 @@ void maceload::Init()
   torch::jit::getExecutorMode() = true;
   auto& num_atoms = *(_structure_info_data->_num_atoms);
   n_nodes = num_atoms;//不能正常读入
-  #if USE_MACE
-    std::cout << "ENABLED" << std::endl;
-  #endif
-  std::cout << n_nodes<<" atoms " << std::endl;
+//  #if USE_MACE
+//    std::cout << "ENABLED" << std::endl;
+//  #endif
+//  std::cout << n_nodes<<" atoms " << std::endl;
   //输出原子数
   vflag_global = false;
   std::string path_ = DataManager::getInstance().getConfigData()->Get<std::string>("model_file", "hyper_parameters", "force_field");
@@ -87,7 +87,7 @@ void maceload::Init()
 
   r_max = model.attr("r_max").toTensor();
   mace_r_max = r_max.item<double>();
-  std::cout<<"MACE cutoff :"<<mace_r_max<<" Angstrom"<<std::endl;
+  //std::cout<<"MACE cutoff :"<<mace_r_max<<" Angstrom"<<std::endl;
   _linked_cell->_cutoff = mace_r_max+0.0001;
   //_linked_cell->_cutoff= 7.0;
   //double num_inter = model.attr("num_interactions").toTensor().item<double>();
@@ -175,7 +175,7 @@ void maceload::Init()
   //load_atomid();
   model.eval();
   //loadedges();
-  std::cout <<"init over" << std::endl;
+  //std::cout <<"init over" << std::endl;
 }
 void maceload::Execute()
 {
@@ -192,7 +192,7 @@ void maceload::Execute()
   auto neighbor = std::chrono::duration_cast<std::chrono::milliseconds>(edges- start);
   auto duration = std::chrono::duration_cast<std::chrono::microseconds>(end - edges);
   //std::cout<<"edges time: "<<neighbor.count()<<" ms"<<std::endl;
-  std::cout<<"forward time: "<<duration.count()<<" micros"<<std::endl;
+  //std::cout<<"forward time: "<<duration.count()<<" micros"<<std::endl;
   //TimingStatistics::Instance().record("Short-Range",duration_rbl_force.count());
 
 }
@@ -464,7 +464,7 @@ void maceload::loadedges(){
     rbmd::Id(0),
     thrust::plus<rbmd::Id>()
 );
-  std::cout <<"n_edges: "<< n_edges<<"\n";
+  //std::cout <<"n_edges: "<< n_edges<<"\n";
 //3
 
 
@@ -748,7 +748,7 @@ void maceload::forward() {
     //auto end_time = std::chrono::high_resolution_clock::now();
     auto xytime = std::chrono::duration_cast<std::chrono::microseconds>(y_time - x_time);
     //auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end_time - start_time);
-     std::cout << "xy: " << xytime.count() << " microseconds" << std::endl;
+    // std::cout << "xy: " << xytime.count() << " microseconds" << std::endl;
     //std::cout << "forward: " << duration.count() << " milliseconds" << std::endl;
     //std::cout << "模型前向完成" << std::endl;
 
@@ -757,7 +757,7 @@ void maceload::forward() {
     #if USE_DOUBLE
     energy = output.at("total_energy_local").toTensor();//gpu double
     double eng_vdwl = energy.item<double>();
-    std::cout << eng_vdwl<< std::endl;
+    //std::cout << eng_vdwl<< std::endl;
     forces = output.at("forces").toTensor();//gpu float
     auto forces_t = forces.transpose(0, 1).contiguous()*tokcalmol;
     double* forces_data_ptr = forces_t.data_ptr<double>();

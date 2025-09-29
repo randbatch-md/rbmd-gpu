@@ -54,7 +54,7 @@ NVTensemble::NVTensemble()
   //force_type
   auto force_type = DataManager::getInstance().getConfigData()->Get<std::string>
   ("type", "hyper_parameters", "force_field");
-  std::cout<<force_type<<std::endl;
+  //std::cout<<force_type<<std::endl;
   if (auto it = force_map.find(force_type); it != force_map.end())
   {
     _force_controller = it->second();

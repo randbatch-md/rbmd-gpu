@@ -78,7 +78,7 @@ void MACENeighborListBuilder::ComputeNeighborCellsWithoutPBC() {
 }
 
 void MACENeighborListBuilder::EstimateNeighborsList() {
-  std::cout << "\033[31mresizing neighbor list array...\033[0m" << std::endl;
+ // std::cout << "\033[31mresizing neighbor list array...\033[0m" << std::endl;
   rbmd::Id* d_total_max_neighbor_num;
   _trunc_distance_power_2 = _linked_cell->_cutoff * _linked_cell->_cutoff - EPSILON;
   CHECK_RUNTIME(MALLOC(&d_total_max_neighbor_num, sizeof(rbmd::Id)));
