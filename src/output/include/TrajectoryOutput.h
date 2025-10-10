@@ -27,6 +27,9 @@ struct TrajectoryFrame {
   rbmd::Real* h_vx{};
   rbmd::Real* h_vy{};
   rbmd::Real* h_vz{};
+  rbmd::Id* h_ix{};
+  rbmd::Id* h_iy{};
+  rbmd::Id* h_iz{};
   rbmd::Id* h_atoms_type{};
   rbmd::Real* h_charge{};
   rbmd::Id* h_atom_id_to_idx{};

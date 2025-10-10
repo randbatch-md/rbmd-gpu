@@ -25,7 +25,7 @@ class PositionController {
    * controller
    */
   virtual void Init() = 0;
-
+  virtual void PBC(){};
  protected:
   std::shared_ptr<StructureInfoData> _structure_info_data;
   std::shared_ptr<ShakeController> _shake_controller;
