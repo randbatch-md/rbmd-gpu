@@ -25,6 +25,14 @@ class NeighborList {
   thrust::device_vector<rbmd::Id>
       _d_random_neighbor_num{};  // 概率原因，每个原子的随机邻居可能不到neighbor_sample_num个，这里记录每个原子随机挑选的邻居个数
   rbmd::Id _selection_frequency = 0;
+  /// maceedges
+  thrust::device_vector<rbmd::Id> _d_neighbors_atoms{};
+  thrust::device_vector<rbmd::Real> _d_unit_shiftx{};
+  thrust::device_vector<rbmd::Real> _d_unit_shifty{};
+  thrust::device_vector<rbmd::Real> _d_unit_shiftz{};
+  thrust::device_vector<rbmd::Real> _d_shiftx{};
+  thrust::device_vector<rbmd::Real> _d_shifty{};
+  thrust::device_vector<rbmd::Real> _d_shiftz{};
   // for i =_d_random_neighbor[tid*neighbor_sample_num]   i <
   // _d_random_neighbor_num[tid]
   void print(const std::string& filename);
