@@ -71,11 +71,11 @@ NVTensemble::NVTensemble()
 
   //shake
   _shake_controller = std::make_shared<ShakeController>();
-  _integration_type = DataManager::getInstance().getConfigData()->Get
-    <std::string>("integration_type", "execution");
+
+  const auto& config = DataManager::getInstance().getConfigData();
+  _integration_type = config->Get<std::string>("integration_type", "execution");
 
   //
-  const auto& config = DataManager::getInstance().getConfigData();
   if (config->PathExists({"execution","momentum_control"}))
   {
     _momentum_controller = std::make_shared<MomentumController>();
@@ -84,8 +84,9 @@ NVTensemble::NVTensemble()
 
 void NVTensemble::Init() {
   _position_controller->Init();
-  _velocity_controller->Init();
+  // _position_controller->PBC();
 
+  _velocity_controller->Init();
   _force_controller->Init();
   _force_controller->Execute();
   _shake_controller->Init();
@@ -101,6 +102,7 @@ void NVTensemble::Init() {
   if (_momentum_controller) {
     _momentum_controller->Init();
   }
+  std::cout<< "NVTensemble _Init -end "<<std::endl;
 }
 
 void NVTensemble::Presolve() {}

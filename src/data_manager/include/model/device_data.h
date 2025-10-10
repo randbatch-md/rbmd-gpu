@@ -102,6 +102,11 @@ class DeviceData {
   thrust::device_vector<rbmd::Id> _d_dihedral_coeffs_sign;
   thrust::device_vector<rbmd::Id> _d_dihedral_coeffs_multiplicity;
 
+  thrust::device_vector<rbmd::Id> _d_nterms;
+  thrust::device_vector<rbmd::Id> _d_fourier_offsets;
+  thrust::device_vector<rbmd::Real> _d_fourier_cos_shift;
+  thrust::device_vector<rbmd::Real> _d_fourier_sin_shift;
+
   thrust::device_vector<rbmd::Real> _d_dihedral_coeffs_k1;
   thrust::device_vector<rbmd::Real> _d_dihedral_coeffs_k2;
   thrust::device_vector<rbmd::Real> _d_dihedral_coeffs_k3;

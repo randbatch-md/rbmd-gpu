@@ -15,24 +15,6 @@ DefaultVelocityController::DefaultVelocityController(){};
 void DefaultVelocityController::Init() {
 
   auto& num_atoms = *(_structure_info_data->_num_atoms);
-  _d_prev_fx.resize(num_atoms, 0.0);
-  _d_prev_fy.resize(num_atoms, 0.0);
-  _d_prev_fz.resize(num_atoms, 0.0);
-  _d_pr_prev_fx.resize(num_atoms, 0.0);
-  _d_pr_prev_fy.resize(num_atoms, 0.0);
-  _d_pr_prev_fz.resize(num_atoms, 0.0);
-
-  // _d_prev_fx =_device_data->_d_fx;
-  // _d_prev_fy =_device_data->_d_fy;
-  // _d_prev_fz =_device_data->_d_fz;
-  // _d_pr_prev_fx = _d_prev_fx;
-  // _d_pr_prev_fy = _d_prev_fy;
-  // _d_pr_prev_fz = _d_prev_fz;
-
-  _par_a = DataManager::getInstance().getConfigData()->Get<rbmd::Real>(
-          "par_a", "execution");
-  _par_b = DataManager::getInstance().getConfigData()->Get<rbmd::Real>(
-          "par_b", "execution");
 
   _dt = DataManager::getInstance().getConfigData()->Get<rbmd::Real>(
           "timestep", "execution");//0.001
@@ -52,6 +34,23 @@ void DefaultVelocityController::Init() {
       break;
     default:
       break;
+  }
+
+  //
+  const auto& config = DataManager::getInstance().getConfigData();
+  auto integration_type = config->Get<std::string>("integration_type", "execution");
+  if("bm" ==integration_type) {
+    _par_a = DataManager::getInstance().getConfigData()->Get<rbmd::Real>(
+        "par_a", "execution");
+    _par_b = DataManager::getInstance().getConfigData()->Get<rbmd::Real>(
+            "par_b", "execution");
+
+    _d_prev_fx.resize(num_atoms, 0.0);
+    _d_prev_fy.resize(num_atoms, 0.0);
+    _d_prev_fz.resize(num_atoms, 0.0);
+    _d_pr_prev_fx.resize(num_atoms, 0.0);
+    _d_pr_prev_fy.resize(num_atoms, 0.0);
+    _d_pr_prev_fz.resize(num_atoms, 0.0);
   }
 }
 

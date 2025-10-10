@@ -7,6 +7,8 @@
 #include "common/types.h"
 #include "data_manager.h"
 #include "full_neighbor_list_op.h"
+#include "simulate_pipeline/src/controller/position_controller/position_controller_op/update_position_op.h"
+extern int test_current_step;
 
 FullNeighborListBuilder::FullNeighborListBuilder() {
   this->_neighbor_cell_num =

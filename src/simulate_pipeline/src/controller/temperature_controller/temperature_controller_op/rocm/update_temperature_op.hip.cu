@@ -130,20 +130,31 @@ __global__ void compute_temperature_com_kernel(const int num_atoms,
   }
 }
 
-// 新增的带COM处理的Berendsen速度更新内核
-__global__ void update_velocity_berendsen_com_kernel(const int num_atoms,
-    const rbmd::Real coeff, const Real3 vbias,
+
+// remove bias
+__global__ void remove_bias_kernel(const int num_atoms,const Real3 vbias,
     rbmd:: Real* vx,rbmd::Real* vy,  rbmd::Real* vz)
 {
   int i = blockIdx.x * blockDim.x + threadIdx.x;
   if (i < num_atoms) {
-    // Remove bias, scale, restore bias
-    vx[i] = (vx[i] - vbias.x) * coeff + vbias.x;
-    vy[i] = (vy[i] - vbias.y) * coeff + vbias.y;
-    vz[i] = (vz[i] - vbias.z) * coeff + vbias.z;
+    // Remove bias,
+    vx[i] = vx[i] - vbias.x;
+    vy[i] = vy[i] - vbias.y;
+    vz[i] = vz[i] - vbias.z;
   }
 }
 
+__global__ void restore_bias_kernel(const int num_atoms,const Real3 vbias,
+    rbmd:: Real* vx,rbmd::Real* vy,  rbmd::Real* vz)
+{
+  int i = blockIdx.x * blockDim.x + threadIdx.x;
+  if (i < num_atoms) {
+    // restore bias,
+    vx[i] = vx[i] + vbias.x;
+    vy[i] = vy[i] + vbias.y;
+    vz[i] = vz[i] + vbias.z;
+  }
+}
 void ComputeTemperatureOp<device::DEVICE_GPU>::operator()(const rbmd::Id num_atoms,
 		                                                  const rbmd::Real mvv2e,
 														  const rbmd::Id* atoms_type,
@@ -215,13 +226,21 @@ void ComputeTemperatureCOMOp<device::DEVICE_GPU>::operator()(const int num_atoms
     (num_atoms,mvv2e,vbias,atoms_type,mass,vx,vy,vz,temp_contrib));
 }
 
-void UpdateVelocityBerendsenCOMOp<device::DEVICE_GPU>::operator()(const int num_atoms,
-    const rbmd::Real coeff, const Real3 vbias,
-    rbmd:: Real* vx,rbmd::Real* vy,  rbmd::Real* vz) {
-  // ... 计算blocks和threads ...
+
+void RemoveBiasOp<device::DEVICE_GPU>::operator()(const int num_atoms,
+  const Real3 vbias,rbmd:: Real* vx,rbmd::Real* vy,rbmd::Real* vz) {
+
   unsigned int blocks_per_grid = (num_atoms + BLOCK_SIZE - 1) / BLOCK_SIZE;
-  CHECK_KERNEL(update_velocity_berendsen_com_kernel<<<blocks_per_grid, BLOCK_SIZE, 0, 0 >>>
-    (num_atoms,coeff,vbias,vx,vy,vz));
+  CHECK_KERNEL(remove_bias_kernel<<<blocks_per_grid, BLOCK_SIZE, 0, 0 >>>
+    (num_atoms,vbias,vx,vy,vz));
+}
+
+void RestoreBiasOp<device::DEVICE_GPU>::operator()(const int num_atoms,
+  const Real3 vbias,rbmd:: Real* vx,rbmd::Real* vy,  rbmd::Real* vz) {
+
+  unsigned int blocks_per_grid = (num_atoms + BLOCK_SIZE - 1) / BLOCK_SIZE;
+  CHECK_KERNEL(restore_bias_kernel<<<blocks_per_grid, BLOCK_SIZE, 0, 0 >>>
+    (num_atoms,vbias,vx,vy,vz));
 }
 
 }  // namespace op

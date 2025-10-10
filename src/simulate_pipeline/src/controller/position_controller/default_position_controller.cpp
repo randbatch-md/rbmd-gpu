@@ -3,6 +3,7 @@
 #include <thrust/copy.h>
 #include <thrust/device_ptr.h>
 
+#include "group_controller_op.h"
 #include "neighbor_list/include/linked_cell/linked_cell_locator.h"
 #include "simulate.h"
 #include "unit_factor.h"
@@ -13,21 +14,6 @@ DefaultPositionController::DefaultPositionController(){};
 void DefaultPositionController::Init() 
 {
   auto& num_atoms = *(_structure_info_data->_num_atoms);
-  _d_prev_fx.resize(num_atoms, 0.0);
-  _d_prev_fy.resize(num_atoms, 0.0);
-  _d_prev_fz.resize(num_atoms, 0.0);
-  // _d_prev_fx =_device_data->_d_fx;
-  // _d_prev_fy =_device_data->_d_fy;
-  // _d_prev_fz =_device_data->_d_fz;
-
-  _d_prev_px.resize(num_atoms, 0.0);
-  _d_prev_py.resize(num_atoms, 0.0);
-  _d_prev_pz.resize(num_atoms, 0.0);
-  _par_a = DataManager::getInstance().getConfigData()->Get<rbmd::Real>(
-          "par_a", "execution");
-  _par_b = DataManager::getInstance().getConfigData()->Get<rbmd::Real>(
-          "par_b", "execution");
-
   _dt = DataManager::getInstance().getConfigData()->
     Get<rbmd::Real>("timestep", "execution");//0.001
 
@@ -47,6 +33,21 @@ void DefaultPositionController::Init()
       break;
     default:
       break;
+  }
+
+  const auto& config = DataManager::getInstance().getConfigData();
+  auto integration_type = config->Get<std::string>("integration_type", "execution");
+  if("bm" ==integration_type){
+    _par_a = DataManager::getInstance().getConfigData()->Get<rbmd::Real>(
+        "par_a", "execution");
+    _par_b = DataManager::getInstance().getConfigData()->Get<rbmd::Real>(
+            "par_b", "execution");
+    _d_prev_fx.resize(num_atoms, 0.0);
+    _d_prev_fy.resize(num_atoms, 0.0);
+    _d_prev_fz.resize(num_atoms, 0.0);
+    _d_prev_px.resize(num_atoms, 0.0);
+    _d_prev_py.resize(num_atoms, 0.0);
+    _d_prev_pz.resize(num_atoms, 0.0);
   }
 }
 
@@ -83,6 +84,18 @@ void DefaultPositionController::Update() {
                        thrust::raw_pointer_cast(_device_data->_d_flagX.data()),
                        thrust::raw_pointer_cast(_device_data->_d_flagY.data()),
                        thrust::raw_pointer_cast(_device_data->_d_flagZ.data()));
+
+      //Unwarp Position
+      op::UnwarpPositionOp<device::DEVICE_GPU>()(*(_structure_info_data->_num_atoms),*_box,
+        thrust::raw_pointer_cast(_device_data->_d_px.data()),
+        thrust::raw_pointer_cast(_device_data->_d_py.data()),
+        thrust::raw_pointer_cast(_device_data->_d_pz.data()),
+        thrust::raw_pointer_cast(_device_data->_d_flagX.data()),
+        thrust::raw_pointer_cast(_device_data->_d_flagY.data()),
+        thrust::raw_pointer_cast(_device_data->_d_flagZ.data()),
+        thrust::raw_pointer_cast(_device_data->_d_unwarp_px.data()),
+        thrust::raw_pointer_cast(_device_data->_d_unwarp_py.data()),
+        thrust::raw_pointer_cast(_device_data->_d_unwarp_pz.data()));
   }
 }
 
@@ -114,4 +127,15 @@ void DefaultPositionController::SetCenterTargetPositions() {
   std::string init_type = "inbuild";
   if (init_type == _init_type) {
   }
+}
+
+void  DefaultPositionController::PBC() {
+  op::PBCOp<device::DEVICE_GPU>()(
+    *(_structure_info_data->_num_atoms),*_box,
+    thrust::raw_pointer_cast(_device_data->_d_px.data()),
+    thrust::raw_pointer_cast(_device_data->_d_py.data()),
+    thrust::raw_pointer_cast(_device_data->_d_pz.data()),
+    thrust::raw_pointer_cast(_device_data->_d_flagX.data()),
+    thrust::raw_pointer_cast(_device_data->_d_flagY.data()),
+    thrust::raw_pointer_cast(_device_data->_d_flagZ.data()));
 }

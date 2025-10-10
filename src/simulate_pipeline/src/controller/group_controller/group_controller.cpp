@@ -94,17 +94,17 @@ void GroupController::ComputeXCM(const std::string& group_name, Real3 xcm_out) {
   }
 
   //Unwarp  position
-  rbmd::Id num_atoms = *(_structure_info_data->_num_atoms);
-  op::UnwarpPositionOp<device::DEVICE_GPU>()(num_atoms,*_box,
-    thrust::raw_pointer_cast(_device_data->_d_px.data()),
-    thrust::raw_pointer_cast(_device_data->_d_py.data()),
-    thrust::raw_pointer_cast(_device_data->_d_pz.data()),
-    thrust::raw_pointer_cast(_device_data->_d_flagX.data()),
-    thrust::raw_pointer_cast(_device_data->_d_flagY.data()),
-    thrust::raw_pointer_cast(_device_data->_d_flagZ.data()),
-    thrust::raw_pointer_cast(_device_data->_d_unwarp_px.data()),
-    thrust::raw_pointer_cast(_device_data->_d_unwarp_py.data()),
-    thrust::raw_pointer_cast(_device_data->_d_unwarp_pz.data()));
+   rbmd::Id num_atoms = *(_structure_info_data->_num_atoms);
+  // op::UnwarpPositionOp<device::DEVICE_GPU>()(num_atoms,*_box,
+  //   thrust::raw_pointer_cast(_device_data->_d_px.data()),
+  //   thrust::raw_pointer_cast(_device_data->_d_py.data()),
+  //   thrust::raw_pointer_cast(_device_data->_d_pz.data()),
+  //   thrust::raw_pointer_cast(_device_data->_d_flagX.data()),
+  //   thrust::raw_pointer_cast(_device_data->_d_flagY.data()),
+  //   thrust::raw_pointer_cast(_device_data->_d_flagZ.data()),
+  //   thrust::raw_pointer_cast(_device_data->_d_unwarp_px.data()),
+  //   thrust::raw_pointer_cast(_device_data->_d_unwarp_py.data()),
+  //   thrust::raw_pointer_cast(_device_data->_d_unwarp_pz.data()));
 
 
   // 调用GPU Op计算总质量和质量矩

@@ -29,6 +29,7 @@ public:
   void ComputeDihedralForce(); //
   void DihedralOPLS();    //OPLS
   void DihedralHarmonic();//Harmonic
+  void DihedralFourier();//Fourier
   void ComputeImproperForce(); //
   void ImproperHarmonic();//Harmonic
   void ImproperCVFF();    //CVFF

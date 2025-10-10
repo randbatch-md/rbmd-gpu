@@ -67,7 +67,7 @@ class TemperatureController {
   rbmd::Real  _t_target;        //compute
   bool _com_bias = false;
 
-  std::string _group_name;
+  std::string _group_name = "all";
   Real3 _vbias;
 
 

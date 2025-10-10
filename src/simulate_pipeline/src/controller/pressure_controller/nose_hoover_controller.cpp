@@ -162,18 +162,25 @@ void NoseHooverController::Init() {
   }
 
   //读取group并初始化GroupController
-  _group_name = DataManager::getInstance().getConfigData()->Get<std::string>(
-      "group", "execution"); // 假设配置在 execution -> group = "all"
-  if (_group_name.empty()) {
-    _group_name = "all"; // 默认使用"all"组
+  const auto& config = DataManager::getInstance().getConfigData();
+  if (config->PathExists({"execution","group"})) {
+    _group_name = DataManager::getInstance().getConfigData()->Get<std::string>(
+    "group", "execution");
+    if (_group_name.empty()) {
+      _group_name = "all";
+    }
+    GroupController::GetInstance().Init();
   }
-  GroupController::GetInstance().Init();
 
-  //
-  auto com_bias = DataManager::getInstance().getConfigData()->Get<std::string>(
-   "com_bias", "execution"); // 假设配置在 execution -> com_bias
-  if ("yes" == com_bias ) {
-    _com_bias = true;
+
+  //com_bias
+  if (config->PathExists({"execution","com_bias"}))
+  {
+    auto com_bias = DataManager::getInstance().getConfigData()->Get<std::string>(
+     "com_bias", "execution");
+    if ("yes" == com_bias ) {
+      _com_bias = true;
+    }
   }
 
   //Nose-Hoover parameters init
@@ -427,17 +434,46 @@ void NoseHooverController::NH_V_Press()
   REAL_DATA(factor)[2] = EXP(-_dt4 * (_omega_dot[2] + _mtk_term2));
 
   // perform half-step barostat scaling of velocities
-  op::UpdataVelocityRescalePressureOp<device::DEVICE_GPU>()(
-              *(_structure_info_data->_num_atoms), factor,
-                   thrust::raw_pointer_cast(_device_data->_d_vx.data()),
-                   thrust::raw_pointer_cast(_device_data->_d_vy.data()),
-                   thrust::raw_pointer_cast(_device_data->_d_vz.data()));
+  if (_com_bias) {
+    //1: remove-bias
+    op::RemoveBiasOp<device::DEVICE_GPU>()(
+        *(_structure_info_data->_num_atoms),_vbias,
+        thrust::raw_pointer_cast(_device_data->_d_vx.data()),
+        thrust::raw_pointer_cast(_device_data->_d_vy.data()),
+        thrust::raw_pointer_cast(_device_data->_d_vz.data()));
+    //2 : scale
+    op::UpdataVelocityRescalePressureOp<device::DEVICE_GPU>()(
+        *(_structure_info_data->_num_atoms), factor,
+             thrust::raw_pointer_cast(_device_data->_d_vx.data()),
+             thrust::raw_pointer_cast(_device_data->_d_vy.data()),
+             thrust::raw_pointer_cast(_device_data->_d_vz.data()));
 
-  op::UpdataVelocityRescalePressureOp<device::DEVICE_GPU>()(
-             *(_structure_info_data->_num_atoms), factor,
-                  thrust::raw_pointer_cast(_device_data->_d_vx.data()),
-                  thrust::raw_pointer_cast(_device_data->_d_vy.data()),
-                  thrust::raw_pointer_cast(_device_data->_d_vz.data()));
+    op::UpdataVelocityRescalePressureOp<device::DEVICE_GPU>()(
+    *(_structure_info_data->_num_atoms), factor,
+         thrust::raw_pointer_cast(_device_data->_d_vx.data()),
+         thrust::raw_pointer_cast(_device_data->_d_vy.data()),
+         thrust::raw_pointer_cast(_device_data->_d_vz.data()));
+    //3: restore-bias
+    op::RestoreBiasOp<device::DEVICE_GPU>()(
+    *(_structure_info_data->_num_atoms),_vbias,
+    thrust::raw_pointer_cast(_device_data->_d_vx.data()),
+    thrust::raw_pointer_cast(_device_data->_d_vy.data()),
+    thrust::raw_pointer_cast(_device_data->_d_vz.data()));
+  }
+  else {
+    op::UpdataVelocityRescalePressureOp<device::DEVICE_GPU>()(
+            *(_structure_info_data->_num_atoms), factor,
+                 thrust::raw_pointer_cast(_device_data->_d_vx.data()),
+                 thrust::raw_pointer_cast(_device_data->_d_vy.data()),
+                 thrust::raw_pointer_cast(_device_data->_d_vz.data()));
+
+    op::UpdataVelocityRescalePressureOp<device::DEVICE_GPU>()(
+               *(_structure_info_data->_num_atoms), factor,
+                    thrust::raw_pointer_cast(_device_data->_d_vx.data()),
+                    thrust::raw_pointer_cast(_device_data->_d_vy.data()),
+                    thrust::raw_pointer_cast(_device_data->_d_vz.data()));
+  }
+
 }
 
 void NoseHooverController::InitialIntegrate()
@@ -579,12 +615,24 @@ void NoseHooverController::NHCTempIntegrate()
 
     //nh_v_temp();  Update of dt/2
     if (_com_bias) {
-      // 这个新Op在一个内核里完成 remove-bias -> scale -> restore-bias
-      op::UpdateVelocityBerendsenCOMOp<device::DEVICE_GPU>()(
-          *(_structure_info_data->_num_atoms),_factor_eta,_vbias,
+      //1: remove-bias
+      op::RemoveBiasOp<device::DEVICE_GPU>()(
+          *(_structure_info_data->_num_atoms),_vbias,
           thrust::raw_pointer_cast(_device_data->_d_vx.data()),
           thrust::raw_pointer_cast(_device_data->_d_vy.data()),
           thrust::raw_pointer_cast(_device_data->_d_vz.data()));
+      //2 : scale
+      op::UpdataVelocityRescaleOp<device::DEVICE_GPU>()(
+          *(_structure_info_data->_num_atoms), _factor_eta,
+          thrust::raw_pointer_cast(_device_data->_d_vx.data()),
+          thrust::raw_pointer_cast(_device_data->_d_vy.data()),
+          thrust::raw_pointer_cast(_device_data->_d_vz.data()));
+      //3: restore-bias
+      op::RestoreBiasOp<device::DEVICE_GPU>()(
+        *(_structure_info_data->_num_atoms),_vbias,
+        thrust::raw_pointer_cast(_device_data->_d_vx.data()),
+        thrust::raw_pointer_cast(_device_data->_d_vy.data()),
+        thrust::raw_pointer_cast(_device_data->_d_vz.data()));
     }
     else {
       op::UpdataVelocityRescaleOp<device::DEVICE_GPU>()(

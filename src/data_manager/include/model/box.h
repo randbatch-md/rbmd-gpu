@@ -68,6 +68,30 @@ static __host__ __device__ __forceinline__ void MinImageDistance( Box box,
   // TODO else: tri
 }
 
+static __host__ __device__ __forceinline__ void MinImageDistance_while( Box box,
+                                                          rbmd::Real& dx,
+                                                          rbmd::Real& dy,
+                                                          rbmd::Real& dz) {
+  if (box._type == Box::BoxType::ORTHOGONAL) {
+    if (box._pbc_x) {
+      while (ABS(dx) > box._length[0] * 0.5) {
+        dx -= (dx > 0 ? box._length[0] : -box._length[0]);
+      }
+    }
+    if (box._pbc_y) {
+      while (ABS(dy) > box._length[1] * 0.5) {
+        dy -= (dy > 0 ? box._length[1] : -box._length[1]);
+      }
+    }
+    if (box._pbc_z) {
+      while (ABS(dz) > box._length[2] * 0.5) {
+        dz -= (dz > 0 ? box._length[2] : -box._length[2]);
+      }
+    }
+  }
+  // TODO else: tri
+}
+
 static __host__ __device__ __forceinline__ void MinImageDistance_fix(
      Box box, rbmd::Real& dx, rbmd::Real& dy, rbmd::Real& dz) {
   if (box._type == Box::BoxType::ORTHOGONAL) {
@@ -134,11 +158,11 @@ __host__ __device__ __forceinline__ void ApplyPBC(
   if (box._type == Box::BoxType::ORTHOGONAL) {
     // x
     if (box._pbc_x) {
-      if (px > box._coord_max[0]) {
+      if (px >= box._coord_max[0]) {
         flag_px_tid += 1;
         px -= box._length[0];
-
-      } else if (px < box._coord_min[0]) {
+      }
+      if (px < box._coord_min[0]) {
         flag_px_tid -= 1;
         px += box._length[0];
       }
@@ -146,10 +170,11 @@ __host__ __device__ __forceinline__ void ApplyPBC(
 
     // y
     if (box._pbc_y) {
-      if (py > box._coord_max[1]) {
+      if (py >= box._coord_max[1]) {
         flag_py_tid += 1;
         py -= box._length[1];
-      } else if (py < box._coord_min[1]) {
+      }
+      if (py < box._coord_min[1]) {
         flag_py_tid -= 1;
         py += box._length[1];
       }
@@ -157,13 +182,50 @@ __host__ __device__ __forceinline__ void ApplyPBC(
 
     // z
     if (box._pbc_z) {
-      if (pz > box._coord_max[2]) {
+      if (pz >= box._coord_max[2]) {
         flag_pz_tid += 1;
         pz -= box._length[2];
-      } else if (pz < box._coord_min[2]) {
+      }
+      if (pz < box._coord_min[2]) {
         flag_pz_tid -= 1;
         pz += box._length[2];
       }
+    }
+  }
+}
+
+__host__ __device__ __forceinline__ void ApplyPBC_Robust(
+    const Box& box,
+    rbmd::Real& px, rbmd::Real& py, rbmd::Real& pz,
+    rbmd::Id& flag_px, rbmd::Id& flag_py, rbmd::Id& flag_pz)
+{
+  if (box._type == Box::BoxType::ORTHOGONAL) {
+    // X维度
+    if (box._pbc_x) {
+      // floor函数直接计算出原子坐标相对于盒子下边界有多少个“盒子单位”
+      rbmd::Real wrapped_px = px - box._coord_min[0];
+      rbmd::Id crossings = FLOOR(wrapped_px * box._length_inv[0]);
+
+      px -= crossings * box._length[0];
+      flag_px -= crossings;
+    }
+
+    // Y维度
+    if (box._pbc_y) {
+      rbmd::Real wrapped_py = py - box._coord_min[1];
+      rbmd::Id crossings = FLOOR(wrapped_py * box._length_inv[1]);
+
+      py -= crossings * box._length[1];
+      flag_py -= crossings;
+    }
+
+    // Z维度
+    if (box._pbc_z) {
+      rbmd::Real wrapped_pz = pz - box._coord_min[2];
+      rbmd::Id crossings = FLOOR(wrapped_pz * box._length_inv[2]);
+
+      pz -= crossings * box._length[2];
+      flag_pz -= crossings;
     }
   }
 }

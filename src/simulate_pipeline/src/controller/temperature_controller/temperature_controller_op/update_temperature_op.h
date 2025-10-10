@@ -63,9 +63,14 @@ struct ComputeTemperatureCOMOp {
 };
 
 template <typename DEVICE>
-struct UpdateVelocityBerendsenCOMOp {
-  void operator()(const int num_atoms,
-    const rbmd::Real coeff, const Real3 vbias,
+struct RemoveBiasOp {
+  void operator()(const int num_atoms,const Real3 vbias,
+    rbmd:: Real* vx,rbmd::Real* vy,  rbmd::Real* vz);
+};
+
+template <typename DEVICE>
+struct RestoreBiasOp {
+  void operator()(const int num_atoms,const Real3 vbias,
     rbmd:: Real* vx,rbmd::Real* vy,  rbmd::Real* vz);
 };
 
@@ -132,10 +137,17 @@ struct ComputeTemperatureCOMOp<device::DEVICE_GPU> {
   const rbmd::Real* vz,rbmd::Real* temp_contrib);
 };
 
+
 template <>
-struct UpdateVelocityBerendsenCOMOp<device::DEVICE_GPU> {
-  void operator()(const int num_atoms,
-    const rbmd::Real coeff, const Real3 vbias,
+struct RemoveBiasOp<device::DEVICE_GPU> {
+  void operator()(const int num_atoms,const Real3 vbias,
     rbmd:: Real* vx,rbmd::Real* vy,  rbmd::Real* vz);
 };
+
+template <>
+struct RestoreBiasOp<device::DEVICE_GPU> {
+  void operator()(const int num_atoms,const Real3 vbias,
+    rbmd:: Real* vx,rbmd::Real* vy,  rbmd::Real* vz);
+};
+
 }

@@ -16,6 +16,7 @@ class DefaultPositionController : public PositionController {
    * RDF
    */
   void SetCenterTargetPositions();
+  void PBC() override;
 
  private:
   rbmd::Real _dt;

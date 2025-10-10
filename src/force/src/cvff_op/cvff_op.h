@@ -228,6 +228,23 @@ namespace op {
     rbmd::Real* energy_dihedral);
   };
 
+  template <typename DEVICE>
+  struct ComputeDihedralFourierForceOp
+  {
+    void operator()(
+      Box box, const rbmd::Id num_atoms, const rbmd::Id num_dihedrals,
+      const rbmd::Id* atom_id_to_idx,
+      const rbmd::Id* nterms, const rbmd::Id* fourier_offsets,
+      const rbmd::Real* fourier_k, const rbmd::Id* fourier_multiplicity,
+      const rbmd::Real* fourier_cos_shift, const rbmd::Real* fourier_sin_shift,
+      const rbmd::Id* dihedral_type, const rbmd::Id* dihedrallisti,
+      const rbmd::Id* dihedrallistj, const rbmd::Id* dihedrallistk,
+      const rbmd::Id* dihedrallistw, const rbmd::Real* px, const rbmd::Real* py,
+      const rbmd::Real* pz,rbmd::Real* fx, rbmd::Real* fy, rbmd::Real* fz,
+      rbmd::Real* flat_virial, rbmd::Real* global_virial,
+      rbmd::Real* energy_dihedral);
+  };
+
     template <typename DEVICE>
     struct ComputeImproperHarmonicForceOp
     {
@@ -506,6 +523,23 @@ struct ComputeImproperCVFFForceOp
       rbmd::Real* fz,
       rbmd::Real* flat_virial,
       rbmd::Real* global_virial,
+      rbmd::Real* energy_dihedral);
+  };
+
+  template <>
+  struct ComputeDihedralFourierForceOp<device::DEVICE_GPU>
+  {
+    void operator()(
+      Box box, const rbmd::Id num_atoms, const rbmd::Id num_dihedrals,
+      const rbmd::Id* atom_id_to_idx,
+      const rbmd::Id* nterms, const rbmd::Id* fourier_offsets,
+      const rbmd::Real* fourier_k, const rbmd::Id* fourier_multiplicity,
+      const rbmd::Real* fourier_cos_shift, const rbmd::Real* fourier_sin_shift,
+      const rbmd::Id* dihedral_type, const rbmd::Id* dihedrallisti,
+      const rbmd::Id* dihedrallistj, const rbmd::Id* dihedrallistk,
+      const rbmd::Id* dihedrallistw, const rbmd::Real* px, const rbmd::Real* py,
+      const rbmd::Real* pz,rbmd::Real* fx, rbmd::Real* fy, rbmd::Real* fz,
+      rbmd::Real* flat_virial, rbmd::Real* global_virial,
       rbmd::Real* energy_dihedral);
   };
 

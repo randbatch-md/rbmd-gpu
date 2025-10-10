@@ -83,7 +83,6 @@ void CVFF::Execute() {
   if(config->PathExists({"hyper_parameters", "coulomb"})) {
     _kspace_calculator->Execute();
   }
-
   ComputeBondForce();
   ComputeAngleForce();
   if(*(_structure_info_data->_num_dihedrals)) {
@@ -430,7 +429,9 @@ void CVFF::ComputeDihedralForce()
   else if (dihedral_type == "opls") {
     DihedralOPLS();
   }
-
+  else if (dihedral_type == "fourier") {
+    DihedralFourier();
+  }
   //add thermo
   ThermoStats::Instance().AddThermoData("dihedral",_e_dihedral);
 }
@@ -541,6 +542,64 @@ void CVFF::DihedralOPLS() {
   //sum virial_dihedral on host
   ReduceVirial(num_atoms,_device_data->_d_flat_virial_dihedral_atom,
     _device_data->_d_virial_dihedral);
+}
+
+void CVFF::DihedralFourier() {
+  std::cout<< "test--DihedralFourier"<<std::endl;
+   auto start = std::chrono::high_resolution_clock::now();
+  thrust::fill(_device_data->_d_force_dihedral_x.begin(),
+    _device_data->_d_force_dihedral_x.end(), 0.0f);
+  thrust::fill(_device_data->_d_force_dihedral_y.begin(),
+    _device_data->_d_force_dihedral_y.end(), 0.0f);
+  thrust::fill(_device_data->_d_force_dihedral_z.begin(),
+    _device_data->_d_force_dihedral_z.end(), 0.0f);
+
+  thrust::fill(_device_data->_d_flat_virial_dihedral_atom.begin(),
+  _device_data->_d_flat_virial_dihedral_atom.end(), 0.0f);
+
+  //thrust::device_vector<int4> dihedral_list;
+  auto atom_id_to_idx =
+    LinkedCellLocator::GetInstance().GetLinkedCell()->_atom_id_to_idx;
+
+  thrust::device_vector<rbmd::Real> d_total_edihedral(1, 0.0);
+
+  auto num_atoms = *(_structure_info_data->_num_atoms);
+  auto num_dihedrals = *(_structure_info_data->_num_dihedrals);
+  op::ComputeDihedralFourierForceOp<device::DEVICE_GPU>()(
+    *_box,num_atoms,num_dihedrals,
+    thrust::raw_pointer_cast(atom_id_to_idx.data()),
+    thrust::raw_pointer_cast(_device_data->_d_nterms.data()),
+    thrust::raw_pointer_cast(_device_data->_d_fourier_offsets.data()),
+    thrust::raw_pointer_cast(_device_data->_d_dihedral_coeffs_k.data()),
+    thrust::raw_pointer_cast(_device_data->_d_dihedral_coeffs_multiplicity.data()),
+    thrust::raw_pointer_cast(_device_data->_d_fourier_cos_shift.data()),
+    thrust::raw_pointer_cast(_device_data->_d_fourier_sin_shift.data()),
+    thrust::raw_pointer_cast(_device_data->_d_dihedral_type.data()),
+    thrust::raw_pointer_cast(_device_data->_d_dihedral_id0.data()),
+    thrust::raw_pointer_cast(_device_data->_d_dihedral_id1.data()),
+    thrust::raw_pointer_cast(_device_data->_d_dihedral_id2.data()),
+    thrust::raw_pointer_cast(_device_data->_d_dihedral_id3.data()),
+    thrust::raw_pointer_cast(_device_data->_d_px.data()),
+    thrust::raw_pointer_cast(_device_data->_d_py.data()),
+    thrust::raw_pointer_cast(_device_data->_d_pz.data()),
+    thrust::raw_pointer_cast(_device_data->_d_force_dihedral_x.data()),
+    thrust::raw_pointer_cast(_device_data->_d_force_dihedral_y.data()),
+    thrust::raw_pointer_cast(_device_data->_d_force_dihedral_z.data()),
+    thrust::raw_pointer_cast(_device_data->_d_flat_virial_dihedral_atom.data()),
+    thrust::raw_pointer_cast(_device_data->_d_flat_virial_dihedral_list.data()),
+    thrust::raw_pointer_cast(d_total_edihedral.data()));
+
+  auto end = std::chrono::high_resolution_clock::now();
+  std::chrono::duration<rbmd::Real> duration = end - start;
+  TimingStatistics::Instance().record("Dihedral",duration.count());
+  std::cout<< "test--end"<<std::endl;
+  // D2H
+  thrust::host_vector<rbmd::Real> h_total_edihedral(d_total_edihedral);
+  _e_dihedral = h_total_edihedral[0];
+
+  //sum virial_dihedral on host
+  ReduceVirial(num_atoms,_device_data->_d_flat_virial_dihedral_atom,
+  _device_data->_d_virial_dihedral);
 }
 
 void CVFF::ComputeImproperForce()

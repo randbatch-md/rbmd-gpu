@@ -208,6 +208,52 @@ bool CVFFMemoryScheduler::asyncMemoryH2D() {
                _device_data->_d_dihedral_coeffs_k4.begin());
 
   }
+  else if (dihedral_type == "fourier") {
+    std::cout<< "test-thrust-DihedralFourier"<<std::endl;
+
+    // First, we need to determine the total number of fourier terms across all types,
+    // as this defines the size of the main coefficient arrays.
+    size_t total_terms = 0;
+    for (rbmd::Id i = 0; i < num_dihedrals_type; ++i) {
+      total_terms += fd->_h_nterms[i];
+    }
+    std::cout<< "total_terms: "<<  total_terms <<std::endl;
+    // Resize the device vectors to the appropriate sizes
+    _device_data->_d_nterms.resize(num_dihedrals_type);
+    _device_data->_d_fourier_offsets.resize(num_dihedrals_type);
+
+    _device_data->_d_dihedral_coeffs_k.resize(total_terms);
+    _device_data->_d_dihedral_coeffs_multiplicity.resize(total_terms);
+    _device_data->_d_fourier_cos_shift.resize(total_terms);
+    _device_data->_d_fourier_sin_shift.resize(total_terms);
+
+    // Copy nterms and offsets arrays (size = num_dihedrals_type)
+    thrust::copy(fd->_h_nterms,
+                 fd->_h_nterms + num_dihedrals_type,
+                 _device_data->_d_nterms.begin());
+
+    thrust::copy(fd->_h_fourier_offsets,
+                 fd->_h_fourier_offsets + num_dihedrals_type,
+                 _device_data->_d_fourier_offsets.begin());
+
+    // Copy the main flattened coefficient arrays (size = total_terms)
+    thrust::copy(fd->_h_dihedral_coeffs_k,
+                 fd->_h_dihedral_coeffs_k + total_terms,
+                 _device_data->_d_dihedral_coeffs_k.begin());
+
+    thrust::copy(fd->_h_dihedral_coeffs_multiplicity,
+                 fd->_h_dihedral_coeffs_multiplicity + total_terms,
+                 _device_data->_d_dihedral_coeffs_multiplicity.begin());
+
+    thrust::copy(fd->_h_fourier_cos_shift,
+                 fd->_h_fourier_cos_shift + total_terms,
+                 _device_data->_d_fourier_cos_shift.begin());
+
+    thrust::copy(fd->_h_fourier_sin_shift,
+                 fd->_h_fourier_sin_shift + total_terms,
+                 _device_data->_d_fourier_sin_shift.begin());
+    std::cout<< "test-thrust-end-DihedralFourier"<<std::endl;
+  }
 
   //improper
   std::string improper_type = "null";

@@ -1164,6 +1164,255 @@ __global__ void ComputeBondForce(
     }
   }
 
+__global__ void ComputeDihedralFourierForce(
+    Box box, const rbmd::Id num_atoms, const rbmd::Id num_dihedrals,
+    const rbmd::Id* atom_id_to_idx,
+    const rbmd::Id* nterms, const rbmd::Id* fourier_offsets,
+    const rbmd::Real* fourier_k, const rbmd::Id* fourier_multiplicity,
+    const rbmd::Real* fourier_cos_shift, const rbmd::Real* fourier_sin_shift,
+    const rbmd::Id* dihedral_type, const rbmd::Id* dihedrallisti,
+    const rbmd::Id* dihedrallistj, const rbmd::Id* dihedrallistk,
+    const rbmd::Id* dihedrallistw, const rbmd::Real* px, const rbmd::Real* py,
+    const rbmd::Real* pz,rbmd::Real* fx, rbmd::Real* fy, rbmd::Real* fz,
+    rbmd::Real* flat_virial, rbmd::Real* global_virial,
+    rbmd::Real* energy_dihedral) {
+  // Shared memory for block-level energy reduction
+  __shared__ typename BLOCKREDUCE<rbmd::Real, BLOCK_SIZE>::TempStorage
+      temp_storage;
+  rbmd::Real local_energy_dihedral = 0;
+
+  unsigned int tid1 = blockIdx.x * blockDim.x + threadIdx.x;
+  if (tid1 < num_dihedrals) {
+    // 1. Fetch atom indices and type
+    rbmd::Id i1_id = dihedrallisti[tid1];
+    rbmd::Id i2_id = dihedrallistj[tid1];
+    rbmd::Id i3_id = dihedrallistk[tid1];
+    rbmd::Id i4_id = dihedrallistw[tid1];
+
+    rbmd::Id i1 = atom_id_to_idx[i1_id];
+    rbmd::Id i2 = atom_id_to_idx[i2_id];
+    rbmd::Id i3 = atom_id_to_idx[i3_id];
+    rbmd::Id i4 = atom_id_to_idx[i4_id];
+
+    rbmd::Id type = dihedral_type[tid1];
+
+    // 2. Geometric setup
+    rbmd::Real vb1x = px[i1] - px[i2];
+    rbmd::Real vb1y = py[i1] - py[i2];
+    rbmd::Real vb1z = pz[i1] - pz[i2];
+    MinImageDistance(box, vb1x, vb1y, vb1z);
+
+    rbmd::Real vb2x = px[i3] - px[i2];
+    rbmd::Real vb2y = py[i3] - py[i2];
+    rbmd::Real vb2z = pz[i3] - pz[i2];
+    MinImageDistance(box, vb2x, vb2y, vb2z);
+
+    rbmd::Real vb3x = px[i4] - px[i3];
+    rbmd::Real vb3y = py[i4] - py[i3];
+    rbmd::Real vb3z = pz[i4] - pz[i3];
+    MinImageDistance(box, vb3x, vb3y, vb3z);
+
+    rbmd::Real vb2xm = -vb2x;
+    rbmd::Real vb2ym = -vb2y;
+    rbmd::Real vb2zm = -vb2z;
+
+    rbmd::Real ax = vb1y * vb2zm - vb1z * vb2ym;
+    rbmd::Real ay = vb1z * vb2xm - vb1x * vb2zm;
+    rbmd::Real az = vb1x * vb2ym - vb1y * vb2xm;
+    rbmd::Real bx = vb3y * vb2zm - vb3z * vb2ym;
+    rbmd::Real by = vb3z * vb2xm - vb3x * vb2zm;
+    rbmd::Real bz = vb3x * vb2ym - vb3y * vb2xm;
+
+    rbmd::Real rasq = ax * ax + ay * ay + az * az;
+    rbmd::Real rbsq = bx * bx + by * by + bz * bz;
+    rbmd::Real rgsq = vb2xm * vb2xm + vb2ym * vb2ym + vb2zm * vb2zm;
+    rbmd::Real rg = SQRT(rgsq);
+
+    rbmd::Real rginv = 0.0, ra2inv = 0.0, rb2inv = 0.0;
+    if (rg > 0) rginv = 1.0 / rg;
+    if (rasq > 0) ra2inv = 1.0 / rasq;
+    if (rbsq > 0) rb2inv = 1.0 / rbsq;
+    rbmd::Real rabinv = SQRT(ra2inv * rb2inv);
+
+    rbmd::Real c = (ax * bx + ay * by + az * bz) * rabinv; // cos(phi)
+    rbmd::Real s = rg * rabinv * (ax * vb3x + ay * vb3y + az * vb3z); // sin(phi)
+
+    if (c > 1.0) c = 1.0;
+    if (c < -1.0) c = -1.0;
+
+    // 3. Loop over Fourier terms to calculate energy and force derivative
+    rbmd::Real edihedral = 0.0;
+    rbmd::Real df = 0.0; // dE/d(phi)
+
+    rbmd::Id num_terms_for_type = nterms[type];
+    rbmd::Id offset = fourier_offsets[type];
+
+    for (rbmd::Id j = 0; j < num_terms_for_type; j++) {
+      rbmd::Id term_idx = offset + j;
+      rbmd::Real k_j = fourier_k[term_idx];
+      rbmd::Id m_j = fourier_multiplicity[term_idx];
+      rbmd::Real cos_shift_j = fourier_cos_shift[term_idx];
+      rbmd::Real sin_shift_j = fourier_sin_shift[term_idx];
+
+      rbmd::Real p_ = 1.0;    // will become cos(m*phi)
+      rbmd::Real df1_ = 0.0;   // will become sin(m*phi)
+      rbmd::Real ddf1_ = 0.0;
+
+      // Iteratively find cos(m*phi) and sin(m*phi)
+      for (rbmd::Id i = 0; i < m_j; i++) {
+        ddf1_ = p_ * c - df1_ * s;
+        df1_ = p_ * s + df1_ * c;
+        p_ = ddf1_;
+      }
+
+      // Apply phase shift: cos(m*phi - d) = cos(m*phi)cos(d) + sin(m*phi)sin(d)
+      rbmd::Real p_shifted = p_ * cos_shift_j + df1_ * sin_shift_j;
+      // d(cos(m*phi-d))/d(phi) = -m*sin(m*phi-d)
+      // sin(m*phi-d) = sin(m*phi)cos(d) - cos(m*phi)sin(d)
+      rbmd::Real df1_shifted = df1_ * cos_shift_j - p_ * sin_shift_j;
+      df1_shifted *= m_j;
+
+      if (m_j == 0) {
+        p_shifted = cos_shift_j;
+        df1_shifted = 0.0;
+      }
+
+      edihedral += k_j * (1.0 + p_shifted);
+      df += k_j * df1_shifted;
+    }
+
+    // In the formula, force derivative is -dE/d(phi). We calculated dE/d(phi).
+    // The force projection part in LAMMPS uses df = -dE/d(phi).
+    // But their code defines df as positive and sx2 = -df * ..., making it correct.
+    // Here we must be careful. The LAMMPS code's `df` is d(potential)/d(cos(phi)).
+    // Let's re-verify. `df` accumulates `-k * df1_`. And `df1_` is `-m * sin(m*phi-d)`.
+    // So `df` accumulates `k * m * sin(m*phi-d)`, which is `dE/d(phi)`.
+    // The final force terms are `df * dtf...`. Let's use `df_final = -df`.
+    df = -df;
+
+    local_energy_dihedral = edihedral;
+
+    // 4. Project force onto atoms (same logic as LAMMPS)
+    rbmd::Real fg = vb1x * vb2xm + vb1y * vb2ym + vb1z * vb2zm;
+    rbmd::Real hg = vb3x * vb2xm + vb3y * vb2ym + vb3z * vb2zm;
+
+    rbmd::Real fga = fg * ra2inv * rginv;
+    rbmd::Real hgb = hg * rb2inv * rginv;
+    rbmd::Real gaa = -ra2inv * rg;
+    rbmd::Real gbb = rb2inv * rg;
+
+    rbmd::Real dtfx = gaa * ax;
+    rbmd::Real dtfy = gaa * ay;
+    rbmd::Real dtfz = gaa * az;
+    rbmd::Real dtgx = fga * ax - hgb * bx;
+    rbmd::Real dtgy = fga * ay - hgb * by;
+    rbmd::Real dtgz = fga * az - hgb * bz;
+    rbmd::Real dthx = gbb * bx;
+    rbmd::Real dthy = gbb * by;
+    rbmd::Real dthz = gbb * bz;
+
+    rbmd::Real sx2 = df * dtgx;
+    rbmd::Real sy2 = df * dtgy;
+    rbmd::Real sz2 = df * dtgz;
+
+    rbmd::Real f1x, f1y, f1z, f2x, f2y, f2z, f3x, f3y, f3z, f4x, f4y, f4z;
+
+    f1x = df * dtfx;
+    f1y = df * dtfy;
+    f1z = df * dtfz;
+
+    f4x = df * dthx;
+    f4y = df * dthy;
+    f4z = df * dthz;
+
+    f2x = sx2 - f1x;
+    f2y = sy2 - f1y;
+    f2z = sz2 - f1z;
+
+    f3x = -sx2 - f4x;
+    f3y = -sy2 - f4y;
+    f3z = -sz2 - f4z;
+
+    // 5. Atomically add forces
+    atomicAdd(&fx[i1], f1x);
+    atomicAdd(&fy[i1], f1y);
+    atomicAdd(&fz[i1], f1z);
+
+    atomicAdd(&fx[i2], f2x);
+    atomicAdd(&fy[i2], f2y);
+    atomicAdd(&fz[i2], f2z);
+
+    atomicAdd(&fx[i3], f3x);
+    atomicAdd(&fy[i3], f3y);
+    atomicAdd(&fz[i3], f3z);
+
+    atomicAdd(&fx[i4], f4x);
+    atomicAdd(&fy[i4], f4y);
+    atomicAdd(&fz[i4], f4z);
+
+    // 6. Virial calculation (following your established pattern)
+    rbmd::Real global_virial_temp[6];
+    global_virial_temp[0] = (vb1x * f1x + vb2x * f3x + (vb3x + vb2x) * f4x);
+    global_virial_temp[1] = (vb1y * f1y + vb2y * f3y + (vb3y + vb2y) * f4y);
+    global_virial_temp[2] = (vb1z * f1z + vb2z * f3z + (vb3z + vb2z) * f4z);
+    global_virial_temp[3] = (vb1x * f1y + vb2x * f3y + (vb3x + vb2x) * f4y);
+    global_virial_temp[4] = (vb1x * f1z + vb2x * f3z + (vb3x + vb2x) * f4z);
+    global_virial_temp[5] = (vb1y * f1z + vb2y * f3z + (vb3y + vb2z) * f4z);
+
+    global_virial[0 * num_dihedrals + tid1] = global_virial_temp[0];
+    global_virial[1 * num_dihedrals + tid1] = global_virial_temp[1];
+    global_virial[2 * num_dihedrals + tid1] = global_virial_temp[2];
+    global_virial[3 * num_dihedrals + tid1] = global_virial_temp[3];
+    global_virial[4 * num_dihedrals + tid1] = global_virial_temp[4];
+    global_virial[5 * num_dihedrals + tid1] = global_virial_temp[5];
+
+    rbmd::Real local_virial[6];
+    local_virial[0] = 0.25 * global_virial_temp[0];
+    local_virial[1] = 0.25 * global_virial_temp[1];
+    local_virial[2] = 0.25 * global_virial_temp[2];
+    local_virial[3] = 0.25 * global_virial_temp[3];
+    local_virial[4] = 0.25 * global_virial_temp[4];
+    local_virial[5] = 0.25 * global_virial_temp[5];
+
+    atomicAdd(&flat_virial[0 * num_atoms + i1], local_virial[0]);
+    atomicAdd(&flat_virial[1 * num_atoms + i1], local_virial[1]);
+    atomicAdd(&flat_virial[2 * num_atoms + i1], local_virial[2]);
+    atomicAdd(&flat_virial[3 * num_atoms + i1], local_virial[3]);
+    atomicAdd(&flat_virial[4 * num_atoms + i1], local_virial[4]);
+    atomicAdd(&flat_virial[5 * num_atoms + i1], local_virial[5]);
+
+    // (add for atoms i2, i3, i4 similarly)
+    atomicAdd(&flat_virial[0 * num_atoms + i2], local_virial[0]);
+    atomicAdd(&flat_virial[1 * num_atoms + i2], local_virial[1]);
+    atomicAdd(&flat_virial[2 * num_atoms + i2], local_virial[2]);
+    atomicAdd(&flat_virial[3 * num_atoms + i2], local_virial[3]);
+    atomicAdd(&flat_virial[4 * num_atoms + i2], local_virial[4]);
+    atomicAdd(&flat_virial[5 * num_atoms + i2], local_virial[5]);
+
+    atomicAdd(&flat_virial[0 * num_atoms + i3], local_virial[0]);
+    atomicAdd(&flat_virial[1 * num_atoms + i3], local_virial[1]);
+    atomicAdd(&flat_virial[2 * num_atoms + i3], local_virial[2]);
+    atomicAdd(&flat_virial[3 * num_atoms + i3], local_virial[3]);
+    atomicAdd(&flat_virial[4 * num_atoms + i3], local_virial[4]);
+    atomicAdd(&flat_virial[5 * num_atoms + i3], local_virial[5]);
+
+    atomicAdd(&flat_virial[0 * num_atoms + i4], local_virial[0]);
+    atomicAdd(&flat_virial[1 * num_atoms + i4], local_virial[1]);
+    atomicAdd(&flat_virial[2 * num_atoms + i4], local_virial[2]);
+    atomicAdd(&flat_virial[3 * num_atoms + i4], local_virial[3]);
+    atomicAdd(&flat_virial[4 * num_atoms + i4], local_virial[4]);
+    atomicAdd(&flat_virial[5 * num_atoms + i4], local_virial[5]);
+  }
+
+  // 7. Reduce energy across the block
+  rbmd::Real block_sum =
+      BLOCKREDUCE<rbmd::Real, BLOCK_SIZE>(temp_storage).Sum(local_energy_dihedral);
+
+  if (threadIdx.x == 0) {
+    atomicAdd(energy_dihedral, block_sum);
+  }
+}
+
   //Imprope
   __global__ void ComputeImproperHarmonicForce(
     Box box,const rbmd::Id num_atoms,const rbmd::Id num_impropers,
@@ -1765,6 +2014,27 @@ __global__ void ComputeBondForce(
         dihedrallisti, dihedrallistj, dihedrallistk, dihedrallistw, px, py, pz,
         fx, fy, fz, flat_virial,global_virial,energy_dihedral));
   }
+
+void ComputeDihedralFourierForceOp<device::DEVICE_GPU>::operator()(
+  Box box, const rbmd::Id num_atoms, const rbmd::Id num_dihedrals,
+  const rbmd::Id* atom_id_to_idx,
+  const rbmd::Id* nterms, const rbmd::Id* fourier_offsets,
+  const rbmd::Real* fourier_k, const rbmd::Id* fourier_multiplicity,
+  const rbmd::Real* fourier_cos_shift, const rbmd::Real* fourier_sin_shift,
+  const rbmd::Id* dihedral_type, const rbmd::Id* dihedrallisti,
+  const rbmd::Id* dihedrallistj, const rbmd::Id* dihedrallistk,
+  const rbmd::Id* dihedrallistw, const rbmd::Real* px, const rbmd::Real* py,
+  const rbmd::Real* pz,rbmd::Real* fx, rbmd::Real* fy, rbmd::Real* fz,
+  rbmd::Real* flat_virial, rbmd::Real* global_virial,
+  rbmd::Real* energy_dihedral) {
+  unsigned int blocks_per_grid = (num_dihedrals + BLOCK_SIZE - 1) / BLOCK_SIZE;
+
+  CHECK_KERNEL(ComputeDihedralFourierForce<<<blocks_per_grid, BLOCK_SIZE, 0, 0>>>(
+      box, num_atoms,num_dihedrals, atom_id_to_idx, nterms,fourier_offsets,fourier_k,
+      fourier_multiplicity,fourier_cos_shift, fourier_sin_shift, dihedral_type,
+      dihedrallisti, dihedrallistj, dihedrallistk, dihedrallistw, px, py, pz,
+      fx, fy, fz, flat_virial,global_virial,energy_dihedral));
+}
 
   // force of improper
   void ComputeImproperHarmonicForceOp<device::DEVICE_GPU>::operator()(

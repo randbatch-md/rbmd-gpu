@@ -419,12 +419,12 @@ int StructureReder::ReadDihedralsCoeffs(const rbmd::Id& numDihedralsTypes)
           auto& dihedral_coeffs_sign = force_filed->_h_dihedral_coeffs_sign;
           auto& dihedral_coeffs_multiplicity = force_filed->_h_dihedral_coeffs_multiplicity;
           CHECK_RUNTIME(MALLOCHOST(&dihedral_coeffs_k, numDihedralsTypes * sizeof(rbmd::Real)));
-          CHECK_RUNTIME(MALLOCHOST(&dihedral_coeffs_sign, numDihedralsTypes * sizeof(rbmd::Real)));
-          CHECK_RUNTIME(MALLOCHOST(&dihedral_coeffs_multiplicity, numDihedralsTypes * sizeof(rbmd::Real)));
+          CHECK_RUNTIME(MALLOCHOST(&dihedral_coeffs_sign, numDihedralsTypes * sizeof(rbmd::Id)));
+          CHECK_RUNTIME(MALLOCHOST(&dihedral_coeffs_multiplicity, numDihedralsTypes * sizeof(rbmd::Id)));
           rbmd::Id dihedral_type_id;
           rbmd::Real dihedral_coeffs_k_value;
-          rbmd::Real dihedral_coeffs_sign_value;
-          rbmd::Real dihedral_coeffs_multiplicity_value;
+          rbmd::Id dihedral_coeffs_sign_value;
+          rbmd::Id dihedral_coeffs_multiplicity_value;
 
           _line_start = &_mapped_memory[_locate];
           for (auto num = 0; _locate < _file_size && num < numDihedralsTypes; ++_locate)
@@ -492,6 +492,95 @@ int StructureReder::ReadDihedralsCoeffs(const rbmd::Id& numDihedralsTypes)
         return -1;
     }
   }
+  else if (dihedral_type == "fourier") { // START of new fourier logic
+      try {
+            // A temporary struct to hold one term's data
+            struct FourierTerm {
+                rbmd::Real k;
+                rbmd::Id n;
+                rbmd::Real d;
+            };
+
+            // Step A: Read data into a flexible, nested vector structure
+            std::vector<std::vector<FourierTerm>> host_coeffs_by_type(numDihedralsTypes);
+
+            _line_start = &_mapped_memory[_locate];
+            for (auto num = 0; _locate < _file_size && num < numDihedralsTypes; ++_locate) {
+                if (_mapped_memory[_locate] == '\n') {
+                    auto line = std::string(_line_start, &_mapped_memory[_locate]);
+                    std::istringstream iss(line);
+                    if (rbmd::IsLegalLine(line)) {
+                        rbmd::Id type_id;
+                        rbmd::Id num_terms_for_line;
+                        iss >> type_id >> num_terms_for_line;
+
+                        if (type_id > 0 && type_id <= numDihedralsTypes) {
+                            host_coeffs_by_type[type_id - 1].resize(num_terms_for_line);
+                            for (rbmd::Id j = 0; j < num_terms_for_line; ++j) {
+                                iss >> host_coeffs_by_type[type_id - 1][j].k
+                                    >> host_coeffs_by_type[type_id - 1][j].n
+                                    >> host_coeffs_by_type[type_id - 1][j].d;
+                            }
+                        }
+                        ++num;
+                    }
+                    _line_start = &_mapped_memory[_locate];
+                }
+            }
+
+            // Step B: Flatten the nested data into GPU-ready 1D arrays
+            auto force_filed = std::dynamic_pointer_cast<CVFFForceFieldData>(_md_data._force_field_data);
+
+            std::vector<rbmd::Id>   nterms_vec(numDihedralsTypes);
+            std::vector<rbmd::Id>   offsets_vec(numDihedralsTypes);
+            std::vector<rbmd::Real> k_vec;
+            std::vector<rbmd::Id>   multiplicity_vec;
+            std::vector<rbmd::Real> cos_shift_vec;
+            std::vector<rbmd::Real> sin_shift_vec;
+
+            size_t total_terms = 0;
+            for (rbmd::Id i = 0; i < numDihedralsTypes; ++i) {
+                nterms_vec[i] = host_coeffs_by_type[i].size();
+                offsets_vec[i] = total_terms;
+                total_terms += nterms_vec[i];
+            }
+
+            k_vec.reserve(total_terms);
+            multiplicity_vec.reserve(total_terms);
+            cos_shift_vec.reserve(total_terms);
+            sin_shift_vec.reserve(total_terms);
+
+            for (rbmd::Id i = 0; i < numDihedralsTypes; ++i) {
+                for (const auto& term : host_coeffs_by_type[i]) {
+                    k_vec.push_back(term.k);
+                    multiplicity_vec.push_back(term.n);
+                    rbmd::Real shift_rad = term.d * M_PI / 180.0;
+                    cos_shift_vec.push_back(COS(shift_rad));
+                    sin_shift_vec.push_back(SIN(shift_rad));
+                }
+            }
+
+            // Allocate memory on the force field data object and copy flattened data
+            CHECK_RUNTIME(MALLOCHOST(&force_filed->_h_nterms, numDihedralsTypes * sizeof(rbmd::Id)));
+            CHECK_RUNTIME(MALLOCHOST(&force_filed->_h_fourier_offsets, numDihedralsTypes * sizeof(rbmd::Id)));
+            CHECK_RUNTIME(MALLOCHOST(&force_filed->_h_dihedral_coeffs_k, total_terms * sizeof(rbmd::Real)));
+            CHECK_RUNTIME(MALLOCHOST(&force_filed->_h_dihedral_coeffs_multiplicity, total_terms * sizeof(rbmd::Id)));
+            CHECK_RUNTIME(MALLOCHOST(&force_filed->_h_fourier_cos_shift, total_terms * sizeof(rbmd::Real)));
+            CHECK_RUNTIME(MALLOCHOST(&force_filed->_h_fourier_sin_shift, total_terms * sizeof(rbmd::Real)));
+
+            memcpy(force_filed->_h_nterms, nterms_vec.data(), numDihedralsTypes * sizeof(rbmd::Id));
+            memcpy(force_filed->_h_fourier_offsets, offsets_vec.data(), numDihedralsTypes * sizeof(rbmd::Id));
+            memcpy(force_filed->_h_dihedral_coeffs_k, k_vec.data(), total_terms * sizeof(rbmd::Real));
+            memcpy(force_filed->_h_dihedral_coeffs_multiplicity, multiplicity_vec.data(), total_terms * sizeof(rbmd::Id));
+            memcpy(force_filed->_h_fourier_cos_shift, cos_shift_vec.data(), total_terms * sizeof(rbmd::Real));
+            memcpy(force_filed->_h_fourier_sin_shift, sin_shift_vec.data(), total_terms * sizeof(rbmd::Real));
+        std::cout<< "test--read-end-DihedralFourier"<<std::endl;
+      }
+      catch (const std::exception& e) {
+        // log
+        return -1;
+      }
+  } // END of new fourier logic
   else {
     Logger::Instance().error("\033[31m Unsupported dihedral_type: {}\033[0m", dihedral_type );
     exit(EXIT_FAILURE); //
