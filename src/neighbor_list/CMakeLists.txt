@@ -40,14 +40,18 @@ set(link_dirs ${TOOLS_LINK_PATH}  ${spdlog_link} ${LINK_DIRS})
 #set(link_name "hip::device" "spdlog" "hip::hipcub")
 set(depend_names ${LINK_NAME} "data_manager")
 
+###
+if(USE_CUDA)
+    find_package(CUDAToolkit REQUIRED)
+    if(CUDNN_FOUND)
+        add_definitions(-DUSE_CUDNN=1)
+    endif()
+    if(CUSPARSELT_FOUND)
+        add_definitions(-DUSE_CUSPARSELT=1)
+    endif()
+endif()
 
-find_package(CUDAToolkit REQUIRED)
-if(CUDNN_FOUND)
-    add_definitions(-DUSE_CUDNN=1)
-endif()
-if(CUSPARSELT_FOUND)
-    add_definitions(-DUSE_CUSPARSELT=1)
-endif()
+
 # 手动定义 gflags
 if(USE_MACE)
 
