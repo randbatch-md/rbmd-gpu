@@ -19,24 +19,42 @@
 
 #include "shake_controller.h"
 #include "output/include/Logger.hpp"
+#if USE_MACE
+   #include "maceload.h"
+#endif
+
 NVTensemble::NVTensemble()
 {
   _position_controller = std::make_shared<DefaultPositionController>();
   _velocity_controller = std::make_shared<DefaultVelocityController>();
 
   // Unified  Force Field Controller
-  static const std::unordered_map<std::string, std::function<std::shared_ptr<Force>()>>
-  force_map = {
-    {"CVFF", [&]() { return std::make_shared<CVFF>(); }},
-    {"LJ/CUT", [&]() { return std::make_shared<LJ>(); }},
-    {"LJ/CUT/COUL/LONG", [&]() { return std::make_shared<LJCutCoulKspace>(); }},
-    {"EAM", [&]() { return std::make_shared<EAM>(); }},
-    {"Tersoff", [&]() { return std::make_shared<TerSoff>(); }}
-  };
-
+  #if USE_MACE
+     static const std::unordered_map<std::string, std::function<std::shared_ptr<Force>()>>
+     force_map = {
+       {"CVFF", [&]() { return std::make_shared<CVFF>(); }},
+       {"LJ/CUT", [&]() { return std::make_shared<LJ>(); }},
+       {"LJ/CUT/COUL/LONG", [&]() { return std::make_shared<LJCutCoulKspace>(); }},
+       {"EAM", [&]() { return std::make_shared<EAM>(); }},
+       {"Tersoff", [&]() { return std::make_shared<TerSoff>(); }},
+       {"MACE", [&]() { return std::make_shared<maceload>(); }}
+     };
+  //    std::cout<<"mace"<<std::endl;
+  #else
+     static const std::unordered_map<std::string, std::function<std::shared_ptr<Force>()>>
+     force_map = {
+       {"CVFF", [&]() { return std::make_shared<CVFF>(); }},
+       {"LJ/CUT", [&]() { return std::make_shared<LJ>(); }},
+       {"LJ/CUT/COUL/LONG", [&]() { return std::make_shared<LJCutCoulKspace>(); }},
+       {"EAM", [&]() { return std::make_shared<EAM>(); }},
+       {"Tersoff", [&]() { return std::make_shared<TerSoff>(); }}
+     };
+  //     std::cout<<"nomace"<<std::endl;
+  #endif
   //force_type
   auto force_type = DataManager::getInstance().getConfigData()->Get<std::string>
   ("type", "hyper_parameters", "force_field");
+  //std::cout<<force_type<<std::endl;
   if (auto it = force_map.find(force_type); it != force_map.end())
   {
     _force_controller = it->second();

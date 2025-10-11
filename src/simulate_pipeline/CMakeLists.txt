@@ -45,9 +45,28 @@ if(USE_ROCM)
 elseif(USE_CUDA)
 	set(INCLUDE_DIRS ${CMAKE_CUDA_TOOLKIT_INCLUDE_DIRECTORIES})
 endif()
-
+if(USE_ROCM)
+        set(INCLUDE_DIRS ${rocthrust_INCLUDE_DIRS} ${HIP_INCLUDE_DIRS})
+        set(LINK_NAME "hip::device" "roc::rocthrust")
+    set(LINK_DIRS ${rocthrust_LIBRARIES} ${HIP_LIBRARIES})
+elseif(USE_CUDA)
+        set(INCLUDE_DIRS ${CMAKE_CUDA_TOOLKIT_INCLUDE_DIRECTORIES})
+endif()
+if(USE_MACE)
+set(TORCH_DIR "/work/home/zhaoteng_sciai/zkh/libtorch1" CACHE PATH "torch DIR")
+set(glog_DIR "/work/home/zhaoteng_sciai/zkh/glog1" CACHE PATH "glog DIR")
+set(include_dir ${include_dirs} ${TOOLS_INCLUDE_PATH} ${INCLUDE_DIRS} ${SPDLOG_INCLUDE_DIRS}  "../common" "../data_manager/include" "../force/include"
+    "${TORCH_DIR}/include" "${TORCH_DIR}/include/torch/csrc/api/include" "${TORCH_DIR}/include/torch/csrc/autograd"
+                "${TORCH_DIR}/include/torch/csrc/cuda"     "${glog_DIR}/include"
+                 "../../tools/Linux/Release/spdlog-1.14.1/include"
+)  # ${jsoncpp_INCLUDE_DIRS}
+set(link_dir  ${TOOLS_LINK_PATH} ${LINK_DIRS} ${hipcub_LIBRARIES} ${SPDLOG_LIBRARY_DIRS}
+"${TORCH_DIR}/lib" "${glog_DIR}/lib64"          "../../tools/Linux/Release/spdlog-1.14.1/lib64"
+ )  # ${jsoncpp_LIBRARIES}
+else()
 set(include_dir ${include_dirs} ${TOOLS_INCLUDE_PATH} ${INCLUDE_DIRS} ${SPDLOG_INCLUDE_DIRS}  "../common" "../data_manager/include" "../force/include")  # ${jsoncpp_INCLUDE_DIRS}
 set(link_dir  ${TOOLS_LINK_PATH} ${LINK_DIRS} ${hipcub_LIBRARIES} ${SPDLOG_LIBRARY_DIRS})  # ${jsoncpp_LIBRARIES}
+endif()
 set(depends_name ${LINK_NAME}  PkgConfig::SPDLOG)
 
 cpp_library(
@@ -57,4 +76,8 @@ depends_link_dir ${link_dir}
 depends_name ${depends_name}
 )
 set(LIB_DIR ${CMAKE_CURRENT_LIST_DIR}/../lib)
+if(USE_MACE)
+target_link_libraries(${PROJECT_NAME} PUBLIC force)
+else()
 target_link_libraries(${PROJECT_NAME} force)
+endif()

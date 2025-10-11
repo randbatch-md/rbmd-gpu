@@ -41,6 +41,28 @@ set(link_dirs ${TOOLS_LINK_PATH}  ${spdlog_link} ${LINK_DIRS})
 set(depend_names ${LINK_NAME} "data_manager")
 
 
+find_package(CUDAToolkit REQUIRED)
+if(CUDNN_FOUND)
+    add_definitions(-DUSE_CUDNN=1)
+endif()
+if(CUSPARSELT_FOUND)
+    add_definitions(-DUSE_CUSPARSELT=1)
+endif()
+# 手动定义 gflags
+if(USE_MACE)
+
+#set(TORCH_DIR "/work/home/zhaoteng_sciai/zkh/libtorch")
+
+    set(Torch_DIR "${TORCH_DIR}/share/cmake/Torch")
+    find_package(Torch REQUIRED)
+#message(STATUS "Found Torch: ${Torch_FOUND}")
+#message(STATUS "Torch libraries: ${TORCH_LIBRARIES}")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${TORCH_CXX_FLAGS}")
+    list(APPEND link_dirs "${TORCH_DIR}/lib"  )
+    list(APPEND depend_names ${TORCH_LIBRARIES})
+    list(APPEND include_files  "${TORCH_DIR}/include" "${TORCH_DIR}/include/torch/csrc/api/include" "${TORCH_DIR}/include/torch/csrc/autograd"
+      "${TORCH_DIR}/include/torch/csrc/cuda" )
+endif()
 
 cpp_library(
 name ${PROJECT_NAME}
