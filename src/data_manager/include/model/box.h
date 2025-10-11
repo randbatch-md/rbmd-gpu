@@ -198,9 +198,10 @@ __host__ __device__ __forceinline__ void ApplyPBC_Robust(
     rbmd::Id& flag_px, rbmd::Id& flag_py, rbmd::Id& flag_pz)
 {
   if (box._type == Box::BoxType::ORTHOGONAL) {
-    // X维度
+    // X
     if (box._pbc_x) {
-      // floor函数直接计算出原子坐标相对于盒子下边界有多少个“盒子单位”
+      // The floor function directly calculates how many "box units"
+      // the atomic coordinates are away from the lower boundary of the box.
       rbmd::Real wrapped_px = px - box._coord_min[0];
       rbmd::Id crossings = FLOOR(wrapped_px * box._length_inv[0]);
 
@@ -208,7 +209,7 @@ __host__ __device__ __forceinline__ void ApplyPBC_Robust(
       flag_px -= crossings;
     }
 
-    // Y维度
+    // Y
     if (box._pbc_y) {
       rbmd::Real wrapped_py = py - box._coord_min[1];
       rbmd::Id crossings = FLOOR(wrapped_py * box._length_inv[1]);
@@ -217,7 +218,7 @@ __host__ __device__ __forceinline__ void ApplyPBC_Robust(
       flag_py -= crossings;
     }
 
-    // Z维度
+    // Z
     if (box._pbc_z) {
       rbmd::Real wrapped_pz = pz - box._coord_min[2];
       rbmd::Id crossings = FLOOR(wrapped_pz * box._length_inv[2]);

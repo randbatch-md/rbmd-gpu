@@ -134,9 +134,6 @@ void TrajectoryOutput::AllocateRingBuffer(size_t num_atoms) {
     frame.h_vx = nullptr;
     frame.h_vy = nullptr;
     frame.h_vz = nullptr;
-    frame.h_ix = nullptr;
-    frame.h_iy = nullptr;
-    frame.h_iz = nullptr;
     frame.h_atoms_type = nullptr;
     frame.copy_complete_event = nullptr;
     CHECK_RUNTIME(MALLOCHOST(reinterpret_cast<void**>(&frame.h_px),
@@ -151,12 +148,6 @@ void TrajectoryOutput::AllocateRingBuffer(size_t num_atoms) {
                              num_atoms * sizeof(rbmd::Real)));
     CHECK_RUNTIME(MALLOCHOST(reinterpret_cast<void**>(&frame.h_vz),
                              num_atoms * sizeof(rbmd::Real)));
-    CHECK_RUNTIME(MALLOCHOST(reinterpret_cast<void**>(&frame.h_ix),
-                         num_atoms * sizeof(rbmd::Id)));
-    CHECK_RUNTIME(MALLOCHOST(reinterpret_cast<void**>(&frame.h_iy),
-                             num_atoms * sizeof(rbmd::Id)));
-    CHECK_RUNTIME(MALLOCHOST(reinterpret_cast<void**>(&frame.h_iz),
-                             num_atoms * sizeof(rbmd::Id)));
     CHECK_RUNTIME(MALLOCHOST(reinterpret_cast<void**>(&frame.h_atoms_type),
                              num_atoms * sizeof(rbmd::Id)));
     CHECK_RUNTIME(MALLOCHOST(reinterpret_cast<void**>(&frame.h_charge),
@@ -175,9 +166,6 @@ void TrajectoryOutput::DeallocateRingBuffer() {
     CHECK_RUNTIME(FREE_PINNED_HOST(frame.h_vx));
     CHECK_RUNTIME(FREE_PINNED_HOST(frame.h_vy));
     CHECK_RUNTIME(FREE_PINNED_HOST(frame.h_vz));
-    CHECK_RUNTIME(FREE_PINNED_HOST(frame.h_ix));
-    CHECK_RUNTIME(FREE_PINNED_HOST(frame.h_iy));
-    CHECK_RUNTIME(FREE_PINNED_HOST(frame.h_iz));
     CHECK_RUNTIME(FREE_PINNED_HOST(frame.h_atoms_type));
     CHECK_RUNTIME(EVENT_DESTORY(frame.copy_complete_event));
     CHECK_RUNTIME(FREE_PINNED_HOST(frame.h_charge));
@@ -190,7 +178,6 @@ size_t TrajectoryOutput::CalculateSingleFrameMemory(size_t num_atoms) const {
   size_t mem = 0;
   mem += num_atoms * sizeof(rbmd::Real) * 3;  // px, py, pz
   mem += num_atoms * sizeof(rbmd::Real) * 3;  // vx, vy, vz
-  mem += num_atoms * sizeof(rbmd::Id) * 3;  // ix, iy, iz
   mem += num_atoms * sizeof(rbmd::Real);      // charge
   mem += num_atoms * sizeof(rbmd::Id);        // atoms_type
   mem += num_atoms * sizeof(rbmd::Id);        // atom_id_to_idx
@@ -254,12 +241,6 @@ void TrajectoryOutput::Execute(int current_timestep) {
                              pos_bytes, D2H, _stream));
   CHECK_RUNTIME(MEMCPY_ASYNC(target_frame.h_vz, raw_ptr(_device_data->_d_vz),
                              pos_bytes, D2H, _stream));
-  CHECK_RUNTIME(MEMCPY_ASYNC(target_frame.h_ix, raw_ptr(_device_data->_d_flagX),
-                           type_bytes, D2H, _stream));
-  CHECK_RUNTIME(MEMCPY_ASYNC(target_frame.h_iy, raw_ptr(_device_data->_d_flagY),
-                             type_bytes, D2H, _stream));
-  CHECK_RUNTIME(MEMCPY_ASYNC(target_frame.h_iz, raw_ptr(_device_data->_d_flagZ),
-                             type_bytes, D2H, _stream));
   CHECK_RUNTIME(MEMCPY_ASYNC(target_frame.h_atoms_type,
                              raw_ptr(_device_data->_d_atoms_type), type_bytes,
                              D2H, _stream));
@@ -352,7 +333,7 @@ void TrajectoryOutput::OutputWorker() {
                                 source_frame.box_snapshot._coord_min[2],
                                 source_frame.box_snapshot._coord_max[2]));
 
-    write_to_buffer("ITEM: ATOMS id type q x y z vx vy vz ix iy iz\n");
+    write_to_buffer("ITEM: ATOMS id type q x y z vx vy vz\n");
 
     // Batch process atom data using fmt
     const size_t atoms_per_batch = 1000;
@@ -363,7 +344,7 @@ void TrajectoryOutput::OutputWorker() {
       const auto idx = source_frame.h_atom_id_to_idx[i];
 
       // Use fmt::format for atom data - much cleaner than snprintf
-      batch_buffer += fmt::format("{} {} {} {} {} {} {} {} {} {} {} {}\n",
+      batch_buffer += fmt::format("{} {} {} {} {} {}  {} {} {}\n",
                                   i + 1,
                                   source_frame.h_atoms_type[idx] + 1,
                                   source_frame.h_charge[idx],
@@ -372,10 +353,7 @@ void TrajectoryOutput::OutputWorker() {
                                   source_frame.h_pz[idx],
                                   source_frame.h_vx[idx],
                                   source_frame.h_vy[idx],
-                                  source_frame.h_vz[idx],
-                                  source_frame.h_ix[idx],
-                                  source_frame.h_iy[idx],
-                                  source_frame.h_iz[idx]);
+                                  source_frame.h_vz[idx]);
 
       // Write batch when full or at the end
       if ((i + 1) % atoms_per_batch == 0 || i == source_frame.num_atoms - 1) {

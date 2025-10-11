@@ -55,6 +55,7 @@ void DefaultPositionController::SetCenterTargetPositions() {
   if (init_type == _init_type) {
   }
 }
+
 void  DefaultPositionController::PBC() {
   op::PBCOp<device::DEVICE_GPU>()(
     *(_structure_info_data->_num_atoms),*_box,
