@@ -41,6 +41,8 @@ NVEensemble::NVEensemble() {
 
 void NVEensemble::Init() {
   _position_controller->Init();
+  _position_controller->PBC();
+
   _velocity_controller->Init();
   _energy_stable_scheme_controller->Init();
 

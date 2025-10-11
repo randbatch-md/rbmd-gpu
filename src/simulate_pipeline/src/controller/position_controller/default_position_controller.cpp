@@ -55,3 +55,14 @@ void DefaultPositionController::SetCenterTargetPositions() {
   if (init_type == _init_type) {
   }
 }
+
+void  DefaultPositionController::PBC() {
+  op::PBCOp<device::DEVICE_GPU>()(
+    *(_structure_info_data->_num_atoms),*_box,
+    thrust::raw_pointer_cast(_device_data->_d_px.data()),
+    thrust::raw_pointer_cast(_device_data->_d_py.data()),
+    thrust::raw_pointer_cast(_device_data->_d_pz.data()),
+    thrust::raw_pointer_cast(_device_data->_d_flagX.data()),
+    thrust::raw_pointer_cast(_device_data->_d_flagY.data()),
+    thrust::raw_pointer_cast(_device_data->_d_flagZ.data()));
+}

@@ -17,6 +17,7 @@ class DefaultPositionController : public PositionController {
    */
   void SetCenterTargetPositions();
 
+  void PBC() override;
  private:
   rbmd::Real _dt;
   std::string _init_type;

@@ -93,6 +93,8 @@ NVTensemble::NVTensemble()
 
 void NVTensemble::Init() {
   _position_controller->Init();
+  _position_controller->PBC();
+
   _velocity_controller->Init();
 
   _force_controller->Init();

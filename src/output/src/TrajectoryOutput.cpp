@@ -344,7 +344,7 @@ void TrajectoryOutput::OutputWorker() {
       const auto idx = source_frame.h_atom_id_to_idx[i];
 
       // Use fmt::format for atom data - much cleaner than snprintf
-      batch_buffer += fmt::format("{} {} {} {} {} {} {} {} {}\n",
+      batch_buffer += fmt::format("{} {} {} {} {} {}  {} {} {}\n",
                                   i + 1,
                                   source_frame.h_atoms_type[idx] + 1,
                                   source_frame.h_charge[idx],
