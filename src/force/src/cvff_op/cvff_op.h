@@ -296,6 +296,30 @@ struct ComputeImproperCVFFForceOp
     rbmd::Real* energy_improper);
 };
 
+template <typename DEVICE>
+struct ComputeSpecialLJCutCoulForceUserOp
+{
+  void operator()(    Box box, const rbmd::Real cut_off, const rbmd::Id num_atoms,const  rbmd::Real qqr2e,
+    const rbmd::Real rbsog_sigma,const rbmd::Real rbsog_b, const rbmd::Id rbsog_mmax,
+    const rbmd::Real rbsog_w0,const rbmd::Real* taylor_coeff,
+    const rbmd::Id* atoms_type, const rbmd::Id* atoms_id,
+    const rbmd::Real* sigma, const rbmd::Real* eps,
+    const rbmd::Id* start_id, const rbmd::Id* end_id, const rbmd::Id* id_verletlist,
+    const rbmd::Id* special_ids, const rbmd::Real* special_weights,
+    const rbmd::Id* special_offset, const rbmd::Id* special_count,
+    const rbmd::Real* charge, const rbmd::Real* px, const rbmd::Real* py, const rbmd::Real* pz,
+    rbmd::Real* fx, rbmd::Real* fy, rbmd::Real* fz,
+    rbmd::Real* flat_virial, rbmd::Real* total_evdwl, rbmd::Real* total_ecoul);
+};
+
+
+template <typename DEVICE>
+struct ReduceVirialOp
+{
+  void operator()(const rbmd::Id num_atoms,const rbmd::Id pitch,
+        const rbmd::Real* d_flat_virial_atom,rbmd::Real* d_virial);
+};
+
  ///////////////////////
 
 
@@ -594,6 +618,28 @@ struct ComputeImproperCVFFForceOp<device::DEVICE_GPU>
     rbmd::Real* energy_improper);
 };
 
+template <>
+struct ReduceVirialOp<device::DEVICE_GPU>
+{
+  void operator()(const rbmd::Id num_atoms,const rbmd::Id pitch,
+        const rbmd::Real* d_flat_virial_atom,rbmd::Real* d_virial);
+};
+
+template <>
+struct ComputeSpecialLJCutCoulForceUserOp<device::DEVICE_GPU>
+{
+  void operator()(    Box box, const rbmd::Real cut_off, const rbmd::Id num_atoms,const  rbmd::Real qqr2e,
+    const rbmd::Real rbsog_sigma,const rbmd::Real rbsog_b, const rbmd::Id rbsog_mmax,
+    const rbmd::Real rbsog_w0,const rbmd::Real* taylor_coeff,
+    const rbmd::Id* atoms_type, const rbmd::Id* atoms_id,
+    const rbmd::Real* sigma, const rbmd::Real* eps,
+    const rbmd::Id* start_id, const rbmd::Id* end_id, const rbmd::Id* id_verletlist,
+    const rbmd::Id* special_ids, const rbmd::Real* special_weights,
+    const rbmd::Id* special_offset, const rbmd::Id* special_count,
+    const rbmd::Real* charge, const rbmd::Real* px, const rbmd::Real* py, const rbmd::Real* pz,
+    rbmd::Real* fx, rbmd::Real* fy, rbmd::Real* fz,
+    rbmd::Real* flat_virial, rbmd::Real* total_evdwl, rbmd::Real* total_ecoul);
+};
 
 
 

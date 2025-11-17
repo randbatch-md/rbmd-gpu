@@ -188,7 +188,9 @@ __global__ void compute_angmom_kernel(const rbmd::Id num_atoms,Real3 cm,
     rbmd::Real pos_wrap[3] = {d_x[i], d_y[i], d_z[i]};
     int image[3] = {d_image_x[i], d_image_y[i], d_image_z[i]};
     rbmd::Real pos_unwrap[3];
+
     unwarp(pos_wrap, image, box, pos_unwrap);
+     // printf("pos_unwrap: %f %f %f\n",pos_unwrap[0],pos_unwrap[1],pos_unwrap[2]);
 
     rbmd::Real dx = pos_unwrap[0] - cm.x;
     rbmd::Real dy = pos_unwrap[1] - cm.y;
@@ -342,6 +344,7 @@ void ComputeAngMomOp<device::DEVICE_GPU>::operator()(
                                                      d_x, d_y, d_z, d_vx, d_vy, d_vz,
                                                      d_image_x, d_image_y, d_image_z,
                                                      box, d_angmom_contrib));
+
 }
 
 void ComputeInertiaOp<device::DEVICE_GPU>::operator()(

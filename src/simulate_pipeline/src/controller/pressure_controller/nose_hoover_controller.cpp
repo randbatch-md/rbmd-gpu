@@ -22,6 +22,8 @@ NoseHooverController::NoseHooverController() {
 
   _position_controller = std::make_shared<DefaultPositionController>();
   _velocity_controller = std::make_shared<DefaultVelocityController>();
+
+  _group_controller = std::make_shared<GroupController>();
 }
 NoseHooverController::~NoseHooverController() {
   CHECK_RUNTIME(FREE(_d_temp_contrib));
@@ -169,7 +171,7 @@ void NoseHooverController::Init() {
     if (_group_name.empty()) {
       _group_name = "all";
     }
-    GroupController::GetInstance().Init();
+    _group_controller->Init();
   }
 
 
@@ -200,7 +202,7 @@ void NoseHooverController::ComputeTemperature(){
 
   if (_com_bias) {
     //  计算质心速度 (vbias)
-    GroupController::GetInstance().ComputeVCM(_group_name, _vbias);
+   _group_controller->ComputeVCM(_group_name, _vbias);
     op::ComputeTemperatureCOMOp<device::DEVICE_GPU>()(num_atoms, _mvv2e,_vbias,
         thrust::raw_pointer_cast(_device_data->_d_atoms_type.data()),
         thrust::raw_pointer_cast(_device_data->_d_mass.data()),

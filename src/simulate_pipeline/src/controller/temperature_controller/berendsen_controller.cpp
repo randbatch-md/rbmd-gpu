@@ -15,6 +15,8 @@ extern int test_current_step;
 BerendsenController::BerendsenController() {
   CHECK_RUNTIME(MALLOC(&_d_temp_contrib, sizeof(rbmd::Real)));
   std::remove("temperature.txt");
+
+  _group_controller = std::make_shared<GroupController>();
 }
 BerendsenController::~BerendsenController() {
   CHECK_RUNTIME(FREE(_d_temp_contrib));
@@ -61,7 +63,7 @@ void BerendsenController::Init() {
     if (_group_name.empty()) {
       _group_name = "all";
     }
-    GroupController::GetInstance().Init();
+    _group_controller->Init();
   }
 
 
@@ -87,7 +89,7 @@ void BerendsenController::ComputeTemperature() {
   CHECK_RUNTIME(MEMSET(_d_temp_contrib, 0, sizeof(rbmd::Real)));
   if (_com_bias) {
     //  计算质心速度 (vbias)
-    GroupController::GetInstance().ComputeVCM(_group_name, _vbias);
+    _group_controller->ComputeVCM(_group_name, _vbias);
     op::ComputeTemperatureCOMOp<device::DEVICE_GPU>()(num_atoms, _mvv2e,_vbias,
         thrust::raw_pointer_cast(_device_data->_d_atoms_type.data()),
         thrust::raw_pointer_cast(_device_data->_d_mass.data()),

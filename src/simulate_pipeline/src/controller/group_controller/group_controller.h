@@ -11,11 +11,11 @@
 
 class GroupController {
 public:
-  // 单例模式
-  static GroupController& GetInstance() {
-    static GroupController instance;
-    return instance;
-  }
+
+  GroupController();
+  ~GroupController();
+  GroupController(const GroupController&) = delete;
+  GroupController& operator=(const GroupController&) = delete;
 
   // 初始化，通常在模拟开始时调用一次
   void Init();
@@ -60,32 +60,11 @@ public:
     void ComputeOmega(const rbmd::Real* angmom, const rbmd::Real (*inertia)[3], rbmd::Real* omega_out);
 
 private:
-  GroupController();
-  ~GroupController();
-  GroupController(const GroupController&) = delete;
-  GroupController& operator=(const GroupController&) = delete;
-
-  // 从 DataManager 获取数据
-  void fetchData();
 
   // 缓存数据指针，避免反复调用DataManager
+  std::unordered_map<std::string, std::vector<rbmd::Id>> _groups;
   std::shared_ptr<DeviceData> _device_data;
   std::shared_ptr<StructureInfoData> _structure_info_data;
-
-  // GPU端用于存储中间结果的内存
-  //rbmd::Real* _d_vcm_contrib; // [mass, mom_x, mom_y, mom_z]
-  thrust::device_vector<rbmd::Real> _d_vcm_contrib;
-
-  rbmd::Real* _d_xcm_contrib; // [mass, m*x, m*y, m*z]
-  // angmom_contrib: [Lx, Ly, Lz]
-  rbmd::Real* _d_angmom_contrib;
-  // inertia_contrib: [Ixx, Iyy, Izz, Ixy, Ixz, Iyz] (6个独立分量)
-  rbmd::Real* _d_inertia_contrib;
-
-  // 映射组名到原子索引的列表 (这里简化为只处理"all"组)
-  // 未来可以扩展为支持多个组
-  std::unordered_map<std::string, std::vector<rbmd::Id>> _groups;
-  bool _is_initialized = false;
-
   std::shared_ptr<Box> _box;
+
 };

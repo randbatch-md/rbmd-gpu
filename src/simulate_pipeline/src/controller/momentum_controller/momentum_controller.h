@@ -1,10 +1,11 @@
 #pragma once
 
-#include "data_manager.h"
-#include "model/md_data.h"
 #include <memory>
 #include <string>
 
+#include "data_manager.h"
+#include "group_controller.h"
+#include "model/md_data.h"
 
 class MomentumController {
 public:
@@ -22,13 +23,12 @@ public:
   void Execute();
 
 private:
-  // 从DataManager缓存的数据指针
-  void fetchData();
   std::shared_ptr<DeviceData> _device_data;
   std::shared_ptr<StructureInfoData> _structure_info_data;
+  std::shared_ptr<Box> _box;
 
   // --- 从配置文件读取的参数 ---
-  int _nevery;
+  int _interval;
   bool _linear_flag;
   bool _angular_flag;
   bool _rescale_flag;
@@ -38,5 +38,8 @@ private:
   // --- GPU端用于中间计算的内存 ---
   rbmd::Real* _d_ke_contrib; // 用于计算动能
 
-  std::shared_ptr<Box> _box;
+
+  std::shared_ptr<GroupController> _group_controller;
+
+  rbmd::Real _mvv2e;
 };

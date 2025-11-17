@@ -207,7 +207,7 @@ __host__ __device__ __forceinline__ void ApplyPBC_Robust(
       rbmd::Id crossings = FLOOR(wrapped_px * box._length_inv[0]);
 
       px -= crossings * box._length[0];
-      flag_px -= crossings;
+      flag_px += crossings;
     }
 
     // Y维度
@@ -216,7 +216,7 @@ __host__ __device__ __forceinline__ void ApplyPBC_Robust(
       rbmd::Id crossings = FLOOR(wrapped_py * box._length_inv[1]);
 
       py -= crossings * box._length[1];
-      flag_py -= crossings;
+      flag_py += crossings;
     }
 
     // Z维度
@@ -225,7 +225,7 @@ __host__ __device__ __forceinline__ void ApplyPBC_Robust(
       rbmd::Id crossings = FLOOR(wrapped_pz * box._length_inv[2]);
 
       pz -= crossings * box._length[2];
-      flag_pz -= crossings;
+      flag_pz += crossings;
     }
   }
 }

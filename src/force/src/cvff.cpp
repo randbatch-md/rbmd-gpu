@@ -17,6 +17,7 @@
 #include "thrust/sort.h"
 // #include <hipcub/hipcub.hpp>
 // #include <hipcub/backend/rocprim/block/block_reduce.hpp>
+#include "common/math_utils.h"
 #include "common/thermo_stats.hpp"
 #include "common/timing_statistics.hpp"
 extern int test_current_step;
@@ -59,6 +60,7 @@ void CVFF::Init()
   //neighbor
   _cut_off = config->Get<rbmd::Real>("cut_off", "hyper_parameters", "neighbor");
   _neighbor_type = config->Get<std::string>("type", "hyper_parameters", "neighbor");
+
   if("RBL" == _neighbor_type) {
     bool energy_rbl_flag = config->PathExists({"hyper_parameters", "neighbor" ,"energy_rbl_flag"});
     if (energy_rbl_flag) {
@@ -70,10 +72,70 @@ void CVFF::Init()
       exit(EXIT_FAILURE); //
     }
   }
-
+  else if("VERLET-SOG" == _neighbor_type) {
+    LJCoulSOGInit();
+  }
   //
+
   _alpha = config->Get<rbmd::Real>("alpha", "hyper_parameters", "coulomb");
   _kspace_calculator->Init();
+}
+
+void CVFF::LJCoulSOGInit() {
+
+   const auto& config = DataManager::getInstance().getConfigData();
+   _rbsog_b = config->Get<rbmd::Real>("rbsog_b", "hyper_parameters", "coulomb");
+   _rbsog_sigma = config->Get<rbmd::Real>("rbsog_sigma", "hyper_parameters", "coulomb");
+   _rbsog_Mmax = config->Get<rbmd::Id>("rbsog_Mmax", "hyper_parameters", "coulomb");
+
+
+  rbmd::Real r0 = _cut_off / _rbsog_sigma;
+  _w0 = Compute_W01(r0, _rbsog_b);
+  if (config->PathExists({"hyper_parameters", "coulomb" ,"rbsog_omega"})) {
+    _rbsog_omega = config->Get<rbmd::Real>("rbsog_omega", "hyper_parameters", "coulomb");
+    _w0= _rbsog_omega;
+  }
+  std::vector<rbmd::Real> bl;
+  bl.resize(_rbsog_Mmax);
+  std::vector<rbmd::Real> bl3_inv;
+  bl3_inv.resize(_rbsog_Mmax);
+  std::vector<rbmd::Real> BL2SIGMA2INV;
+  BL2SIGMA2INV.resize(_rbsog_Mmax);
+
+  for (int i = 0; i < _rbsog_Mmax; i++)
+  {
+    bl[i] = POW(_rbsog_b, i);
+    rbmd::Real bl_inv = 1.0 / bl[i];
+    bl3_inv[i] = bl_inv * bl_inv * bl_inv;
+    BL2SIGMA2INV[i] = 1.0 / (2.0 * _rbsog_sigma * _rbsog_sigma * bl[i] * bl[i]);
+  }
+  bl3_inv[0] = _w0;
+
+  rbmd::Real coef = LOG(_rbsog_b) / (_rbsog_sigma * _rbsog_sigma *
+                  SQRT(2 * M_PI * _rbsog_sigma * _rbsog_sigma));
+
+  std::vector<rbmd::Real>TaylorCoeff;
+  TaylorCoeff.resize(6);
+
+  for (int i = 0; i < TaylorCoeff.size(); i++)
+  {
+    double sumsum = 0.00;
+    for (int j = 0; j < _rbsog_Mmax; j++)
+    {
+      sumsum = sumsum + bl3_inv[j] * (1.0 / MathLib::factorial(i+0.00)) * POW(BL2SIGMA2INV[j], i+0.00);
+    }
+    TaylorCoeff[i] = POW(-1.0,i+1.0) * 2.0 * coef * sumsum;
+  }
+  std::cout<< "_w0:  "<< _w0  <<std::endl;
+  for (int i = 0; i < bl3_inv.size(); i++) {
+    std::cout<< "bl3_inv:  "<< bl3_inv[i]  << ",BL2SIGMA2INV: "<<
+      BL2SIGMA2INV[i] <<std::endl;
+  }
+
+  for (int i = 0; i < TaylorCoeff.size(); i++) {
+    std::cout << "TaylorCoeff: "<< TaylorCoeff[i]  <<std::endl;
+  }
+  _d_taylor_coeff = TaylorCoeff;
 }
 
 void CVFF::Execute() {
@@ -102,6 +164,9 @@ void CVFF::ComputeLJCutCoulForce()
   if ("RBL" ==_neighbor_type)
   {
     ComputeLJRBL();
+  }
+  else if ("VERLET-SOG" ==_neighbor_type) {
+    ComputeLJSOG();
   }
   else
   {
@@ -240,9 +305,86 @@ void CVFF::ComputeLJVerlet()
   _e_vdwl = h_total_evdwl[0];
   _e_coul = h_total_ecoul[0];
 
-//sum virial_special_lj on host
-  ReduceVirial(num_atoms,_device_data->_d_flat_virial_lj,
-_device_data->_d_virial_lj);
+  op::ReduceVirialOp<device::DEVICE_GPU>()(num_atoms,num_atoms,
+    thrust::raw_pointer_cast(_device_data->_d_flat_virial_lj.data()),
+    thrust::raw_pointer_cast(_device_data->_d_virial_lj.data()));
+}
+
+void CVFF::ComputeLJSOG() {
+    //neighbor_list_build
+  auto start = std::chrono::high_resolution_clock::now();
+  _list = _neighbor_list_builder->Build();
+
+  auto end = std::chrono::high_resolution_clock::now();
+
+  std::chrono::duration<rbmd::Real> duration = end - start;
+
+  TimingStatistics::Instance().record("Neighbor-List",duration.count());
+
+  //
+  auto start_verlet_force = std::chrono::high_resolution_clock::now();
+  //
+  thrust::device_vector<rbmd::Real> _d_total_evdwl(1, 0.0);
+  thrust::device_vector<rbmd::Real> _d_total_ecoul(1, 0.0);
+
+
+  //
+  auto num_atoms = *(_structure_info_data->_num_atoms);
+  op::ComputeSpecialLJCutCoulForceUserOp<device::DEVICE_GPU>()(
+                  *_box, _cut_off, num_atoms,_qqr2e,
+                  _rbsog_sigma,_rbsog_b,_rbsog_Mmax,_w0,
+                  thrust::raw_pointer_cast(_d_taylor_coeff.data()),
+                  thrust::raw_pointer_cast(_device_data->_d_atoms_type.data()),
+                  thrust::raw_pointer_cast(_device_data->_d_atoms_id.data()),
+                  thrust::raw_pointer_cast(_device_data->_d_sigma.data()),
+                  thrust::raw_pointer_cast(_device_data->_d_eps.data()),
+                  thrust::raw_pointer_cast(_list->_start_idx.data()),
+                  thrust::raw_pointer_cast(_list->_end_idx.data()),
+                  thrust::raw_pointer_cast(_list->_d_neighbors.data()),
+                  thrust::raw_pointer_cast(_device_data->_d_special_ids.data()),
+                  thrust::raw_pointer_cast(_device_data->_d_special_weights.data()),
+                  thrust::raw_pointer_cast(_device_data->_d_special_offsets.data()),
+                  thrust::raw_pointer_cast(_device_data->_d_special_count.data()),
+                  thrust::raw_pointer_cast(_device_data->_d_charge.data()),
+                  thrust::raw_pointer_cast(_device_data->_d_px.data()),
+                  thrust::raw_pointer_cast(_device_data->_d_py.data()),
+                  thrust::raw_pointer_cast(_device_data->_d_pz.data()),
+                  thrust::raw_pointer_cast(_device_data->_d_force_ljcoul_x.data()),
+                  thrust::raw_pointer_cast(_device_data->_d_force_ljcoul_y.data()),
+                  thrust::raw_pointer_cast(_device_data->_d_force_ljcoul_z.data()),
+                  thrust::raw_pointer_cast(_device_data->_d_flat_virial_lj.data()),
+                  thrust::raw_pointer_cast(_d_total_evdwl.data()),
+                  thrust::raw_pointer_cast(_d_total_ecoul.data()));
+
+  auto end_verlet_force = std::chrono::high_resolution_clock::now();
+  std::chrono::duration<rbmd::Real> duration_verlet_force = end_verlet_force - start_verlet_force;
+  TimingStatistics::Instance().record("Short-Range",duration_verlet_force.count());
+  // D2H
+  thrust::host_vector<rbmd::Real> h_total_evdwl(_d_total_evdwl);
+  thrust::host_vector<rbmd::Real> h_total_ecoul(_d_total_ecoul);
+  _e_vdwl = h_total_evdwl[0];
+  _e_coul = h_total_ecoul[0];
+
+  // thrust::host_vector<rbmd::Real> h_ljcoul_x = _device_data->_d_force_ljcoul_x;
+  // thrust::host_vector<rbmd::Real> h_ljcoul_y = _device_data->_d_force_ljcoul_y;
+  // thrust::host_vector<rbmd::Real> h_ljcoul_z = _device_data->_d_force_ljcoul_z;
+  //
+  // std::ofstream ljcoul_file("ljcoul_sog.txt");
+  // auto atom_id_to_idx =
+  //   LinkedCellLocator::GetInstance().GetLinkedCell()->_atom_id_to_idx;
+  // if (ljcoul_file.is_open()) {
+  //   for (rbmd::Id i = 0; i < h_ljcoul_x.size(); ++i) {
+  //     auto index = atom_id_to_idx[i];
+  //     ljcoul_file << i  << " " <<h_ljcoul_x[index] <<" " <<h_ljcoul_y[index] <<" " <<
+  //     h_ljcoul_z[index]<< "\n";
+  //   }
+  //   ljcoul_file.close();
+  // }
+
+  op::ReduceVirialOp<device::DEVICE_GPU>()(num_atoms,num_atoms,
+    thrust::raw_pointer_cast(_device_data->_d_flat_virial_lj.data()),
+    thrust::raw_pointer_cast(_device_data->_d_virial_lj.data()));
+
 }
 
 void CVFF::ComputeLJCoulEnergy()
@@ -361,8 +503,12 @@ void CVFF::ComputeBondForce()
   ThermoStats::Instance().AddThermoData("bond",_e_bond);
 
   // //sum virial_bond  on host
-  ReduceVirial(num_atoms,_device_data->_d_flat_virial_bond_atom,
-_device_data->_d_virial_bond);
+//   ReduceVirial(num_atoms,_device_data->_d_flat_virial_bond_atom,
+// _device_data->_d_virial_bond);
+
+  op::ReduceVirialOp<device::DEVICE_GPU>()(num_atoms,num_atoms,
+  thrust::raw_pointer_cast(_device_data->_d_flat_virial_bond_atom.data()),
+  thrust::raw_pointer_cast(_device_data->_d_virial_bond.data()));
 }
 
 void CVFF::ComputeAngleForce()
@@ -414,8 +560,12 @@ void CVFF::ComputeAngleForce()
   ThermoStats::Instance().AddThermoData("angle",_e_angle);
 
   //sum virial_angle on host
-  ReduceVirial(num_atoms,_device_data->_d_flat_virial_angle_atom,
-_device_data->_d_virial_angle);
+//   ReduceVirial(num_atoms,_device_data->_d_flat_virial_angle_atom,
+// _device_data->_d_virial_angle);
+
+  op::ReduceVirialOp<device::DEVICE_GPU>()(num_atoms,num_atoms,
+thrust::raw_pointer_cast(_device_data->_d_flat_virial_angle_atom.data()),
+thrust::raw_pointer_cast(_device_data->_d_virial_angle.data()));
 }
 
 void CVFF::ComputeDihedralForce()
@@ -486,8 +636,12 @@ void CVFF::DihedralHarmonic() {
   _e_dihedral = h_total_edihedral[0];
 
   //sum virial_dihedral on host
-  ReduceVirial(num_atoms,_device_data->_d_flat_virial_dihedral_atom,
-  _device_data->_d_virial_dihedral);
+  // ReduceVirial(num_atoms,_device_data->_d_flat_virial_dihedral_atom,
+  // _device_data->_d_virial_dihedral);
+
+  op::ReduceVirialOp<device::DEVICE_GPU>()(num_atoms,num_atoms,
+thrust::raw_pointer_cast(_device_data->_d_flat_virial_dihedral_atom.data()),
+thrust::raw_pointer_cast(_device_data->_d_virial_dihedral.data()));
 }
 
 void CVFF::DihedralOPLS() {
@@ -540,8 +694,12 @@ void CVFF::DihedralOPLS() {
   _e_dihedral = h_total_edihedral[0];
 
   //sum virial_dihedral on host
-  ReduceVirial(num_atoms,_device_data->_d_flat_virial_dihedral_atom,
-    _device_data->_d_virial_dihedral);
+  // ReduceVirial(num_atoms,_device_data->_d_flat_virial_dihedral_atom,
+  //   _device_data->_d_virial_dihedral);
+
+  op::ReduceVirialOp<device::DEVICE_GPU>()(num_atoms,num_atoms,
+thrust::raw_pointer_cast(_device_data->_d_flat_virial_dihedral_atom.data()),
+thrust::raw_pointer_cast(_device_data->_d_virial_dihedral.data()));
 }
 
 void CVFF::DihedralFourier() {
@@ -598,8 +756,13 @@ void CVFF::DihedralFourier() {
   _e_dihedral = h_total_edihedral[0];
 
   //sum virial_dihedral on host
-  ReduceVirial(num_atoms,_device_data->_d_flat_virial_dihedral_atom,
-  _device_data->_d_virial_dihedral);
+  // ReduceVirial(num_atoms,_device_data->_d_flat_virial_dihedral_atom,
+  // _device_data->_d_virial_dihedral);
+
+  op::ReduceVirialOp<device::DEVICE_GPU>()(num_atoms,num_atoms,
+thrust::raw_pointer_cast(_device_data->_d_flat_virial_dihedral_atom.data()),
+thrust::raw_pointer_cast(_device_data->_d_virial_dihedral.data()));
+
 }
 
 void CVFF::ComputeImproperForce()
@@ -661,8 +824,12 @@ void CVFF::ImproperHarmonic() {
   thrust::host_vector<rbmd::Real> h_total_eimproper(d_total_eimproper);
   _e_improper = h_total_eimproper[0];
 
-  ReduceVirial(num_atoms,_device_data->_d_flat_virial_improper_atom,
-  _device_data->_d_virial_improper);
+  // ReduceVirial(num_atoms,_device_data->_d_flat_virial_improper_atom,
+  // _device_data->_d_virial_improper);
+
+  op::ReduceVirialOp<device::DEVICE_GPU>()(num_atoms,num_atoms,
+thrust::raw_pointer_cast(_device_data->_d_flat_virial_improper_atom.data()),
+thrust::raw_pointer_cast(_device_data->_d_virial_improper.data()));
 }
 
 void CVFF::ImproperCVFF()
@@ -710,8 +877,12 @@ void CVFF::ImproperCVFF()
   thrust::host_vector<rbmd::Real> h_total_eimproper(d_total_eimproper);
   _e_improper = h_total_eimproper[0];
 
-  ReduceVirial(num_atoms,_device_data->_d_flat_virial_improper_atom,
-_device_data->_d_virial_improper);
+//   ReduceVirial(num_atoms,_device_data->_d_flat_virial_improper_atom,
+// _device_data->_d_virial_improper);
+
+  op::ReduceVirialOp<device::DEVICE_GPU>()(num_atoms,num_atoms,
+thrust::raw_pointer_cast(_device_data->_d_flat_virial_improper_atom.data()),
+thrust::raw_pointer_cast(_device_data->_d_virial_improper.data()));
 }
 
 void CVFF::EvaluatePotentialEnergy()

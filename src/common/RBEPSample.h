@@ -16,6 +16,21 @@ T RandomValue(const rbmd::Real& Min, const rbmd::Real& Max){
   return dis(gen);
 };
 
+inline rbmd::Real G_Sigma1(rbmd::Real Sigma, rbmd::Real r)//
+{
+  return EXP(-r * r / (2 * Sigma * Sigma)) / SQRT(2 * M_PI * Sigma * Sigma);
+}
+
+inline  rbmd::Real Compute_W01(rbmd::Real r0, rbmd::Real b)//    W0
+{
+  rbmd::Real sum = 0.00;
+  for (int i = 1; i < 200; i++)
+  {
+    sum = sum + POW(b, rbmd::Real(-i + 0.00)) * G_Sigma1(1.0, POW(b, rbmd::Real(-i + 0.00)) * r0);
+  }
+  rbmd::Real W0 = (1.0 / G_Sigma1(1.0, r0)) * ((1.0 / (2 * LOG(b) * r0)) - sum);
+  return W0;
+}
 
 //
 struct RBEPSAMPLE

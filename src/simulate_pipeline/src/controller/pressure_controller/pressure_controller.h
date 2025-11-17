@@ -3,6 +3,7 @@
 
 #include "data_manager.h"
 #include "device_types.h"
+#include "group_controller.h"
 #include "model/device_data.h"
 #include "model/md_data.h"
 #include "model/structure_info_data.h"
@@ -42,4 +43,6 @@ protected:
 
   std::string _group_name = "all";
   Real3 _vbias;
+
+  std::shared_ptr<GroupController> _group_controller;
 };

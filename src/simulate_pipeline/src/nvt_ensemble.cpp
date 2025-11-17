@@ -84,7 +84,7 @@ NVTensemble::NVTensemble()
 
 void NVTensemble::Init() {
   _position_controller->Init();
-  // _position_controller->PBC();
+  _position_controller->PBC();
 
   _velocity_controller->Init();
   _force_controller->Init();
@@ -102,7 +102,6 @@ void NVTensemble::Init() {
   if (_momentum_controller) {
     _momentum_controller->Init();
   }
-  std::cout<< "NVTensemble _Init -end "<<std::endl;
 }
 
 void NVTensemble::Presolve() {}

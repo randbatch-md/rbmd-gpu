@@ -1,6 +1,5 @@
 #pragma once
 #include "../../data_manager/include/model/box.h"
-#include "device_types.h"
 //#include "types.h"
 #include "../common/types.h"
 #include "common/device_types.h"

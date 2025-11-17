@@ -157,7 +157,7 @@ __global__ void restore_bias_kernel(const int num_atoms,const Real3 vbias,
 }
 void ComputeTemperatureOp<device::DEVICE_GPU>::operator()(const rbmd::Id num_atoms,
 		                                                  const rbmd::Real mvv2e,
-														  const rbmd::Id* atoms_type,
+								 const rbmd::Id* atoms_type,
 		                                                  const rbmd::Real* mass,
 		                                                  const rbmd::Real* vx,
 		                                                  const rbmd::Real* vy,

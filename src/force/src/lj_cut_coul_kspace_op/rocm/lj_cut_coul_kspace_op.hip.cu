@@ -243,6 +243,64 @@ inline __device__ void CoulCutForce(rbmd::Real cut_off, rbmd::Real alpha,
       force_coul = 0.0;
   }
 
+inline __device__ void CoulCutForceUser(
+     const  rbmd::Real cut_off, const rbmd::Real px12, const rbmd::Real py12,const rbmd::Real pz12,
+     const rbmd::Real qqr2e, const rbmd::Real charge_i, const rbmd::Real charge_j,
+     const rbmd::Real taylor_coeff0,const rbmd::Real taylor_coeff1,const rbmd::Real taylor_coeff2,
+     const rbmd::Real taylor_coeff3,const rbmd::Real taylor_coeff4,const rbmd::Real taylor_coeff5,
+     const rbmd::Real sigma, const rbmd::Real b, const rbmd::Id m_max, const rbmd::Real w0,
+    rbmd::Real& force_coul_full, rbmd::Real& energy_coul_full,
+    rbmd::Real& force_coul_short, rbmd::Real& energy_coul_short)
+{
+    const rbmd::Real dis_2 = px12 * px12 + py12 * py12 + pz12 * pz12;
+    const rbmd::Real  r2inv = 1.0 / dis_2;
+    const rbmd::Real cut_off_2 = cut_off * cut_off;
+    if (dis_2 < cut_off_2) {
+
+      rbmd::Real rinv = SQRT(r2inv);
+      rbmd::Real  r3inv = rinv * r2inv;
+      rbmd::Real prefactor = qqr2e * charge_i * charge_j;
+
+      // --- 1. Full Coulomb (Unscreened) ---
+      force_coul_full = -prefactor * r3inv;
+      energy_coul_full = 0.5* prefactor * rinv;
+
+      // --- 2. SOG Short-Range Force (Taylor Expansion) ---
+      rbmd::Real poly = taylor_coeff0
+                      + taylor_coeff1 * dis_2
+                      + taylor_coeff2 * POW(dis_2,2.0)
+                      + taylor_coeff3 * POW(dis_2,3.0)
+                      + taylor_coeff4 * POW(dis_2,4.0)
+                      + taylor_coeff5 * POW(dis_2,5.0);
+
+      force_coul_short = -prefactor * (r3inv + poly);
+
+      // --- 3. SOG Short-Range Energy (Gaussian Sum Loop) ---
+      // ecoul = prefactor * (rinv - sume)
+      rbmd::Real sume = 0.0;
+      rbmd::Real two_sigma2 = 2.0 * sigma * sigma;
+      rbmd::Real norm_factor = 2.0 * LOG(b) / SQRT(2.0 * M_PI * sigma * sigma);
+
+      // l = 0 term
+      sume += norm_factor * w0 * EXP(-dis_2 / two_sigma2);
+
+      // l > 0 terms
+      for (int l = 1; l < m_max; l++) {
+        sume += norm_factor *(1.0 / POW(b, l + 0.00)) *
+          EXP(-dis_2 / (2 * sigma * sigma * POW(b, l + 0.00) * POW(b, l + 0.00)));
+      }
+
+      energy_coul_short = 0.5* prefactor * (rinv - sume);
+    }
+    else {
+      force_coul_full = 0.0;
+      energy_coul_full = 0.0;
+      force_coul_short = 0.0;
+      energy_coul_short =0.0;
+    }
+
+}
+
   //------global---------//
   // verlet-list: LJCoulCutForce
   __global__ void ComputeLJCutCoulForce(

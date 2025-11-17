@@ -20,6 +20,8 @@ public:
   void ComputeLJCutCoulForce();
   void ComputeLJVerlet();
   void ComputeLJRBL();
+  void LJCoulSOGInit();
+  void ComputeLJSOG();
   void ComputeLJCoulEnergy();
 
   void SumForces();
@@ -59,6 +61,7 @@ private:
   //RBL
   std::string  _energy_rbl_flag = "yes"; //default
   std::string _neighbor_type;
+  std::string _coulomb_type;
   rbmd::Real _cut_off;
 
   rbmd::Real _corr_value_x = 0;
@@ -68,6 +71,12 @@ private:
   //kspace
   rbmd::Real _qqr2e;
   rbmd::Real _alpha;
+  rbmd::Real _rbsog_b;
+  rbmd::Real _rbsog_sigma;
+  rbmd::Real _rbsog_omega;
+  rbmd::Real _rbsog_Mmax;
+  rbmd::Real _w0 ;
+  thrust::device_vector<rbmd::Real> _d_taylor_coeff;
   std::unique_ptr<KSpaceCalculator> _kspace_calculator;
 };
 

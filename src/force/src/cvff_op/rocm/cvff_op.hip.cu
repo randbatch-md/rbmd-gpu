@@ -9,6 +9,164 @@ const rbmd::Real SMALL = 0.001;
 const rbmd::Real SMALLER = 0.00001;
 namespace op{
 
+__global__ void reduce_virial_kernel(
+    const rbmd::Id num_atoms,const rbmd::Id pitch,
+    const rbmd::Real* d_flat_virial_atom,rbmd::Real* d_virial)
+{
+  extern __shared__ rbmd::Real sdata[];  //
+
+  //
+  int j = blockIdx.x;
+  int tid = threadIdx.x;
+  rbmd::Real sum = 0.0;
+
+  for (int atom = tid; atom < num_atoms; atom += blockDim.x) {
+    sum += d_flat_virial_atom[j * pitch + atom];
+  }
+
+  //
+  sdata[tid] = sum;
+  __syncthreads();
+
+  //
+  for (int s = blockDim.x / 2; s > 0; s >>= 1) {
+    if (tid < s) {
+      sdata[tid] += sdata[tid + s];
+    }
+    __syncthreads();
+  }
+
+  //
+  if (tid == 0) {
+    d_virial[j] = sdata[0];
+  }
+}
+
+__global__ void ComputeSpecialLJCutCoulForceUserKernel(
+  Box box, const rbmd::Real cut_off, const rbmd::Id num_atoms,const  rbmd::Real qqr2e,
+   const rbmd::Real rbsog_sigma,const rbmd::Real rbsog_b, const rbmd::Id rbsog_mmax,
+   const rbmd::Real rbsog_w0,const rbmd::Real* taylor_coeff,
+   const rbmd::Id* atoms_type, const rbmd::Id* atoms_id,
+   const rbmd::Real* sigma, const rbmd::Real* eps,
+   const rbmd::Id* start_id, const rbmd::Id* end_id, const rbmd::Id* id_verletlist,
+   const rbmd::Id* special_ids, const rbmd::Real* special_weights,
+   const rbmd::Id* special_offset, const rbmd::Id* special_count,
+   const rbmd::Real* charge, const rbmd::Real* px, const rbmd::Real* py, const rbmd::Real* pz,
+   rbmd::Real* fx, rbmd::Real* fy, rbmd::Real* fz,
+   rbmd::Real* flat_virial, rbmd::Real* total_evdwl, rbmd::Real* total_ecoul)
+{
+    __shared__ typename BLOCKREDUCE<rbmd::Real, BLOCK_SIZE>::TempStorage temp_storage_elj;
+    __shared__ typename BLOCKREDUCE<rbmd::Real, BLOCK_SIZE>::TempStorage temp_storage_ecoul;
+
+    rbmd::Real sum_fx = 0; rbmd::Real sum_fy = 0; rbmd::Real sum_fz = 0;
+    rbmd::Real sum_elj = 0; rbmd::Real sum_ecoul = 0;
+    rbmd::Real sum_virial[6] = {0.0};
+
+    unsigned int tid1 = blockIdx.x * blockDim.x + threadIdx.x;
+    if (tid1 < num_atoms) {
+      rbmd::Id atom_id1 = atoms_id[tid1];
+      rbmd::Id num_components = special_offset[atom_id1];
+      rbmd::Id typei = atoms_type[tid1];
+      rbmd::Real eps_i = eps[typei];
+      rbmd::Real sigma_i = sigma[typei];
+      rbmd::Real charge_i = charge[tid1];
+      rbmd::Real x1 = px[tid1];
+      rbmd::Real y1 = py[tid1];
+      rbmd::Real z1 = pz[tid1];
+
+      for (int j = start_id[tid1]; j < end_id[tid1]; ++j) {
+        rbmd::Id tid2 = id_verletlist[j];
+        rbmd::Id atom_id2 = atoms_id[tid2];
+        rbmd::Id typej = atoms_type[tid2];
+        rbmd::Real eps_j = eps[typej];
+        rbmd::Real sigma_j = sigma[typej];
+        rbmd::Real charge_j = charge[tid2];
+        // mix
+        rbmd::Real eps_ij = SQRT(eps_i * eps_j);
+        rbmd::Real sigma_ij = (sigma_i + sigma_j) / 2;
+        rbmd::Real x2 = px[tid2];
+        rbmd::Real y2 = py[tid2];
+        rbmd::Real z2 = pz[tid2];
+        rbmd::Real x12 = x2 - x1;
+        rbmd::Real y12 = y2 - y1;
+        rbmd::Real z12 = z2 - z1;
+        // rbmd::Real x12 = x1 - x2;
+        // rbmd::Real y12 = y1 - y2;
+        // rbmd::Real z12 = z1 - z2;
+        MinImageDistance_while(box, x12, y12, z12);
+
+
+        rbmd::Real force_lj, force_coul, force_pair,force_coul_factor;
+        rbmd::Real energy_lj, energy_coul,energy_coul_factor;
+          // lj cut
+        lj126(cut_off, x12, y12, z12, eps_ij, sigma_ij,
+          force_lj, energy_lj);
+
+          // --- 2. Coul Calculation (RBSOG User) ---
+        rbmd::Real f_coul_full, e_coul_full, f_coul_short, e_coul_short;
+        CoulCutForceUser(cut_off, x12, y12,z12, qqr2e, charge_i, charge_j,
+                           taylor_coeff[0], taylor_coeff[1],
+                           taylor_coeff[2],taylor_coeff[3],
+                           taylor_coeff[4], taylor_coeff[5],
+                           rbsog_sigma, rbsog_b, rbsog_mmax, rbsog_w0,
+                           f_coul_full, e_coul_full,
+                           f_coul_short, e_coul_short);
+
+          // --- 3. Apply Special Weights ---
+        rbmd::Real weight = 1.0;
+        for (rbmd::Id k = 0; k < special_count[atom_id1]; ++k) {
+            rbmd::Id special_id = special_ids[num_components + k];
+            if (special_id == atom_id2) {
+              weight = special_weights[num_components + k];
+            }
+        }
+
+        // Formula: Scaled_Short = Short - (1 - weight) * Full
+        f_coul_short = f_coul_short- (1.0 - weight) * f_coul_full;
+        force_pair = weight * force_lj  + f_coul_short;
+
+         sum_fx += x12 * force_pair;
+         sum_fy += y12 * force_pair;
+         sum_fz += z12 * force_pair;
+
+         sum_elj += weight * energy_lj;
+         sum_ecoul += (e_coul_short - (1.0 - weight) * e_coul_full);
+
+         // --- 4. Virial ---
+        //rbmd::Real local_virial[6];
+        rbmd::Real local_virial_xx,local_virial_yy,local_virial_zz,
+          local_virial_xy,local_virial_xz,local_virial_yz;
+        ComputeVirial(x12, y12, z12,force_pair,
+          local_virial_xx,local_virial_yy,local_virial_zz,
+          local_virial_xy,local_virial_xz,local_virial_yz);
+
+        //
+        sum_virial[0] +=local_virial_xx;
+        sum_virial[1] +=local_virial_yy;
+        sum_virial[2] +=local_virial_zz;
+        sum_virial[3] +=local_virial_xy;
+        sum_virial[4] +=local_virial_xz;
+        sum_virial[5] +=local_virial_yz;
+
+      }
+
+      fx[tid1] = sum_fx;
+      fy[tid1] = sum_fy;
+      fz[tid1] = sum_fz;
+      //
+      for(int i =0;i<6;++i) {
+        flat_virial[  i * num_atoms + tid1] = sum_virial[i];
+      }
+    }
+
+    rbmd::Real b_sum_elj = BLOCKREDUCE<rbmd::Real, BLOCK_SIZE>(temp_storage_elj).Sum(sum_elj);
+    rbmd::Real b_sum_ecoul = BLOCKREDUCE<rbmd::Real, BLOCK_SIZE>(temp_storage_ecoul).Sum(sum_ecoul);
+    if (threadIdx.x == 0) {
+        atomicAdd(total_evdwl, b_sum_elj);
+        atomicAdd(total_ecoul, b_sum_ecoul);
+    }
+}
+
 //verlet-list : SpecialLJCutCoul
 __global__ void ComputeSpecialLJCutCoulForce(
      Box box, ERFTable* erf_table, const rbmd::Real cut_off,
@@ -69,7 +227,7 @@ __global__ void ComputeSpecialLJCutCoulForce(
       // rbmd::Real x12 = x1 - x2;
       // rbmd::Real y12 = y1 - y2;
       // rbmd::Real z12 = z1 - z2;
-      MinImageDistance(box, x12, y12, z12);
+      MinImageDistance_while(box, x12, y12, z12);
       // erf value
       rbmd::Real dis = SQRT(x12 * x12 + y12 * y12 + z12 * z12);
       rbmd::Id index_table_pij = Extract(dis);
@@ -199,7 +357,7 @@ __global__ void ComputeSpecialLJCutCoulRBLForce(
       rbmd::Real px12 = x2 - x1;
       rbmd::Real py12 = y2 - y1;
       rbmd::Real pz12 = z2 - z1;
-      MinImageDistance(box, px12, py12, pz12);
+      MinImageDistance_while(box, px12, py12, pz12);
 
       // erf
       rbmd::Real dis = SQRT(px12 * px12 + py12 * py12 + pz12 * pz12);
@@ -250,7 +408,7 @@ __global__ void ComputeSpecialLJCutCoulRBLForce(
       rbmd::Real px12 = x2 - x1;
       rbmd::Real py12 = y2 - y1;
       rbmd::Real pz12 = z2 - z1;
-      MinImageDistance(box, px12, py12, pz12);
+      MinImageDistance_while(box, px12, py12, pz12);
 
       // erf
       rbmd::Real dis = SQRT(px12 * px12 + py12 * py12 + pz12 * pz12);
@@ -349,7 +507,7 @@ __global__ void ComputeSpecialLJCutCoulEnergy(
       rbmd::Real px12 = x2 - x1;
       rbmd::Real py12 = y2 - y1;
       rbmd::Real pz12 = z2 - z1;
-      MinImageDistance(box, px12, py12, pz12);
+      MinImageDistance_while(box, px12, py12, pz12);
 
       // erf
       rbmd::Real dis = SQRT(px12 * px12 + py12 * py12 + pz12 * pz12);
@@ -449,7 +607,7 @@ __global__ void ComputeBondForce(
     rbmd::Real x12 = px[bondii] - px[bondjj];
     rbmd::Real y12 = py[bondii] - py[bondjj];
     rbmd::Real z12 = pz[bondii] - pz[bondjj];
-    MinImageDistance(box, x12, y12, z12);
+    MinImageDistance_while(box, x12, y12, z12);
     rbmd::Real dis_12 = SQRT(x12 * x12 + y12 * y12 + z12 * z12);
     rbmd::Real dr = dis_12 - equilibrium_bond;
     rbmd::Real rk = k * dr;
@@ -553,12 +711,12 @@ __global__ void ComputeBondForce(
       rbmd::Real x12 = px[anglelii] - px[angleljj];  // i j
       rbmd::Real y12 = py[anglelii] - py[angleljj];
       rbmd::Real z12 = pz[anglelii] - pz[angleljj];
-      MinImageDistance(box, x12, y12, z12);
+      MinImageDistance_while(box, x12, y12, z12);
 
       rbmd::Real x23 = px[anglelkk] - px[angleljj];  // k j
       rbmd::Real y23 = py[anglelkk] - py[angleljj];
       rbmd::Real z23 = pz[anglelkk] - pz[angleljj];
-      MinImageDistance(box, x23, y23, z23);
+      MinImageDistance_while(box, x23, y23, z23);
 
       rbmd::Real dis_12_2 = x12 * x12 + y12 * y12 + z12 * z12;
       rbmd::Real dis_12 = SQRT(dis_12_2);
@@ -713,12 +871,12 @@ __global__ void ComputeBondForce(
       rbmd::Real x12 = px[dihedralii] - px[dihedraljj];  // i j =vb1
       rbmd::Real y12 = py[dihedralii] - py[dihedraljj];
       rbmd::Real z12 = pz[dihedralii] - pz[dihedraljj];
-      MinImageDistance(box, x12, y12, z12);
+      MinImageDistance_while(box, x12, y12, z12);
 
       rbmd::Real x23 = px[dihedralkk] - px[dihedraljj];  //  k j=vb2
       rbmd::Real y23 = py[dihedralkk] - py[dihedraljj];
       rbmd::Real z23 = pz[dihedralkk] - pz[dihedraljj];
-      MinImageDistance(box, x23, y23, z23);
+      MinImageDistance_while(box, x23, y23, z23);
 
       rbmd::Real x23m = -x23;  // =vb2m
       rbmd::Real y23m = -y23;
@@ -727,7 +885,7 @@ __global__ void ComputeBondForce(
       rbmd::Real x34 = px[dihedralww] - px[dihedralkk];  // w k   =vb3
       rbmd::Real y34 = py[dihedralww] - py[dihedralkk];
       rbmd::Real z34 = pz[dihedralww] - pz[dihedralkk];
-      MinImageDistance(box, x34, y34, z34);
+      MinImageDistance_while(box, x34, y34, z34);
       // c,s calculation
 
       rbmd::Real ax = y12 * z23m - z12 * y23m;
@@ -950,12 +1108,12 @@ __global__ void ComputeBondForce(
       rbmd::Real x12 = px[dihedralii] - px[dihedraljj];  // i j =vb1
       rbmd::Real y12 = py[dihedralii] - py[dihedraljj];
       rbmd::Real z12 = pz[dihedralii] - pz[dihedraljj];
-      MinImageDistance(box, x12, y12, z12);
+      MinImageDistance_while(box, x12, y12, z12);
 
       rbmd::Real x23 = px[dihedralkk] - px[dihedraljj];  //  k j=vb2
       rbmd::Real y23 = py[dihedralkk] - py[dihedraljj];
       rbmd::Real z23 = pz[dihedralkk] - pz[dihedraljj];
-      MinImageDistance(box, x23, y23, z23);
+      MinImageDistance_while(box, x23, y23, z23);
 
       rbmd::Real x23m = -x23;  // =vb2m
       rbmd::Real y23m = -y23;
@@ -964,7 +1122,7 @@ __global__ void ComputeBondForce(
       rbmd::Real x34 = px[dihedralww] - px[dihedralkk];  // w k   =vb3
       rbmd::Real y34 = py[dihedralww] - py[dihedralkk];
       rbmd::Real z34 = pz[dihedralww] - pz[dihedralkk];
-      MinImageDistance(box, x34, y34, z34);
+      MinImageDistance_while(box, x34, y34, z34);
 
       // c0 calculation
       rbmd::Real sb1,sb2,sb3,rb1,rb3,c0,b1mag2, b1mag, b2mag2;
@@ -1200,17 +1358,17 @@ __global__ void ComputeDihedralFourierForce(
     rbmd::Real vb1x = px[i1] - px[i2];
     rbmd::Real vb1y = py[i1] - py[i2];
     rbmd::Real vb1z = pz[i1] - pz[i2];
-    MinImageDistance(box, vb1x, vb1y, vb1z);
+    MinImageDistance_while(box, vb1x, vb1y, vb1z);
 
     rbmd::Real vb2x = px[i3] - px[i2];
     rbmd::Real vb2y = py[i3] - py[i2];
     rbmd::Real vb2z = pz[i3] - pz[i2];
-    MinImageDistance(box, vb2x, vb2y, vb2z);
+    MinImageDistance_while(box, vb2x, vb2y, vb2z);
 
     rbmd::Real vb3x = px[i4] - px[i3];
     rbmd::Real vb3y = py[i4] - py[i3];
     rbmd::Real vb3z = pz[i4] - pz[i3];
-    MinImageDistance(box, vb3x, vb3y, vb3z);
+    MinImageDistance_while(box, vb3x, vb3y, vb3z);
 
     rbmd::Real vb2xm = -vb2x;
     rbmd::Real vb2ym = -vb2y;
@@ -1445,17 +1603,17 @@ __global__ void ComputeDihedralFourierForce(
       rbmd::Real x12 = px[improperii] - px[improperjj];  // i j =vb1
       rbmd::Real y12 = py[improperii] - py[improperjj];
       rbmd::Real z12 = pz[improperii] - pz[improperjj];
-      MinImageDistance(box, x12, y12, z12);
+      MinImageDistance_while(box, x12, y12, z12);
 
       rbmd::Real x23 = px[improperkk] - px[improperjj];  //  k j=vb2
       rbmd::Real y23 = py[improperkk] - py[improperjj];
       rbmd::Real z23 = pz[improperkk] - pz[improperjj];
-      MinImageDistance(box, x23, y23, z23);
+      MinImageDistance_while(box, x23, y23, z23);
 
       rbmd::Real x34 = px[improperww] - px[improperkk];  // w k   =vb3
       rbmd::Real y34 = py[improperww] - py[improperkk];
       rbmd::Real z34 = pz[improperww] - pz[improperkk];
-      MinImageDistance(box, x34, y34, z34);
+      MinImageDistance_while(box, x34, y34, z34);
 
       rbmd::Real ss1 = 1.0 / (x12 * x12 + y12 * y12 + z12 * z12);
       rbmd::Real ss2 = 1.0 / (x23 * x23 + y23 * y23 + z23 * z23);
@@ -1649,12 +1807,12 @@ __global__ void ComputeDihedralFourierForce(
       rbmd::Real x12 = px[improperii] - px[improperjj];  // i j =vb1
       rbmd::Real y12 = py[improperii] - py[improperjj];
       rbmd::Real z12 = pz[improperii] - pz[improperjj];
-      MinImageDistance(box, x12, y12, z12);
+      MinImageDistance_while(box, x12, y12, z12);
 
       rbmd::Real x23 = px[improperkk] - px[improperjj];  //  k j=vb2
       rbmd::Real y23 = py[improperkk] - py[improperjj];
       rbmd::Real z23 = pz[improperkk] - pz[improperjj];
-      MinImageDistance(box, x23, y23, z23);
+      MinImageDistance_while(box, x23, y23, z23);
 
       rbmd::Real  x23m = -x23;
       rbmd::Real  y23m = -y23;
@@ -1663,7 +1821,7 @@ __global__ void ComputeDihedralFourierForce(
       rbmd::Real x34 = px[improperww] - px[improperkk];  // w k   =vb3
       rbmd::Real y34 = py[improperww] - py[improperkk];
       rbmd::Real z34 = pz[improperww] - pz[improperkk];
-      MinImageDistance(box, x34, y34, z34);
+      MinImageDistance_while(box, x34, y34, z34);
 
       rbmd::Real sb1 = 1.0 / (x12 * x12 + y12 * y12 + z12 * z12);
       rbmd::Real sb2 = 1.0 / (x23 * x23 + y23 * y23 + z23 * z23);
@@ -2073,6 +2231,43 @@ void ComputeImproperCVFFForceOp<device::DEVICE_GPU>::operator()(
       improper_type,improperlisti, improperlistj,
       improperlistk, improperlistw, px, py, pz,fx, fy, fz,
       flat_virial,energy_improper));
+}
+
+void ReduceVirialOp<device::DEVICE_GPU>::operator()(
+const rbmd::Id num_atoms,const rbmd::Id pitch,
+const rbmd::Real* d_flat_virial_atom,rbmd::Real* d_virial) {
+
+  const int num_components = 6;  //
+  const int grid_size = num_components;  //
+  const size_t shared_mem_size = BLOCK_SIZE * sizeof(rbmd::Real);
+
+   CHECK_KERNEL(reduce_virial_kernel<<<grid_size, BLOCK_SIZE, shared_mem_size>>>(
+      num_atoms,pitch ,d_flat_virial_atom,d_virial));
+}
+
+
+void ComputeSpecialLJCutCoulForceUserOp<device::DEVICE_GPU>::operator()(
+  Box box, const rbmd::Real cut_off, const rbmd::Id num_atoms,const  rbmd::Real qqr2e,
+  const rbmd::Real rbsog_sigma,const rbmd::Real rbsog_b, const rbmd::Id rbsog_mmax,
+  const rbmd::Real rbsog_w0,const rbmd::Real* taylor_coeff,
+  const rbmd::Id* atoms_type, const rbmd::Id* atoms_id,
+  const rbmd::Real* sigma, const rbmd::Real* eps,
+  const rbmd::Id* start_id, const rbmd::Id* end_id, const rbmd::Id* id_verletlist,
+  const rbmd::Id* special_ids, const rbmd::Real* special_weights,
+  const rbmd::Id* special_offset, const rbmd::Id* special_count,
+  const rbmd::Real* charge, const rbmd::Real* px, const rbmd::Real* py, const rbmd::Real* pz,
+  rbmd::Real* fx, rbmd::Real* fy, rbmd::Real* fz,
+  rbmd::Real* flat_virial, rbmd::Real* total_evdwl, rbmd::Real* total_ecoul)
+{
+  unsigned int blocks = (num_atoms + BLOCK_SIZE - 1) / BLOCK_SIZE;
+
+  CHECK_KERNEL(ComputeSpecialLJCutCoulForceUserKernel<<<blocks, BLOCK_SIZE, 0, 0>>>(
+      box, cut_off, num_atoms, qqr2e,rbsog_sigma,
+      rbsog_b, rbsog_mmax, rbsog_w0,taylor_coeff,
+      atoms_type, atoms_id, sigma, eps, start_id, end_id, id_verletlist,
+      special_ids, special_weights, special_offset, special_count,
+      charge, px, py, pz, fx, fy, fz, flat_virial, total_evdwl, total_ecoul
+  ));
 }
 
 }

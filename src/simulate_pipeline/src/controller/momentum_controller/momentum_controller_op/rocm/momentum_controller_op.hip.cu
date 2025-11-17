@@ -34,17 +34,15 @@ __global__ void compute_ke_kernel(const rbmd::Id num_atoms,
     rbmd::Real vy_i = vy[i];
     rbmd::Real vz_i = vz[i];
 
-    rbmd::Real local_ke = mass_i * (vx_i * vx_i + vy_i * vy_i + vz_i * vz_i);
+    local_ke = mass_i * (vx_i * vx_i + vy_i * vy_i + vz_i * vz_i);
   }
 
   rbmd::Real block_ke = BLOCKREDUCE<rbmd::Real, BLOCK_SIZE>
    (temp_storage_ke).Sum(local_ke);
 
-  // 线程 0 将块内结果原子性地累加到全局变量
   if (threadIdx.x == 0) {
-    atomicAdd(&ke_contrib[0], block_ke);  // 总质量
+    atomicAdd(&ke_contrib[0], block_ke);  // total ke
   }
-
 }
 
 
@@ -84,6 +82,7 @@ __global__ void zero_angular_momentum_kernel(const rbmd::Id num_atoms,
       int image[3] = {d_image_x[i], d_image_y[i], d_image_z[i]};
       rbmd::Real pos_unwrap[3];
       unwarp_mom(pos_wrap, image, box, pos_unwrap);
+      // printf("pos_unwrap %f %f %f\n",pos_unwrap[0],pos_unwrap[1],pos_unwrap[2]);
 
       rbmd::Real dx = pos_unwrap[0] - xcm.x;
       rbmd::Real dy = pos_unwrap[1] - xcm.y;
@@ -127,7 +126,6 @@ void ZeroAngularMomentumOp<device::DEVICE_GPU>::operator()(
     const int* d_image_x, const int* d_image_y, const int* d_image_z,
     Box box,rbmd::Real* d_vx, rbmd::Real* d_vy, rbmd::Real* d_vz)
 {
-
   unsigned int blocks_per_grid = (num_atoms + BLOCK_SIZE - 1) / BLOCK_SIZE;
    CHECK_KERNEL(zero_angular_momentum_kernel<<<blocks_per_grid, BLOCK_SIZE,0,0>>>(num_atoms, xcm, omega,
     px, py, pz,d_image_x, d_image_y, d_image_z,box, d_vx, d_vy, d_vz));
