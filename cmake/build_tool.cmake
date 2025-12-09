@@ -4,6 +4,9 @@ define_property(GLOBAL PROPERTY TOOLS_LINK_PATH BRIEF_DOCS "tools link path" FUL
 define_property(GLOBAL PROPERTY SPDLOG_INCLUDE_PATH BRIEF_DOCS "spdlog install path" FULL_DOCS "spdlog install path")
 define_property(GLOBAL PROPERTY SPDLOG_LINK_PATH BRIEF_DOCS "spdlog link path" FULL_DOCS "spdlog link path")
 
+define_property(GLOBAL PROPERTY FTXUI_INCLUDE_PATH BRIEF_DOCS "ftxui install path" FULL_DOCS "ftxui install path")
+define_property(GLOBAL PROPERTY FTXUI_LINK_PATH BRIEF_DOCS "ftxui link path" FULL_DOCS "ftxui link path")
+
 macro(build_tool name)
 	set(TOOL_INSTALL_PATH ${tooldir}/${CMAKE_SYSTEM_NAME}/${CMAKE_BUILD_TYPE}/${toolname_without_ext})
 	set_property(GLOBAL APPEND PROPERTY TOOLS_INCLUDE_PATH ${TOOL_INSTALL_PATH}/include)
@@ -13,6 +16,12 @@ string(FIND ${name} "spdlog" index)
 if(NOT index EQUAL -1)
 	set_property(GLOBAL  PROPERTY SPDLOG_INCLUDE_PATH ${TOOL_INSTALL_PATH}/include)
 	set_property(GLOBAL  PROPERTY SPDLOG_LINK_PATH ${TOOL_INSTALL_PATH}/lib64)
+endif()
+
+string(FIND ${name} "ftxui" index)
+if(NOT index EQUAL -1)
+	set_property(GLOBAL  PROPERTY FTXUI_INCLUDE_PATH ${TOOL_INSTALL_PATH}/include)
+	set_property(GLOBAL  PROPERTY FTXUI_LINK_PATH ${TOOL_INSTALL_PATH}/lib64)
 endif()
 
 	include(ProcessorCount)

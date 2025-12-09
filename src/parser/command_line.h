@@ -17,6 +17,13 @@ class CommandLine : public Object {
     return _co["j"].as<std::string>();
   }
 
+  bool UseTUI() const {
+    if (!_co.count("tui")) {
+      return false;
+    }
+    return _co["tui"].as<bool>();
+  }
+
   //Help
   static std::string GetHelpText() {
     return R"(
@@ -24,6 +31,7 @@ class CommandLine : public Object {
 
     Options:
       -j, --json FILE    Specify configuration file (required)
+      -t, --tui          Enable FTXUI terminal dashboard
       -h, --help         Show this help message
       -v, --version      Show version information
     )";

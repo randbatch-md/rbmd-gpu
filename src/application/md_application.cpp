@@ -9,6 +9,7 @@
 #include "../simulate_pipeline/include/npt_ensemble.h"
 #include "../simulate_pipeline/include/nve_ensemble.h"
 #include "../simulate_pipeline/include/nvt_ensemble.h"
+#include "../common/thermo_stats.hpp"
 #include "atomic_reader.h"
 #include "command_line.h"
 #include "cvff_memory_scheduler.h"
@@ -26,6 +27,11 @@ MDApplication::MDApplication(int argc, char* argv[])
   : Application(argc, argv),
   _cmd(std::make_shared<CommandLine>(argc, argv))
 {
+  if (_cmd->UseTUI()) {
+    _thermo_view = std::make_shared<ThermoStatsTUIView>();
+    ThermoStats::Instance().SetView(_thermo_view);
+  }
+
   DataManager::Initialize(_cmd->GetConfigPath());
 
   const std::string divider = "================================================";
@@ -85,7 +91,17 @@ int MDApplication::Execute() {
 
   _simulate->Init();
 
+  if (_thermo_view) {
+    _thermo_view->Start();
+  }
+
   _simulate->Execute();
+
+  if (_thermo_view) {
+    _thermo_view->Stop();
+  }
+
+  ThermoStats::Instance().Finalize();
 
   const std::string divider = "================================================";
   std::string finish_output =divider + "        Finish        " + divider ;

@@ -70,6 +70,7 @@ set(src
 ./src/application/md_application.cpp
 ./src/parser/command_line.cpp
 ./src/common/unit_factor.cpp
+./src/common/thermo_tui_view.cpp
 ./src/common/RBEPSample.h
 ./src/common/erf_table.h
 ${output_srcs}
@@ -119,6 +120,7 @@ endforeach()
 find_package(PkgConfig REQUIRED)
 pkg_check_modules(SPDLOG REQUIRED spdlog IMPORTED_TARGET GLOBAL)
 pkg_check_modules(CXXOPTS REQUIRED cxxopts IMPORTED_TARGET GLOBAL)
+pkg_check_modules(FTXUI REQUIRED ftxui IMPORTED_TARGET GLOBAL)
 
 
 add_executable(${PROJECT_NAME} ${src})
@@ -141,4 +143,4 @@ if(USE_MACE)
 else()
     target_compile_definitions(${PROJECT_NAME} PUBLIC USE_MACE=0)
 endif()
-target_link_libraries(${PROJECT_NAME} PUBLIC ${LIBRARY_NAMES}  PkgConfig::SPDLOG PkgConfig::CXXOPTS)
+target_link_libraries(${PROJECT_NAME} PUBLIC ${LIBRARY_NAMES}  PkgConfig::SPDLOG PkgConfig::CXXOPTS PkgConfig::FTXUI)

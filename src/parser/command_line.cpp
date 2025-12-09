@@ -8,6 +8,7 @@ CommandLine::CommandLine(int argc, char* argv[])
   //
   _opts.add_options()
       ("j,json", "JSON config file", cxxopts::value<std::string>())
+      ("t,tui", "Enable terminal UI", cxxopts::value<bool>()->default_value("false")->implicit_value("true"))
       ("h,help", "Print help")
       ("v,version", "Print version");
 
