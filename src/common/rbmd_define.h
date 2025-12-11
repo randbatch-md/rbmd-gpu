@@ -1,8 +1,5 @@
 #pragma once
 
-#include <stdio.h>  // 用于 fprintf, stderr
-#include <stdlib.h> // 用于 abort (虽然我们更推荐 MPI_Abort)
-
 #if defined(__CUDA)
     #include <cuda_runtime.h>
     #include <cuda_runtime_api.h>
@@ -398,30 +395,3 @@ inline  char* StrDup(const std::string &text)
   strcpy(tmp, text.c_str());
   return tmp;
 }
-
-
-
-/**
- * @brief 检查 MPI 调用的返回值。
- * * 如果 MPI 调用不返回 MPI_SUCCESS，此宏将打印一个详细的错误消息
- * (包括 MPI 错误字符串、源文件、行号和失败的函数)
- * 到 stderr，然后使用 MPI_Abort 中止整个 MPI 作业。
- *
- * @param call 要执行的 MPI 函数调用 (例如 MPI_Isend(...)).
- */
-#define MPI_CHECK(call)                                                        \
-do {                                                                         \
-int mpi_error_code = (call);                                               \
-if (mpi_error_code != MPI_SUCCESS) {                                       \
-char error_string[MPI_MAX_ERROR_STRING];                                 \
-int length_of_error_string;                                              \
-MPI_Error_string(mpi_error_code, error_string, &length_of_error_string); \
-fprintf(stderr,                                                          \
-"MPI Error: %s\n"                                                \
-"At File:   %s:%d\n"                                             \
-"In Call:   %s\n",                                               \
-error_string, __FILE__, __LINE__, #call);                        \
-/* 中止整个 MPI_COMM_WORLD，传递错误代码 */                            \
-MPI_Abort(MPI_COMM_WORLD, mpi_error_code);                               \
-}                                                                          \
-} while (0)

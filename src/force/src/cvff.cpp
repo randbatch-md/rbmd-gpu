@@ -62,6 +62,15 @@ void CVFF::Init()
   _neighbor_type = config->Get<std::string>("type", "hyper_parameters", "neighbor");
 
   if("RBL" == _neighbor_type) {
+    _alpha = config->Get<rbmd::Real>("alpha", "hyper_parameters", "coulomb");
+
+    //info
+    Logger::Instance().info(
+    "{} initialization ...\n"
+    "         cut_off : {}\n"
+    "         alpha : {}\n",
+    _neighbor_type, _cut_off, _alpha);
+
     bool energy_rbl_flag = config->PathExists({"hyper_parameters", "neighbor" ,"energy_rbl_flag"});
     if (energy_rbl_flag) {
       _energy_rbl_flag = config->Get<std::string>("energy_rbl_flag", "hyper_parameters", "neighbor");
@@ -74,10 +83,22 @@ void CVFF::Init()
   }
   else if("VERLET-SOG" == _neighbor_type) {
     LJCoulSOGInit();
+    //info
+    Logger::Instance().info(
+    "{} initialization ...\n"
+    "         cut_off : {}\n",
+    _neighbor_type, _cut_off);
+  }
+  else  {
+    _alpha = config->Get<rbmd::Real>("alpha", "hyper_parameters", "coulomb");
+    //info
+    Logger::Instance().info(
+    "{} initialization ...\n"
+    "         cut_off : {}\n"
+    "         alpha : {}\n",
+    _neighbor_type, _cut_off, _alpha);
   }
   //
-
-  _alpha = config->Get<rbmd::Real>("alpha", "hyper_parameters", "coulomb");
   _kspace_calculator->Init();
 }
 
@@ -91,10 +112,7 @@ void CVFF::LJCoulSOGInit() {
 
   rbmd::Real r0 = _cut_off / _rbsog_sigma;
   _w0 = Compute_W01(r0, _rbsog_b);
-  if (config->PathExists({"hyper_parameters", "coulomb" ,"rbsog_omega"})) {
-    _rbsog_omega = config->Get<rbmd::Real>("rbsog_omega", "hyper_parameters", "coulomb");
-    _w0= _rbsog_omega;
-  }
+
   std::vector<rbmd::Real> bl;
   bl.resize(_rbsog_Mmax);
   std::vector<rbmd::Real> bl3_inv;
@@ -126,14 +144,9 @@ void CVFF::LJCoulSOGInit() {
     }
     TaylorCoeff[i] = POW(-1.0,i+1.0) * 2.0 * coef * sumsum;
   }
-  std::cout<< "_w0:  "<< _w0  <<std::endl;
-  for (int i = 0; i < bl3_inv.size(); i++) {
-    std::cout<< "bl3_inv:  "<< bl3_inv[i]  << ",BL2SIGMA2INV: "<<
-      BL2SIGMA2INV[i] <<std::endl;
-  }
-
-  for (int i = 0; i < TaylorCoeff.size(); i++) {
-    std::cout << "TaylorCoeff: "<< TaylorCoeff[i]  <<std::endl;
+  for (rbmd::Id i = 0; i < 6; ++i)
+  {
+    std::cout << "TaylorCoeff on rbmd-sog: " << TaylorCoeff[i] << std::endl;
   }
   _d_taylor_coeff = TaylorCoeff;
 }
@@ -308,6 +321,21 @@ void CVFF::ComputeLJVerlet()
   op::ReduceVirialOp<device::DEVICE_GPU>()(num_atoms,num_atoms,
     thrust::raw_pointer_cast(_device_data->_d_flat_virial_lj.data()),
     thrust::raw_pointer_cast(_device_data->_d_virial_lj.data()));
+
+  if (test_current_step ==0 ) {
+    thrust::host_vector<rbmd::Real> h_lj_virial =_device_data->_d_virial_lj;
+    std::ofstream lj_file("lj_coul_virial.txt");
+    if (lj_file.is_open()) {
+      for (rbmd::Id i = 0; i < h_lj_virial.size(); ++i) {
+        lj_file << i  << " " <<h_lj_virial[i]  << "\n";
+      }
+      lj_file.close();
+    }
+
+    for (rbmd::Id i = 0; i < h_lj_virial.size(); ++i) {
+      std::cout << "ljcoul_virial: " << h_lj_virial[i]  << std::endl;
+    }
+  }
 }
 
 void CVFF::ComputeLJSOG() {
@@ -384,6 +412,22 @@ void CVFF::ComputeLJSOG() {
   op::ReduceVirialOp<device::DEVICE_GPU>()(num_atoms,num_atoms,
     thrust::raw_pointer_cast(_device_data->_d_flat_virial_lj.data()),
     thrust::raw_pointer_cast(_device_data->_d_virial_lj.data()));
+  // ReduceVirial(num_atoms,_device_data->_d_flat_virial_lj,_device_data->_d_virial_lj);
+
+  if (test_current_step ==0 ) {
+    thrust::host_vector<rbmd::Real> h_lj_virial =_device_data->_d_virial_lj;
+    std::ofstream lj_file("lj_sog_virial.txt");
+    if (lj_file.is_open()) {
+      for (rbmd::Id i = 0; i < h_lj_virial.size(); ++i) {
+        lj_file << i  << " " <<h_lj_virial[i]  << "\n";
+      }
+      lj_file.close();
+    }
+
+    for (rbmd::Id i = 0; i < h_lj_virial.size(); ++i) {
+      std::cout << "ljcoul_virial: " << h_lj_virial[i]  << std::endl;
+    }
+  }
 
 }
 

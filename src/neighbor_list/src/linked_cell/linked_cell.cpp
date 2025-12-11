@@ -8,6 +8,7 @@
 #include "data_manager.h"
 #include "linked_cell_op.h"
 #include "model/md_data.h"
+#include <thrust/sequence.h>
 
 LinkedCell::LinkedCell() {
   this->_box = DataManager::getInstance().getMDData()->_box;
@@ -115,46 +116,101 @@ void SortWithIterators(thrust::device_vector<int>& cell_ids, Iterators... its) {
   thrust::stable_sort_by_key(cell_ids.begin(), cell_ids.end(), zip_begin);
 }
 
+// 新增一个通用的“按索引重排”工具
+template <typename T>
+static void ApplyPermutation(const thrust::device_vector<int>& indices,
+                             thrust::device_vector<T>& data) {
+  thrust::device_vector<T> tmp(data.size());
+  thrust::gather(indices.begin(), indices.end(), data.begin(), tmp.begin());
+  data.swap(tmp);
+}
 void LinkedCell::SortAtomsByCellKey() {
+
   auto atom_style = DataManager::getInstance().getConfigData()->Get<std::string>(
     "atom_style", "init_configuration", "read_data");
 
+    // 1. 构造索引并按 cell_id 排序
+  thrust::device_vector<int> indices(_total_atoms_num);
+  thrust::sequence(indices.begin(), indices.end());  // 0,1,2,...,N-1
+  thrust::sort_by_key(_per_atom_cell_id.begin(),
+                      _per_atom_cell_id.end(),
+                      indices.begin());
+
+  // 2. 对所有属性数组按同一 indices 进行重排
   if ("atomic" == atom_style) {
-    SortWithIterators(_per_atom_cell_id,
-      _device_data->_d_atoms_id.begin(),
-      _device_data->_d_atoms_type.begin(),
-      _device_data->_d_px.begin(),
-      _device_data->_d_py.begin(),
-      _device_data->_d_pz.begin(),
-      _device_data->_d_vx.begin(),
-      _device_data->_d_vy.begin(),
-      _device_data->_d_vz.begin());
+    ApplyPermutation(indices, _device_data->_d_atoms_id);
+    ApplyPermutation(indices, _device_data->_d_atoms_type);
+    ApplyPermutation(indices, _device_data->_d_px);
+    ApplyPermutation(indices, _device_data->_d_py);
+    ApplyPermutation(indices, _device_data->_d_pz);
+    ApplyPermutation(indices, _device_data->_d_vx);
+    ApplyPermutation(indices, _device_data->_d_vy);
+    ApplyPermutation(indices, _device_data->_d_vz);
+  } else if ("charge" == atom_style) {
+    ApplyPermutation(indices, _device_data->_d_atoms_id);
+    ApplyPermutation(indices, _device_data->_d_atoms_type);
+    ApplyPermutation(indices, _device_data->_d_px);
+    ApplyPermutation(indices, _device_data->_d_py);
+    ApplyPermutation(indices, _device_data->_d_pz);
+    ApplyPermutation(indices, _device_data->_d_vx);
+    ApplyPermutation(indices, _device_data->_d_vy);
+    ApplyPermutation(indices, _device_data->_d_vz);
+    ApplyPermutation(indices, _device_data->_d_charge);
+  } else if ("full" == atom_style) {
+    ApplyPermutation(indices, _device_data->_d_atoms_id);
+    ApplyPermutation(indices, _device_data->_d_atoms_type);
+    ApplyPermutation(indices, _device_data->_d_px);
+    ApplyPermutation(indices, _device_data->_d_py);
+    ApplyPermutation(indices, _device_data->_d_pz);
+    ApplyPermutation(indices, _device_data->_d_flagX);
+    ApplyPermutation(indices, _device_data->_d_flagY);
+    ApplyPermutation(indices, _device_data->_d_flagZ);
+    ApplyPermutation(indices, _device_data->_d_vx);
+    ApplyPermutation(indices, _device_data->_d_vy);
+    ApplyPermutation(indices, _device_data->_d_vz);
+    ApplyPermutation(indices, _device_data->_d_charge);
+    ApplyPermutation(indices, _device_data->_d_molecular_id);
   }
-  else if ("charge" == atom_style) {
-    SortWithIterators(_per_atom_cell_id,
-      _device_data->_d_atoms_id.begin(),
-      _device_data->_d_atoms_type.begin(),
-      _device_data->_d_px.begin(),
-      _device_data->_d_py.begin(),
-      _device_data->_d_pz.begin(),
-      _device_data->_d_vx.begin(),
-      _device_data->_d_vy.begin(),
-      _device_data->_d_vz.begin(),
-      _device_data->_d_charge.begin());
-  }
-  else if ("full" == atom_style) {
-    SortWithIterators(_per_atom_cell_id,
-      _device_data->_d_atoms_id.begin(),
-      _device_data->_d_atoms_type.begin(),
-      _device_data->_d_px.begin(),
-      _device_data->_d_py.begin(),
-      _device_data->_d_pz.begin(),
-      _device_data->_d_vx.begin(),
-      _device_data->_d_vy.begin(),
-      _device_data->_d_vz.begin(),
-      _device_data->_d_charge.begin(),
-      _device_data->_d_molecular_id.begin());
-  }
+
+  // if ("atomic" == atom_style) {
+  //   SortWithIterators(_per_atom_cell_id,
+  //     _device_data->_d_atoms_id.begin(),
+  //     _device_data->_d_atoms_type.begin(),
+  //     _device_data->_d_px.begin(),
+  //     _device_data->_d_py.begin(),
+  //     _device_data->_d_pz.begin(),
+  //     _device_data->_d_vx.begin(),
+  //     _device_data->_d_vy.begin(),
+  //     _device_data->_d_vz.begin());
+  // }
+  // else if ("charge" == atom_style) {
+  //   SortWithIterators(_per_atom_cell_id,
+  //     _device_data->_d_atoms_id.begin(),
+  //     _device_data->_d_atoms_type.begin(),
+  //     _device_data->_d_px.begin(),
+  //     _device_data->_d_py.begin(),
+  //     _device_data->_d_pz.begin(),
+  //     _device_data->_d_vx.begin(),
+  //     _device_data->_d_vy.begin(),
+  //     _device_data->_d_vz.begin(),
+  //     _device_data->_d_charge.begin());
+  // }
+  // else if ("full" == atom_style) {
+  //   SortWithIterators(_per_atom_cell_id,
+  //     _device_data->_d_atoms_id.begin(),
+  //     _device_data->_d_atoms_type.begin(),
+  //     _device_data->_d_px.begin(),
+  //     _device_data->_d_py.begin(),
+  //     _device_data->_d_pz.begin(),
+  //     _device_data->_d_flagX.begin(),
+  //     _device_data->_d_flagY.begin(),
+  //     _device_data->_d_flagZ.begin(),
+  //     _device_data->_d_vx.begin(),
+  //     _device_data->_d_vy.begin(),
+  //     _device_data->_d_vz.begin(),
+  //     _device_data->_d_charge.begin(),
+  //     _device_data->_d_molecular_id.begin());
+  // }
 
   // 执行 MapAtomidToIdxOp
   op::MapAtomidToIdxOp<device::DEVICE_GPU> map_atomid_to_idx_op;

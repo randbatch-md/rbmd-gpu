@@ -10,9 +10,11 @@ void Box::Setup(BoxType box_type, const rbmd::Real coord_min[3],
     this->_length_inv[i] = 1 / _length[i];
     this->_median_point[i] = 0.5 *(coord_max[i] + coord_min[i]);
   }
-  this->_length[3] = 0;  // yz
-  this->_length[4] = 0;  // xz
-  this->_length[5] = 0;  // xy
+  if (box_type == BoxType::TRICLINIC) {
+    _length_inv[3] = -_length[3] / (_length[1]*_length[2]);
+    _length_inv[4] = (_length[3]*_length[5] - _length[1]*_length[4]) / (_length[0]*_length[1]*_length[2]);
+    _length_inv[5] = -_length[5] / (_length[0]*_length[1]);
+  }
 
   this->_pbc_x = pbc[0];
   this->_pbc_y = pbc[1];

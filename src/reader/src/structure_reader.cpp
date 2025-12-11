@@ -36,6 +36,7 @@ int StructureReder::Execute() {
   return 0;
 }
 
+
 int StructureReder::ReadHeader() {
   try {
     auto& info = _md_data._structure_info_data;
@@ -49,13 +50,31 @@ int StructureReder::ReadHeader() {
     CHECK_RUNTIME(MALLOCHOST(&(info->_num_angles_type), sizeof(rbmd::Id)));
     CHECK_RUNTIME(MALLOCHOST(&(info->_num_dihedrals_type), sizeof(rbmd::Id)));
     CHECK_RUNTIME(MALLOCHOST(&(info->_num_impropers_type), sizeof(rbmd::Id)));
+    
     auto& box = _md_data._box;
-    rbmd::Real coord_min[3];
-    rbmd::Real coord_max[3];
+    rbmd::Real coord_min[3] = {0.0, 0.0, 0.0};
+    rbmd::Real coord_max[3] = {0.0, 0.0, 0.0};
+    rbmd::Real tilt_factors[3] = {0.0, 0.0, 0.0};
+    bool is_triclinic = false;
+    bool box_read_flag = false; //
 
-    for (; _locate < _file_size; ++_locate) {
+    for (; _locate < _file_size; ++_locate)
+    {
       if (_mapped_memory[_locate] == '\n') {
         auto line = std::string(_line_start, &_mapped_memory[_locate]);
+
+        if (line.find("Masses") != std::string::npos ||
+            line.find("Atoms") != std::string::npos ||
+            line.find("Pair Coeffs") != std::string::npos ||
+            line.find("Bond Coeffs") != std::string::npos ||
+            line.find("Angle Coeffs") != std::string::npos ||
+            line.find("Dihedral Coeffs") != std::string::npos ||
+            line.find("Improper Coeffs") != std::string::npos) {
+
+             _locate = _line_start - _mapped_memory;
+             break; 
+        }
+
         std::istringstream iss(line);
         if (rbmd::IsLegalLine(line)) {
           if (line.find("atoms") != std::string::npos) {
@@ -91,50 +110,59 @@ int StructureReder::ReadHeader() {
             Logger::Instance().info("read {} improper types",*(info->_num_impropers_type));
           } else if (line.find("xlo xhi") != std::string::npos) {
             iss >> coord_min[0] >> coord_max[0];
-            // std::cout << coord_min[0] << " " << coord_max[0] << "xlo xhi" <<
-            // std::endl;
+            box_read_flag = true;
           } else if (line.find("ylo yhi") != std::string::npos) {
             iss >> coord_min[1] >> coord_max[1];
-            // std::cout << coord_min[1] << " " << coord_max[1] << "ylo yhi" <<
-            // std::endl;
-           
           } else if (line.find("zlo zhi") != std::string::npos) {
             iss >> coord_min[2] >> coord_max[2];
-            // std::cout << coord_min[2] << " " << coord_max[2] << "zlo zhi" <<
-            // std::endl;
-
-            bool pbc[3] = {1, 1, 1};
-            box->Setup(box->_type, coord_min, coord_max, pbc);
-            // 计算盒子边长
-            double length_x = coord_max[0] - coord_min[0];
-            double length_y = coord_max[1] - coord_min[1];
-            double length_z = coord_max[2] - coord_min[2];
-            std::string box_type = "ORTHOGONAL";
-            if (box->_type == Box::BoxType::TRICLINIC) {
-              box_type = "TRICLINIC";
-            }
-            Logger::Instance().info(
-            "Initial Box Configuration:\n"
-            "         Type:       {}\n"
-            "         Min (Å):    ({:.2f}, {:.2f}, {:.2f})\n"
-            "         Max (Å):    ({:.2f}, {:.2f}, {:.2f})\n"
-            "         Lengths (Å): ({:.2f}, {:.2f}, {:.2f})\n"
-            "         PBC:        x={}, y={}, z={}",
-            box_type,
-            coord_min[0], coord_min[1], coord_min[2],
-            coord_max[0], coord_max[1], coord_max[2],
-            length_x, length_y, length_z,
-            pbc[0] ? "periodic" : "fixed",
-            pbc[1] ? "periodic" : "fixed",
-            pbc[2] ? "periodic" : "fixed"
-            );
-            _line_start = &_mapped_memory[_locate];
-            break;
+          }
+          else if (line.find("xy xz yz") != std::string::npos) {
+            iss >> tilt_factors[0] >> tilt_factors[1] >> tilt_factors[2];
+            is_triclinic = true;
           }
         }
-
         _line_start = &_mapped_memory[_locate];
       }
+    }
+
+    //
+    if (box_read_flag)
+    {
+        if (is_triclinic) {
+          box->_length[3] = tilt_factors[0]; // xy
+          box->_length[4] = tilt_factors[1]; // xz
+          box->_length[5] = tilt_factors[2]; // yz
+        }
+        bool pbc[3] = {1, 1, 1};
+        box->_type = is_triclinic ? Box::BoxType::TRICLINIC : Box::BoxType::ORTHOGONAL;
+        box->Setup(box->_type, coord_min, coord_max, pbc);
+
+        //
+        std::string box_type_str = is_triclinic ? "TRICLINIC" : "ORTHOGONAL";
+
+        //
+        double length_x = coord_max[0] - coord_min[0];
+        double length_y = coord_max[1] - coord_min[1];
+        double length_z = coord_max[2] - coord_min[2];
+        Logger::Instance().info(
+        "Initial Box Configuration:\n"
+        "         Type:       {}\n"
+        "         Min (Å):    ({:.2f}, {:.2f}, {:.2f})\n"
+        "         Max (Å):    ({:.2f}, {:.2f}, {:.2f})\n"
+        "         Lengths (Å): ({:.2f}, {:.2f}, {:.2f})\n"
+        "         PBC:        x={}, y={}, z={}",
+        box_type_str,
+        coord_min[0], coord_min[1], coord_min[2],
+        coord_max[0], coord_max[1], coord_max[2],
+        length_x, length_y, length_z,
+        pbc[0] ? "periodic" : "fixed",
+        pbc[1] ? "periodic" : "fixed",
+        pbc[2] ? "periodic" : "fixed"
+        );
+        if (is_triclinic) {
+             Logger::Instance().info("  Tilt Factors: xy={:.2f}, xz={:.2f}, yz={:.2f}",
+                tilt_factors[0], tilt_factors[1], tilt_factors[2]);
+        }
     }
   } catch (const std::exception& e) {
     // log

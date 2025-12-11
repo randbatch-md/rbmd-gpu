@@ -96,7 +96,38 @@ void DefaultPositionController::Update() {
         thrust::raw_pointer_cast(_device_data->_d_unwarp_px.data()),
         thrust::raw_pointer_cast(_device_data->_d_unwarp_py.data()),
         thrust::raw_pointer_cast(_device_data->_d_unwarp_pz.data()));
-  }
+
+      auto file_unwarp = false;
+      if (file_unwarp) {
+        thrust::host_vector<rbmd::Real> h_px = _device_data->_d_px;
+        thrust::host_vector<rbmd::Real> h_py = _device_data->_d_py;
+        thrust::host_vector<rbmd::Real> h_pz = _device_data->_d_pz;
+
+        thrust::host_vector<rbmd::Real> h_unwarp_px = _device_data->_d_unwarp_px;
+        thrust::host_vector<rbmd::Real> h_unwarp_py = _device_data->_d_unwarp_py;
+        thrust::host_vector<rbmd::Real> h_unwarp_pz = _device_data->_d_unwarp_pz;
+        thrust::host_vector<rbmd::Id> h_flagX = _device_data->_d_flagX;
+        thrust::host_vector<rbmd::Id> h_flagY = _device_data->_d_flagY;
+        thrust::host_vector<rbmd::Id> h_flagZ = _device_data->_d_flagZ;
+
+        auto atom_id_to_idx =
+          LinkedCellLocator::GetInstance().GetLinkedCell()->_atom_id_to_idx;
+
+        std::ofstream fac_file("h_unwarp.txt");
+        if (fac_file.is_open()) {
+          for (rbmd::Id i = 0; i < h_unwarp_px.size(); ++i) {
+            auto index = atom_id_to_idx[i];
+
+            fac_file << i  << " "<< h_px[ index]  <<", "<< h_py[ index]  << ", " <<h_pz[ index]<<  " ,"<<
+              h_flagX[ index]  <<", "<< h_flagY[ index]  << ", " <<h_flagZ[ index]
+              << " ,"<<h_unwarp_px[ index] <<", " << h_unwarp_py[ index]<< ", " <<  h_unwarp_pz[ index]<<"\n";
+          }
+          fac_file.close();
+        }
+
+      }
+      }
+
 }
 
 void DefaultPositionController::Updatebm() {
@@ -138,4 +169,44 @@ void  DefaultPositionController::PBC() {
     thrust::raw_pointer_cast(_device_data->_d_flagX.data()),
     thrust::raw_pointer_cast(_device_data->_d_flagY.data()),
     thrust::raw_pointer_cast(_device_data->_d_flagZ.data()));
+
+  //Unwarp Position
+  op::UnwarpPositionOp<device::DEVICE_GPU>()(*(_structure_info_data->_num_atoms),*_box,
+    thrust::raw_pointer_cast(_device_data->_d_px.data()),
+    thrust::raw_pointer_cast(_device_data->_d_py.data()),
+    thrust::raw_pointer_cast(_device_data->_d_pz.data()),
+    thrust::raw_pointer_cast(_device_data->_d_flagX.data()),
+    thrust::raw_pointer_cast(_device_data->_d_flagY.data()),
+    thrust::raw_pointer_cast(_device_data->_d_flagZ.data()),
+    thrust::raw_pointer_cast(_device_data->_d_unwarp_px.data()),
+    thrust::raw_pointer_cast(_device_data->_d_unwarp_py.data()),
+    thrust::raw_pointer_cast(_device_data->_d_unwarp_pz.data()));
+
+
+  // thrust::host_vector<rbmd::Real> h_px = _device_data->_d_px;
+  // thrust::host_vector<rbmd::Real> h_py = _device_data->_d_py;
+  // thrust::host_vector<rbmd::Real> h_pz = _device_data->_d_pz;
+  //
+  //   thrust::host_vector<rbmd::Real> h_unwarp_px = _device_data->_d_unwarp_px;
+  //   thrust::host_vector<rbmd::Real> h_unwarp_py = _device_data->_d_unwarp_py;
+  //   thrust::host_vector<rbmd::Real> h_unwarp_pz = _device_data->_d_unwarp_pz;
+  //   thrust::host_vector<rbmd::Id> h_flagX = _device_data->_d_flagX;
+  //   thrust::host_vector<rbmd::Id> h_flagY = _device_data->_d_flagY;
+  //   thrust::host_vector<rbmd::Id> h_flagZ = _device_data->_d_flagZ;
+  //
+  //   auto atom_id_to_idx =
+  //     LinkedCellLocator::GetInstance().GetLinkedCell()->_atom_id_to_idx;
+  //
+  //   std::ofstream fac_file("h_unwarp.txt");
+  //   if (fac_file.is_open()) {
+  //     for (rbmd::Id i = 0; i < h_unwarp_px.size(); ++i) {
+  //       auto index = atom_id_to_idx[i];
+  //
+  //       fac_file << i  << " "<< h_px[ i]  <<", "<< h_py[ i]  << ", " <<h_pz[ i]<<  " ,"<<
+  //         h_flagX[ i]  <<", "<< h_flagY[ i]  << ", " <<h_flagZ[ i]
+  //         << " ,"<<h_unwarp_px[ i] <<", " << h_unwarp_py[ i]<< ", " <<  h_unwarp_pz[ i]<<"\n";
+  //     }
+  //     fac_file.close();
+  //   }
+
 }

@@ -26,13 +26,13 @@ int AtomicReader::ReadData() {
           // std::cout << "Atoms" << std::endl;
           ReadAtoms(*num_atoms);
         } else if (line.find("Bonds") != std::string::npos) {
-          //std::cout << "Bonds" << std::endl;
+          // std::cout << "Bonds" << std::endl;
           ReadBond(*(_md_data._structure_info_data->_num_bonds));
         } else if (line.find("Angles") != std::string::npos) {
-          //std::cout << "Angles" << std::endl;
+          // std::cout << "Angles" << std::endl;
           ReadAngle(*(_md_data._structure_info_data->_num_angles));
         } else if (line.find("Dihedrals") != std::string::npos) {
-          //std::cout << "Dihedrals" << std::endl;
+          // std::cout << "Dihedrals" << std::endl;
           ReadDihedrals(*(_md_data._structure_info_data->_num_dihedrals));
         } else if (line.find("Impropers") != std::string::npos) {
           //std::cout << "Dihedrals" << std::endl;
@@ -79,6 +79,13 @@ void AtomicReader::AllocateDataSpace() {
     CHECK_RUNTIME(
         MALLOCHOST(&(data->_h_vz), *(info->_num_atoms) * sizeof(rbmd::Real)));
 
+    CHECK_RUNTIME(
+    MALLOCHOST(&(data->_h_flagX), *(info->_num_atoms) * sizeof(rbmd::Id)));
+    CHECK_RUNTIME(
+        MALLOCHOST(&(data->_h_flagY), *(info->_num_atoms) * sizeof(rbmd::Id)));
+    CHECK_RUNTIME(
+      MALLOCHOST(&(data->_h_flagZ), *(info->_num_atoms) * sizeof(rbmd::Id)));
+
   } else if ("charge" == atom_style) {
     auto& charge_structure_data = _md_data._structure_data;
     ChargeStructureData* data =
@@ -101,6 +108,14 @@ void AtomicReader::AllocateDataSpace() {
         MALLOCHOST(&(data->_h_vz), *(info->_num_atoms) * sizeof(rbmd::Real)));
     CHECK_RUNTIME(
         MALLOCHOST(&(data->_h_charge), *(info->_num_atoms) * sizeof(rbmd::Real)));
+
+    CHECK_RUNTIME(
+    MALLOCHOST(&(data->_h_flagX), *(info->_num_atoms) * sizeof(rbmd::Id)));
+    CHECK_RUNTIME(
+        MALLOCHOST(&(data->_h_flagY), *(info->_num_atoms) * sizeof(rbmd::Id)));
+    CHECK_RUNTIME(
+      MALLOCHOST(&(data->_h_flagZ), *(info->_num_atoms) * sizeof(rbmd::Id)));
+
   } else if ("full" == atom_style) {
       auto& full_structure_data = _md_data._structure_data;
       FullStructureData* data =
@@ -126,6 +141,13 @@ void AtomicReader::AllocateDataSpace() {
       CHECK_RUNTIME(
           MALLOCHOST(&(data->_h_molecules_id), *(info->_num_atoms) * sizeof(rbmd::Id)));
 
+      CHECK_RUNTIME(
+          MALLOCHOST(&(data->_h_flagX), *(info->_num_atoms) * sizeof(rbmd::Id)));
+      CHECK_RUNTIME(
+          MALLOCHOST(&(data->_h_flagY), *(info->_num_atoms) * sizeof(rbmd::Id)));
+      CHECK_RUNTIME(
+        MALLOCHOST(&(data->_h_flagZ), *(info->_num_atoms) * sizeof(rbmd::Id)));
+
   }
   else {
     Logger::Instance().error("\033[31m Unsupported atom_style: {}\033[0m", atom_style );
@@ -148,6 +170,12 @@ int AtomicReader::ReadAtoms(const rbmd::Id& atoms_num) {
       for (auto num = 0; _locate < _file_size && num < atoms_num; ++_locate) {
         if (_mapped_memory[_locate] == '\n') {
           auto line = std::string(_line_start, &_mapped_memory[_locate]);
+          //
+          if (line.empty() || line[0] == '#') {
+            _line_start = &_mapped_memory[_locate + 1];
+            continue;
+          }
+
           std::istringstream iss(line);
           if (rbmd::IsLegalLine(line)) {
             iss >> atom_id;
@@ -158,6 +186,14 @@ int AtomicReader::ReadAtoms(const rbmd::Id& atoms_num) {
             iss >> _md_data._structure_data->_h_px[index] >>
                 _md_data._structure_data->_h_py[index] >>
                 _md_data._structure_data->_h_pz[index];
+            // image flags
+            if (!(iss >> _md_data._structure_data->_h_flagX[index]))
+              _md_data._structure_data->_h_flagX[index] = 0;
+            if (!(iss >> _md_data._structure_data->_h_flagY[index]))
+              _md_data._structure_data->_h_flagY[index] = 0;
+            if (!(iss >> _md_data._structure_data->_h_flagZ[index]))
+              _md_data._structure_data->_h_flagZ[index] = 0;
+
             ++num;
             // std::cout << atom_id << " " << types[index] << " " <<
             // _md_data._structure_data->_h_px[index] << " " <<
@@ -174,6 +210,12 @@ int AtomicReader::ReadAtoms(const rbmd::Id& atoms_num) {
       for (auto num = 0; _locate < _file_size && num < atoms_num; ++_locate) {
         if (_mapped_memory[_locate] == '\n') {
           auto line = std::string(_line_start, &_mapped_memory[_locate]);
+          //
+          if (line.empty() || line[0] == '#') {
+            _line_start = &_mapped_memory[_locate + 1];
+            continue;
+          }
+
           std::istringstream iss(line);
           if (rbmd::IsLegalLine(line)) {
             iss >> atom_id;
@@ -182,6 +224,12 @@ int AtomicReader::ReadAtoms(const rbmd::Id& atoms_num) {
             iss >> atom_type >> data->_h_charge[index];
             iss >> data->_h_px[index] >> data->_h_py[index] >>
                 data->_h_pz[index];
+
+            //image flags
+            if (!(iss >> data->_h_flagX[index])) data->_h_flagX[index] = 0;
+            if (!(iss >> data->_h_flagY[index])) data->_h_flagY[index] = 0;
+            if (!(iss >> data->_h_flagZ[index])) data->_h_flagZ[index] = 0;
+
             types[index] = atom_type - 1;
             ++num;
             // std::cout << atom_id << " " << types[index] << " " <<
@@ -192,37 +240,53 @@ int AtomicReader::ReadAtoms(const rbmd::Id& atoms_num) {
         }
       }
     }
-    else if ("full" == atom_style) {
+    else if ("full" == atom_style)
+    {
         rbmd::Id molecules_id;
         auto& full_structure_data = _md_data._structure_data;
         FullStructureData* data =
             dynamic_cast<FullStructureData*>(full_structure_data.get());
+
         for (auto num = 0; _locate < _file_size && num < atoms_num; ++_locate) {
             if (_mapped_memory[_locate] == '\n') {
                 auto line = std::string(_line_start, &_mapped_memory[_locate]);
+                //
+                if (line.empty() || line[0] == '#') {
+                  _line_start = &_mapped_memory[_locate + 1];
+                  continue;
+                }
+
                 std::istringstream iss(line);
-                if (rbmd::IsLegalLine(line)) {
+                if (rbmd::IsLegalLine(line))
+                {
                     iss >> atom_id;
                     auto index = atom_id - 1;
                     ids[index] = atom_id - 1;
+
                     iss >> molecules_id >> atom_type >> data->_h_charge[index];
-                    iss >> data->_h_px[index] >> data->_h_py[index] >>
-                        data->_h_pz[index];
+                    iss >> data->_h_px[index] >> data->_h_py[index] >> data->_h_pz[index];
+
+                  // image flags
+                  if (!(iss >> data->_h_flagX[index])) data->_h_flagX[index] = 0;
+                  if (!(iss >> data->_h_flagY[index])) data->_h_flagY[index] = 0;
+                  if (!(iss >> data->_h_flagZ[index])) data->_h_flagZ[index] = 0;
+
                     types[index] = atom_type - 1;
                     data->_h_molecules_id[index] = molecules_id - 1;
                     MolecularMapInsert(data->_h_molecules_id[index], ids[index]);
                     AtomsMapInsert(types[index], ids[index]);
                     AtomstoMolecular(ids[index], data->_h_molecules_id[index]);
                     ++num;
-                    /*std::cout << atom_id << " " << data->_h_molecules_id[index] << " " << types[index] << " " <<
-                    data->_h_charge[index]  << " " << data->_h_px[index] << " " <<
-                    data->_h_py[index] << " " << data->_h_pz[index] << std::endl;*/
+                    // std::cout << atom_id << " " << data->_h_molecules_id[index] << " " << types[index] << " " <<
+                    // data->_h_charge[index]  << " " << data->_h_px[index] << " " <<
+                    // data->_h_py[index] << " " << data->_h_pz[index] << std::endl;
                 }
                 _line_start = &_mapped_memory[_locate];
             }
         }
       SetMolecularGroup();
     }
+
   } catch (const std::exception& e) {
     // log
     return -1;
@@ -230,6 +294,7 @@ int AtomicReader::ReadAtoms(const rbmd::Id& atoms_num) {
 
   return 0;
 }
+
 void AtomicReader::MolecularMapInsert(const rbmd::Id& key, const rbmd::Id& value)
 {
     auto it = _molecular_map.find(key);
@@ -364,17 +429,23 @@ int AtomicReader::ReadBond(const rbmd::Id& num_bonds) {
         CHECK_RUNTIME(MALLOCHOST(&bond_id1, num_bonds * sizeof(rbmd::Id)));
         rbmd::Id bound_id_value;
         rbmd::Id bound_type_value;
-        rbmd::Real bond_id0_value;
-        rbmd::Real bond_id1_value;
+        rbmd::Id bond_id0_value;
+        rbmd::Id bond_id1_value;
 
         _line_start = &_mapped_memory[_locate];
         for (auto num = 0; _locate < _file_size && num < num_bonds; ++_locate)
         {
             if (_mapped_memory[_locate] == '\n')
             {
-                auto line = std::string(_line_start,
-                    &_mapped_memory[_locate]); std::istringstream iss(line); if
-                    (rbmd::IsLegalLine(line))
+              auto line = std::string(_line_start, &_mapped_memory[_locate]);
+              // 跳过空行和注释行
+              if (line.empty() || line[0] == '#') {
+                _line_start = &_mapped_memory[_locate + 1];
+                continue;
+              }
+
+              std::istringstream iss(line);
+              if(rbmd::IsLegalLine(line))
                 {
                     iss >> bound_id_value >> bound_type_value >> bond_id0_value >> bond_id1_value;
                     //std::cout << bound_id_value << " "<<  bound_type_value << " " << bond_id0_value << " " << bond_id1_value << std::endl;
@@ -433,7 +504,14 @@ int AtomicReader::ReadAngle(const rbmd::Id& num_angles)
             if (_mapped_memory[_locate] == '\n')
             {
 
-                auto line = std::string(_line_start, &_mapped_memory[_locate]); std::istringstream iss(line);
+                auto line = std::string(_line_start, &_mapped_memory[_locate]);
+                // 跳过空行和注释行
+                if (line.empty() || line[0] == '#') {
+                  _line_start = &_mapped_memory[_locate + 1];
+                  continue;
+                }
+                std::istringstream iss(line);
+
                 if (rbmd::IsLegalLine(line))
                 {
                     iss >> angle_id_value >>angle_type_value >> angle_id0_value >> angle_id1_value >> angle_id2_value;
@@ -492,7 +570,14 @@ int AtomicReader::ReadDihedrals(const rbmd::Id& num_dihedrals)
             if (_mapped_memory[_locate] == '\n')
             {
 
-                auto line = std::string(_line_start, &_mapped_memory[_locate]); std::istringstream iss(line);
+                auto line = std::string(_line_start, &_mapped_memory[_locate]);
+                // 跳过空行和注释行
+                if (line.empty() || line[0] == '#') {
+                  _line_start = &_mapped_memory[_locate + 1];
+                  continue;
+                }
+
+                std::istringstream iss(line);
                 if (rbmd::IsLegalLine(line))
                 {
                     iss >> dihedral_id_value >> dihedral_type_value >> dihedral_id0_value >> dihedral_id1_value >> dihedral_id2_value >> dihedral_id3_value;
@@ -548,7 +633,13 @@ int AtomicReader::ReadImpropers(const rbmd::Id& num_impropers)
             if (_mapped_memory[_locate] == '\n')
             {
 
-                auto line = std::string(_line_start, &_mapped_memory[_locate]); std::istringstream iss(line);
+                auto line = std::string(_line_start, &_mapped_memory[_locate]);
+                // 跳过空行和注释行
+                if (line.empty() || line[0] == '#') {
+                  _line_start = &_mapped_memory[_locate + 1];
+                  continue;
+                }
+                std::istringstream iss(line);
                 if (rbmd::IsLegalLine(line))
                 {
                     iss >> improper_id_value >> improper_type_value >> improper_id0_value >> improper_id1_value >> improper_id2_value >> improper_id3_value;
@@ -573,7 +664,7 @@ int AtomicReader::ReadImpropers(const rbmd::Id& num_impropers)
     return 0;
 }
 
-void AtomicReader::SetSpecialBonds()
+void AtomicReader::SetSpecialBonds0()
 {
     auto special_bonds = DataManager::getInstance().getConfigData()->
   GetArray<rbmd::Real>("special_bonds", "hyper_parameters", "extend");
@@ -677,130 +768,121 @@ void AtomicReader::SetSpecialBonds()
     data->_num_special_offsets =cumulative_offsets.size() ;
 }
 
-void AtomicReader::SetSpecialBonds_fix() {
-    auto* data = dynamic_cast<FullStructureData*>(_md_data._structure_data.get());
+void AtomicReader::SetSpecialBonds()
+{
+    // 1. 获取参数
+    auto special_bonds = DataManager::getInstance().getConfigData()->
+        GetArray<rbmd::Real>("special_bonds", "hyper_parameters", "extend");
+    // special_bonds[0]: 1-2 weight, [1]: 1-3 weight, [2]: 1-4 weight
+
+    auto& full_structure_data = _md_data._structure_data;
+    FullStructureData* data = dynamic_cast<FullStructureData*>(full_structure_data.get());
     auto& weights = data->_h_special_weights;
     auto& ids = data->_h_special_ids;
     auto& offsets = data->_h_special_offsets;
-    auto& offset_count = data->_h_special_offset_count;
+    auto& special_offset_count = data->_h_special_offset_count;
 
-    //
-    auto special_bonds = DataManager::getInstance().getConfigData()->
-        GetArray<rbmd::Real>("special_bonds", "hyper_parameters", "extend");
-    rbmd::Real w1 = special_bonds[0]; // 1-2 weight
-    rbmd::Real w2 = special_bonds[1]; // 1-3 weight
-    rbmd::Real w3 = special_bonds[2]; // 1-4 weight
+    // 2. 临时容器
+    std::vector<rbmd::Real> special_weights_vec;
+    std::vector<rbmd::Id> special_ids_vec;
+    std::vector<rbmd::Id> special_offsets_vec;
 
-    // Initialize
-    rbmd::Id num_atoms = *(_md_data._structure_info_data->_num_atoms);
-    std::vector<std::vector<rbmd::Id>> atom_neighbors(num_atoms);   //
-    std::vector<std::vector<rbmd::Real>> atom_weights(num_atoms);    //
-    std::unordered_set<std::pair<rbmd::Id, rbmd::Id>, PairHash> excluded_pairs;
+    auto& ids_atoms = data->_h_atoms_id;
+    auto num_atoms = *(_md_data._structure_info_data->_num_atoms);
 
-    // Step 1: do  1-2  (highest priority)
-    for (const auto& pair : data->special_pairs_12) {
-        auto ordered = ordered_pair(pair.first, pair.second);
-        if (excluded_pairs.insert(ordered).second) { //
-            // Symmetric processing: Neighbors of atoms i and j are added to each other
-            atom_neighbors[pair.first].push_back(pair.second);
-            atom_weights[pair.first].push_back(w1);
-            atom_neighbors[pair.second].push_back(pair.first);
-            atom_weights[pair.second].push_back(w1);
+    // 3. 遍历所有原子，寻找拓扑邻居
+    for (int i = 0; i < num_atoms; i++)
+    {
+        auto atom_id = ids_atoms[i];
+
+        // 核心：使用 Map 记录最短拓扑距离，防止重复和权重覆盖
+        // key: neighbor_id, value: distance (1, 2, 3)
+        std::map<rbmd::Id, int> neighbors_dist;
+
+        // --- Layer 1 (1-2 Bonds) ---
+        std::vector<rbmd::Id> layer1;
+        auto range1 = _special_map.equal_range(atom_id);
+        for (auto it = range1.first; it != range1.second; ++it) {
+            rbmd::Id neighbor = it->second;
+            // 只要是直接连接，就是 1-2，距离为 1
+            if (neighbors_dist.find(neighbor) == neighbors_dist.end()) {
+                neighbors_dist[neighbor] = 1;
+                layer1.push_back(neighbor);
+            }
         }
-    }
 
-    // Step 2: do 1-3 （exclude 1-2 pairs）
-    for (const auto& pair : data->special_pairs_13) {
-        auto ordered = ordered_pair(pair.first, pair.second);
-        if (excluded_pairs.find(ordered) == excluded_pairs.end()) {
-            excluded_pairs.insert(ordered);
-            atom_neighbors[pair.first].push_back(pair.second);
-            atom_weights[pair.first].push_back(w2);
-            atom_neighbors[pair.second].push_back(pair.first);
-            atom_weights[pair.second].push_back(w2);
+        // --- Layer 2 (1-3 Angles) ---
+        std::vector<rbmd::Id> layer2;
+        for (auto n1 : layer1) {
+            auto range2 = _special_map.equal_range(n1);
+            for (auto it = range2.first; it != range2.second; ++it) {
+                rbmd::Id neighbor = it->second;
+                if (neighbor == atom_id) continue; // 排除自己
+
+                // 只有之前没出现过的才标记为 1-3 (距离 2)
+                if (neighbors_dist.find(neighbor) == neighbors_dist.end()) {
+                    neighbors_dist[neighbor] = 2;
+                    layer2.push_back(neighbor);
+                }
+            }
         }
-    }
 
-    // Step 3: do 1-4 （exclude 1-2 pairs and 1-3 pairs）
-    for (const auto& pair : data->special_pairs_14) {
-        auto ordered = ordered_pair(pair.first, pair.second);
-        if (excluded_pairs.find(ordered) == excluded_pairs.end()) {
-            atom_neighbors[pair.first].push_back(pair.second);
-            atom_weights[pair.first].push_back(w3);
-            atom_neighbors[pair.second].push_back(pair.first);
-            atom_weights[pair.second].push_back(w3);
+        // --- Layer 3 (1-4 Dihedrals) ---
+        for (auto n2 : layer2) {
+            auto range3 = _special_map.equal_range(n2);
+            for (auto it = range3.first; it != range3.second; ++it) {
+                rbmd::Id neighbor = it->second;
+                if (neighbor == atom_id) continue; // 排除自己
+
+                // 只有之前没出现过的才标记为 1-4 (距离 3)
+                if (neighbors_dist.find(neighbor) == neighbors_dist.end()) {
+                    neighbors_dist[neighbor] = 3;
+                }
+            }
         }
-    }
 
-    // Step 4: calculate the total number of connections
-    rbmd::Id total_pairs = 0;
-    std::vector<rbmd::Id> offset_counts(num_atoms, 0);
-    for (rbmd::Id i = 0; i < num_atoms; ++i) {
-        offset_counts[i] = atom_neighbors[i].size();
-        total_pairs += offset_counts[i];
-    }
-
-    CHECK_RUNTIME(MALLOCHOST(&weights, total_pairs * sizeof(rbmd::Real)));
-    CHECK_RUNTIME(MALLOCHOST(&ids, total_pairs * sizeof(rbmd::Id)));
-    CHECK_RUNTIME(MALLOCHOST(&offsets, (num_atoms + 1) * sizeof(rbmd::Id)));
-    CHECK_RUNTIME(MALLOCHOST(&offset_count, num_atoms * sizeof(rbmd::Id)));
-
-    // Step 5: populate  weights and ids
-    rbmd::Id idx = 0;
-    for (rbmd::Id i = 0; i < num_atoms; ++i) {
-        for (rbmd::Id j = 0; j < atom_neighbors[i].size(); ++j) {
-            weights[idx] = atom_weights[i][j];
-            ids[idx] = atom_neighbors[i][j];
-            ++idx;
+        // 4. 将结果存入 flat vectors
+        rbmd::Id count = 0;
+        if (neighbors_dist.empty()) {
+             // 孤立原子占位，保持格式一致
+             special_weights_vec.push_back(1.0);
+             special_ids_vec.push_back(atom_id);
+             count = 1;
+        } else {
+            for (auto const& [neigh_id, dist] : neighbors_dist) {
+                special_ids_vec.push_back(neigh_id);
+                // dist 是 1, 2, 3，对应 index 0, 1, 2
+                special_weights_vec.push_back(special_bonds[dist - 1]);
+                count++;
+            }
         }
+        special_offsets_vec.push_back(count);
     }
 
-    // Step 6: compute  offsets and  offset_count
-    offsets[0] = 0;
-    for (rbmd::Id i = 0; i < num_atoms; ++i) {
-        offset_count[i] = offset_counts[i];
-        offsets[i + 1] = offsets[i] + offset_counts[i];
-    }
+    // 5. 分配内存并拷贝
+    CHECK_RUNTIME(MALLOCHOST(&weights, special_weights_vec.size() * sizeof(rbmd::Real)));
+    CHECK_RUNTIME(MALLOCHOST(&ids, special_ids_vec.size() * sizeof(rbmd::Id)));
+    CHECK_RUNTIME(MALLOCHOST(&offsets, (special_offsets_vec.size()+1) * sizeof(rbmd::Id)));
+    CHECK_RUNTIME(MALLOCHOST(&special_offset_count, special_offsets_vec.size() * sizeof(rbmd::Id)));
 
-    // update
-    data->_num_special_weights = total_pairs;
-    data->_num_special_ids = total_pairs;
-    data->_num_special_offsets = num_atoms + 1;
-    data->_num_special_offset_count = num_atoms;
+    memcpy(weights, special_weights_vec.data(), special_weights_vec.size() * sizeof(rbmd::Real));
+    memcpy(ids, special_ids_vec.data(), special_ids_vec.size() * sizeof(rbmd::Id));
+    memcpy(special_offset_count, special_offsets_vec.data(), special_offsets_vec.size() * sizeof(rbmd::Id));
 
-  // 1.
-  std::ofstream weights_file("weights.txt");
-  if (weights_file.is_open()) {
-    for (rbmd::Id i = 0; i < data->_num_special_weights; ++i) {
-      weights_file << i  << " " <<data->_h_special_weights[i] << "\n";
+    // 6. 计算前缀和 (offsets)
+    std::vector<rbmd::Id> cumulative_offsets;
+    cumulative_offsets.push_back(0);
+    for (size_t i = 0; i < special_offsets_vec.size(); ++i)
+    {
+      cumulative_offsets.push_back(cumulative_offsets.back() + special_offsets_vec[i]);
     }
-    weights_file.close();
-  }
+    memcpy(offsets, cumulative_offsets.data(), cumulative_offsets.size() * sizeof(rbmd::Id));
 
-  // 2.
-  std::ofstream ids_file("ids.txt");
-  if (ids_file.is_open()) {
-    for (rbmd::Id i = 0; i < data->_num_special_ids; ++i) {
-      ids_file << i  << " " << data->_h_special_ids[i] << "\n";
-    }
-    ids_file.close();
-  }
+    // 7. 更新计数
+    data->_num_special_weights = special_weights_vec.size();
+    data->_num_special_ids = special_ids_vec.size();
+    data->_num_special_offset_count = special_offsets_vec.size();
+    data->_num_special_offsets = cumulative_offsets.size();
 
-  // 3.
-  std::ofstream offset_count_file("offset_count.txt");
-  if (offset_count_file.is_open()) {
-    for (rbmd::Id i = 0; i < num_atoms; ++i) {
-      offset_count_file << i  << " " << data->_h_special_offset_count[i] << "\n";
-    }
-    offset_count_file.close();
-  }
-
-  // 4.
-  std::ofstream offsets_file("offsets.txt");
-  if (offsets_file.is_open()) {
-    for (rbmd::Id i = 0; i <= num_atoms; ++i) {
-      offsets_file << i  << " " << data->_h_special_offsets[i] << "\n";
-    }
-    offsets_file.close();
-  }
+    std::cout << " SetSpecialBonds (BFS) completed." << std::endl;
 }

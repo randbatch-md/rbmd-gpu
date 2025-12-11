@@ -51,18 +51,10 @@ bool MemoryScheduler::asyncMemoryH2D() {
   _device_data->_d_px.resize(num_atoms);
   _device_data->_d_py.resize(num_atoms);
   _device_data->_d_pz.resize(num_atoms);
-  _device_data->_d_shake_px.resize(num_atoms);
-  _device_data->_d_shake_py.resize(num_atoms);
-  _device_data->_d_shake_pz.resize(num_atoms);
-
   thrust::copy(h_px, h_px + num_atoms, _device_data->_d_px.begin());
   thrust::copy(h_py, h_py + num_atoms, _device_data->_d_py.begin());
   thrust::copy(h_pz, h_pz + num_atoms, _device_data->_d_pz.begin());
 
-  /// copy flag
-  _device_data->_d_flagX.resize(num_atoms,0.0);
-  _device_data->_d_flagY.resize(num_atoms,0.0);
-  _device_data->_d_flagZ.resize(num_atoms,0.0);
   _device_data->_d_unwarp_px.resize(num_atoms);
   _device_data->_d_unwarp_py.resize(num_atoms);
   _device_data->_d_unwarp_pz.resize(num_atoms);
@@ -70,12 +62,23 @@ bool MemoryScheduler::asyncMemoryH2D() {
   thrust::copy(h_py, h_py + num_atoms, _device_data->_d_unwarp_py.begin());
   thrust::copy(h_pz, h_pz + num_atoms, _device_data->_d_unwarp_pz.begin());
 
+
+  /// copy flag
+  _device_data->_d_flagX.resize(num_atoms);
+  _device_data->_d_flagY.resize(num_atoms);
+  _device_data->_d_flagZ.resize(num_atoms);
+  thrust::copy(h_flagX, h_flagX + num_atoms, _device_data->_d_flagX.begin());
+  thrust::copy(h_flagY, h_flagY + num_atoms, _device_data->_d_flagY.begin());
+  thrust::copy(h_flagZ, h_flagZ + num_atoms, _device_data->_d_flagZ.begin());
+
+   //
+  _device_data->_d_shake_px.resize(num_atoms);
+  _device_data->_d_shake_py.resize(num_atoms);
+  _device_data->_d_shake_pz.resize(num_atoms);
+
   _device_data->_d_shake_vx.resize(num_atoms);
   _device_data->_d_shake_vy.resize(num_atoms);
   _device_data->_d_shake_vz.resize(num_atoms);
-  // thrust::copy(h_flagX, h_flagX + num_atoms, _device_data->_d_flagX.begin());
-  // thrust::copy(h_flagY, h_flagY + num_atoms, _device_data->_d_flagY.begin());
-  // thrust::copy(h_flagZ, h_flagZ + num_atoms, _device_data->_d_flagZ.begin());
 
   /// copy velocity
   _device_data->_d_vx.resize(num_atoms);
@@ -101,9 +104,6 @@ bool MemoryScheduler::asyncMemoryH2D() {
   _device_data->_d_fx.resize(num_atoms);
   _device_data->_d_fy.resize(num_atoms);
   _device_data->_d_fz.resize(num_atoms);
-  // thrust::copy(h_fx, h_fx + num_atoms, _device_data->_d_fx.begin());
-  // thrust::copy(h_fy, h_fy + num_atoms, _device_data->_d_fy.begin());
-  // thrust::copy(h_fz, h_fz + num_atoms, _device_data->_d_fz.begin());
 
   // _device_data->_d_prev_fx.resize(num_atoms);
   // _device_data->_d_prev_fy.resize(num_atoms);

@@ -1,6 +1,6 @@
 #pragma once
 #include "mmap_reader.h"
-
+#include "../data_manager/include/model/box.h"
 struct MDData;
 class StructureReder : public MmapReader {
  public:

@@ -85,27 +85,26 @@ void KSpaceCalculator::Init()
 
     }
 
-    //alpha
-    if (config->PathExists({"hyper_parameters", "coulomb" ,"alpha"})) {
-      _alpha = config->Get<rbmd::Real>("alpha", "hyper_parameters", "coulomb");
-
-      auto accuracy_test = ERFC(_cut_off * SQRT(_alpha));
-      // std::cout << "accuracy_test= " <<  accuracy_test <<std::endl;
-    }
-
-    //Kmax
-    auto Kmax =config->GetArray<rbmd::Id>("kmax", "hyper_parameters", "coulomb");
-    _kmax_array.x = Kmax[0];
-    _kmax_array.y = Kmax[1];
-    _kmax_array.z = Kmax[2];
-    _num_k =  (2*_kmax_array.x +1)  * (2*_kmax_array.y +1)
-              * (2*_kmax_array.z +1) - 1;
+    // //alpha
+    // if (config->PathExists({"hyper_parameters", "coulomb" ,"alpha"})) {
+    //   _alpha = config->Get<rbmd::Real>("alpha", "hyper_parameters", "coulomb");
+    //
+    //   auto accuracy_test = ERFC(_cut_off * SQRT(_alpha));
+    //   // std::cout << "accuracy_test= " <<  accuracy_test <<std::endl;
+    // }
 
     //RBE
     _coulomb_type = config->Get<std::string>("type", "hyper_parameters", "coulomb");
     if("RBE" == _coulomb_type) {
+      _alpha = config->Get<rbmd::Real>("alpha", "hyper_parameters", "coulomb");
       _RBE_P = config->Get<rbmd::Id>("coulomb_sample_num", "hyper_parameters", "coulomb");
      GetPsampleKey();
+
+      //info
+      Logger::Instance().info(
+      "{}  initialization ...\n"
+      "         rbe_sample_number : {}\n",
+       _coulomb_type,_RBE_P);
 
       //
       bool energy_rbe_flag = config->PathExists({"hyper_parameters", "coulomb" ,"energy_rbe_flag"});
@@ -129,6 +128,8 @@ void KSpaceCalculator::Init()
       _rbsog_Kcut = config->Get<rbmd::Id>("rbsog_Kcut", "hyper_parameters", "coulomb");
       _rbsog_Kcut = 1;
 
+      _RBE_P= rbmd::Id(CEIL(_RBE_P / 16)) * 16;
+
       _h_rbsog_K_Sample_int.resize(_RBE_P);
       _idx_npt.resize(_RBE_P,0);
       _h_rbsog_idx_npt.resize(_RBE_P,0);
@@ -136,6 +137,37 @@ void KSpaceCalculator::Init()
       // Initialize RBSOG coefficients and S-values
       RBSOGInit();
       RBSOGSetup(); // Initial calculation of S, S_npt
+
+      //info
+      Logger::Instance().info(
+      "{} initialization ...\n"
+      "         rbsog_b : {}\n"
+      "         rbsog_sigma : {}\n"
+      "         rbsog_Mmax : {}\n"
+      "         rbsog_sample_number : {}\n",
+      _coulomb_type,_rbsog_b, _rbsog_sigma, _rbsog_Mmax, _RBE_P);
+    }
+    //
+    else if ("EWALD" == _coulomb_type)  {
+      _alpha = config->Get<rbmd::Real>("alpha", "hyper_parameters", "coulomb");
+      //Kmax
+      auto Kmax =config->GetArray<rbmd::Id>("kmax", "hyper_parameters", "coulomb");
+      _kmax_array.x = Kmax[0];
+      _kmax_array.y = Kmax[1];
+      _kmax_array.z = Kmax[2];
+      _num_k =  (2*_kmax_array.x +1)  * (2*_kmax_array.y +1)
+                * (2*_kmax_array.z +1) - 1;
+      //info
+      Logger::Instance().info(
+         "{} initialization ...\n"
+         "         alpha: {}\n"
+         "         Kmax: ({}, {}, {})",
+         _coulomb_type,_alpha, Kmax[0], Kmax[1], Kmax[2]);
+    }
+    else
+    {
+      Logger::Instance().error("Unsupported coulomb type: {}", _coulomb_type);
+      exit(EXIT_FAILURE);
     }
   }
 }
@@ -233,6 +265,22 @@ void KSpaceCalculator::ComputeEwald()
   //   }
   //   kspace_ewald_file.close();
   // }
+
+  if (test_current_step ==0 ) {
+    thrust::host_vector<rbmd::Real> h_kspace_virial =_device_data->_d_virial_kspace;
+    std::ofstream kspace_file("kspace_ewald_virial.txt");
+    if (kspace_file.is_open()) {
+      for (rbmd::Id i = 0; i < h_kspace_virial.size(); ++i) {
+        kspace_file << i  << " " <<h_kspace_virial[i]  << "\n";
+      }
+      kspace_file.close();
+    }
+
+    for (rbmd::Id i = 0; i < h_kspace_virial.size(); ++i) {
+      std::cout << "virial: " << h_kspace_virial[i]  << std::endl;
+    }
+  }
+
 }
 
 void KSpaceCalculator::ComputeChargeStructureFactorEwald(
@@ -322,8 +370,7 @@ void KSpaceCalculator::ComputeRBE()
         thrust::raw_pointer_cast(_device_data->_d_pz.data()),
         thrust::raw_pointer_cast(_device_data->_d_force_kspace_x.data()),
         thrust::raw_pointer_cast(_device_data->_d_force_kspace_y.data()),
-        thrust::raw_pointer_cast(_device_data->_d_force_kspace_z.data()),
-        thrust::raw_pointer_cast(_device_data->_d_flat_virial_kspace.data()));
+        thrust::raw_pointer_cast(_device_data->_d_force_kspace_z.data()));
 
   auto end = std::chrono::high_resolution_clock::now();
   std::chrono::duration<rbmd::Real> duration = end - start;
@@ -498,7 +545,20 @@ void KSpaceCalculator::ComputeRBEVirial()
   //   }
   //   kspace_rbe_file.close();
   // }
+  if (test_current_step ==0 ) {
+    thrust::host_vector<rbmd::Real> h_kspace_virial =_device_data->_d_virial_kspace;
+    std::ofstream kspace_file("kspace_rbe_virial.txt");
+    if (kspace_file.is_open()) {
+      for (rbmd::Id i = 0; i < h_kspace_virial.size(); ++i) {
+        kspace_file << i  << " " <<h_kspace_virial[i]  << "\n";
+      }
+      kspace_file.close();
+    }
 
+    for (rbmd::Id i = 0; i < h_kspace_virial.size(); ++i) {
+      std::cout << "virial: " << h_kspace_virial[i]  << std::endl;
+    }
+  }
 }
 
 void KSpaceCalculator::RBEInit(Box box,rbmd::Real alpha,rbmd::Id RBE_P)
@@ -535,19 +595,39 @@ void KSpaceCalculator::ComputeQsqSum()
 {
   auto num_atoms = *(_structure_info_data->_num_atoms);
   thrust::device_vector<rbmd::Real> sq_charge;
+  // thrust::device_vector<rbmd::Real> sum_charge;
+  // sq_charge.resize(1);
+  // sum_charge.resize(1);
+
   sq_charge.resize(num_atoms);
+
   op::SqchargeOp<device::DEVICE_GPU>()(num_atoms,
     thrust::raw_pointer_cast(_device_data->_d_charge.data()),
     thrust::raw_pointer_cast(sq_charge.data()));
 
   _sum_sq_charge = thrust::reduce(sq_charge.begin(),
    sq_charge.end(), 0.0f, thrust::plus<rbmd::Real>());
+
+
   _q2 = _qqr2e* _sum_sq_charge;
 
-  //
+
   _sum_charge = thrust::reduce(_device_data->_d_charge.begin(),
 _device_data->_d_charge.end(), 0.0f, thrust::plus<rbmd::Real>());
 
+  // op::SumchargeOp<device::DEVICE_GPU>()(num_atoms,
+  //   thrust::raw_pointer_cast(_device_data->_d_charge.data()),
+  //   thrust::raw_pointer_cast(sq_charge.data()),
+  //   thrust::raw_pointer_cast(sum_charge.data()));
+  // thrust::host_vector<rbmd::Real> h_sum_sq_charge = sq_charge;
+  // thrust::host_vector<rbmd::Real> h_sum_charge =sum_charge;
+  // _sum_sq_charge = h_sum_sq_charge[0];
+  // _q2 = _qqr2e* _sum_sq_charge;
+  //
+  // _sum_charge = h_sum_charge[0];
+
+  std::cout << "_sum_charge: "<< _sum_charge
+    <<",sum_sq_charge: "  << _sum_sq_charge <<",q2: " << _q2 << std::endl;
   if (ABS(_sum_charge) > SMALL) {
     Logger::Instance().warn("\033[31mThe total charge of the model is not zero, "
               "the net charge is {}.\033[0m", _sum_charge);
@@ -702,12 +782,7 @@ void KSpaceCalculator::RBSOGInit()
   rbmd::Real r0 = _cut_off / _rbsog_sigma; //归一化截断半径
   _rbsog_w0 = Compute_W0(r0, _rbsog_b); // 计算最窄高斯权重（式2.11）   b: 几何级数的基，控制高斯带宽的间隔
 
-  const auto& config = DataManager::getInstance().getConfigData();
-  if (config->PathExists({"hyper_parameters", "coulomb" ,"rbsog_omega"})) {
-    _rbsog_omega = config->Get<rbmd::Real>("rbsog_omega", "hyper_parameters", "coulomb");
-    _rbsog_w0= _rbsog_omega;
-  }
-  std::cout <<  "_rbsog_w0: " << _rbsog_w0  <<std::endl;
+  // std::cout <<  "_rbsog_w0: " << _rbsog_w0  <<std::endl;
 
   _h_rbsog_sl.resize(_rbsog_Mmax);
   _h_rbsog_coef.resize(_rbsog_Mmax);
@@ -853,7 +928,7 @@ void KSpaceCalculator::RBSOGSetup()
   _rbsog_S_npt = sum_npt - sum_npt_1;
 
   std::cout<< "_rbsog_S:" << _rbsog_S << ",_rbsog_S_npt:" << _rbsog_S_npt<<std::endl;
-  // Logger::Instance().info("RBSOGSetup: S = " + std::to_string(_rbsog_S) + ", S_npt = " + std::to_string(_rbsog_S_npt));
+
 }
 
 void KSpaceCalculator::RBSOGSampleKSpace()
@@ -1003,7 +1078,6 @@ void KSpaceCalculator::RBSOGSampleKSpace()
       acce = pup * qup / (pdown * qdown) > 1.0 ? 1.0 : pup * qup / (pdown * qdown);
 
       yyy = RandomValue< rbmd::Real>(0.0, 1.0);
-
       if (yyy < acce) {
           _idx_npt[i] = i; // Accept current sample index
       }
@@ -1030,16 +1104,28 @@ void KSpaceCalculator::RBSOGSampleKSpace()
       h_K_npt_y[i] = _h_rbsog_K_Sample_y[id] * pxyz[1];
       h_K_npt_z[i] = _h_rbsog_K_Sample_z[id] * pxyz[2];
   }
+  if (test_current_step ==0 ) {
+    std::ofstream K_Sample_file("h_rbsog_K_Sample.txt");
+    if (K_Sample_file.is_open()) {
+      for (rbmd::Id i = 0; i < _RBE_P; ++i) {
+        K_Sample_file << i  << " " << h_K_x[i]<< " "<<  h_K_y[i]<< " "
+        <<  h_K_z[i]<<"\n";
+      }
+      K_Sample_file.close();
+    }
+  }
 
-  // std::ofstream K_Sample_file("h_rbsog_K_Sample_int.txt");
-  // if (K_Sample_file.is_open()) {
-  //   for (rbmd::Id i = 0; i < _RBE_P; ++i) {
-  //     K_Sample_file << i  << " " << _h_rbsog_K_Sample_int[i].x<< " "
-  //     <<  _h_rbsog_K_Sample_int[i].y<< " "
-  //     <<  _h_rbsog_K_Sample_int[i].z<<"\n";
-  //   }
-  //   K_Sample_file.close();
-  // }
+
+  if (test_current_step ==0 ) {
+    std::ofstream K_Sample_npt_file("h_rbsog_K_Sample_npt.txt");
+    if (K_Sample_npt_file.is_open()) {
+      for (rbmd::Id i = 0; i < _RBE_P; ++i) {
+        K_Sample_npt_file << i  << " " << h_K_x[i]<< " "<<  h_K_y[i]<< " "
+        <<  h_K_z[i]<<"\n";
+      }
+      K_Sample_npt_file.close();
+    }
+  }
 
 
   // 4. Copy to device
@@ -1070,7 +1156,6 @@ void KSpaceCalculator::ComputeRBSOG() {
   RBSOGSampleKSpace();  //
 
   // 3. Calculate correction factors `fac` and `fac_npt` on GPU
-  // auto start1 = std::chrono::high_resolution_clock::now();
   _d_fac.resize(_RBE_P);
   _d_fac_npt.resize(_RBE_P);
   thrust::fill(_d_fac.begin(), _d_fac.end(), 1);
@@ -1081,37 +1166,39 @@ void KSpaceCalculator::ComputeRBSOG() {
   rbmd::Real S_ratio = _rbsog_S0 / _rbsog_S;
   rbmd::Real S_npt_ratio = _rbsog_S_npt0 / _rbsog_S_npt;
   // ComputeRBSOGFactor();
-  op::ComputeRBSOGFactorsOp<device::DEVICE_GPU>()(
-      _RBE_P, thrust::raw_pointer_cast(_d_rbsog_K_Sample_x.data()),
+  op::ComputeRBSOGFactorOp<device::DEVICE_GPU>()(
+    *_box, _RBE_P,_rbsog_sigma,_rbsog_b, _rbsog_Mmax,
+    L_ratio, S_ratio,S_npt_ratio,
+      thrust::raw_pointer_cast(_d_rbsog_K_Sample_x.data()),
       thrust::raw_pointer_cast(_d_rbsog_K_Sample_y.data()),
       thrust::raw_pointer_cast(_d_rbsog_K_Sample_z.data()),
       thrust::raw_pointer_cast(_d_rbsog_K_npt_x.data()),
       thrust::raw_pointer_cast(_d_rbsog_K_npt_y.data()),
-      thrust::raw_pointer_cast(_d_rbsog_K_npt_z.data()), *_box, _rbsog_sigma,
-      _rbsog_b, _rbsog_Mmax, thrust::raw_pointer_cast(_d_rbsog_coef.data()),
-      thrust::raw_pointer_cast(_d_rbsog_coef_npt.data()), L_ratio, S_ratio,
-      S_npt_ratio, thrust::raw_pointer_cast(_d_fac.data()),
+      thrust::raw_pointer_cast(_d_rbsog_K_npt_z.data()),
+      thrust::raw_pointer_cast(_d_rbsog_coef.data()),
+      thrust::raw_pointer_cast(_d_rbsog_coef_npt.data()),
+      thrust::raw_pointer_cast(_d_fac.data()),
       thrust::raw_pointer_cast(_d_fac_npt.data()));
-  // auto end1 = std::chrono::high_resolution_clock::now();
-  // std::chrono::duration<rbmd::Real> duration1 = end1 - start1;
-  // std::cout << "RBSOGFactor time : " << duration1.count() << std::endl;
 
-  // thrust::host_vector<rbmd::Real> h_fac = _d_fac;
-  // std::ofstream fac_file("h_fac.txt");
-  // if (fac_file.is_open()) {
-  //   for (rbmd::Id i = 0; i < _RBE_P; ++i) {
-  //     fac_file << i  << " "<<  h_fac[i]<<"\n";
-  //   }
-  //   fac_file.close();
-  // }
+  if (test_current_step ==0 ) {
+    thrust::host_vector<rbmd::Real> h_fac = _d_fac;
+    thrust::host_vector<rbmd::Real> h_fac_npt = _d_fac_npt;
+    std::ofstream fac_file("h_rbmd_fac.txt");
+    if (fac_file.is_open()) {
+      for (rbmd::Id i = 0; i < _RBE_P; ++i) {
+        fac_file << i  << " "<<   h_fac[i] <<", "<<  h_fac_npt[i]<<"\n";
+      }
+      fac_file.close();
+    }
+  }
+
 
   // 4. Calculate Rho for the *sampled* K-vectors (K_Sample)
-  thrust::device_vector<rbmd::Real> d_rho_real(_RBE_P);
-  thrust::device_vector<rbmd::Real> d_rho_imag(_RBE_P);
-  thrust::device_vector<rbmd::Real> d_rho_npt_real(_RBE_P);
-  thrust::device_vector<rbmd::Real> d_rho_npt_imag(_RBE_P);
-  thrust::device_vector<rbmd::Real> d_energy_parts(2);  // [0]=sample, [1]=direct
+  thrust::device_vector<rbmd::Real> d_density_sample_real(_RBE_P);
+  thrust::device_vector<rbmd::Real> d_density_sample_imag(_RBE_P);
 
+  // energy_parts : [0]=sample, [1]=direct
+  thrust::device_vector<rbmd::Real> d_energy_parts(2);
   op::ComputePnumberChargeStructureFactorSOGOp<device::DEVICE_GPU>()(
       *_box, num_atoms, _RBE_P,
       thrust::raw_pointer_cast(_device_data->_d_charge.data()),
@@ -1121,18 +1208,21 @@ void KSpaceCalculator::ComputeRBSOG() {
       thrust::raw_pointer_cast(_device_data->_d_px.data()),
       thrust::raw_pointer_cast(_device_data->_d_py.data()),
       thrust::raw_pointer_cast(_device_data->_d_pz.data()),
-      thrust::raw_pointer_cast(d_rho_real.data()),
-      thrust::raw_pointer_cast(d_rho_imag.data()));
+      thrust::raw_pointer_cast(d_density_sample_real.data()),
+      thrust::raw_pointer_cast(d_density_sample_imag.data()));
 
-  // thrust::host_vector<rbmd::Real> h_rho_real = d_rho_real;
-  // thrust::host_vector<rbmd::Real> h_rho_imag = d_rho_imag;
-  // std::ofstream rho_file("h_rho.txt");
-  // if (rho_file.is_open()) {
-  //   for (rbmd::Id i = 0; i < _RBE_P; ++i) {
-  //     rho_file << i  << " "<<  h_rho_real[i] << " "<< h_rho_imag[i]<<"\n";
-  //   }
-  //   rho_file.close();
-  // }
+    if (test_current_step ==0 ) {
+      thrust::host_vector<rbmd::Real> h_rho_real = d_density_sample_real;
+      thrust::host_vector<rbmd::Real> h_rho_imag = d_density_sample_imag;
+      std::ofstream rho_file("h_density_sample.txt");
+      if (rho_file.is_open()) {
+        for (rbmd::Id i = 0; i < _RBE_P; ++i) {
+          rho_file << i  << " "<<  h_rho_real[i] << " "<< h_rho_imag[i]<<"\n";
+        }
+        rho_file.close();
+      }
+    }
+
 
   // 5. Calculate Force/Virial/Energy from *Sampled* K-vectors
   thrust::device_vector<rbmd::Real> d_SampleForce_x(num_atoms);
@@ -1150,8 +1240,8 @@ void KSpaceCalculator::ComputeRBSOG() {
       thrust::raw_pointer_cast(_d_rbsog_idx_npt_all.data()),
       thrust::raw_pointer_cast(_d_fac.data()),
       thrust::raw_pointer_cast(_d_fac_npt.data()),
-      thrust::raw_pointer_cast(d_rho_real.data()),
-      thrust::raw_pointer_cast(d_rho_imag.data()),
+      thrust::raw_pointer_cast(d_density_sample_real.data()),
+      thrust::raw_pointer_cast(d_density_sample_imag.data()),
       thrust::raw_pointer_cast(_device_data->_d_charge.data()),
       thrust::raw_pointer_cast(_device_data->_d_px.data()),
       thrust::raw_pointer_cast(_device_data->_d_py.data()),
@@ -1161,6 +1251,41 @@ void KSpaceCalculator::ComputeRBSOG() {
       thrust::raw_pointer_cast(d_SampleForce_z.data()),
       thrust::raw_pointer_cast(virial_sample.data()),
       thrust::raw_pointer_cast(d_energy_parts.data()));
+
+  if (test_current_step ==0 ) {
+    thrust::host_vector<rbmd::Real> h_SampleForce_x = d_SampleForce_x;
+    thrust::host_vector<rbmd::Real> h_SampleForce_y = d_SampleForce_y;
+    thrust::host_vector<rbmd::Real> h_SampleForce_z = d_SampleForce_z;
+
+    thrust::host_vector<rbmd::Real> h_px = _device_data->_d_px;
+    thrust::host_vector<rbmd::Real> h_py = _device_data->_d_py;
+    thrust::host_vector<rbmd::Real> h_pz = _device_data->_d_pz;
+
+    auto atom_id_to_idx =
+      LinkedCellLocator::GetInstance().GetLinkedCell()->_atom_id_to_idx;
+
+    std::ofstream SampleForce_file("h_SampleForce.txt");
+    if (SampleForce_file.is_open()) {
+      for (rbmd::Id i = 0; i < num_atoms; ++i) {
+        SampleForce_file << i  << " "<<   h_px[atom_id_to_idx[i]] << " " << h_py[atom_id_to_idx[i]] << " " << h_pz[atom_id_to_idx[i]]
+          << " " <<h_SampleForce_x[atom_id_to_idx[i]]<< " "<< h_SampleForce_y[atom_id_to_idx[i]]
+          << " " <<h_SampleForce_z[atom_id_to_idx[i]]<<"\n";
+      }
+      SampleForce_file.close();
+    }
+  }
+
+  if (test_current_step ==0 ) {
+    thrust::host_vector<rbmd::Real> h_virial_sample=virial_sample;
+
+    std::ofstream virial_sample_file("h_virial_sample.txt");
+    if (virial_sample_file.is_open()) {
+      for (rbmd::Id i = 0; i < h_virial_sample.size(); ++i) {
+        virial_sample_file << i  << " "<<  h_virial_sample[i] <<"\n";
+      }
+      virial_sample_file.close();
+    }
+  }
 
   // 6. Calculate Force/Virial/Energy from *Direct Sum* K-vectors
   // Host-side: generate the list of direct-sum K-vectors
@@ -1196,16 +1321,30 @@ void KSpaceCalculator::ComputeRBSOG() {
     }
   }
 
+  if (test_current_step ==0 ) {
 
+    std::ofstream k_direct_file("h_k_direct.txt");
+    if (k_direct_file.is_open()) {
+      for (rbmd::Id i = 0; i < h_k_direct_x.size(); ++i) {
+        k_direct_file << i  << " "<<  h_k_direct_x[i] << " "<< h_k_direct_y[i] << " " <<h_k_direct_z[i]<<"\n";
+      }
+      k_direct_file.close();
+    }
+  }
 
-  auto num_k_direct = h_k_direct_x.size();
+  if (test_current_step ==0 ) {
 
-  // for (int i = 0; i < num_k_direct; ++i) {
-  //   std::cout << "h_k_direct: "<< h_k_direct_x[i] <<
-  //     ", "<<h_k_direct_y[i] << ", " <<  h_k_direct_z[i]  <<std::endl;
-  // }
+    std::ofstream b_sigma_file("h_b_sigma.txt");
+    if (b_sigma_file.is_open()) {
+      for (rbmd::Id i = 0; i < h_f_b_sigma.size(); ++i) {
+        b_sigma_file << i  << " "<<  h_f_b_sigma[i] << " "<< h_f_b_sigma_npt[i]<<"\n";
+      }
+      b_sigma_file.close();
+    }
+  }
 
   // Copy direct-sum data to device
+  auto num_k_direct = h_k_direct_x.size();
   thrust::device_vector<rbmd::Real> d_k_direct_x = h_k_direct_x;
   thrust::device_vector<rbmd::Real> d_k_direct_y = h_k_direct_y;
   thrust::device_vector<rbmd::Real> d_k_direct_z = h_k_direct_z;
@@ -1214,18 +1353,31 @@ void KSpaceCalculator::ComputeRBSOG() {
   thrust::device_vector<rbmd::Real> d_f_b_sigma_npt = h_f_b_sigma_npt;
 
   // Calculate Rho for direct-sum vectors
-  thrust::device_vector<rbmd::Real> d_rho_direct_real(num_k_direct);
-  thrust::device_vector<rbmd::Real> d_rho_direct_imag(num_k_direct);
+  thrust::device_vector<rbmd::Real> d_density_direct_real(num_k_direct);
+  thrust::device_vector<rbmd::Real> d_density_direct_imag(num_k_direct);
   op::ComputeDirectChargeStructureFactorOp<device::DEVICE_GPU>()(
-      num_atoms, num_k_direct, thrust::raw_pointer_cast(d_k_direct_x.data()),
+      num_atoms, num_k_direct,
+      thrust::raw_pointer_cast(d_k_direct_x.data()),
       thrust::raw_pointer_cast(d_k_direct_y.data()),
       thrust::raw_pointer_cast(d_k_direct_z.data()),
       thrust::raw_pointer_cast(_device_data->_d_charge.data()),
       thrust::raw_pointer_cast(_device_data->_d_px.data()),
       thrust::raw_pointer_cast(_device_data->_d_py.data()),
       thrust::raw_pointer_cast(_device_data->_d_pz.data()),
-      thrust::raw_pointer_cast(d_rho_direct_real.data()),
-      thrust::raw_pointer_cast(d_rho_direct_imag.data()));
+      thrust::raw_pointer_cast(d_density_direct_real.data()),
+      thrust::raw_pointer_cast(d_density_direct_imag.data()));
+
+  if (test_current_step ==0 ) {
+    thrust::host_vector<rbmd::Real> h_density_direct_real=d_density_direct_real;
+    thrust::host_vector<rbmd::Real> h_density_direct_imag=d_density_direct_imag;
+    std::ofstream density_direct_file("h_density_direct.txt");
+    if (density_direct_file.is_open()) {
+      for (rbmd::Id i = 0; i < h_density_direct_real.size(); ++i) {
+        density_direct_file << i  << " "<<  h_density_direct_real[i] << " "<< h_density_direct_imag[i]<<"\n";
+      }
+      density_direct_file.close();
+    }
+  }
 
   // Calculate Force from direct-sum vectors
   thrust::device_vector<rbmd::Real> d_DirectForce_x(num_atoms);
@@ -1239,8 +1391,8 @@ void KSpaceCalculator::ComputeRBSOG() {
       thrust::raw_pointer_cast(d_k_direct_z.data()),
       thrust::raw_pointer_cast(d_f_b_sigma.data()),
       thrust::raw_pointer_cast(d_f_b_sigma_npt.data()),
-      thrust::raw_pointer_cast(d_rho_direct_real.data()),
-      thrust::raw_pointer_cast(d_rho_direct_imag.data()),
+      thrust::raw_pointer_cast(d_density_direct_real.data()),
+      thrust::raw_pointer_cast(d_density_direct_imag.data()),
       thrust::raw_pointer_cast(_device_data->_d_charge.data()),
       thrust::raw_pointer_cast(_device_data->_d_px.data()),
       thrust::raw_pointer_cast(_device_data->_d_py.data()),
@@ -1251,7 +1403,45 @@ void KSpaceCalculator::ComputeRBSOG() {
       thrust::raw_pointer_cast(virial_direct.data()),
       thrust::raw_pointer_cast(d_energy_parts.data()));
 
+  if (test_current_step ==0 ) {
+    thrust::host_vector<rbmd::Real> h_DirectForce_x=d_DirectForce_x;
+    thrust::host_vector<rbmd::Real> h_DirectForce_y=d_DirectForce_y;
+    thrust::host_vector<rbmd::Real> h_DirectForce_z=d_DirectForce_z;
 
+    thrust::host_vector<rbmd::Real> h_px = _device_data->_d_px;
+    thrust::host_vector<rbmd::Real> h_py = _device_data->_d_py;
+    thrust::host_vector<rbmd::Real> h_pz = _device_data->_d_pz;
+
+    auto atom_id_to_idx =
+      LinkedCellLocator::GetInstance().GetLinkedCell()->_atom_id_to_idx;
+    std::ofstream DirectForce_file("h_rbmd_DirectForce.txt");
+    if (DirectForce_file.is_open()) {
+      for (rbmd::Id index = 0; index < h_DirectForce_x.size(); ++index) {
+        auto i = atom_id_to_idx[index];
+        DirectForce_file << index  << " "
+        << h_px[i] << " " << h_py[i] << " " << h_pz[i] << " "
+        << h_DirectForce_x[i] <<" "
+        << h_DirectForce_y[i] << " "<< h_DirectForce_z[i]<<"\n";
+      }
+      DirectForce_file.close();
+    }
+
+  }
+
+  if (test_current_step ==0 ) {
+    thrust::host_vector<rbmd::Real> h_virial_direct=virial_direct;
+
+    std::ofstream virial_direct_file("h_virial_direct.txt");
+    if (virial_direct_file.is_open()) {
+      for (rbmd::Id i = 0; i < h_virial_direct.size(); ++i) {
+        virial_direct_file << i  << " "<<  h_virial_direct[i] <<"\n";
+      }
+      virial_direct_file.close();
+    }
+  }
+
+
+  // Force_Total  = force_sample + force_direct
   TransformForces(_device_data->_d_force_kspace_x, d_SampleForce_x,
                   d_DirectForce_x);
   TransformForces(_device_data->_d_force_kspace_y, d_SampleForce_y,
@@ -1259,35 +1449,52 @@ void KSpaceCalculator::ComputeRBSOG() {
   TransformForces(_device_data->_d_force_kspace_z, d_SampleForce_z,
                   d_DirectForce_z);
 
-  //virial      Virial_Total = Virial_sample + Virial_direct
+  // Virial_Total = Virial_sample + Virial_direct
   TransformForces(_device_data->_d_virial_kspace, virial_sample,
                 virial_direct);
 
-  // thrust::host_vector<rbmd::Real> h_kspace_virial =_device_data->_d_virial_kspace;
-  //
-  // std::ofstream kspace_file("kspace_rbsog_virial.txt");
-  // if (kspace_file.is_open()) {
-  //   for (rbmd::Id i = 0; i < h_kspace_virial.size(); ++i) {
-  //     kspace_file << i  << " " <<h_kspace_virial[i]  << "\n";
-  //   }
-  //   kspace_file.close();
-  // }
+  if (test_current_step ==0 ) {
+    thrust::host_vector<rbmd::Real> h_kspace_virial =_device_data->_d_virial_kspace;
+    std::ofstream kspace_file("kspace_rbsog_virial.txt");
+    if (kspace_file.is_open()) {
+      for (rbmd::Id i = 0; i < h_kspace_virial.size(); ++i) {
+        kspace_file << i  << " " <<h_kspace_virial[i]  << "\n";
+      }
+      kspace_file.close();
+    }
 
-  // thrust::host_vector<rbmd::Real> h_kspace_x =_device_data->_d_force_kspace_x;
-  // thrust::host_vector<rbmd::Real> h_kspace_y = _device_data->_d_force_kspace_y;
-  // thrust::host_vector<rbmd::Real> h_kspace_z = _device_data->_d_force_kspace_z;
-  //
-  // std::ofstream kspace_file("kspace_rbsog.txt");
-  // auto atom_id_to_idx =
-  //   LinkedCellLocator::GetInstance().GetLinkedCell()->_atom_id_to_idx;
-  // if (kspace_file.is_open()) {
-  //   for (rbmd::Id i = 0; i < h_kspace_x.size(); ++i) {
-  //     auto index = atom_id_to_idx[i];
-  //     kspace_file << i  << " " <<h_kspace_x[index] <<" " <<h_kspace_y[index] <<" " <<
-  //     h_kspace_z[index]<< "\n";
-  //   }
-  //   kspace_file.close();
-  // }
+    for (rbmd::Id i = 0; i < h_kspace_virial.size(); ++i) {
+      std::cout << "kspace_rbsog_virial: " << h_kspace_virial[i]  << std::endl;
+    }
+  }
+
+  if (test_current_step ==0 ) {
+    thrust::host_vector<rbmd::Real> h_kspace_x =_device_data->_d_force_kspace_x;
+    thrust::host_vector<rbmd::Real> h_kspace_y = _device_data->_d_force_kspace_y;
+    thrust::host_vector<rbmd::Real> h_kspace_z = _device_data->_d_force_kspace_z;
+
+    thrust::host_vector<rbmd::Real> h_px = _device_data->_d_px;
+    thrust::host_vector<rbmd::Real> h_py = _device_data->_d_py;
+    thrust::host_vector<rbmd::Real> h_pz = _device_data->_d_pz;
+
+    auto atom_id_to_idx =
+      LinkedCellLocator::GetInstance().GetLinkedCell()->_atom_id_to_idx;
+
+    std::ofstream rbsog_force_file("rbsog_force.txt");
+    // auto atom_id_to_idx =
+    //   LinkedCellLocator::GetInstance().GetLinkedCell()->_atom_id_to_idx;
+    if (rbsog_force_file.is_open()) {
+      for (rbmd::Id i = 0; i < h_kspace_x.size(); ++i) {
+        auto index = atom_id_to_idx[i];
+        rbsog_force_file << i  << " "   << h_px[index] << " " << h_py[index] << " " << h_pz[index] << " "
+        <<h_kspace_x[index] <<" " <<h_kspace_y[index] <<" " <<
+        h_kspace_z[index]<< "\n";
+      }
+      rbsog_force_file.close();
+    }
+  }
+
+
 
   // // 9. Finalize Energy
    thrust::host_vector<rbmd::Real> h_energy_parts = d_energy_parts;
@@ -1391,7 +1598,8 @@ rbmd::Real KSpaceCalculator::randn_box_muller(rbmd::Real Mean,
     u1 = RandomValue<rbmd::Real>(0.0, 1.0);
     u2 = RandomValue<rbmd::Real>(0.0, 1.0);
   } while (u1 <= epsilon);
-
+  // u1 =0.5;
+  // u2 =0.5;
   rbmd::Real z0 = SQRT(-2.0 * LOG(u1)) * COS(two_pi * u2);
   rbmd::Real z1 = SQRT(-2.0 * LOG(u1)) * SIN(two_pi * u2);
 

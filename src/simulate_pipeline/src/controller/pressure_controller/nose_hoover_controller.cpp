@@ -196,13 +196,13 @@ void NoseHooverController::Update()
 {
 }
 
-void NoseHooverController::ComputeTemperature(){
+void NoseHooverController::ComputeTemperature() {
   rbmd::Id num_atoms = *(_structure_info_data->_num_atoms);
   CHECK_RUNTIME(MEMSET(_d_temp_contrib, 0, sizeof(rbmd::Real)));
 
   if (_com_bias) {
     //  计算质心速度 (vbias)
-   _group_controller->ComputeVCM(_group_name, _vbias);
+    _group_controller->ComputeVCM(_group_name, _vbias);
     op::ComputeTemperatureCOMOp<device::DEVICE_GPU>()(num_atoms, _mvv2e,_vbias,
         thrust::raw_pointer_cast(_device_data->_d_atoms_type.data()),
         thrust::raw_pointer_cast(_device_data->_d_mass.data()),
@@ -223,6 +223,10 @@ void NoseHooverController::ComputeTemperature(){
   CHECK_RUNTIME(MEMCPY(&_temp_sum, _d_temp_contrib, sizeof(rbmd::Real), D2H));
 
   _temperature = 0.5 * _temp_sum / (_tdof * _kB / 2.0);
+  if (test_current_step == 0) {
+    std::cout << "Step 0 Temperature: " << _temperature << std::endl;
+  }
+
 
   if (std::isnan(_temperature)) {
     Logger::Instance().error( "\033[31mFATAL ERROR: The temperature of the MD simulation is NaN"
@@ -246,11 +250,22 @@ void NoseHooverController::ComputePressure()
   auto  inv_volume = 1/volume;
 
   ComputeVirial();
+  if (test_current_step == 0) {
+    thrust::host_vector<rbmd::Real>h_virial = _device_data->_d_virial;
+      std::cout << "Step 0 Total Virial on GPU  (xx yy zz xy xz yz): "
+           << h_virial[0] << " " << h_virial[1] << " " << h_virial[2] << " "
+           << h_virial[3] << " " << h_virial[4] << " " << h_virial[5] << std::endl;
+  }
+
 
   //compute pressure
   _pressure = (_tdof * _kB * _temperature+_device_data->_d_virial[0]
     + _device_data->_d_virial[1] +_device_data->_d_virial[2])
   /3.0 * inv_volume * _nktv2p;
+  if (test_current_step == 0) {
+    std::cout << "Step 0 Pressure: " << _pressure << std::endl;
+  }
+
 
 }
 

@@ -57,10 +57,17 @@ __global__ void ComputeSpecialLJCutCoulForceUserKernel(
 {
     __shared__ typename BLOCKREDUCE<rbmd::Real, BLOCK_SIZE>::TempStorage temp_storage_elj;
     __shared__ typename BLOCKREDUCE<rbmd::Real, BLOCK_SIZE>::TempStorage temp_storage_ecoul;
-
-    rbmd::Real sum_fx = 0; rbmd::Real sum_fy = 0; rbmd::Real sum_fz = 0;
-    rbmd::Real sum_elj = 0; rbmd::Real sum_ecoul = 0;
-    rbmd::Real sum_virial[6] = {0.0};
+    rbmd::Real sum_fx = 0;
+    rbmd::Real sum_fy = 0;
+    rbmd::Real sum_fz = 0;
+    rbmd::Real sum_elj = 0;
+    rbmd::Real sum_ecoul = 0;
+    //virial init
+    rbmd::Real sum_virial[6];
+    for (int i = 0; i < 6; ++i)
+    {
+      sum_virial[i] = 0.0;
+    }
 
     unsigned int tid1 = blockIdx.x * blockDim.x + threadIdx.x;
     if (tid1 < num_atoms) {
@@ -102,7 +109,16 @@ __global__ void ComputeSpecialLJCutCoulForceUserKernel(
         lj126(cut_off, x12, y12, z12, eps_ij, sigma_ij,
           force_lj, energy_lj);
 
-          // --- 2. Coul Calculation (RBSOG User) ---
+        // --- . Apply Special Weights ---
+        rbmd::Real weight = 1.0;
+        for (rbmd::Id k = 0; k < special_count[atom_id1]; ++k) {
+          rbmd::Id special_id = special_ids[num_components + k];
+          if (special_id == atom_id2) {
+            weight = special_weights[num_components + k];
+          }
+        }
+
+          // --- . Coul Calculation (RBSOG User) ---
         rbmd::Real f_coul_full, e_coul_full, f_coul_short, e_coul_short;
         CoulCutForceUser(cut_off, x12, y12,z12, qqr2e, charge_i, charge_j,
                            taylor_coeff[0], taylor_coeff[1],
@@ -112,18 +128,12 @@ __global__ void ComputeSpecialLJCutCoulForceUserKernel(
                            f_coul_full, e_coul_full,
                            f_coul_short, e_coul_short);
 
-          // --- 3. Apply Special Weights ---
-        rbmd::Real weight = 1.0;
-        for (rbmd::Id k = 0; k < special_count[atom_id1]; ++k) {
-            rbmd::Id special_id = special_ids[num_components + k];
-            if (special_id == atom_id2) {
-              weight = special_weights[num_components + k];
-            }
-        }
+
 
         // Formula: Scaled_Short = Short - (1 - weight) * Full
         f_coul_short = f_coul_short- (1.0 - weight) * f_coul_full;
         force_pair = weight * force_lj  + f_coul_short;
+        // printf("force_pair:  %f\n",force_pair);
 
          sum_fx += x12 * force_pair;
          sum_fy += y12 * force_pair;
@@ -132,7 +142,7 @@ __global__ void ComputeSpecialLJCutCoulForceUserKernel(
          sum_elj += weight * energy_lj;
          sum_ecoul += (e_coul_short - (1.0 - weight) * e_coul_full);
 
-         // --- 4. Virial ---
+         // --- . Virial ---
         //rbmd::Real local_virial[6];
         rbmd::Real local_virial_xx,local_virial_yy,local_virial_zz,
           local_virial_xy,local_virial_xz,local_virial_yz;
@@ -249,13 +259,10 @@ __global__ void ComputeSpecialLJCutCoulForce(
       }
 
       // Coul cut
-      //  LJ126CoulCutForce_fix(cut_off,eps_ij, sigma_ij, alpha, qqr2e,
-      //    charge_i, charge_j,x12, y12, z12, force_lj, energy_lj,
-      // force_coul_factor,energy_coul_factor,force_coul, energy_coul);
-
       CoulCutForce_fix(cut_off, alpha, qqr2e, charge_i, charge_j,
     x12, y12, z12, force_coul_factor,energy_coul_factor,
       force_coul, energy_coul);
+
       force_coul = force_coul-(1-weight)*force_coul_factor;
       energy_coul = energy_coul-(1-weight)*energy_coul_factor;
 
